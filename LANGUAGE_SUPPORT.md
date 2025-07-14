@@ -96,7 +96,6 @@ const text = t('newSection.newKey');
 - `navigation.dashboard` - Dashboard
 - `navigation.members` - Members/Ahli Kariah
 - `navigation.finance` - Finance/Kewangan
-- `navigation.khairat` - Khairat
 - `navigation.zakat` - Zakat
 - `navigation.reports` - Reports/Laporan
 - `navigation.logout` - Logout/Log Keluar

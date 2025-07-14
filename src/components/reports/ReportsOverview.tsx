@@ -366,7 +366,7 @@ export function ReportsOverview({ user }: ReportsOverviewProps) {
                       className="flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-sm font-medium text-blue-600 dark:text-blue-300">
                           {index + 1}
                         </div>
                         <div>
@@ -411,7 +411,7 @@ export function ReportsOverview({ user }: ReportsOverviewProps) {
             <CardContent>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">850</div>
                     <div className="text-sm text-gray-600">Jumlah Ahli</div>
                   </div>
@@ -509,14 +509,6 @@ export function ReportsOverview({ user }: ReportsOverviewProps) {
                 >
                   <Download className="h-6 w-6" />
                   <span>{t('reports.zakatReport')}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-20 flex flex-col items-center gap-2"
-                  onClick={() => generateReport('khairat')}
-                >
-                  <PieChart className="h-6 w-6" />
-                  <span>{t('reports.khairatReport')}</span>
                 </Button>
                 <Button
                   variant="outline"

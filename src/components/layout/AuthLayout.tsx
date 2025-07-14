@@ -2,8 +2,9 @@
 
 import { ReactNode, memo } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthState, useAuthActions } from '@/hooks/useAuth.v2';
 import { ClientOnly } from '@/components/layout/ClientOnly';
+import { createUserFromAuth } from '@/utils/userUtils';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -23,19 +24,22 @@ function AuthLoadingFallback() {
 
 // Internal AuthLayout component
 function AuthLayoutInternal({ children }: AuthLayoutProps) {
-  const { user, isLoading, logout } = useAuth(true);
+  const { user: authUser, profile, isLoading } = useAuthState();
+  const { signOut } = useAuthActions();
 
   if (isLoading) {
     return <AuthLoadingFallback />;
   }
 
-  if (!user) {
+  if (!authUser || !profile) {
     // The useAuth hook will handle redirection
     return <AuthLoadingFallback />;
   }
 
+  const user = createUserFromAuth(authUser, profile);
+
   return (
-    <Layout user={user} onLogout={logout}>
+    <Layout user={user} onLogout={signOut}>
       {children}
     </Layout>
   );
