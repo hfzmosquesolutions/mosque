@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthState } from '@/hooks/useAuth.v2';
 import { TransactionForm } from '@/components/finance/TransactionForm';
 import { Button } from '@/components/ui/button';
 import {
@@ -67,7 +67,7 @@ interface Transaction {
 
 function FinancePageContent() {
   const { t } = useLanguage();
-  const { user: authUser } = useAuth();
+  const { user: authUser } = useAuthState();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');

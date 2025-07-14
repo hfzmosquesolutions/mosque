@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     // Exclude the old project directory
     config.module.rules.push({
       test: /\.tsx?$/,
-      exclude: /Sistem Pengurusan Masjid & Khairat Digital/,
+      exclude: /Sistem Pengurusan Masjid Digital/,
     });
 
     // Optimize chunk splitting for better performance

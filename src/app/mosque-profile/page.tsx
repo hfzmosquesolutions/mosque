@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthState } from '@/hooks/useAuth.v2';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,510 +12,332 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import {
-  Building,
-  MapPin,
-  Phone,
-  Users,
-  Calendar,
-  CreditCard,
-  Clock,
-} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Building, Edit, Info, Eye } from 'lucide-react';
+import Link from 'next/link';
+import MosqueProfileForm, {
+  MosqueProfileData,
+} from '@/components/mosques/MosqueProfileForm';
+import { MosqueProfileService, MosqueProfile } from '@/services/mosque-profile';
 
 function MosqueProfileContent() {
   const { t } = useLanguage();
-  const { user: authUser } = useAuth();
-
-  // Mosque profile data
-  const [mosque, setMosque] = useState({
-    id: 'MSJ001',
-    name: 'Masjid Al-Hidayah',
-    address: 'Jalan Masjid Al-Hidayah, Kampung Baru',
-    city: 'Kuala Lumpur',
-    state: 'Wilayah Persekutuan',
-    postcode: '50300',
-    phone: '+603-2691-1234',
-    email: 'admin@masjidhidayah.my',
-    website: 'www.masjidhidayah.my',
-    capacity: 500,
-    establishedDate: '1985-06-15',
-    registrationNumber: 'PPM-001/WP/1985',
-    imam: 'Ustaz Abdullah Rahman',
-    chairman: 'Haji Ahmad Ibrahim',
-    bankAccount: '1234567890 (Bank Islam)',
-    services: [
-      'Solat 5 Waktu',
-      'Solat Jumaat',
-      'Kelas Mengaji',
-      'Majlis Tahlil',
-      'Khairat Kematian',
-      'Zakat',
-    ],
-    operatingHours: {
-      subuh: '5:30 AM - 7:00 AM',
-      zohor: '1:00 PM - 2:30 PM',
-      asar: '4:30 PM - 6:00 PM',
-      maghrib: '7:15 PM - 8:00 PM',
-      isyak: '8:30 PM - 10:00 PM',
-    },
-  });
-
+  const { user: authUser, profile } = useAuthState();
+  const [mosqueProfile, setMosqueProfile] = useState<MosqueProfile | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const [canCreate, setCanCreate] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setMosque((prev) => ({ ...prev, [field]: value }));
+  const canManageProfile =
+    profile?.role === 'super_admin' || profile?.role === 'mosque_admin';
+
+  useEffect(() => {
+    if (profile?.id && authUser?.id) {
+      fetchMosqueProfile();
+      checkCreatePermission();
+    }
+  }, [profile?.id, authUser?.id]);
+
+  const fetchMosqueProfile = async () => {
+    if (!authUser?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const data = await MosqueProfileService.getUserMosqueProfile(authUser.id);
+
+      setMosqueProfile(data);
+    } catch (error) {
+      console.error('Error fetching mosque profile:', error);
+      setMessage({ type: 'error', text: 'Failed to load mosque profile' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveProfile = () => {
-    console.log('Saving mosque profile:', mosque);
-    setIsEditing(false);
-    // Show success message
+  const checkCreatePermission = async () => {
+    if (!authUser?.id) return;
+
+    try {
+      const canCreateMosque = await MosqueProfileService.canCreateMosque(
+        authUser.id
+      );
+
+      setCanCreate(canCreateMosque);
+    } catch (error) {
+      console.error('Error checking create permission:', error);
+    }
   };
 
-  // Check if user has permission to edit mosque profile
-  const canEdit =
-    authUser?.role === 'super_admin' || authUser?.role === 'mosque_admin';
+  const handleSaveMosque = async (data: MosqueProfileData) => {
+    if (!authUser) return;
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      let result;
+
+      if (mosqueProfile?.id) {
+        // Update existing mosque
+        result = await MosqueProfileService.updateMosqueProfile(
+          mosqueProfile.id,
+          data,
+          authUser.id
+        );
+      } else {
+        // Create new mosque
+        result = await MosqueProfileService.createMosqueProfile(
+          data,
+          authUser.id
+        );
+      }
+
+      if (result) {
+        setMosqueProfile(result);
+        setIsEditing(false);
+        setMessage({
+          type: 'success',
+          text: mosqueProfile?.id
+            ? 'Mosque profile updated successfully!'
+            : 'Mosque profile created successfully!',
+        });
+        // No need to fetch again since we already have the result
+      } else {
+        setMessage({
+          type: 'error',
+          text: 'Failed to save mosque profile. Please try again.',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving mosque profile:', error);
+      setMessage({
+        type: 'error',
+        text: 'An error occurred while saving the mosque profile.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading mosque profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canManageProfile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5" />
+            Access Restricted
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              You don't have permission to manage mosque profiles. Please
+              contact your administrator.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {t('mosqueProfile.title')}
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {t('mosqueProfile.subtitle')}
-              </p>
-            </div>
-            {canEdit && (
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                variant={isEditing ? 'outline' : 'default'}
-                className="w-full sm:w-auto"
-              >
-                {isEditing ? t('common.cancel') : t('common.edit')}
-              </Button>
-            )}
-          </div>
+    <div className="space-y-6">
+      {message && (
+        <Alert
+          className={
+            message.type === 'error' ? 'border-red-500' : 'border-green-500'
+          }
+        >
+          <AlertDescription
+            className={
+              message.type === 'error' ? 'text-red-700' : 'text-green-700'
+            }
+          >
+            {message.text}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">Mosque Profile Management</h1>
+          <p className="text-gray-600">
+            {mosqueProfile
+              ? 'Manage your mosque information and details'
+              : 'Create your mosque profile to get started'}
+          </p>
         </div>
 
-        {/* Mosque Overview Section */}
-        <div className="mb-8">
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div className="flex-shrink-0">
-                  <div className="h-24 w-24 md:h-32 md:w-32 bg-gradient-to-br from-blue-500 to-green-500 rounded-xl flex items-center justify-center">
-                    <Building className="h-12 w-12 md:h-16 md:w-16 text-white" />
-                  </div>
-                </div>
-
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-gray-900">
-                      {mosque.name}
-                    </h2>
-                    <p className="text-gray-600 flex items-center gap-2 mt-1">
-                      <MapPin className="h-4 w-4" />
-                      {mosque.city}, {mosque.state}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant="outline" className="bg-white">
-                      ID: {mosque.id}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Est. {new Date(mosque.establishedDate).getFullYear()}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <Users className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                      <div className="text-sm font-medium text-blue-900">
-                        {mosque.capacity}
-                      </div>
-                      <div className="text-xs text-blue-600">Capacity</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <Building className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                      <div className="text-sm font-medium text-green-900">
-                        {mosque.services.length}
-                      </div>
-                      <div className="text-xs text-green-600">Services</div>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-lg">
-                      <Calendar className="h-5 w-5 text-purple-600 mx-auto mb-1" />
-                      <div className="text-sm font-medium text-purple-900">
-                        {new Date().getFullYear() -
-                          new Date(mosque.establishedDate).getFullYear()}
-                      </div>
-                      <div className="text-xs text-purple-600">Years</div>
-                    </div>
-                    <div className="text-center p-3 bg-orange-50 rounded-lg">
-                      <Phone className="h-5 w-5 text-orange-600 mx-auto mb-1" />
-                      <div className="text-sm font-medium text-orange-900">
-                        Active
-                      </div>
-                      <div className="text-xs text-orange-600">Status</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="h-5 w-5" />
-                  {t('mosqueProfile.basicInfo')}
-                </CardTitle>
-                <CardDescription>
-                  {t('mosqueProfile.aboutMosque')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="mosqueName">
-                      {t('mosqueProfile.mosqueName')}
-                    </Label>
-                    <Input
-                      id="mosqueName"
-                      value={mosque.name}
-                      onChange={(e) =>
-                        handleInputChange('name', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mosqueId">
-                      {t('mosqueProfile.mosqueId')}
-                    </Label>
-                    <Input
-                      id="mosqueId"
-                      value={mosque.id}
-                      disabled
-                      className="bg-gray-50 border-gray-200"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity">
-                      {t('mosqueProfile.capacity')}
-                    </Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      value={mosque.capacity}
-                      onChange={(e) =>
-                        handleInputChange('capacity', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="establishedDate">
-                      {t('mosqueProfile.establishedDate')}
-                    </Label>
-                    <Input
-                      id="establishedDate"
-                      type="date"
-                      value={mosque.establishedDate}
-                      onChange={(e) =>
-                        handleInputChange('establishedDate', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Contact Information */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t('mosqueProfile.phone')}</Label>
-                    <Input
-                      id="phone"
-                      value={mosque.phone}
-                      onChange={(e) =>
-                        handleInputChange('phone', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t('mosqueProfile.email')}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={mosque.email}
-                      onChange={(e) =>
-                        handleInputChange('email', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="website">
-                      {t('mosqueProfile.website')}
-                    </Label>
-                    <Input
-                      id="website"
-                      value={mosque.website}
-                      onChange={(e) =>
-                        handleInputChange('website', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Address Information */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Textarea
-                      id="address"
-                      value={mosque.address}
-                      onChange={(e) =>
-                        handleInputChange('address', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors min-h-[80px]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={mosque.city}
-                        onChange={(e) =>
-                          handleInputChange('city', e.target.value)
-                        }
-                        disabled={!isEditing}
-                        className="transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={mosque.state}
-                        onChange={(e) =>
-                          handleInputChange('state', e.target.value)
-                        }
-                        disabled={!isEditing}
-                        className="transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="postcode">Postcode</Label>
-                      <Input
-                        id="postcode"
-                        value={mosque.postcode}
-                        onChange={(e) =>
-                          handleInputChange('postcode', e.target.value)
-                        }
-                        disabled={!isEditing}
-                        className="transition-colors"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Leadership */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Leadership
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="imam">Imam</Label>
-                    <Input
-                      id="imam"
-                      value={mosque.imam}
-                      onChange={(e) =>
-                        handleInputChange('imam', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="chairman">Chairman</Label>
-                    <Input
-                      id="chairman"
-                      value={mosque.chairman}
-                      onChange={(e) =>
-                        handleInputChange('chairman', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="registrationNumber">
-                      Registration Number
-                    </Label>
-                    <Input
-                      id="registrationNumber"
-                      value={mosque.registrationNumber}
-                      onChange={(e) =>
-                        handleInputChange('registrationNumber', e.target.value)
-                      }
-                      disabled={!isEditing}
-                      className="transition-colors"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Bank Account */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  {t('mosqueProfile.bankAccount')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="bankAccount">
-                    {t('mosqueProfile.bankAccount')}
-                  </Label>
-                  <Input
-                    id="bankAccount"
-                    value={mosque.bankAccount}
-                    onChange={(e) =>
-                      handleInputChange('bankAccount', e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="transition-colors"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Bottom Section - Services & Operating Hours */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Services */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle>{t('mosqueProfile.services')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {mosque.services.map((service, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="text-xs bg-white"
-                  >
-                    {service}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Operating Hours */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                {t('mosqueProfile.operatingHours')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(mosque.operatingHours).map(([prayer, time]) => (
-                  <div
-                    key={prayer}
-                    className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
-                  >
-                    <span className="font-medium capitalize text-gray-700">
-                      {prayer}
-                    </span>
-                    <span className="text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                      {time}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Save Actions */}
-        {isEditing && canEdit && (
-          <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(false)}
-              className="order-2 sm:order-1"
+        {mosqueProfile && !isEditing && (
+          <div className="flex gap-2">
+            <Link
+              href={`/public/mosque/${mosqueProfile.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSaveProfile} className="order-1 sm:order-2">
-              {t('mosqueProfile.updateProfile')}
+              <Button variant="outline" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                View Live Profile
+              </Button>
+            </Link>
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Profile
             </Button>
           </div>
         )}
       </div>
+
+      {/* Mosque Profile Display or Form */}
+      {!mosqueProfile && canCreate ? (
+        <MosqueProfileForm
+          onSubmit={handleSaveMosque}
+          isSubmitting={isSubmitting}
+        />
+      ) : mosqueProfile && !isEditing ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              {mosqueProfile.name}
+            </CardTitle>
+            <CardDescription>
+              {mosqueProfile.description || 'No description provided'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
+                  Address
+                </h4>
+                <p className="mt-1">
+                  {mosqueProfile.address || 'Not provided'}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
+                  Capacity
+                </h4>
+                <p className="mt-1">
+                  {mosqueProfile.capacity
+                    ? `${mosqueProfile.capacity} people`
+                    : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
+                  Phone
+                </h4>
+                <p className="mt-1">{mosqueProfile.phone || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
+                  Email
+                </h4>
+                <p className="mt-1">{mosqueProfile.email || 'Not provided'}</p>
+              </div>
+              {mosqueProfile.website && (
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
+                    Website
+                  </h4>
+                  <p className="mt-1">
+                    <a
+                      href={mosqueProfile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {mosqueProfile.website}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {mosqueProfile.facilities &&
+              mosqueProfile.facilities.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide mb-2">
+                    Facilities
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {mosqueProfile.facilities.map((facility, index) => (
+                      <span
+                        key={index}
+                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                      >
+                        {facility}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </CardContent>
+        </Card>
+      ) : mosqueProfile && isEditing ? (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </div>
+          <MosqueProfileForm
+            initialData={mosqueProfile}
+            onSubmit={handleSaveMosque}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      ) : !canCreate ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              No Mosque Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertDescription>
+                You already have a mosque assigned or don't have permission to
+                create a new mosque profile. Please contact your administrator
+                if you need to make changes.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

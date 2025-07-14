@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Home,
@@ -63,7 +64,7 @@ export const Layout = memo(function Layout({
         path: '/members',
         labelKey: 'navigation.members',
         icon: Users,
-        roles: ['super_admin', 'mosque_admin', 'ajk'] as const,
+        roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
       },
       {
         path: '/finance',
@@ -77,24 +78,25 @@ export const Layout = memo(function Layout({
         icon: Heart,
         roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
       },
-      {
-        path: '/zakat',
-        labelKey: 'navigation.zakat',
-        icon: HandCoins,
-        roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
-      },
-      {
-        path: '/programs',
-        labelKey: 'navigation.programs',
-        icon: Calendar,
-        roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
-      },
-      {
-        path: '/bookings',
-        labelKey: 'navigation.bookings',
-        icon: CalendarCheck,
-        roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
-      },
+      // Temporarily disabled menu items
+      // {
+      //   path: '/zakat',
+      //   labelKey: 'navigation.zakat',
+      //   icon: HandCoins,
+      //   roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
+      // },
+      // {
+      //   path: '/programs',
+      //   labelKey: 'navigation.programs',
+      //   icon: Calendar,
+      //   roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
+      // },
+      // {
+      //   path: '/bookings',
+      //   labelKey: 'navigation.bookings',
+      //   icon: CalendarCheck,
+      //   roles: ['super_admin', 'mosque_admin', 'ajk', 'member'] as const,
+      // },
       {
         path: '/reports',
         labelKey: 'navigation.reports',
@@ -146,7 +148,7 @@ export const Layout = memo(function Layout({
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -154,19 +156,22 @@ export const Layout = memo(function Layout({
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col h-screen
+        fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 shadow-lg transform transition-transform duration-300 ease-in-out flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:relative lg:flex lg:flex-col lg:h-screen
+        lg:translate-x-0 lg:relative lg:flex lg:flex-col
       `}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b bg-white">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between h-16 px-4 border-b dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
           <div className="flex items-center space-x-3">
-            <HandCoins className="h-8 w-8 text-blue-600" />
+            <HandCoins className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Masjid Digital
               </h1>
-              <p className="text-xs text-gray-500">{user.mosqueName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {user.mosqueName}
+              </p>
             </div>
           </div>
           <Button
@@ -179,7 +184,8 @@ export const Layout = memo(function Layout({
           </Button>
         </div>
 
-        <nav className="flex-none mt-6 px-4 space-y-1 overflow-y-auto max-h-[calc(100vh-12rem)]">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto min-h-0 pb-32">
           {filteredNavigation.map((item) => {
             const isActive = pathname === item.path;
             return (
@@ -192,10 +198,10 @@ export const Layout = memo(function Layout({
               >
                 <Button
                   variant={isActive ? 'secondary' : 'ghost'}
-                  className={`w-full justify-start hover:bg-gray-50 ${
+                  className={`w-full justify-start hover:bg-gray-50 dark:hover:bg-gray-800 ${
                     isActive
-                      ? 'bg-gray-100 text-gray-900 font-medium'
-                      : 'text-gray-700 hover:text-gray-900'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                 >
                   <item.icon className="h-4 w-4 mr-3" />
@@ -206,12 +212,15 @@ export const Layout = memo(function Layout({
           })}
         </nav>
 
-        <div className="flex-shrink-0 p-4 border-t bg-gray-50 mt-auto">
+        {/* Footer - Sticky */}
+        <div className="sticky bottom-0 flex-shrink-0 p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-10">
           <div className="mb-3">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
               {user.name}
             </p>
-            <p className="text-xs text-gray-500">{t(`roles.${user.role}`)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t(`roles.${user.role}`)}
+            </p>
           </div>
           <Button
             variant="outline"
@@ -228,7 +237,7 @@ export const Layout = memo(function Layout({
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top navigation */}
-        <div className="flex items-center justify-between h-16 px-4 bg-white border-b lg:px-6 flex-shrink-0">
+        <div className="flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-900 border-b dark:border-gray-700 lg:px-6 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -237,14 +246,17 @@ export const Layout = memo(function Layout({
           >
             <Menu className="h-4 w-4" />
           </Button>
-          <h2 className="text-lg font-semibold text-gray-900 truncate">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
             {currentPageTitle}
           </h2>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
 
         {/* Page content */}
-        <main className="flex-1 p-6 overflow-auto bg-gray-50">
+        <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>

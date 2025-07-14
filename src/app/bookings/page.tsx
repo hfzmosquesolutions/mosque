@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthState } from '@/hooks/useAuth.v2';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,7 +78,7 @@ interface Booking {
 
 function BookingsPageContent() {
   const { t } = useLanguage();
-  const { user: authUser } = useAuth();
+  const { user: authUser } = useAuthState();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');

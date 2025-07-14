@@ -1,10 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { AuthLayout } from '@/components/layout/AuthLayout';
-import { useAuth } from '@/hooks/useAuth';
-import { MemberForm } from '@/components/members/MemberForm';
+import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -36,476 +32,997 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Plus,
-  Search,
   Users,
+  UserPlus,
+  Clock,
+  Search,
+  Filter,
   MoreHorizontal,
   Eye,
   Edit,
   Trash2,
-  Phone,
-  Mail,
-  UserPlus,
   UserCheck,
+  Shield,
+  Heart,
+  BookOpen,
+  Wrench,
+  Building,
 } from 'lucide-react';
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  membershipNumber: string;
-  status: 'active' | 'inactive';
-  joinDate: string;
-  address: string;
-  emergencyContact: string;
-  membershipType: 'regular' | 'family' | 'student' | 'senior';
-  dateOfBirth?: string;
-  gender?: 'male' | 'female';
-  occupation?: string;
-  emergencyPhone?: string;
-  notes?: string;
-}
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuthState } from '@/hooks/useAuth.v2';
+import { useMembers } from '@/hooks/useMembers';
+import { AuthLayout } from '@/components/layout/AuthLayout';
+import { MemberApplicationForm } from '@/components/members/MemberApplicationForm';
+import { supabase } from '@/lib/supabase';
 
 function MembersPageContent() {
   const { t } = useLanguage();
-  const { user: authUser } = useAuth();
+  const { profile } = useAuthState();
+  const [selectedMosqueId, setSelectedMosqueId] = useState<string>('');
+  const [userMosques, setUserMosques] = useState<any[]>([]);
+  const [loadingMosques, setLoadingMosques] = useState(true);
+
+  const {
+    members,
+    stats: statistics,
+    applications,
+    loading,
+    createApplication,
+    updateMember,
+    deleteMember,
+    approveApplication,
+    rejectApplication,
+  } = useMembers(selectedMosqueId);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [showForm, setShowForm] = useState(false);
-  const [editingMember, setEditingMember] = useState<string | undefined>();
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [showMemberDetails, setShowMemberDetails] = useState(false);
 
-  // Sample data - in real app this would come from API
-  const [members, setMembers] = useState<Member[]>([
-    {
-      id: '1',
-      name: 'Ahmad Abdullah',
-      email: 'ahmad@example.com',
-      phone: '+60123456789',
-      membershipNumber: 'MEM001',
-      status: 'active',
-      joinDate: '2024-01-15',
-      address: 'Jalan Masjid 1, Kuala Lumpur',
-      emergencyContact: '+60123456788',
-      membershipType: 'regular',
-      dateOfBirth: '1980-05-15',
-      gender: 'male',
-      occupation: 'Engineer',
-    },
-    {
-      id: '2',
-      name: 'Siti Aminah',
-      email: 'siti@example.com',
-      phone: '+60134567890',
-      membershipNumber: 'MEM002',
-      status: 'active',
-      joinDate: '2024-02-20',
-      address: 'Jalan Soleh 2, Petaling Jaya',
-      emergencyContact: '+60134567889',
-      membershipType: 'family',
-      dateOfBirth: '1985-08-22',
-      gender: 'female',
-      occupation: 'Teacher',
-    },
-    {
-      id: '3',
-      name: 'Muhammad Hafiz',
-      email: 'hafiz@example.com',
-      phone: '+60145678901',
-      membershipNumber: 'MEM003',
-      status: 'active',
-      joinDate: '2024-03-10',
-      address: 'Jalan Islam 3, Shah Alam',
-      emergencyContact: '+60176543210',
-      membershipType: 'student',
-      dateOfBirth: '2000-12-10',
-      gender: 'male',
-      occupation: 'Student',
-    },
-  ]);
+  // Load user's mosques
+  useEffect(() => {
+    const loadUserMosques = async () => {
+      if (!profile?.id) return;
 
-  // Handler functions
-  const handleAddMember = () => {
-    setEditingMember(undefined);
-    setShowForm(true);
-  };
+      try {
+        setLoadingMosques(true);
+        const { data, error } = await supabase
+          .from('members')
+          .select(
+            `
+            id,
+            status,
+            membership_type,
+            mosque_id,
+            mosques!inner(
+              id,
+              name,
+              address
+            )
+          `
+          )
+          .eq('profile_id', profile.id)
+          .in('status', ['active', 'inactive', 'suspended']);
 
-  const handleEditMember = (memberId: string) => {
-    setEditingMember(memberId);
-    setShowForm(true);
-  };
+        if (error) throw error;
 
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingMember(undefined);
-  };
+        const mosquesWithStatus =
+          data
+            ?.map((membership: any) => ({
+              ...membership.mosques,
+              membershipStatus: membership.status,
+              membershipType: membership.membership_type,
+            }))
+            .filter(Boolean) || [];
+        setUserMosques(mosquesWithStatus);
 
-  const handleSaveMember = (formData: any) => {
-    console.log('Saving member:', formData);
-    // In real app, this would save to API
-    if (editingMember) {
-      // Update existing member
-      setMembers((prev) =>
-        prev.map((member) =>
-          member.id === editingMember ? { ...member, ...formData } : member
-        )
-      );
-    } else {
-      // Add new member
-      const newMember: Member = {
-        id: `MEM${(members.length + 1).toString().padStart(3, '0')}`,
-        ...formData,
-        membershipNumber: `MEM${(members.length + 1)
-          .toString()
-          .padStart(3, '0')}`,
-        status: 'active' as const,
-        joinDate: new Date().toISOString().split('T')[0],
-      };
-      setMembers((prev) => [...prev, newMember]);
-    }
-    setShowForm(false);
-    setEditingMember(undefined);
-  };
-
-  // If form is open, show only the form
-  if (showForm) {
-    return (
-      <MemberForm
-        memberId={editingMember}
-        onClose={handleCloseForm}
-        onSave={handleSaveMember}
-      />
-    );
-  }
-
-  const getStatusBadge = (status: Member['status']) => {
-    const statusConfig = {
-      active: {
-        label: t('members.activeStatus'),
-        variant: 'default' as const,
-      },
-      inactive: {
-        label: t('members.inactiveStatus'),
-        variant: 'secondary' as const,
-      },
+        // Auto-select first mosque if available
+        if (mosquesWithStatus.length > 0 && !selectedMosqueId) {
+          setSelectedMosqueId(mosquesWithStatus[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading user mosques:', error);
+      } finally {
+        setLoadingMosques(false);
+      }
     };
-    return statusConfig[status];
-  };
 
-  const getTypeBadge = (type: Member['membershipType']) => {
-    const typeConfig = {
+    loadUserMosques();
+  }, [profile?.id, selectedMosqueId]);
+
+  const isMember = profile?.role === 'member';
+  const canManageMembers =
+    profile?.role === 'mosque_admin' ||
+    profile?.role === 'ajk' ||
+    profile?.role === 'super_admin';
+
+  const getMembershipTypeBadge = (type: string) => {
+    const types = {
       regular: {
         label: t('members.types.regular'),
         color: 'bg-blue-100 text-blue-800',
+        icon: Users,
       },
-      family: {
-        label: t('members.types.family'),
+      committee: {
+        label: t('members.types.committee'),
         color: 'bg-purple-100 text-purple-800',
+        icon: Shield,
       },
-      student: {
-        label: t('members.types.student'),
-        color: 'bg-yellow-100 text-yellow-800',
+      imam: {
+        label: t('members.types.imam'),
+        color: 'bg-green-100 text-green-800',
+        icon: BookOpen,
       },
-      senior: {
-        label: t('members.types.senior'),
+      volunteer: {
+        label: t('members.types.volunteer'),
+        color: 'bg-orange-100 text-orange-800',
+        icon: Heart,
+      },
+      maintenance: {
+        label: t('members.types.maintenance'),
         color: 'bg-gray-100 text-gray-800',
+        icon: Wrench,
       },
     };
-    return typeConfig[type];
+    return types[type as keyof typeof types] || types.regular;
   };
 
-  const filteredMembers = members.filter((member) => {
+  const getMembershipStatusBadge = (status: string) => {
+    const statuses = {
+      active: {
+        label: t('members.status.active'),
+        variant: 'default' as const,
+        icon: UserCheck,
+      },
+      inactive: {
+        label: t('members.status.inactive'),
+        variant: 'secondary' as const,
+        icon: Users,
+      },
+      suspended: {
+        label: t('members.status.suspended'),
+        variant: 'destructive' as const,
+        icon: Users,
+      },
+    };
+    return statuses[status as keyof typeof statuses] || statuses.active;
+  };
+
+  const handleApplyMembership = async (data: any) => {
+    try {
+      await createApplication(data);
+      setShowApplicationForm(false);
+    } catch (error) {
+      console.error('Error applying for membership:', error);
+    }
+  };
+
+  const handleSaveMember = async (data: any) => {
+    try {
+      await updateMember(data.id, data);
+    } catch (error) {
+      console.error('Error updating member:', error);
+    }
+  };
+
+  const handleDeleteMember = async (id: string) => {
+    try {
+      await deleteMember(id);
+    } catch (error) {
+      console.error('Error deleting member:', error);
+    }
+  };
+
+  const handleApproveApplication = async (id: string) => {
+    try {
+      await approveApplication(id);
+    } catch (error) {
+      console.error('Error approving application:', error);
+    }
+  };
+
+  const handleRejectApplication = async (id: string) => {
+    try {
+      await rejectApplication(id);
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+    }
+  };
+
+  const filteredMembers = members.filter((member: any) => {
     const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.membershipNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      member.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === 'all' || member.status === statusFilter;
     const matchesType =
-      typeFilter === 'all' || member.membershipType === typeFilter;
-
+      typeFilter === 'all' || member.membership_type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  const statsData = {
-    totalMembers: members.length,
-    activeMembers: members.filter((m) => m.status === 'active').length,
-    newThisMonth: members.filter((m) => {
-      const joinDate = new Date(m.joinDate);
-      const now = new Date();
-      return (
-        joinDate.getMonth() === now.getMonth() &&
-        joinDate.getFullYear() === now.getFullYear()
-      );
-    }).length,
-    familyMembers: members.filter((m) => m.membershipType === 'family').length,
-  };
-
-  const canManageMembers =
-    authUser?.role === 'super_admin' ||
-    authUser?.role === 'mosque_admin' ||
-    authUser?.role === 'ajk';
+  if (loadingMosques) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+  {
+  }
+  if (userMosques.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {t('members.noMosqueAccess')}
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {t('members.noMosqueAccessDescription')}
+          </p>
+          <Button onClick={() => setShowApplicationForm(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            {t('members.applyMembership')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Page Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold tracking-tight">
             {t('members.title')}
           </h1>
-          <p className="text-gray-600 mt-1">{t('members.subtitle')}</p>
+          <p className="text-muted-foreground">{t('members.description')}</p>
         </div>
         {canManageMembers && (
-          <Button onClick={handleAddMember}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => setShowApplicationForm(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
             {t('members.addMember')}
           </Button>
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  {t('members.totalMembers')}
-                </p>
-                <p className="text-2xl font-bold">{statsData.totalMembers}</p>
+      {/* Application Form Modal */}
+      {showApplicationForm && (
+        <MemberApplicationForm
+          onSave={handleApplyMembership}
+          onClose={() => setShowApplicationForm(false)}
+        />
+      )}
+
+      {/* Main Content - Hidden when application form is shown */}
+      {!showApplicationForm && (
+        <>
+          {/* Mosque Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                {t('members.selectMosque')}
+              </CardTitle>
+              <CardDescription>
+                {t('members.selectMosqueDescription')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={selectedMosqueId}
+                onValueChange={setSelectedMosqueId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('members.chooseMosque')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {userMosques.map((mosque: any) => {
+                    const status = mosque.membershipStatus || 'unknown';
+                    const statusColors = {
+                      active: 'text-green-600',
+                      inactive: 'text-yellow-600',
+                      suspended: 'text-red-600',
+                      unknown: 'text-gray-600',
+                    };
+
+                    return (
+                      <SelectItem key={mosque.id} value={mosque.id}>
+                        <div className="flex flex-col">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{mosque.name}</span>
+                            <span
+                              className={`text-xs font-medium ${
+                                statusColors[
+                                  status as keyof typeof statusColors
+                                ]
+                              }`}
+                            >
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                          </div>
+                          {mosque.address && (
+                            <span className="text-sm text-gray-500">
+                              {mosque.address}
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Apply for Additional Membership */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">
+                    Apply for Additional Membership
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Join another mosque community
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowApplicationForm(true)}
+                  variant="outline"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {t('members.applyMembership')}
+                </Button>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
+            </CardContent>
+          </Card>
+
+          {/* Membership Status Alert */}
+          {selectedMosqueId &&
+            userMosques.length > 0 &&
+            (() => {
+              const selectedMosque = userMosques.find(
+                (m) => m.id === selectedMosqueId
+              );
+              const status = selectedMosque?.membershipStatus;
+
+              if (status === 'inactive') {
+                return (
+                  <Card className="border-yellow-200 bg-yellow-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2 text-yellow-800">
+                        <Users className="h-4 w-4" />
+                        <span className="font-medium">Membership Inactive</span>
+                      </div>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Your membership for {selectedMosque?.name} is currently
+                        inactive. Please contact the mosque administration for
+                        assistance.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              if (status === 'suspended') {
+                return (
+                  <Card className="border-red-200 bg-red-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2 text-red-800">
+                        <Users className="h-4 w-4" />
+                        <span className="font-medium">
+                          Membership Suspended
+                        </span>
+                      </div>
+                      <p className="text-sm text-red-700 mt-1">
+                        Your membership for {selectedMosque?.name} has been
+                        suspended. Please contact the mosque administration for
+                        more information.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              return null;
+            })()}
+
+          {!selectedMosqueId ? (
+            <div className="text-center py-12">
+              <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('members.selectMosqueFirst')}
+              </h3>
+              <p className="text-gray-600">
+                {t('members.selectMosqueFirstDescription')}
+              </p>
             </div>
+          ) : loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p>{t('common.loading')}</p>
+              </div>
+            </div>
+          ) : isMember ? (
+            <MemberMembersView
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              typeFilter={typeFilter}
+              setTypeFilter={setTypeFilter}
+              filteredMembers={filteredMembers}
+              getMembershipTypeBadge={getMembershipTypeBadge}
+              getMembershipStatusBadge={getMembershipStatusBadge}
+              profile={profile}
+              t={t}
+            />
+          ) : (
+            <AdminMembersView
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              typeFilter={typeFilter}
+              setTypeFilter={setTypeFilter}
+              filteredMembers={filteredMembers}
+              getMembershipTypeBadge={getMembershipTypeBadge}
+              getMembershipStatusBadge={getMembershipStatusBadge}
+              statistics={statistics}
+              applications={applications}
+              canManageMembers={canManageMembers}
+              handleDeleteMember={handleDeleteMember}
+              handleApproveApplication={handleApproveApplication}
+              handleRejectApplication={handleRejectApplication}
+              setShowApplicationForm={setShowApplicationForm}
+              loading={loading}
+              t={t}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MemberMembersView({
+  searchTerm,
+  setSearchTerm,
+  statusFilter,
+  setStatusFilter,
+  typeFilter,
+  setTypeFilter,
+  filteredMembers,
+  getMembershipTypeBadge,
+  getMembershipStatusBadge,
+  profile,
+  t,
+}: any) {
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder={t('members.searchPlaceholder')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder={t('members.filterByStatus')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              <SelectItem value="active">
+                {t('members.status.active')}
+              </SelectItem>
+              <SelectItem value="inactive">
+                {t('members.status.inactive')}
+              </SelectItem>
+              <SelectItem value="suspended">
+                {t('members.status.suspended')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder={t('members.filterByType')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              <SelectItem value="regular">
+                {t('members.types.regular')}
+              </SelectItem>
+              <SelectItem value="committee">
+                {t('members.types.committee')}
+              </SelectItem>
+              <SelectItem value="imam">{t('members.types.imam')}</SelectItem>
+              <SelectItem value="volunteer">
+                {t('members.types.volunteer')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('members.myMembership')}</CardTitle>
+          <CardDescription>
+            {t('members.myMembershipDescription')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {profile && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    {t('members.table.name')}
+                  </label>
+                  <p className="text-lg font-semibold">{profile.full_name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    {t('members.table.email')}
+                  </label>
+                  <p className="text-lg">{profile.email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    {t('members.table.type')}
+                  </label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {(() => {
+                      const typeBadge = getMembershipTypeBadge(
+                        profile.membership_type
+                      );
+                      const TypeIcon = typeBadge?.icon;
+                      return (
+                        <>
+                          {TypeIcon && <TypeIcon className="h-4 w-4" />}
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${typeBadge?.color}`}
+                          >
+                            {typeBadge?.label}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    {t('members.table.status')}
+                  </label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {(() => {
+                      const statusBadge = getMembershipStatusBadge(
+                        profile.status
+                      );
+                      const StatusIcon = statusBadge?.icon;
+                      return (
+                        <>
+                          {StatusIcon && <StatusIcon className="h-4 w-4" />}
+                          <Badge variant={statusBadge?.variant}>
+                            {statusBadge?.label}
+                          </Badge>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('members.allMembers')}</CardTitle>
+          <CardDescription>
+            {t('members.allMembersDescription')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('members.table.name')}</TableHead>
+                <TableHead>{t('members.table.email')}</TableHead>
+                <TableHead>{t('members.table.type')}</TableHead>
+                <TableHead>{t('members.table.status')}</TableHead>
+                <TableHead>{t('members.table.joinedDate')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMembers.map((member: any) => {
+                const typeBadge = getMembershipTypeBadge(
+                  member.membership_type
+                );
+                const statusBadge = getMembershipStatusBadge(member.status);
+                const TypeIcon = typeBadge?.icon;
+                const StatusIcon = statusBadge?.icon;
+
+                return (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">
+                      {member.full_name}
+                    </TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {TypeIcon && <TypeIcon className="h-4 w-4" />}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${typeBadge?.color}`}
+                        >
+                          {typeBadge?.label}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {StatusIcon && <StatusIcon className="h-4 w-4" />}
+                        <Badge variant={statusBadge?.variant}>
+                          {statusBadge?.label}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(member.joined_date).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function AdminMembersView({
+  searchTerm,
+  setSearchTerm,
+  statusFilter,
+  setStatusFilter,
+  typeFilter,
+  setTypeFilter,
+  filteredMembers,
+  getMembershipTypeBadge,
+  getMembershipStatusBadge,
+  statistics,
+  applications,
+  canManageMembers,
+  handleDeleteMember,
+  handleApproveApplication,
+  handleRejectApplication,
+  setShowApplicationForm,
+  loading,
+  t,
+}: any) {
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t('members.stats.total')}
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics?.total || 0}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  {t('members.activeMembers')}
-                </p>
-                <p className="text-2xl font-bold">{statsData.activeMembers}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-green-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t('members.stats.active')}
+            </CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics?.active || 0}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  {t('members.newThisMonth')}
-                </p>
-                <p className="text-2xl font-bold">{statsData.newThisMonth}</p>
-              </div>
-              <UserPlus className="h-8 w-8 text-orange-600" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t('members.stats.pending')}
+            </CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics?.pending || 0}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  {t('members.familyMembers')}
-                </p>
-                <p className="text-2xl font-bold">{statsData.familyMembers}</p>
-              </div>
-              <Users className="h-8 w-8 text-purple-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t('members.stats.committee')}
+            </CardTitle>
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {statistics?.committee || 0}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder={t('members.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder={t('members.filterByStatus')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('common.all')}</SelectItem>
-                <SelectItem value="active">
-                  {t('members.activeStatus')}
-                </SelectItem>
-                <SelectItem value="inactive">
-                  {t('members.inactiveStatus')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder={t('members.filterByType')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('common.all')}</SelectItem>
-                <SelectItem value="regular">
-                  {t('members.types.regular')}
-                </SelectItem>
-                <SelectItem value="family">
-                  {t('members.types.family')}
-                </SelectItem>
-                <SelectItem value="student">
-                  {t('members.types.student')}
-                </SelectItem>
-                <SelectItem value="senior">
-                  {t('members.types.senior')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">{t('members.tabs.list')}</TabsTrigger>
+          {canManageMembers && (
+            <TabsTrigger value="applications">
+              {t('members.tabs.applications')}
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-      {/* Members List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('members.memberList')}</CardTitle>
-          <CardDescription>
-            {filteredMembers.length} {t('common.total').toLowerCase()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredMembers.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {t('members.noMembers')}
-              </h3>
-              <p className="text-gray-500 mb-6">
-                {t('members.noMembersDescription')}
-              </p>
-              {canManageMembers && (
-                <Button onClick={handleAddMember}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('members.addFirstMember')}
-                </Button>
-              )}
+        <TabsContent value="list" className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder={t('members.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder={t('members.filterByStatus')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('common.all')}</SelectItem>
+                  <SelectItem value="active">
+                    {t('members.status.active')}
+                  </SelectItem>
+                  <SelectItem value="inactive">
+                    {t('members.status.inactive')}
+                  </SelectItem>
+                  <SelectItem value="suspended">
+                    {t('members.status.suspended')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder={t('members.filterByType')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('common.all')}</SelectItem>
+                  <SelectItem value="regular">
+                    {t('members.types.regular')}
+                  </SelectItem>
+                  <SelectItem value="committee">
+                    {t('members.types.committee')}
+                  </SelectItem>
+                  <SelectItem value="imam">
+                    {t('members.types.imam')}
+                  </SelectItem>
+                  <SelectItem value="volunteer">
+                    {t('members.types.volunteer')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('members.table.title')}</CardTitle>
+              <CardDescription>
+                {t('members.table.description')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('members.memberNumber')}</TableHead>
-                    <TableHead>{t('common.name')}</TableHead>
-                    <TableHead>{t('members.membershipType')}</TableHead>
-                    <TableHead>{t('common.email')}</TableHead>
-                    <TableHead>{t('common.phone')}</TableHead>
-                    <TableHead>{t('members.joinDate')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>{t('members.table.name')}</TableHead>
+                    <TableHead>{t('members.table.email')}</TableHead>
+                    <TableHead>{t('members.table.type')}</TableHead>
+                    <TableHead>{t('members.table.status')}</TableHead>
+                    <TableHead>{t('members.table.joinedDate')}</TableHead>
+                    {canManageMembers && (
+                      <TableHead className="text-right">
+                        {t('common.actions')}
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMembers.map((member) => {
-                    const statusBadge = getStatusBadge(member.status);
-                    const typeBadge = getTypeBadge(member.membershipType);
+                  {filteredMembers.map((member: any) => {
+                    const typeBadge = getMembershipTypeBadge(
+                      member.membership_type
+                    );
+                    const statusBadge = getMembershipStatusBadge(member.status);
+                    const TypeIcon = typeBadge?.icon;
+                    const StatusIcon = statusBadge?.icon;
 
                     return (
                       <TableRow key={member.id}>
-                        <TableCell>
-                          <div className="font-medium">
-                            {member.membershipNumber}
-                          </div>
+                        <TableCell className="font-medium">
+                          {member.full_name}
                         </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {member.gender === 'male'
-                                ? t('members.male')
-                                : t('members.female')}
-                              {member.occupation && ` • ${member.occupation}`}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={typeBadge.color}>
-                            {typeBadge.label}
-                          </Badge>
-                        </TableCell>
+                        <TableCell>{member.email}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-gray-400" />
-                            {member.email}
+                            {TypeIcon && <TypeIcon className="h-4 w-4" />}
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${typeBadge?.color}`}
+                            >
+                              {typeBadge?.label}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-gray-400" />
-                            {member.phone}
+                            {StatusIcon && <StatusIcon className="h-4 w-4" />}
+                            <Badge variant={statusBadge?.variant}>
+                              {statusBadge?.label}
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(member.joinDate).toLocaleDateString()}
+                          {new Date(member.joined_date).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={statusBadge.variant}>
-                            {statusBadge.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                {t('members.viewDetails')}
-                              </DropdownMenuItem>
-                              {canManageMembers && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => handleEditMember(member.id)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    {t('common.edit')}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    {t('common.delete')}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {canManageMembers && (
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t('common.view')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t('common.edit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteMember(member.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  {t('common.delete')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {canManageMembers && (
+          <TabsContent value="applications" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('members.pendingApplications')}</CardTitle>
+                <CardDescription>
+                  {t('members.pendingApplicationsDescription')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {applications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">
+                      {t('members.noPendingApplications')}
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('members.table.name')}</TableHead>
+                        <TableHead>{t('members.table.email')}</TableHead>
+                        <TableHead>{t('members.table.type')}</TableHead>
+                        <TableHead>{t('members.table.appliedDate')}</TableHead>
+                        <TableHead className="text-right">
+                          {t('common.actions')}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {applications.map((application: any) => {
+                        const typeBadge = getMembershipTypeBadge(
+                          application.membership_type
+                        );
+                        const TypeIcon = typeBadge?.icon;
+
+                        return (
+                          <TableRow key={application.id}>
+                            <TableCell className="font-medium">
+                              {application.full_name}
+                            </TableCell>
+                            <TableCell>{application.email}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {TypeIcon && <TypeIcon className="h-4 w-4" />}
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${typeBadge?.color}`}
+                                >
+                                  {typeBadge?.label}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(
+                                application.created_at
+                              ).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleApproveApplication(application.id)
+                                  }
+                                  disabled={loading}
+                                >
+                                  {t('common.approve')}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleRejectApplication(application.id)
+                                  }
+                                  disabled={loading}
+                                >
+                                  {t('common.reject')}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
+    </>
   );
 }
 

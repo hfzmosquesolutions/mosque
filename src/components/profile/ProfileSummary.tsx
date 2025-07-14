@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuthState } from '@/hooks/useAuth.v2';
 import {
   User as UserIcon,
   Mail,
@@ -14,32 +15,34 @@ import {
   Briefcase,
 } from 'lucide-react';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  role: 'super_admin' | 'mosque_admin' | 'ajk' | 'member';
-  membershipId?: string;
-  membershipType?: string;
-  joinDate?: string;
-  profilePhoto?: string;
-  occupation?: string;
-}
-
 interface ProfileSummaryProps {
-  user: User;
   showDetails?: boolean;
   className?: string;
 }
 
 export function ProfileSummary({
-  user,
   showDetails = false,
   className = '',
 }: ProfileSummaryProps) {
   const { t } = useLanguage();
+  const { user: authUser, profile } = useAuthState();
+
+  if (!authUser || !profile) {
+    return null;
+  }
+
+  const user = {
+    id: authUser.id,
+    name: profile.full_name || 'User',
+    email: authUser.email || '',
+    phone: profile.phone,
+    role: profile.role,
+    profilePhoto: profile.avatar_url || undefined,
+    membershipId: 'MSJ001', // This would come from member data
+    joinDate: profile.created_at,
+    occupation: '', // This would be added to profile
+    address: '', // This would be added to profile later
+  };
 
   const getInitials = (name: string) => {
     return name
