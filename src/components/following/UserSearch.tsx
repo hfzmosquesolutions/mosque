@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Search, Users, Loader2, UserX } from 'lucide-react';
@@ -12,7 +12,7 @@ import { FollowButton } from './FollowButton';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 // Simple debounce implementation
-function debounce<T extends (...args: any[]) => any>(
+function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
 ): T & { cancel: () => void } {
@@ -61,7 +61,8 @@ export function UserSearch({
 
   // Debounced search function
   const debouncedSearch = useCallback(
-    debounce(async (searchQuery: string) => {
+    debounce(async (...args: unknown[]) => {
+      const searchQuery = args[0] as string;
       if (!searchQuery.trim()) {
         setResults([]);
         setHasSearched(false);
@@ -77,7 +78,7 @@ export function UserSearch({
 
         // Filter out excluded users and current user
         const filteredResults = response.data.filter(
-          (userResult: any) =>
+          (userResult) =>
             userResult.id !== user?.id &&
             !excludeUserIds.includes(userResult.id)
         );
@@ -151,7 +152,7 @@ export function UserSearch({
           <div className="text-center py-8">
             <UserX className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
             <p className="text-muted-foreground">
-              No users found matching "{query}"
+              No users found matching &quot;{query}&quot;
             </p>
           </div>
         )}

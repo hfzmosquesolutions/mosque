@@ -2,19 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   User,
-  MapPin,
   Calendar,
   Briefcase,
   Shield,
@@ -33,27 +26,21 @@ export default function PublicUserProfilePage() {
   const params = useParams();
   const { user: currentUser } = useAuth();
   const userId = params.id as string;
-  
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  useEffect(() => {
-    if (userId) {
-      fetchProfile();
-    }
-  }, [userId]);
-
   const fetchProfile = async () => {
     setLoading(true);
     try {
       const response = await getUserProfile(userId);
-      
+
       if (response.success && response.data) {
         setProfile(response.data);
-        
+
         // Fetch follow stats
         const stats = await getUserFollowStats(userId);
         setFollowerCount(stats.followers_count);
@@ -61,16 +48,22 @@ export default function PublicUserProfilePage() {
       } else {
         setError(response.error || 'Profile not found');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load profile');
     }
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (userId) {
+      fetchProfile();
+    }
+  }, [userId, fetchProfile]);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -90,7 +83,7 @@ export default function PublicUserProfilePage() {
   const isOwnProfile = currentUser?.id === userId;
 
   const handleFollowChange = (isFollowing: boolean) => {
-    setFollowerCount(prev => isFollowing ? prev + 1 : prev - 1);
+    setFollowerCount((prev) => (isFollowing ? prev + 1 : prev - 1));
   };
 
   const handleShare = async () => {
@@ -101,7 +94,7 @@ export default function PublicUserProfilePage() {
           text: `Check out ${profile?.full_name}'s profile on our mosque community platform.`,
           url: window.location.href,
         });
-      } catch (error) {
+      } catch {
         // User cancelled sharing or sharing failed
         console.log('Sharing cancelled or failed');
       }
@@ -137,7 +130,8 @@ export default function PublicUserProfilePage() {
                 Profile Not Found
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                {error || 'The user profile you are looking for does not exist.'}
+                {error ||
+                  'The user profile you are looking for does not exist.'}
               </p>
               <Link href="/dashboard">
                 <Button className="gap-2">
@@ -205,11 +199,15 @@ export default function PublicUserProfilePage() {
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-4">
                   {getRoleIcon()}
                   <Badge variant={getRoleBadgeVariant()} className="text-sm">
-                    {profile.account_type === 'admin' ? 'Administrator' : 'Member'}
+                    {profile.account_type === 'admin'
+                      ? 'Administrator'
+                      : 'Member'}
                   </Badge>
                   {profile.membership_type && (
                     <Badge variant="outline" className="text-sm">
-                      {profile.membership_type.charAt(0).toUpperCase() + profile.membership_type.slice(1)} Member
+                      {profile.membership_type.charAt(0).toUpperCase() +
+                        profile.membership_type.slice(1)}{' '}
+                      Member
                     </Badge>
                   )}
                 </div>
@@ -217,20 +215,31 @@ export default function PublicUserProfilePage() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span className="text-sm">{followerCount} {followerCount === 1 ? 'follower' : 'followers'}</span>
+                      <span className="text-sm">
+                        {followerCount}{' '}
+                        {followerCount === 1 ? 'follower' : 'followers'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span className="text-sm">{followingCount} following</span>
+                      <span className="text-sm">
+                        {followingCount} following
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span>Member since {new Date(profile.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}</span>
+                    <span>
+                      Member since{' '}
+                      {new Date(profile.created_at).toLocaleDateString(
+                        'en-US',
+                        {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -264,7 +273,8 @@ export default function PublicUserProfilePage() {
                   <div>
                     <p className="text-sm text-slate-500">Gender</p>
                     <p className="font-medium">
-                      {profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)}
+                      {profile.gender.charAt(0).toUpperCase() +
+                        profile.gender.slice(1)}
                     </p>
                   </div>
                 </div>
@@ -275,11 +285,14 @@ export default function PublicUserProfilePage() {
                   <div>
                     <p className="text-sm text-slate-500">Date of Birth</p>
                     <p className="font-medium">
-                      {new Date(profile.date_of_birth).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {new Date(profile.date_of_birth).toLocaleDateString(
+                        'en-US',
+                        {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
+                      )}
                     </p>
                   </div>
                 </div>
@@ -301,7 +314,9 @@ export default function PublicUserProfilePage() {
                 <div>
                   <p className="text-sm text-slate-500">Account Type</p>
                   <p className="font-medium">
-                    {profile.account_type === 'admin' ? 'Administrator' : 'Member'}
+                    {profile.account_type === 'admin'
+                      ? 'Administrator'
+                      : 'Member'}
                   </p>
                 </div>
               </div>
@@ -310,10 +325,10 @@ export default function PublicUserProfilePage() {
                 <div>
                   <p className="text-sm text-slate-500">Membership Type</p>
                   <p className="font-medium">
-                    {profile.membership_type ? 
-                      profile.membership_type.charAt(0).toUpperCase() + profile.membership_type.slice(1) : 
-                      'Regular'
-                    }
+                    {profile.membership_type
+                      ? profile.membership_type.charAt(0).toUpperCase() +
+                        profile.membership_type.slice(1)
+                      : 'Regular'}
                   </p>
                 </div>
               </div>
@@ -321,8 +336,13 @@ export default function PublicUserProfilePage() {
                 <Calendar className="h-4 w-4 text-slate-500" />
                 <div>
                   <p className="text-sm text-slate-500">Status</p>
-                  <Badge variant={profile.status === 'active' ? 'default' : 'secondary'}>
-                    {profile.status.charAt(0).toUpperCase() + profile.status.slice(1)}
+                  <Badge
+                    variant={
+                      profile.status === 'active' ? 'default' : 'secondary'
+                    }
+                  >
+                    {profile.status.charAt(0).toUpperCase() +
+                      profile.status.slice(1)}
                   </Badge>
                 </div>
               </div>
@@ -335,13 +355,18 @@ export default function PublicUserProfilePage() {
           <CardContent className="pt-6">
             <div className="text-center text-sm text-slate-500">
               <p>
-                This is a public profile. Contact information and other private details are not displayed.
+                This is a public profile. Contact information and other private
+                details are not displayed.
               </p>
               {isOwnProfile && (
                 <p className="mt-2">
-                  <Link href="/profile" className="text-blue-600 hover:text-blue-800">
+                  <Link
+                    href="/profile"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
                     Edit your profile settings
-                  </Link> to manage what information is visible.
+                  </Link>{' '}
+                  to manage what information is visible.
                 </p>
               )}
             </div>

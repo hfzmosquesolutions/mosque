@@ -31,8 +31,8 @@ export interface Mosque {
   website?: string;
   description?: string;
   user_id: string; // References auth.users(id) - mosque owner/creator
-  prayer_times?: Record<string, any>; // JSON object for prayer times configuration
-  settings?: Record<string, any>; // JSON object for mosque-specific settings
+  prayer_times?: Record<string, unknown>; // JSON object for prayer times configuration
+  settings?: Record<string, unknown>; // JSON object for mosque-specific settings
   is_private: boolean; // Whether the mosque profile is private
   created_at: string;
   updated_at: string;
@@ -55,7 +55,7 @@ export interface UserProfile {
   onboarding_completed: boolean;
   onboarding_completed_at?: string;
   profile_picture_url?: string;
-  preferences?: Record<string, any>; // JSON object for user preferences
+  preferences?: Record<string, unknown>; // JSON object for user preferences
   is_profile_private: boolean; // Whether the user profile is private
   created_at: string;
   updated_at: string;
@@ -185,9 +185,9 @@ export interface Contribution {
   contributed_at: string;
 }
 
-// Legacy aliases for backward compatibility
-export interface KhairatProgram extends ContributionProgram {}
-export interface KhairatContribution extends Contribution {}
+// Legacy alias for backward compatibility
+export type KhairatProgram = ContributionProgram;
+export type KhairatContribution = Contribution;
 
 
 
@@ -239,8 +239,8 @@ export interface AuditLog {
   action: string;
   table_name?: string;
   record_id?: string;
-  old_values?: Record<string, any>;
-  new_values?: Record<string, any>;
+  old_values?: Record<string, unknown>;
+  new_values?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
   created_at: string;
@@ -255,7 +255,7 @@ export interface Notification {
   type: NotificationType;
   is_read: boolean;
   action_url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   read_at?: string;
 }
@@ -264,7 +264,7 @@ export interface SystemSetting {
   id: string;
   mosque_id?: string;
   key: string;
-  value: Record<string, any>;
+  value: Record<string, unknown>;
   description?: string;
   is_public: boolean;
   created_at: string;
@@ -302,7 +302,7 @@ export interface ContributionProgramWithContributions extends ContributionProgra
 }
 
 // Legacy alias for backward compatibility
-export interface KhairatProgramWithContributions extends ContributionProgramWithContributions {}
+export type KhairatProgramWithContributions = ContributionProgramWithContributions;
 
 // Resource with category info
 export interface ResourceWithCategory extends Resource {
@@ -388,7 +388,7 @@ export interface ContributionFormData {
 }
 
 // Legacy alias for backward compatibility
-export interface KhairatContributionFormData extends ContributionFormData {}
+export type KhairatContributionFormData = ContributionFormData;
 
 
 
@@ -560,12 +560,8 @@ export interface Database {
       };
       // Add other tables as needed
     };
-    Views: {
-      // Define views if any
-    };
-    Functions: {
-      // Define functions if any
-    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
     Enums: {
       user_account_type: UserAccountType;
       membership_type: MembershipType;

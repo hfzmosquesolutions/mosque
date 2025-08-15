@@ -21,15 +21,10 @@ import {
   Calendar,
   DollarSign,
   Heart,
-  Bell,
-  TrendingUp,
   Building,
   Activity,
-  CheckCircle,
-  Clock,
   Shield,
   Plus,
-  Eye,
   ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
@@ -45,7 +40,7 @@ function DashboardContent() {
   const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
 
-  const [dataLoading, setDataLoading] = useState(true);
+  const [, setDataLoading] = useState(true);
 
   // Fetch dashboard data
   useEffect(() => {

@@ -15,21 +15,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   Plus,
-  Calendar,
   Target,
-  TrendingUp,
   Loader2,
   Edit,
   Eye,
@@ -41,7 +33,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -57,7 +48,10 @@ interface ProgramManagementProps {
   onProgramsUpdate?: () => void;
 }
 
-export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: ProgramManagementProps) {
+export function ProgramManagement({
+  onProgramSelect,
+  onProgramsUpdate,
+}: ProgramManagementProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);
@@ -74,18 +68,6 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
   const [targetAmount, setTargetAmount] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  useEffect(() => {
-    if (user) {
-      loadUserMosque();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (mosqueId) {
-      loadPrograms();
-    }
-  }, [mosqueId]);
 
   const loadUserMosque = async () => {
     if (!user) return;
@@ -115,6 +97,18 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      loadUserMosque();
+    }
+  }, [user, loadUserMosque]);
+
+  useEffect(() => {
+    if (mosqueId) {
+      loadPrograms();
+    }
+  }, [mosqueId, loadPrograms]);
 
   const handleCreateProgram = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -370,13 +364,13 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
                     Target Amount
                   </Label>
                   <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                    {selectedProgram.target_amount
-                      ? formatCurrency(selectedProgram.target_amount)
-                      : (
-                          <span className="text-sm bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                            No target set
-                          </span>
-                        )}
+                    {selectedProgram.target_amount ? (
+                      formatCurrency(selectedProgram.target_amount)
+                    ) : (
+                      <span className="text-sm bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                        No target set
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -392,7 +386,8 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
                               selectedProgram.target_amount) *
                               100,
                             100
-                          ).toFixed(1)}%
+                          ).toFixed(1)}
+                          %
                         </p>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                           <div
@@ -485,7 +480,8 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
           <div>
             <h2 className="text-2xl font-bold">Contribution Programs</h2>
             <p className="text-muted-foreground">
-              Manage your mosque's contribution programs and track contributions
+              Manage your mosque&apos;s contribution programs and track
+              contributions
             </p>
           </div>
 
@@ -542,7 +538,8 @@ export function ProgramManagement({ onProgramSelect, onProgramsUpdate }: Program
                     placeholder="Leave empty for no target amount"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Optional: Set a target amount for this program. Leave empty for ongoing contributions without a specific goal.
+                    Optional: Set a target amount for this program. Leave empty
+                    for ongoing contributions without a specific goal.
                   </p>
                 </div>
 

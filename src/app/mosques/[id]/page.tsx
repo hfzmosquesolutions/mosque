@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Card,
@@ -21,9 +21,7 @@ import {
   ArrowLeft,
   Calendar,
   Users,
-  Megaphone,
-  BookOpen,
-  Clock,
+
 } from 'lucide-react';
 import {
   getMosque,
@@ -55,13 +53,7 @@ export default function MosqueProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
 
-  useEffect(() => {
-    if (mosqueId) {
-      fetchMosqueData();
-    }
-  }, [mosqueId, user]);
-
-  const fetchMosqueData = async () => {
+  const fetchMosqueData = useCallback(async () => {
     try {
       console.log(
         '[PAGE] MosqueProfilePage - Starting to fetch mosque data for ID:',
@@ -132,7 +124,13 @@ export default function MosqueProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mosqueId, user]);
+
+  useEffect(() => {
+    if (mosqueId) {
+      fetchMosqueData();
+    }
+  }, [mosqueId, fetchMosqueData]);
 
   const handleFollow = async () => {
     if (!user?.id) {
@@ -187,13 +185,7 @@ export default function MosqueProfilePage() {
 
 
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

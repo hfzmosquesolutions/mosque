@@ -1,22 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Calendar,
-  Clock,
   MapPin,
   Users,
-  Eye,
   Edit,
   Trash2,
   UserCheck,
@@ -45,14 +37,12 @@ interface EventCardProps {
 export function EventCard({
   event,
   onRegister,
-  onViewDetails,
   onEdit,
   onDelete,
   hasAdminAccess = false,
   userRegistered = false,
 }: EventCardProps) {
   const [isRegistering, setIsRegistering] = useState(false);
-  const router = useRouter();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -157,9 +147,7 @@ export function EventCard({
               e.currentTarget.style.display = 'none';
             }}
           />
-          <div className="absolute top-2 right-2">
-            {getStatusBadge()}
-          </div>
+          <div className="absolute top-2 right-2">{getStatusBadge()}</div>
         </div>
       )}
 
@@ -236,7 +224,9 @@ export function EventCard({
               <div className="flex items-center text-slate-600 dark:text-slate-400">
                 <Users className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
                 <span>
-                  {event.max_attendees ? `Max ${event.max_attendees}` : 'Registration required'}
+                  {event.max_attendees
+                    ? `Max ${event.max_attendees}`
+                    : 'Registration required'}
                 </span>
               </div>
               {event.registration_deadline && isUpcoming && (
@@ -284,7 +274,12 @@ export function EventCard({
 
           {/* Already Registered */}
           {userRegistered && (
-            <Button size="sm" variant="secondary" disabled className="flex-1 h-8 text-xs">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled
+              className="flex-1 h-8 text-xs"
+            >
               <UserCheck className="h-3 w-3 mr-1" />
               Registered
             </Button>
@@ -294,7 +289,12 @@ export function EventCard({
           {event.registration_required &&
             (!registrationOpen || isPast) &&
             !userRegistered && (
-              <Button size="sm" variant="secondary" disabled className="flex-1 h-8 text-xs">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled
+                className="flex-1 h-8 text-xs"
+              >
                 Closed
               </Button>
             )}

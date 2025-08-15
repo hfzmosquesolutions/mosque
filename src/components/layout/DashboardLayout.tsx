@@ -1,17 +1,12 @@
 'use client';
 
 import { Sidebar, MobileSidebar } from '@/components/ui/sidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, signOut } = useAuth();
-
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
       {/* Desktop Sidebar */}

@@ -31,9 +31,7 @@ import {
   Save,
   Eye,
   Share2,
-  MapPin,
   Phone,
-  Mail,
   Calendar,
   Briefcase,
   Shield,
@@ -97,7 +95,7 @@ function ProfileContent() {
     setSaving(false);
   };
 
-  const updateField = (field: keyof UserProfile, value: any) => {
+  const updateField = (field: keyof UserProfile, value: string | boolean | null) => {
     if (!profile) return;
     setProfile({ ...profile, [field]: value });
     setHasUnsavedChanges(true);

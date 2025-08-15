@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -44,17 +44,7 @@ function EventDetailsContent() {
   const [userRegistered, setUserRegistered] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
 
-  useEffect(() => {
-    loadEvent();
-  }, [eventId]);
-
-  useEffect(() => {
-    if (user && event) {
-      checkUserRegistration();
-    }
-  }, [user, event]);
-
-  const loadEvent = async () => {
+  const loadEvent = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -73,9 +63,9 @@ function EventDetailsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId]);
 
-  const checkUserRegistration = async () => {
+  const checkUserRegistration = useCallback(async () => {
     if (!user || !event) return;
 
     try {
@@ -84,7 +74,17 @@ function EventDetailsContent() {
     } catch (error) {
       console.error('Error checking registration status:', error);
     }
-  };
+  }, [user, event]);
+
+  useEffect(() => {
+    loadEvent();
+  }, [loadEvent]);
+
+  useEffect(() => {
+    if (user && event) {
+      checkUserRegistration();
+    }
+  }, [user, event, checkUserRegistration]);
 
   const handleRegister = async () => {
     if (!event) return;
@@ -490,7 +490,7 @@ function EventDetailsContent() {
                   {user && userRegistered && (
                     <Button variant="secondary" disabled className="w-full">
                       <UserCheck className="h-4 w-4 mr-2" />
-                      You're Registered
+                      You&apos;re Registered
                     </Button>
                   )}
 

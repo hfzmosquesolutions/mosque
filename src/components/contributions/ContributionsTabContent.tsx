@@ -27,7 +27,6 @@ import {
   Loader2,
   Download,
   TrendingUp,
-  DollarSign,
   Users,
   FileText,
   MoreHorizontal,
@@ -47,7 +46,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { getContributions, updateContributionStatus } from '@/lib/api';
 import type { ContributionProgram, Contribution } from '@/types/database';
@@ -81,16 +79,6 @@ export function ContributionsTabContent({
   const [selectedContribution, setSelectedContribution] =
     useState<ContributionWithProgram | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (programs.length > 0) {
-      loadAllContributions();
-    }
-  }, [programs]);
-
-  useEffect(() => {
-    filterContributions();
-  }, [contributions, searchTerm, statusFilter, programFilter]);
 
   const loadAllContributions = async () => {
     setLoading(true);
@@ -165,6 +153,22 @@ export function ContributionsTabContent({
 
     setFilteredContributions(filtered);
   };
+
+  useEffect(() => {
+    if (programs.length > 0) {
+      loadAllContributions();
+    }
+  }, [programs, loadAllContributions]);
+
+  useEffect(() => {
+    filterContributions();
+  }, [
+    contributions,
+    searchTerm,
+    statusFilter,
+    programFilter,
+    filterContributions,
+  ]);
 
   const handleStatusUpdate = async (
     contributionId: string,

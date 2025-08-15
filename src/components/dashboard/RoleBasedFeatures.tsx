@@ -8,20 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Users,
   Calendar,
   DollarSign,
-  Settings,
-  Bell,
   FileText,
-  Shield,
   Heart,
   Building,
   BookOpen,
+  Settings,
+  Users,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -134,9 +133,6 @@ export function RoleBasedFeatures() {
   }
 
   const isAdmin = profile.accountType === 'admin';
-  const availableFeatures = isAdmin
-    ? [...memberFeatures, ...adminFeatures]
-    : memberFeatures;
 
   return (
     <div className="space-y-6">

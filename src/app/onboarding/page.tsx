@@ -11,13 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 // import { Textarea } from '@/components/ui/textarea'; // Will use Input for now
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +26,7 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
+
   LogOut,
   Home,
 } from 'lucide-react';
@@ -152,7 +145,7 @@ function OnboardingContent() {
         <Users className="h-12 w-12 text-blue-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
         <p className="text-slate-600 dark:text-slate-400">
-          Let's start with some basic information about you
+          Let&apos;s start with some basic information about you
         </p>
       </div>
 
@@ -265,7 +258,7 @@ function OnboardingContent() {
               Member Account Setup
             </h4>
             <p className="text-green-700 dark:text-green-300">
-              Your member account is ready to be created. You'll have access to
+              Your member account is ready to be created. You&apos;ll have access to
               all community features and services.
             </p>
           </div>
@@ -467,7 +460,7 @@ function OnboardingContent() {
               </CardTitle>
             </div>
             <CardDescription>
-              Step {step} of 4 - Let's set up your account
+              Step {step} of 4 - Let&apos;s set up your account
             </CardDescription>
 
             {/* Progress Bar */}

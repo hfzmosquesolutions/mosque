@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -27,10 +27,6 @@ export default function MosquesPage() {
   useEffect(() => {
     fetchMosques();
   }, []);
-
-  useEffect(() => {
-    filterMosques();
-  }, [searchQuery, mosques]);
 
   const fetchMosques = async () => {
     try {
@@ -62,7 +58,7 @@ export default function MosquesPage() {
     }
   };
 
-  const filterMosques = () => {
+  const filterMosques = useCallback(() => {
     if (!searchQuery.trim()) {
       setFilteredMosques(mosques);
       return;
@@ -76,7 +72,11 @@ export default function MosquesPage() {
     );
 
     setFilteredMosques(filtered);
-  };
+  }, [searchQuery, mosques]);
+
+  useEffect(() => {
+    filterMosques();
+  }, [filterMosques]);
 
   const handleMosqueClick = (mosqueId: string) => {
     router.push(`/mosques/${mosqueId}`);

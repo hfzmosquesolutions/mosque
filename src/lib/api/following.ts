@@ -2,7 +2,7 @@
 // Handles user-to-user following and mosque-to-user following
 
 import { supabase } from '../supabase';
-import type { UserFollower, MosqueUserFollower } from '../../types/database';
+
 
 // =============================================
 // USER-TO-USER FOLLOWING
@@ -15,7 +15,7 @@ export async function followUser(followingId: string) {
   const { data, error } = await supabase
     .from('user_followers')
     .insert({
-      follower_id: (await supabase.auth.getUser()).data.user?.id!,
+      follower_id: (await supabase.auth.getUser()).data.user?.id || '',
       following_id: followingId,
       followed_at: new Date().toISOString()
     })
@@ -38,7 +38,7 @@ export async function unfollowUser(followingId: string) {
   const { error } = await supabase
     .from('user_followers')
     .delete()
-    .eq('follower_id', user.user?.id!)
+    .eq('follower_id', user.user?.id || '')
     .eq('following_id', followingId);
 
   if (error) {
@@ -99,7 +99,7 @@ export async function getFollowing(page = 1, limit = 20) {
 
   // Get user profiles for the following users
   const followingIds = data?.map(item => item.following_id) || [];
-  let userProfiles: any[] = [];
+  let userProfiles: Array<{ id: string; full_name: string; profile_picture_url?: string; is_profile_private: boolean }> = [];
   
   if (followingIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
@@ -163,7 +163,7 @@ export async function getFollowers(page = 1, limit = 20) {
 
   // Get user profiles for the follower users
   const followerIds = data?.map(item => item.follower_id) || [];
-  let userProfiles: any[] = [];
+  let userProfiles: Array<{ id: string; full_name: string; profile_picture_url?: string; is_profile_private: boolean }> = [];
   
   if (followerIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
@@ -304,7 +304,7 @@ export async function getMosqueFollowing(mosqueId: string, page = 1, limit = 20)
 
   // Get user profiles for the users
   const userIds = data?.map(item => item.user_id) || [];
-  let userProfiles: any[] = [];
+  let userProfiles: Array<{ id: string; full_name: string; profile_picture_url?: string; is_profile_private: boolean }> = [];
   
   if (userIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
@@ -362,7 +362,7 @@ export async function getMosqueFollowers(userId: string, page = 1, limit = 20) {
 
   // Get mosque data for the mosques
   const mosqueIds = data?.map(item => item.mosque_id) || [];
-  let mosques: any[] = [];
+  let mosques: Array<{ id: string; name: string; description?: string; is_private: boolean }> = [];
   
   if (mosqueIds.length > 0) {
     const { data: mosqueData, error: mosqueError } = await supabase
@@ -443,7 +443,7 @@ export async function searchUsersToFollow(query: string, page = 1, limit = 20) {
   const offset = (page - 1) * limit;
 
   // Get users that match the search query and are not already followed
-  const { data, error, count } = await supabase
+  const { data, error } = await supabase
     .from('user_profiles')
     .select(`
       id,

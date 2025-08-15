@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import {
   Select,
   SelectContent,
@@ -27,9 +27,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import {
+  Search,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+} from 'lucide-react';
 import { getContributions, updateContributionStatus } from '@/lib/api';
 import type { ContributionProgram, Contribution } from '@/types/database';
 import { toast } from 'sonner';
@@ -42,24 +49,20 @@ interface ContributionsListProps {
 
 type ContributionStatus = 'pending' | 'completed' | 'cancelled';
 
-export function ContributionsList({ program, isOpen, onClose }: ContributionsListProps) {
+export function ContributionsList({
+  program,
+  isOpen,
+  onClose,
+}: ContributionsListProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [filteredContributions, setFilteredContributions] = useState<Contribution[]>([]);
+  const [filteredContributions, setFilteredContributions] = useState<
+    Contribution[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updating, setUpdating] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen && program.id) {
-      loadContributions();
-    }
-  }, [isOpen, program.id]);
-
-  useEffect(() => {
-    filterContributions();
-  }, [contributions, searchTerm, statusFilter]);
 
   const loadContributions = async () => {
     setLoading(true);
@@ -83,27 +86,49 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
     if (searchTerm) {
       filtered = filtered.filter(
         (contribution) =>
-          contribution.contributor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contribution.payment_reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contribution.contributor_name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.payment_reference
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           contribution.notes?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((contribution) => contribution.status === statusFilter);
+      filtered = filtered.filter(
+        (contribution) => contribution.status === statusFilter
+      );
     }
 
     setFilteredContributions(filtered);
   };
 
-  const handleStatusUpdate = async (contributionId: string, newStatus: ContributionStatus) => {
+  useEffect(() => {
+    if (isOpen && program.id) {
+      loadContributions();
+    }
+  }, [isOpen, program.id, loadContributions]);
+
+  useEffect(() => {
+    filterContributions();
+  }, [contributions, searchTerm, statusFilter, filterContributions]);
+
+  const handleStatusUpdate = async (
+    contributionId: string,
+    newStatus: ContributionStatus
+  ) => {
     if (!user) return;
 
     setUpdating(contributionId);
     try {
-      const response = await updateContributionStatus(contributionId, newStatus);
-      
+      const response = await updateContributionStatus(
+        contributionId,
+        newStatus
+      );
+
       if (response.success) {
         toast.success(`Contribution ${newStatus} successfully`);
         loadContributions(); // Reload to get updated data
@@ -159,7 +184,10 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
     });
   };
 
-  const totalAmount = filteredContributions.reduce((sum, contribution) => sum + contribution.amount, 0);
+  const totalAmount = filteredContributions.reduce(
+    (sum, contribution) => sum + contribution.amount,
+    0
+  );
   const completedAmount = filteredContributions
     .filter((c) => c.status === 'completed')
     .reduce((sum, contribution) => sum + contribution.amount, 0);
@@ -188,7 +216,9 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(totalAmount)}
                 </div>
-                <p className="text-sm text-muted-foreground">Total Contributions</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Contributions
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -253,7 +283,9 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
             ) : filteredContributions.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                  {contributions.length === 0 ? 'No contributions yet' : 'No contributions match your filters'}
+                  {contributions.length === 0
+                    ? 'No contributions yet'
+                    : 'No contributions match your filters'}
                 </p>
               </div>
             ) : (
@@ -308,7 +340,9 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleStatusUpdate(contribution.id, 'completed')}
+                              onClick={() =>
+                                handleStatusUpdate(contribution.id, 'completed')
+                              }
                               disabled={updating === contribution.id}
                               className="text-green-600 hover:text-green-700"
                             >
@@ -321,7 +355,9 @@ export function ContributionsList({ program, isOpen, onClose }: ContributionsLis
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleStatusUpdate(contribution.id, 'cancelled')}
+                              onClick={() =>
+                                handleStatusUpdate(contribution.id, 'cancelled')
+                              }
                               disabled={updating === contribution.id}
                               className="text-red-600 hover:text-red-700"
                             >
