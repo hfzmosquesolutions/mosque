@@ -1,0 +1,284 @@
+-- Current Database Structure Documentation
+-- This migration documents the current state of the database schema
+-- for reference and future AI understanding
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+-- This file serves as documentation of the current database structure
+-- after all previous migrations have been applied
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+-- CREATE TABLE public.announcements (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   title character varying NOT NULL,
+--   content text NOT NULL,
+--   priority USER-DEFINED DEFAULT 'medium'::announcement_priority,
+--   is_published boolean DEFAULT false,
+--   published_at timestamp with time zone,
+--   expires_at timestamp with time zone,
+--   target_audience jsonb DEFAULT '{}'::jsonb,
+--   image_url text,
+--   created_by uuid NOT NULL,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT announcements_pkey PRIMARY KEY (id),
+--   CONSTRAINT announcements_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT announcements_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.audit_logs (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   user_id uuid,
+--   mosque_id uuid,
+--   action character varying NOT NULL,
+--   table_name character varying,
+--   record_id uuid,
+--   old_values jsonb,
+--   new_values jsonb,
+--   ip_address inet,
+--   user_agent text,
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
+--   CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+--   CONSTRAINT audit_logs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+-- );
+-- CREATE TABLE public.donation_categories (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   name character varying NOT NULL,
+--   description text,
+--   target_amount numeric,
+--   is_active boolean DEFAULT true,
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT donation_categories_pkey PRIMARY KEY (id),
+--   CONSTRAINT donation_categories_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+-- );
+-- CREATE TABLE public.donations (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   donor_id uuid,
+--   donor_name character varying,
+--   donor_email character varying,
+--   donor_phone character varying,
+--   category_id uuid,
+--   amount numeric NOT NULL,
+--   currency character varying DEFAULT 'MYR'::character varying,
+--   payment_method character varying,
+--   payment_reference character varying,
+--   status USER-DEFINED DEFAULT 'pending'::donation_status,
+--   is_anonymous boolean DEFAULT false,
+--   is_recurring boolean DEFAULT false,
+--   recurring_frequency character varying,
+--   notes text,
+--   receipt_url text,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT donations_pkey PRIMARY KEY (id),
+--   CONSTRAINT donations_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.user_profiles(id),
+--   CONSTRAINT donations_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.donation_categories(id)
+-- );
+-- CREATE TABLE public.event_registrations (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   event_id uuid NOT NULL,
+--   user_id uuid NOT NULL,
+--   registered_at timestamp with time zone DEFAULT now(),
+--   attended boolean DEFAULT false,
+--   notes text,
+--   CONSTRAINT event_registrations_pkey PRIMARY KEY (id),
+--   CONSTRAINT event_registrations_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
+--   CONSTRAINT event_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.events (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   title character varying NOT NULL,
+--   description text,
+--   event_date timestamp with time zone NOT NULL,
+--   end_date timestamp with time zone,
+--   location text,
+--   max_attendees integer,
+--   registration_required boolean DEFAULT false,
+--   registration_deadline timestamp with time zone,
+--   status USER-DEFINED DEFAULT 'draft'::event_status,
+--   category character varying,
+--   image_url text,
+--   created_by uuid NOT NULL,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT events_pkey PRIMARY KEY (id),
+--   CONSTRAINT events_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT events_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.khairat_contributions (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   program_id uuid NOT NULL,
+--   contributor_id uuid,
+--   contributor_name character varying,
+--   amount numeric NOT NULL,
+--   payment_method character varying,
+--   payment_reference character varying,
+--   status USER-DEFINED DEFAULT 'pending'::khairat_status,
+--   notes text,
+--   contributed_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
+--   CONSTRAINT khairat_contributions_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.khairat_programs(id),
+--   CONSTRAINT khairat_contributions_contributor_id_fkey FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.khairat_programs (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   name character varying NOT NULL,
+--   description text,
+--   target_amount numeric,
+--   current_amount numeric DEFAULT 0,
+--   start_date date,
+--   end_date date,
+--   is_active boolean DEFAULT true,
+--   created_by uuid NOT NULL,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT khairat_programs_pkey PRIMARY KEY (id),
+--   CONSTRAINT khairat_programs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT khairat_programs_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.mosque_followers (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   user_id uuid NOT NULL,
+--   mosque_id uuid NOT NULL,
+--   followed_at timestamp with time zone DEFAULT now(),
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT mosque_followers_pkey PRIMARY KEY (id),
+--   CONSTRAINT mosque_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+--   CONSTRAINT mosque_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+-- );
+-- CREATE TABLE public.mosque_user_followers (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   user_id uuid NOT NULL,
+--   followed_at timestamp with time zone DEFAULT now(),
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT mosque_user_followers_pkey PRIMARY KEY (id),
+--   CONSTRAINT mosque_user_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT mosque_user_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+-- );
+-- CREATE TABLE public.mosques (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   name character varying NOT NULL,
+--   address text,
+--   phone character varying,
+--   email character varying,
+--   website character varying,
+--   description text,
+--   prayer_times jsonb,
+--   settings jsonb DEFAULT '{}'::jsonb,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   user_id uuid UNIQUE,
+--   is_private boolean DEFAULT false,
+--   CONSTRAINT mosques_pkey PRIMARY KEY (id),
+--   CONSTRAINT mosques_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+-- );
+-- CREATE TABLE public.notifications (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   user_id uuid NOT NULL,
+--   mosque_id uuid,
+--   title character varying NOT NULL,
+--   message text NOT NULL,
+--   type character varying NOT NULL,
+--   is_read boolean DEFAULT false,
+--   action_url text,
+--   metadata jsonb DEFAULT '{}'::jsonb,
+--   created_at timestamp with time zone DEFAULT now(),
+--   read_at timestamp with time zone,
+--   CONSTRAINT notifications_pkey PRIMARY KEY (id),
+--   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+--   CONSTRAINT notifications_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+-- );
+-- CREATE TABLE public.resource_categories (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   name character varying NOT NULL,
+--   description text,
+--   parent_id uuid,
+--   sort_order integer DEFAULT 0,
+--   is_active boolean DEFAULT true,
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT resource_categories_pkey PRIMARY KEY (id),
+--   CONSTRAINT resource_categories_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT resource_categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.resource_categories(id)
+-- );
+-- CREATE TABLE public.resources (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid NOT NULL,
+--   category_id uuid,
+--   title character varying NOT NULL,
+--   description text,
+--   content text,
+--   file_url text,
+--   external_url text,
+--   resource_type character varying,
+--   language character varying DEFAULT 'en'::character varying,
+--   tags ARRAY,
+--   is_featured boolean DEFAULT false,
+--   is_published boolean DEFAULT false,
+--   view_count integer DEFAULT 0,
+--   created_by uuid NOT NULL,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT resources_pkey PRIMARY KEY (id),
+--   CONSTRAINT resources_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+--   CONSTRAINT resources_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.resource_categories(id),
+--   CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+-- );
+-- CREATE TABLE public.system_settings (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   mosque_id uuid,
+--   key character varying NOT NULL,
+--   value jsonb NOT NULL,
+--   description text,
+--   is_public boolean DEFAULT false,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT system_settings_pkey PRIMARY KEY (id),
+--   CONSTRAINT system_settings_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+-- );
+-- CREATE TABLE public.user_followers (
+--   id uuid NOT NULL DEFAULT uuid_generate_v4(),
+--   follower_id uuid NOT NULL,
+--   following_id uuid NOT NULL,
+--   followed_at timestamp with time zone DEFAULT now(),
+--   created_at timestamp with time zone DEFAULT now(),
+--   CONSTRAINT user_followers_pkey PRIMARY KEY (id),
+--   CONSTRAINT user_followers_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES auth.users(id),
+--   CONSTRAINT user_followers_following_id_fkey FOREIGN KEY (following_id) REFERENCES auth.users(id)
+-- );
+-- CREATE TABLE public.user_profiles (
+--   id uuid NOT NULL,
+--   full_name character varying NOT NULL,
+--   phone character varying,
+--   address text,
+--   account_type USER-DEFINED NOT NULL DEFAULT 'member'::user_account_type,
+--   membership_type USER-DEFINED DEFAULT 'regular'::membership_type,
+--   role USER-DEFINED NOT NULL DEFAULT 'member'::user_role,
+--   status USER-DEFINED NOT NULL DEFAULT 'active'::user_status,
+--   emergency_contact_name character varying,
+--   emergency_contact_phone character varying,
+--   date_of_birth date,
+--   gender character varying,
+--   occupation character varying,
+--   onboarding_completed boolean DEFAULT false,
+--   onboarding_completed_at timestamp with time zone,
+--   profile_picture_url text,
+--   preferences jsonb DEFAULT '{}'::jsonb,
+--   created_at timestamp with time zone DEFAULT now(),
+--   updated_at timestamp with time zone DEFAULT now(),
+--   is_profile_private boolean DEFAULT false,
+--   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
+--   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+-- );
