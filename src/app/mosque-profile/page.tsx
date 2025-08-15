@@ -1,10 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { AuthLayout } from '@/components/layout/AuthLayout';
-import { useAuthState } from '@/hooks/useAuth.v2';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -12,340 +8,760 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import {
+  Building,
+  Save,
+  Eye,
+  EyeOff,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Clock,
+  Users,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Target,
+  Plus,
+  TrendingUp,
+  ExternalLink,
+} from 'lucide-react';
+import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building, Edit, Info, Eye } from 'lucide-react';
-import Link from 'next/link';
-import MosqueProfileForm, {
-  MosqueProfileData,
-} from '@/components/mosques/MosqueProfileForm';
-import { MosqueProfileService, MosqueProfile } from '@/services/mosque-profile';
+import {
+  getContributionPrograms,
+  getUserMosqueId,
+  getMosque,
+  updateMosque,
+} from '@/lib/api';
+import type {
+  ContributionProgram,
+  Mosque,
+  UpdateMosque,
+} from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Extended mosque interface for profile editing
+interface MosqueProfileData extends Mosque {
+  // Additional fields for UI that might not be in the database yet
+  established_year?: string;
+  capacity?: string;
+  imam_name?: string;
+  services?: string[];
+}
+
+const getDefaultMosqueProfile = (): MosqueProfileData => ({
+  id: '',
+  name: '',
+  description: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  user_id: '',
+  prayer_times: {
+    fajr: '5:30 AM',
+    dhuhr: '12:30 PM',
+    asr: '3:45 PM',
+    maghrib: '6:15 PM',
+    isha: '7:30 PM',
+  },
+  settings: {
+    established_year: '',
+    capacity: '',
+    imam_name: '',
+    services: [
+      'Daily Prayers',
+      'Friday Prayers',
+      'Islamic Education',
+      'Community Events',
+    ],
+  },
+  is_private: false,
+  created_at: '',
+  updated_at: '',
+});
 
 function MosqueProfileContent() {
-  const { t } = useLanguage();
-  const { user: authUser, profile } = useAuthState();
-  const [mosqueProfile, setMosqueProfile] = useState<MosqueProfile | null>(
-    null
+  const { user } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
+  const [profile, setProfile] = useState<MosqueProfileData>(
+    getDefaultMosqueProfile()
   );
-  const [loading, setLoading] = useState(true);
+  const [originalProfile, setOriginalProfile] = useState<MosqueProfileData>(
+    getDefaultMosqueProfile()
+  );
   const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{
-    type: 'success' | 'error';
-    text: string;
-  } | null>(null);
-  const [canCreate, setCanCreate] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
+  const [programsLoading, setProgramsLoading] = useState(true);
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
 
-  const canManageProfile =
-    profile?.role === 'super_admin' || profile?.role === 'mosque_admin';
+  const updateProfile = (field: keyof MosqueProfileData, value: any) => {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updatePrayerTime = (prayer: string, time: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      prayer_times: {
+        ...prev.prayer_times,
+        [prayer]: time,
+      },
+    }));
+  };
+
+  const updateSettings = (field: string, value: any) => {
+    setProfile((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        [field]: value,
+      },
+    }));
+  };
 
   useEffect(() => {
-    if (profile?.id && authUser?.id) {
-      fetchMosqueProfile();
-      checkCreatePermission();
+    if (user) {
+      loadUserMosque();
     }
-  }, [profile?.id, authUser?.id]);
+  }, [user]);
 
-  const fetchMosqueProfile = async () => {
-    if (!authUser?.id) {
-      setLoading(false);
-      return;
+  useEffect(() => {
+    if (mosqueId) {
+      loadMosqueData();
+      loadPrograms();
     }
+  }, [mosqueId]);
+
+  const loadUserMosque = async () => {
+    if (!user) return;
 
     try {
-      setLoading(true);
-
-      const data = await MosqueProfileService.getUserMosqueProfile(authUser.id);
-
-      setMosqueProfile(data);
+      const userMosqueId = await getUserMosqueId(user.id);
+      setMosqueId(userMosqueId);
     } catch (error) {
-      console.error('Error fetching mosque profile:', error);
-      setMessage({ type: 'error', text: 'Failed to load mosque profile' });
-    } finally {
-      setLoading(false);
+      console.error('Error loading user mosque:', error);
+      setIsLoading(false);
     }
   };
 
-  const checkCreatePermission = async () => {
-    if (!authUser?.id) return;
+  const loadMosqueData = async () => {
+    if (!mosqueId) return;
 
+    setIsLoading(true);
     try {
-      const canCreateMosque = await MosqueProfileService.canCreateMosque(
-        authUser.id
-      );
-
-      setCanCreate(canCreateMosque);
-    } catch (error) {
-      console.error('Error checking create permission:', error);
-    }
-  };
-
-  const handleSaveMosque = async (data: MosqueProfileData) => {
-    if (!authUser) return;
-
-    setIsSubmitting(true);
-    setMessage(null);
-
-    try {
-      let result;
-
-      if (mosqueProfile?.id) {
-        // Update existing mosque
-        result = await MosqueProfileService.updateMosqueProfile(
-          mosqueProfile.id,
-          data,
-          authUser.id
-        );
-      } else {
-        // Create new mosque
-        result = await MosqueProfileService.createMosqueProfile(
-          data,
-          authUser.id
-        );
+      const response = await getMosque(mosqueId);
+      if (response.success && response.data) {
+        const mosqueData: MosqueProfileData = {
+          ...response.data,
+          // Extract additional fields from settings if they exist
+          established_year: response.data.settings?.established_year || '',
+          capacity: response.data.settings?.capacity || '',
+          imam_name: response.data.settings?.imam_name || '',
+          services: response.data.settings?.services || [
+            'Daily Prayers',
+            'Friday Prayers',
+            'Islamic Education',
+            'Community Events',
+          ],
+        };
+        setProfile(mosqueData);
+        setOriginalProfile(mosqueData);
       }
+    } catch (error) {
+      console.error('Error loading mosque data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (result) {
-        setMosqueProfile(result);
+  const loadPrograms = async () => {
+    if (!mosqueId) return;
+
+    setProgramsLoading(true);
+    try {
+      const response = await getContributionPrograms(mosqueId);
+      if (response.success && response.data) {
+        setPrograms(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading programs:', error);
+    } finally {
+      setProgramsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!mosqueId) return;
+
+    setIsSaving(true);
+    try {
+      // Prepare update data
+      const updateData: UpdateMosque = {
+        name: profile.name,
+        description: profile.description || undefined,
+        address: profile.address || undefined,
+        phone: profile.phone || undefined,
+        email: profile.email || undefined,
+        website: profile.website || undefined,
+        prayer_times: profile.prayer_times,
+        settings: {
+          ...profile.settings,
+          established_year: profile.established_year,
+          capacity: profile.capacity,
+          imam_name: profile.imam_name,
+          services: profile.services,
+        },
+        is_private: profile.is_private,
+      };
+
+      const response = await updateMosque(mosqueId, updateData);
+      if (response.success) {
+        setOriginalProfile(profile);
         setIsEditing(false);
-        setMessage({
-          type: 'success',
-          text: mosqueProfile?.id
-            ? 'Mosque profile updated successfully!'
-            : 'Mosque profile created successfully!',
-        });
-        // No need to fetch again since we already have the result
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        setMessage({
-          type: 'error',
-          text: 'Failed to save mosque profile. Please try again.',
-        });
+        console.error('Failed to save mosque profile:', response.error);
       }
     } catch (error) {
       console.error('Error saving mosque profile:', error);
-      setMessage({
-        type: 'error',
-        text: 'An error occurred while saving the mosque profile.',
-      });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading mosque profile...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleCancel = () => {
+    setProfile(originalProfile);
+    setIsEditing(false);
+  };
 
-  if (!canManageProfile) {
+  if (!hasAdminAccess) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5" />
-            Access Restricted
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertDescription>
-              You don't have permission to manage mosque profiles. Please
-              contact your administrator.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+              <p className="text-slate-600 dark:text-slate-400">
+                Only mosque administrators can access the mosque profile
+                settings.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {message && (
-        <Alert
-          className={
-            message.type === 'error' ? 'border-red-500' : 'border-green-500'
-          }
-        >
-          <AlertDescription
-            className={
-              message.type === 'error' ? 'text-red-700' : 'text-green-700'
-            }
-          >
-            {message.text}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">Mosque Profile Management</h1>
-          <p className="text-gray-600">
-            {mosqueProfile
-              ? 'Manage your mosque information and details'
-              : 'Create your mosque profile to get started'}
-          </p>
-        </div>
-
-        {mosqueProfile && !isEditing && (
-          <div className="flex gap-2">
-            <Link
-              href={`/public/mosque/${mosqueProfile.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                View Live Profile
-              </Button>
-            </Link>
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              Edit Profile
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Mosque Profile Display or Form */}
-      {!mosqueProfile && canCreate ? (
-        <MosqueProfileForm
-          onSubmit={handleSaveMosque}
-          isSubmitting={isSubmitting}
-        />
-      ) : mosqueProfile && !isEditing ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              {mosqueProfile.name}
-            </CardTitle>
-            <CardDescription>
-              {mosqueProfile.description || 'No description provided'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
-                  Address
-                </h4>
-                <p className="mt-1">
-                  {mosqueProfile.address || 'Not provided'}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
-                  Capacity
-                </h4>
-                <p className="mt-1">
-                  {mosqueProfile.capacity
-                    ? `${mosqueProfile.capacity} people`
-                    : 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
-                  Phone
-                </h4>
-                <p className="mt-1">{mosqueProfile.phone || 'Not provided'}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
-                  Email
-                </h4>
-                <p className="mt-1">{mosqueProfile.email || 'Not provided'}</p>
-              </div>
-              {mosqueProfile.website && (
-                <div>
-                  <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide">
-                    Website
-                  </h4>
-                  <p className="mt-1">
-                    <a
-                      href={mosqueProfile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      {mosqueProfile.website}
-                    </a>
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {mosqueProfile.facilities &&
-              mosqueProfile.facilities.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm text-gray-500 uppercase tracking-wide mb-2">
-                    Facilities
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {mosqueProfile.facilities.map((facility, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                      >
-                        {facility}
-                      </span>
-                    ))}
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl" />
+          <div className="relative p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Building className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                      Mosque Profile
+                    </h1>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      Manage your mosque's public profile and information
+                    </p>
                   </div>
                 </div>
-              )}
-          </CardContent>
-        </Card>
-      ) : mosqueProfile && isEditing ? (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
+              </div>
+              <div className="flex items-center gap-3">
+                {saveSuccess && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Saved successfully
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  {mosqueId && (
+                    <Button variant="outline" asChild>
+                      <a
+                        href={`/mosques/${mosqueId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        View Public Profile
+                      </a>
+                    </Button>
+                  )}
+                  {isEditing ? (
+                    <>
+                      <Button variant="outline" onClick={handleCancel}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            Saving...
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Save className="h-4 w-4" />
+                            Save Changes
+                          </div>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={() => setIsEditing(true)}>
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <MosqueProfileForm
-            initialData={mosqueProfile}
-            onSubmit={handleSaveMosque}
-            isSubmitting={isSubmitting}
-          />
         </div>
-      ) : !canCreate ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              No Mosque Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert>
-              <AlertDescription>
-                You already have a mosque assigned or don't have permission to
-                create a new mosque profile. Please contact your administrator
-                if you need to make changes.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      ) : null}
-    </div>
+
+        {/* Status Alert */}
+        <Alert>
+          <div className="flex items-center gap-2">
+            {profile.is_private ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            <AlertDescription>
+              Your mosque profile is currently{' '}
+              <strong>{profile.is_private ? 'private' : 'public'}</strong>.
+              {profile.is_private
+                ? ' Only members can view your mosque information.'
+                : ' Anyone can discover and view your mosque profile.'}
+            </AlertDescription>
+          </div>
+        </Alert>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Basic Information */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Basic Information
+                </CardTitle>
+                <CardDescription>
+                  Essential details about your mosque
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mosqueName">Mosque Name *</Label>
+                    <Input
+                      id="mosqueName"
+                      value={profile.name}
+                      onChange={(e) => updateProfile('name', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="establishedYear">Established Year</Label>
+                    <Input
+                      id="establishedYear"
+                      value={profile.established_year}
+                      onChange={(e) =>
+                        updateProfile('established_year', e.target.value)
+                      }
+                      disabled={!isEditing}
+                      placeholder="e.g., 1995"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={profile.description}
+                    onChange={(e) =>
+                      updateProfile('description', e.target.value)
+                    }
+                    disabled={!isEditing}
+                    rows={3}
+                    placeholder="Describe your mosque and its mission..."
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="capacity">Capacity</Label>
+                    <Input
+                      id="capacity"
+                      value={profile.capacity}
+                      onChange={(e) =>
+                        updateProfile('capacity', e.target.value)
+                      }
+                      disabled={!isEditing}
+                      placeholder="e.g., 500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="imamName">Imam Name</Label>
+                    <Input
+                      id="imamName"
+                      value={profile.imam_name}
+                      onChange={(e) =>
+                        updateProfile('imam_name', e.target.value)
+                      }
+                      disabled={!isEditing}
+                      placeholder="e.g., Sheikh Abdullah Rahman"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  Contact Information
+                </CardTitle>
+                <CardDescription>
+                  How people can reach your mosque
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address *</Label>
+                  <Textarea
+                    id="address"
+                    value={profile.address}
+                    onChange={(e) => updateProfile('address', e.target.value)}
+                    disabled={!isEditing}
+                    rows={2}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={profile.phone}
+                      onChange={(e) => updateProfile('phone', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email}
+                      onChange={(e) => updateProfile('email', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    value={profile.website}
+                    onChange={(e) => updateProfile('website', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="https://"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Prayer Times */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Prayer Times
+                </CardTitle>
+                <CardDescription>
+                  Daily prayer schedule for your mosque
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {Object.entries(profile.prayer_times || {}).map(
+                    ([prayer, time]) => (
+                      <div key={prayer} className="space-y-2">
+                        <Label htmlFor={prayer} className="capitalize">
+                          {prayer}
+                        </Label>
+                        <Input
+                          id={prayer}
+                          value={time as string}
+                          onChange={(e) =>
+                            updatePrayerTime(prayer, e.target.value)
+                          }
+                          disabled={!isEditing}
+                          placeholder="e.g., 5:30 AM"
+                        />
+                      </div>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Programs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Contribution Programs
+                </CardTitle>
+                <CardDescription>
+                  Active programs and initiatives at your mosque
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {programsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                  </div>
+                ) : programs.length > 0 ? (
+                  <div className="space-y-4">
+                    {programs.map((program) => (
+                      <div
+                        key={program.id}
+                        className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                              {program.name}
+                            </h4>
+                            {program.description && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                {program.description}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant={
+                              program.is_active ? 'default' : 'secondary'
+                            }
+                          >
+                            {program.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                          {program.target_amount && (
+                            <div className="flex items-center gap-1">
+                              <Target className="h-4 w-4" />
+                              <span>
+                                Target: $
+                                {program.target_amount.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {program.start_date && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                Started:{' '}
+                                {new Date(
+                                  program.start_date
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {program.target_amount &&
+                          program.current_amount !== undefined && (
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between text-sm mb-1">
+                                <span className="text-slate-600 dark:text-slate-400">
+                                  Progress
+                                </span>
+                                <span className="font-medium">
+                                  $
+                                  {(
+                                    program.current_amount || 0
+                                  ).toLocaleString()}{' '}
+                                  / ${program.target_amount.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${Math.min(
+                                      ((program.current_amount || 0) /
+                                        program.target_amount) *
+                                        100,
+                                      100
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+
+                    <div className="pt-4 border-t">
+                      <Button variant="outline" className="w-full" asChild>
+                        <a
+                          href="/contributions"
+                          className="flex items-center gap-2"
+                        >
+                          <TrendingUp className="h-4 w-4" />
+                          Manage All Programs
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
+                      No Programs Yet
+                    </h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                      Create contribution programs to engage your community
+                    </p>
+                    <Button variant="outline" asChild>
+                      <a
+                        href="/contributions"
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create First Program
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Profile Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Profile Visibility</Label>
+                    <p className="text-sm text-slate-500">
+                      Control who can see your mosque profile
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!profile.is_private}
+                    onCheckedChange={(checked) =>
+                      updateProfile('is_private', !checked)
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant={profile.is_private ? 'outline' : 'default'}>
+                      {profile.is_private ? 'Private' : 'Public'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Last updated:{' '}
+                    {profile.updated_at
+                      ? new Date(profile.updated_at).toLocaleDateString()
+                      : 'Never'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Capacity</span>
+                  <span className="font-medium">{profile.capacity} people</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Established</span>
+                  <span className="font-medium">
+                    {profile.established_year}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Services</span>
+                  <span className="font-medium">
+                    {profile.services?.length || 0} offered
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Services */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Services Offered</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {profile.services?.map((service, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {service}
+                    </Badge>
+                  )) || (
+                    <p className="text-sm text-slate-500">No services listed</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
 export default function MosqueProfilePage() {
   return (
-    <AuthLayout>
+    <ProtectedRoute>
       <MosqueProfileContent />
-    </AuthLayout>
+    </ProtectedRoute>
   );
 }

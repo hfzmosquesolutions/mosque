@@ -1,157 +1,114 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuthActions, useAuthState } from '@/hooks/useAuth.v2';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Building2 } from 'lucide-react';
-import { AuthNavbar } from '@/components/layout/AuthNavbar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
-// Form schema
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+function LoginPageContent() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-export default function LoginPage() {
-  const { t } = useLanguage();
-  const { signIn } = useAuthActions();
-  const { isLoading } = useAuthState();
-  const [error, setError] = useState<string | null>(null);
+    const { error } = await signIn(email, password);
 
-  // Initialize form
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-  // Handle form submission
-  const onSubmit = async (data: LoginFormValues) => {
-    setError(null);
-
-    try {
-      await signIn({
-        email: data.email,
-        password: data.password,
-      });
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || t('auth.loginFailed'));
+    if (error) {
+      toast.error(error);
+    } else {
+      router.push('/dashboard');
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <AuthNavbar currentPage="login" />
-      <div className="flex items-center justify-center p-4 pt-16">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-2">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">
+            Login
+          </CardTitle>
+          <CardDescription className="text-center">
+            Enter your email and password to access your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-            <CardTitle className="text-2xl font-bold">
-              {t('auth.welcome')}
-            </CardTitle>
-            <CardDescription>{t('auth.pleaseLogin')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('auth.email')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="email@example.com"
-                          {...field}
-                          autoComplete="email"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('auth.password')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          {...field}
-                          autoComplete="current-password"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="text-right">
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {t('auth.forgotPassword')}
-                  </Link>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? t('common.loading') : t('auth.login')}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-center text-sm">
-              {t('auth.dontHaveAccount')}{' '}
-              <Link href="/signup" className="text-primary hover:underline">
-                {t('auth.signUp')}
-              </Link>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-          </CardFooter>
-        </Card>
-      </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-sm">
+            <span className="text-slate-600 dark:text-slate-400">
+              Don't have an account?{' '}
+            </span>
+            <Link
+              href="/signup"
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            >
+              Sign up
+            </Link>
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link
+              href="/"
+              className="text-sm text-slate-600 hover:text-slate-500 dark:text-slate-400 dark:hover:text-slate-300"
+            >
+              ← Back to home
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <ProtectedRoute requireAuth={false}>
+      <LoginPageContent />
+    </ProtectedRoute>
   );
 }

@@ -1,242 +1,229 @@
-# Authentication Implementation Guide
+# Authentication System Documentation
 
-This document outlines the Supabase authentication implementation for the Mosque Management System.
+This document outlines the authentication system implemented in this Next.js application using Supabase, React Context, and protected routes.
 
-## Overview
+## Features Implemented
 
-The authentication system is built using Supabase Auth with the following features:
+### 1. Authentication Context Provider (`AuthContext`)
+- **Location**: `src/contexts/AuthContext.tsx`
+- **Purpose**: Global state management for user authentication
+- **Features**:
+  - User session management
+  - Authentication state tracking
+  - Sign in/up/out functionality
+  - Password reset capability
+  - Real-time auth state changes
 
-- Email/password authentication
-- User profiles with role-based access
-- Password reset functionality
-- Secure session management
-- Automatic profile creation on signup
+### 2. Protected Route Wrapper
+- **Location**: `src/components/auth/ProtectedRoute.tsx`
+- **Purpose**: Route protection based on authentication status
+- **Features**:
+  - Redirect unauthenticated users to login
+  - Redirect authenticated users away from auth pages
+  - Loading state handling
+  - Higher-order component (`withAuth`) for easy page protection
 
-## Architecture
+### 3. Custom Authentication Hooks
+- **Location**: `src/hooks/useAuthRedirect.ts`
+- **Purpose**: Simplified authentication logic for components
+- **Hooks Available**:
+  - `useAuthRedirect()` - General redirect logic
+  - `useRequireAuth()` - For protected pages
+  - `useRedirectIfAuthenticated()` - For auth pages (login/signup)
 
-### Core Components
+## Implementation Details
 
-1. **AuthContext** (`src/contexts/AuthContext.tsx`)
+### Global Setup
 
-   - Global authentication state management
-   - Handles auth state changes
-   - Provides authentication methods
+The `AuthProvider` is wrapped around the entire application in `layout.tsx`:
 
-2. **AuthService** (`src/services/auth.ts`)
-
-   - Authentication business logic
-   - User profile management
-   - Error handling
-
-3. **Database Types** (`src/types/database.ts`)
-
-   - TypeScript definitions for database schema
-   - Type safety for all database operations
-
-4. **API Services** (`src/services/api.ts`)
-   - Data access layer
-   - CRUD operations for profiles, mosques, members
-
-### Database Schema
-
-#### Profiles Table
-
-```sql
-CREATE TABLE public.profiles (
-    id UUID REFERENCES auth.users(id) PRIMARY KEY,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    username TEXT UNIQUE,
-    full_name TEXT,
-    avatar_url TEXT,
-    email TEXT,
-    phone TEXT,
-    role user_role DEFAULT 'member',
-    mosque_id UUID,
-    permissions TEXT[] DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+```tsx
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
 ```
 
-#### Roles and Permissions
-
-- `super_admin`: Full system access
-- `mosque_admin`: Mosque-level administration
-- `ajk`: Committee member with limited admin access
-- `member`: Basic member access
-
-## Authentication Flow
-
-### Sign Up Process
-
-1. User submits signup form
-2. Supabase creates auth user
-3. Database trigger creates profile record
-4. User receives email verification
-5. Profile is linked to auth user
-
-### Sign In Process
-
-1. User submits login credentials
-2. Supabase validates credentials
-3. AuthContext loads user profile
-4. User is redirected to dashboard
-
-### Password Reset
-
-1. User requests password reset
-2. Supabase sends reset email
-3. User clicks reset link
-4. User sets new password
-5. Automatic redirect to login
-
-## Security Features
-
-### Row Level Security (RLS)
-
-- Users can only access their own data
-- Mosque admins can manage their mosque
-- Proper data isolation between mosques
-
-### Middleware Protection
-
-- Protected routes require authentication
-- Automatic redirects for unauthenticated users
-- Session validation on route changes
-
-## Usage Examples
-
-### Using the AuthContext
+### Using the Authentication Context
 
 ```tsx
 import { useAuth } from '@/contexts/AuthContext';
 
 function MyComponent() {
-  const { user, profile, isLoading, signOut } = useAuth();
-
-  if (isLoading) return <div>Loading...</div>;
-  if (!user) return <div>Please log in</div>;
-
+  const { user, loading, signIn, signOut } = useAuth();
+  
+  if (loading) return <div>Loading...</div>;
+  
   return (
     <div>
-      <p>Welcome, {profile?.full_name}!</p>
-      <button onClick={signOut}>Sign Out</button>
+      {user ? (
+        <div>
+          <p>Welcome, {user.email}!</p>
+          <button onClick={signOut}>Sign Out</button>
+        </div>
+      ) : (
+        <p>Please sign in</p>
+      )}
     </div>
   );
 }
 ```
 
-### API Service Usage
+### Protecting Routes
+
+#### Method 1: Using ProtectedRoute Component
 
 ```tsx
-import { ProfileService } from '@/services/api';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
-// Get user profile
-const profile = await ProfileService.getProfile(userId);
-
-// Update profile
-const updatedProfile = await ProfileService.updateProfile(userId, {
-  full_name: 'New Name',
-  phone: '+1234567890',
-});
+export default function DashboardPage() {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
+  );
+}
 ```
 
-## Environment Variables
+#### Method 2: Using withAuth HOC
 
-Required environment variables:
+```tsx
+import { withAuth } from '@/components/auth/ProtectedRoute';
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+function DashboardPage() {
+  return <div>Protected content</div>;
+}
+
+export default withAuth(DashboardPage);
 ```
 
-## Error Handling
+#### Method 3: Using Custom Hooks
 
-The system includes comprehensive error handling:
+```tsx
+import { useRequireAuth } from '@/hooks/useAuthRedirect';
 
-- Network errors
-- Authentication errors
-- Database errors
-- Form validation errors
+export default function ProtectedPage() {
+  const { user, loading } = useRequireAuth();
+  
+  if (loading) return <div>Loading...</div>;
+  
+  return <div>Protected content for {user?.email}</div>;
+}
+```
 
-Errors are displayed to users with appropriate messages and logged for debugging.
+### Preventing Authenticated Users from Accessing Auth Pages
 
-## Future Enhancements
+```tsx
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
-Planned authentication features:
+export default function LoginPage() {
+  return (
+    <ProtectedRoute requireAuth={false}>
+      <LoginForm />
+    </ProtectedRoute>
+  );
+}
+```
 
-- Social login (Google, Facebook)
-- Multi-factor authentication (MFA)
-- Single sign-on (SSO)
-- OAuth integration
-- API key authentication for external services
+## Pages and Routes
 
-## Testing
+### Public Routes
+- `/` - Home page (accessible to all, shows different content based on auth status)
 
-### Manual Testing Checklist
+### Authentication Routes (redirect authenticated users)
+- `/login` - Sign in page
+- `/signup` - Sign up page
 
-- [ ] User can sign up with valid email/password
-- [ ] User receives verification email
-- [ ] User can sign in with verified account
-- [ ] User can reset password
-- [ ] User profile is created automatically
-- [ ] Protected routes redirect unauthenticated users
-- [ ] User can sign out successfully
-- [ ] Session persists across browser refresh
+### Protected Routes (require authentication)
+- `/dashboard` - User dashboard (example protected page)
 
-### Automated Testing
+## Authentication Flow
 
-Future implementation will include:
+1. **Initial Load**: `AuthProvider` checks for existing session
+2. **Sign In**: User credentials are validated via Supabase
+3. **Session Management**: Auth state is automatically updated
+4. **Route Protection**: `ProtectedRoute` components handle redirects
+5. **Sign Out**: Session is cleared and user is redirected
 
-- Unit tests for AuthService
-- Integration tests for AuthContext
-- E2E tests for authentication flow
+## Security Features
 
-## Troubleshooting
+- **Automatic Session Refresh**: Supabase handles token refresh
+- **Real-time Auth Changes**: Context updates immediately on auth state changes
+- **Route Protection**: Unauthorized access attempts are redirected
+- **Loading States**: Prevents flash of wrong content during auth checks
+- **Error Handling**: Comprehensive error messages for auth failures
 
-### Common Issues
+## Best Practices Implemented
 
-1. **"Invalid API key" error**
+1. **Centralized State Management**: Single source of truth for auth state
+2. **Separation of Concerns**: Auth logic separated from UI components
+3. **Reusable Components**: `ProtectedRoute` can be used anywhere
+4. **Custom Hooks**: Simplified auth logic for common use cases
+5. **TypeScript Support**: Full type safety for auth-related code
+6. **Loading States**: Proper UX during authentication checks
+7. **Error Boundaries**: Graceful error handling
 
-   - Check environment variables
-   - Verify Supabase project settings
-   - Restart development server
+## Usage Examples
 
-2. **User not redirected after login**
+### Creating a New Protected Page
 
-   - Check middleware configuration
-   - Verify redirect URLs in Supabase settings
-   - Check browser console for errors
+```tsx
+// src/app/profile/page.tsx
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
-3. **Profile not created on signup**
-   - Verify database trigger exists
-   - Check database permissions
-   - Review Supabase logs
+function ProfileContent() {
+  const { user } = useAuth();
+  
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>Email: {user?.email}</p>
+    </div>
+  );
+}
 
-### Debug Tips
+export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <ProfileContent />
+    </ProtectedRoute>
+  );
+}
+```
 
-- Check browser network tab for failed requests
-- Review Supabase logs in dashboard
-- Use browser developer tools to inspect auth state
-- Check middleware execution in server logs
+### Adding Authentication to Existing Components
 
-## Best Practices
+```tsx
+import { useAuth } from '@/contexts/AuthContext';
 
-1. **Never expose service role key in client code**
-2. **Always validate user input before authentication**
-3. **Use TypeScript for type safety**
-4. **Implement proper error boundaries**
-5. **Keep auth state management centralized**
-6. **Use environment variables for configuration**
-7. **Implement proper loading states**
-8. **Handle edge cases gracefully**
+export function Navigation() {
+  const { user, signOut } = useAuth();
+  
+  return (
+    <nav>
+      {user ? (
+        <>
+          <span>Welcome, {user.email}</span>
+          <button onClick={signOut}>Sign Out</button>
+        </>
+      ) : (
+        <>
+          <Link href="/login">Login</Link>
+          <Link href="/signup">Sign Up</Link>
+        </>
+      )}
+    </nav>
+  );
+}
+```
 
-## Migration Guide
-
-If migrating from another auth system:
-
-1. Export user data from old system
-2. Create migration script for user profiles
-3. Update password reset workflows
-4. Test all authentication flows
-5. Update any hardcoded auth logic
+This authentication system provides a robust, scalable foundation for managing user authentication in your Next.js application.

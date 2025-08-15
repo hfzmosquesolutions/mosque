@@ -1,40 +1,41 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { AuthProvider } from '@/contexts/AuthContext.v2';
-import { ProfileGuard } from '@/components/guards/ProfileGuard';
-import { ClientOnly } from '@/components/layout/ClientOnly';
+import { Geist, Geist_Mono } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
+import Header from '@/components/layout/Header';
+import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+});
 
 export const metadata: Metadata = {
-  title: 'Sistem Pengurusan Masjid Digital',
-  description: 'Sistem pengurusan masjid digital yang komprehensif',
+  title: 'MosqueConnect - Connect with Your Local Mosque',
+  description:
+    'Discover mosques in your area, stay updated with events, and strengthen your connection with the community.',
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="ms">
-      <body className={inter.className}>
-        <ThemeProvider>
-          <LanguageProvider>
-            <ClientOnly fallback={<div>Loading...</div>}>
-              <AuthProvider>
-                <ProfileGuard>
-                  {children}
-                  <Toaster />
-                </ProfileGuard>
-              </AuthProvider>
-            </ClientOnly>
-          </LanguageProvider>
-        </ThemeProvider>
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <AuthProvider>
+          <Header />
+          <main>{children}</main>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
