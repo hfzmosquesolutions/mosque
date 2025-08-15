@@ -17,13 +17,7 @@ import {
   Row,
   Cell,
 } from '@tanstack/react-table';
-import {
-  ArrowUpDown,
-  ChevronDown,
-  MoreHorizontal,
-  Search,
-  X,
-} from 'lucide-react';
+import { ArrowUpDown, ChevronDown, Search, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {

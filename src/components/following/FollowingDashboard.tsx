@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Search, Building, TrendingUp } from 'lucide-react';
+import { Users, UserPlus, Building, TrendingUp, Search } from 'lucide-react';
 import { FollowingList } from './FollowingList';
 import { UserSearch } from './UserSearch';
 import { getComprehensiveUserStats } from '@/lib/api/following';

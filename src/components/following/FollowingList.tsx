@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,16 +45,6 @@ interface MosqueFollowData {
     description?: string;
     is_private: boolean;
   };
-}
-
-interface ApiResponse<T> {
-  data: T[];
-  count: number;
-  page: number;
-  limit: number;
-  total_pages: number;
-  has_next: boolean;
-  has_prev: boolean;
 }
 
 export function FollowingList({
@@ -287,7 +277,11 @@ export function FollowingList({
       <CardContent>
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as any)}
+          onValueChange={(value) =>
+            setActiveTab(
+              value as 'followers' | 'following' | 'mosque-followers'
+            )
+          }
         >
           <TabsList className="grid grid-cols-3">
             <TabsTrigger value="followers" className="flex items-center gap-2">

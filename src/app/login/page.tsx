@@ -81,7 +81,7 @@ function LoginPageContent() {
 
           <div className="mt-6 text-center text-sm">
             <span className="text-slate-600 dark:text-slate-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
             </span>
             <Link
               href="/signup"

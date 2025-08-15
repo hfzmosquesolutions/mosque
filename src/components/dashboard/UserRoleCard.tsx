@@ -93,7 +93,9 @@ export function UserRoleCard() {
                   Mosque Setup
                 </label>
                 <p className="text-slate-900 dark:text-slate-100 mt-1">
-                  {profile.mosqueAction === 'create' ? 'Created New Mosque' : 'Joined Existing Mosque'}
+                  {profile.mosqueAction === 'create'
+                    ? 'Created New Mosque'
+                    : 'Joined Existing Mosque'}
                 </p>
               </div>
             )}
@@ -173,8 +175,8 @@ export function UserRoleCard() {
               </span>
             </div>
             <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-              You have access to manage mosque operations and
-              community activities.
+              You have access to manage mosque operations and community
+              activities.
             </p>
           </div>
         )}

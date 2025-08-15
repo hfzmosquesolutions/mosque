@@ -42,8 +42,6 @@ import {
   Eye,
   EyeOff,
   Activity,
-  CheckCircle,
-  Globe
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -127,8 +125,12 @@ function SettingsContent() {
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const updateSettings = (section: keyof UserSettings, field: string, value: any) => {
-    setSettings(prev => ({
+  const updateSettings = (
+    section: keyof UserSettings,
+    field: string,
+    value: string | boolean | number
+  ) => {
+    setSettings((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
@@ -157,11 +159,15 @@ function SettingsContent() {
     // Here you would typically call your password change API
     console.log('Changing password');
     setIsChangePasswordOpen(false);
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
   };
 
   const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
       [field]: !prev[field],
     }));
@@ -199,7 +205,11 @@ function SettingsContent() {
                 </div>
               </div>
               {hasUnsavedChanges && (
-                <Button onClick={handleSaveSettings} size="lg" className="bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200">
+                <Button
+                  onClick={handleSaveSettings}
+                  size="lg"
+                  className="bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                >
                   <Save className="mr-2 h-5 w-5" />
                   Save Changes
                 </Button>
@@ -236,7 +246,9 @@ function SettingsContent() {
                     <Input
                       id="name"
                       value={settings.profile.name}
-                      onChange={(e) => updateSettings('profile', 'name', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('profile', 'name', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -245,7 +257,9 @@ function SettingsContent() {
                       id="email"
                       type="email"
                       value={settings.profile.email}
-                      onChange={(e) => updateSettings('profile', 'email', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('profile', 'email', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -253,19 +267,26 @@ function SettingsContent() {
                     <Input
                       id="phone"
                       value={settings.profile.phone}
-                      onChange={(e) => updateSettings('profile', 'phone', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('profile', 'phone', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>
                     <div className="flex items-center gap-2">
                       <Badge variant="default">{settings.profile.role}</Badge>
-                      <span className="text-sm text-slate-500">Contact admin to change role</span>
+                      <span className="text-sm text-slate-500">
+                        Contact admin to change role
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="pt-4">
-                  <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                  <Dialog
+                    open={isChangePasswordOpen}
+                    onOpenChange={setIsChangePasswordOpen}
+                  >
                     <DialogTrigger asChild>
                       <Button variant="outline">Change Password</Button>
                     </DialogTrigger>
@@ -278,22 +299,35 @@ function SettingsContent() {
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="currentPassword">Current Password</Label>
+                          <Label htmlFor="currentPassword">
+                            Current Password
+                          </Label>
                           <div className="relative">
                             <Input
                               id="currentPassword"
                               type={showPasswords.current ? 'text' : 'password'}
                               value={passwordData.currentPassword}
-                              onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                              onChange={(e) =>
+                                setPasswordData((prev) => ({
+                                  ...prev,
+                                  currentPassword: e.target.value,
+                                }))
+                              }
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => togglePasswordVisibility('current')}
+                              onClick={() =>
+                                togglePasswordVisibility('current')
+                              }
                             >
-                              {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {showPasswords.current ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -304,7 +338,12 @@ function SettingsContent() {
                               id="newPassword"
                               type={showPasswords.new ? 'text' : 'password'}
                               value={passwordData.newPassword}
-                              onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                              onChange={(e) =>
+                                setPasswordData((prev) => ({
+                                  ...prev,
+                                  newPassword: e.target.value,
+                                }))
+                              }
                             />
                             <Button
                               type="button"
@@ -313,33 +352,53 @@ function SettingsContent() {
                               className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                               onClick={() => togglePasswordVisibility('new')}
                             >
-                              {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {showPasswords.new ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                          <Label htmlFor="confirmPassword">
+                            Confirm New Password
+                          </Label>
                           <div className="relative">
                             <Input
                               id="confirmPassword"
                               type={showPasswords.confirm ? 'text' : 'password'}
                               value={passwordData.confirmPassword}
-                              onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                              onChange={(e) =>
+                                setPasswordData((prev) => ({
+                                  ...prev,
+                                  confirmPassword: e.target.value,
+                                }))
+                              }
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => togglePasswordVisibility('confirm')}
+                              onClick={() =>
+                                togglePasswordVisibility('confirm')
+                              }
                             >
-                              {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {showPasswords.confirm ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsChangePasswordOpen(false)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsChangePasswordOpen(false)}
+                        >
                           Cancel
                         </Button>
                         <Button onClick={handleChangePassword}>
@@ -369,54 +428,116 @@ function SettingsContent() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="emailNotifications">Email Notifications</Label>
-                      <p className="text-sm text-slate-500">Receive notifications via email</p>
+                      <Label htmlFor="emailNotifications">
+                        Email Notifications
+                      </Label>
+                      <p className="text-sm text-slate-500">
+                        Receive notifications via email
+                      </p>
                     </div>
                     <Button
-                      variant={settings.notifications.emailNotifications ? "default" : "outline"}
+                      variant={
+                        settings.notifications.emailNotifications
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => updateSettings('notifications', 'emailNotifications', !settings.notifications.emailNotifications)}
+                      onClick={() =>
+                        updateSettings(
+                          'notifications',
+                          'emailNotifications',
+                          !settings.notifications.emailNotifications
+                        )
+                      }
                     >
-                      {settings.notifications.emailNotifications ? 'Enabled' : 'Disabled'}
+                      {settings.notifications.emailNotifications
+                        ? 'Enabled'
+                        : 'Disabled'}
                     </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="pushNotifications">Push Notifications</Label>
-                      <p className="text-sm text-slate-500">Receive push notifications in your browser</p>
+                      <Label htmlFor="pushNotifications">
+                        Push Notifications
+                      </Label>
+                      <p className="text-sm text-slate-500">
+                        Receive push notifications in your browser
+                      </p>
                     </div>
                     <Button
-                      variant={settings.notifications.pushNotifications ? "default" : "outline"}
+                      variant={
+                        settings.notifications.pushNotifications
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => updateSettings('notifications', 'pushNotifications', !settings.notifications.pushNotifications)}
+                      onClick={() =>
+                        updateSettings(
+                          'notifications',
+                          'pushNotifications',
+                          !settings.notifications.pushNotifications
+                        )
+                      }
                     >
-                      {settings.notifications.pushNotifications ? 'Enabled' : 'Disabled'}
+                      {settings.notifications.pushNotifications
+                        ? 'Enabled'
+                        : 'Disabled'}
                     </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="eventReminders">Event Reminders</Label>
-                      <p className="text-sm text-slate-500">Get reminded about upcoming events</p>
+                      <p className="text-sm text-slate-500">
+                        Get reminded about upcoming events
+                      </p>
                     </div>
                     <Button
-                      variant={settings.notifications.eventReminders ? "default" : "outline"}
+                      variant={
+                        settings.notifications.eventReminders
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => updateSettings('notifications', 'eventReminders', !settings.notifications.eventReminders)}
+                      onClick={() =>
+                        updateSettings(
+                          'notifications',
+                          'eventReminders',
+                          !settings.notifications.eventReminders
+                        )
+                      }
                     >
-                      {settings.notifications.eventReminders ? 'Enabled' : 'Disabled'}
+                      {settings.notifications.eventReminders
+                        ? 'Enabled'
+                        : 'Disabled'}
                     </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="donationReceipts">Donation Receipts</Label>
-                      <p className="text-sm text-slate-500">Automatically receive donation receipts</p>
+                      <Label htmlFor="donationReceipts">
+                        Donation Receipts
+                      </Label>
+                      <p className="text-sm text-slate-500">
+                        Automatically receive donation receipts
+                      </p>
                     </div>
                     <Button
-                      variant={settings.notifications.donationReceipts ? "default" : "outline"}
+                      variant={
+                        settings.notifications.donationReceipts
+                          ? 'default'
+                          : 'outline'
+                      }
                       size="sm"
-                      onClick={() => updateSettings('notifications', 'donationReceipts', !settings.notifications.donationReceipts)}
+                      onClick={() =>
+                        updateSettings(
+                          'notifications',
+                          'donationReceipts',
+                          !settings.notifications.donationReceipts
+                        )
+                      }
                     >
-                      {settings.notifications.donationReceipts ? 'Enabled' : 'Disabled'}
+                      {settings.notifications.donationReceipts
+                        ? 'Enabled'
+                        : 'Disabled'}
                     </Button>
                   </div>
                 </div>
@@ -442,7 +563,9 @@ function SettingsContent() {
                     <Label htmlFor="theme">Theme</Label>
                     <Select
                       value={settings.appearance.theme}
-                      onValueChange={(value) => updateSettings('appearance', 'theme', value)}
+                      onValueChange={(value) =>
+                        updateSettings('appearance', 'theme', value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -458,7 +581,9 @@ function SettingsContent() {
                     <Label htmlFor="language">Language</Label>
                     <Select
                       value={settings.appearance.language}
-                      onValueChange={(value) => updateSettings('appearance', 'language', value)}
+                      onValueChange={(value) =>
+                        updateSettings('appearance', 'language', value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -475,16 +600,26 @@ function SettingsContent() {
                     <Label htmlFor="timezone">Timezone</Label>
                     <Select
                       value={settings.appearance.timezone}
-                      onValueChange={(value) => updateSettings('appearance', 'timezone', value)}
+                      onValueChange={(value) =>
+                        updateSettings('appearance', 'timezone', value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                        <SelectItem value="America/Chicago">Central Time</SelectItem>
-                        <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                        <SelectItem value="America/New_York">
+                          Eastern Time
+                        </SelectItem>
+                        <SelectItem value="America/Chicago">
+                          Central Time
+                        </SelectItem>
+                        <SelectItem value="America/Denver">
+                          Mountain Time
+                        </SelectItem>
+                        <SelectItem value="America/Los_Angeles">
+                          Pacific Time
+                        </SelectItem>
                         <SelectItem value="UTC">UTC</SelectItem>
                       </SelectContent>
                     </Select>
@@ -513,7 +648,9 @@ function SettingsContent() {
                     <Input
                       id="mosqueName"
                       value={settings.mosque.name}
-                      onChange={(e) => updateSettings('mosque', 'name', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('mosque', 'name', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -521,7 +658,9 @@ function SettingsContent() {
                     <Input
                       id="mosquePhone"
                       value={settings.mosque.phone}
-                      onChange={(e) => updateSettings('mosque', 'phone', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('mosque', 'phone', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -529,7 +668,9 @@ function SettingsContent() {
                     <Input
                       id="mosqueAddress"
                       value={settings.mosque.address}
-                      onChange={(e) => updateSettings('mosque', 'address', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('mosque', 'address', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -538,7 +679,9 @@ function SettingsContent() {
                       id="mosqueEmail"
                       type="email"
                       value={settings.mosque.email}
-                      onChange={(e) => updateSettings('mosque', 'email', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('mosque', 'email', e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -547,7 +690,9 @@ function SettingsContent() {
                       id="mosqueWebsite"
                       type="url"
                       value={settings.mosque.website}
-                      onChange={(e) => updateSettings('mosque', 'website', e.target.value)}
+                      onChange={(e) =>
+                        updateSettings('mosque', 'website', e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -556,20 +701,24 @@ function SettingsContent() {
                     <div className="space-y-1">
                       <Label htmlFor="mosquePrivacy">Mosque Privacy</Label>
                       <p className="text-sm text-slate-500">
-                        Make mosque profile private. When enabled, only members can view mosque information.
+                        Make mosque profile private. When enabled, only members
+                        can view mosque information.
                       </p>
                     </div>
                     <Switch
                       id="mosquePrivacy"
                       checked={settings.mosque.is_private}
-                      onCheckedChange={(checked) => updateSettings('mosque', 'is_private', checked)}
+                      onCheckedChange={(checked) =>
+                        updateSettings('mosque', 'is_private', checked)
+                      }
                     />
                   </div>
                   {settings.mosque.is_private && (
                     <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
                       <p className="text-sm text-amber-800 dark:text-amber-200">
                         <Eye className="h-4 w-4 inline mr-1" />
-                        Your mosque profile is currently private and only visible to members.
+                        Your mosque profile is currently private and only
+                        visible to members.
                       </p>
                     </div>
                   )}
@@ -594,21 +743,39 @@ function SettingsContent() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="twoFactor">Two-Factor Authentication</Label>
-                    <p className="text-sm text-slate-500">Add an extra layer of security to your account</p>
+                    <p className="text-sm text-slate-500">
+                      Add an extra layer of security to your account
+                    </p>
                   </div>
                   <Button
-                    variant={settings.security.twoFactorEnabled ? "default" : "outline"}
+                    variant={
+                      settings.security.twoFactorEnabled ? 'default' : 'outline'
+                    }
                     size="sm"
-                    onClick={() => updateSettings('security', 'twoFactorEnabled', !settings.security.twoFactorEnabled)}
+                    onClick={() =>
+                      updateSettings(
+                        'security',
+                        'twoFactorEnabled',
+                        !settings.security.twoFactorEnabled
+                      )
+                    }
                   >
                     {settings.security.twoFactorEnabled ? 'Enabled' : 'Enable'}
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="sessionTimeout">
+                    Session Timeout (minutes)
+                  </Label>
                   <Select
                     value={settings.security.sessionTimeout.toString()}
-                    onValueChange={(value) => updateSettings('security', 'sessionTimeout', parseInt(value))}
+                    onValueChange={(value) =>
+                      updateSettings(
+                        'security',
+                        'sessionTimeout',
+                        parseInt(value)
+                      )
+                    }
                   >
                     <SelectTrigger className="w-48">
                       <SelectValue />

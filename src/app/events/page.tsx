@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -11,23 +11,17 @@ import {
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Calendar,
   Clock,
-  MapPin,
-  Users,
   Plus,
-  Filter,
   Search,
   Eye,
   Edit,
-  Trash2,
   UserCheck,
-  AlertCircle,
   Activity,
-  ArrowUpRight,
   TrendingUp,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -57,7 +51,7 @@ import {
   registerForEvent,
   isUserRegisteredForEvent,
 } from '@/lib/api';
-import type { Event, EventFormData, PaginatedResponse } from '@/types/database';
+import type { Event, EventFormData } from '@/types/database';
 import { EventForm } from '@/components/events/EventForm';
 import { EventCard } from '../../components/events/EventCard';
 
@@ -85,7 +79,7 @@ function EventsContent() {
   });
 
   // Fetch user registrations
-  const fetchUserRegistrations = async () => {
+  const fetchUserRegistrations = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -100,10 +94,10 @@ function EventsContent() {
     } catch (error) {
       console.error('Failed to fetch user registrations:', error);
     }
-  };
+  }, [user, events]);
 
   // Fetch events
-  const fetchEvents = async (page = 1) => {
+  const fetchEvents = useCallback(async (page = 1) => {
     if (!user) return;
 
     try {
@@ -132,17 +126,17 @@ function EventsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, hasAdminAccess, mosqueId, pagination.limit]);
 
   useEffect(() => {
     fetchEvents();
-  }, [user, hasAdminAccess, mosqueId]);
+  }, [fetchEvents]);
 
   useEffect(() => {
     if (events.length > 0 && user && !hasAdminAccess) {
       fetchUserRegistrations();
     }
-  }, [events, user, hasAdminAccess]);
+  }, [events, user, hasAdminAccess, fetchUserRegistrations]);
 
   // Filter events based on search, filters, and active tab
   const filteredEvents = events.filter((event) => {
@@ -258,21 +252,7 @@ function EventsContent() {
   };
 
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   // Get unique categories for filter
   const categories = Array.from(

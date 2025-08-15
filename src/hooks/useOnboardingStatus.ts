@@ -14,7 +14,6 @@ export function useOnboardingStatus(): OnboardingStatus {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     const checkOnboardingStatusAsync = async () => {

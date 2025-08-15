@@ -21,15 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Heart, Loader2 } from 'lucide-react';
-import { getUserFollowedMosques, getAllMosques } from '@/lib/api';
+import { getAllMosques } from '@/lib/api';
 import { getContributionPrograms, createContribution } from '@/lib/api';
 import type { Mosque, ContributionProgram } from '@/types/database';
 import { toast } from 'sonner';
@@ -69,12 +62,6 @@ export function ContributionForm({
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    if (isOpen && user) {
-      loadAvailableMosques();
-    }
-  }, [isOpen, user]);
-
-  useEffect(() => {
     if (selectedMosqueId) {
       loadKhairatPrograms(selectedMosqueId);
     } else {
@@ -97,6 +84,12 @@ export function ContributionForm({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && user) {
+      loadAvailableMosques();
+    }
+  }, [isOpen, user, loadAvailableMosques]);
 
   const loadKhairatPrograms = async (mosqueId: string) => {
     try {
@@ -226,7 +219,8 @@ export function ContributionForm({
                         <div className="flex items-center gap-2 text-xs">
                           {program.target_amount ? (
                             <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-                              Target: RM {program.target_amount.toLocaleString()}
+                              Target: RM{' '}
+                              {program.target_amount.toLocaleString()}
                             </span>
                           ) : (
                             <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
@@ -234,7 +228,8 @@ export function ContributionForm({
                             </span>
                           )}
                           <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
-                            Raised: RM {(program.current_amount || 0).toLocaleString()}
+                            Raised: RM{' '}
+                            {(program.current_amount || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>

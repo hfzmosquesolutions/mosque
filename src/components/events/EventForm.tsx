@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, Users, Save, X } from 'lucide-react';
+import { Calendar, MapPin, Users, Save, X } from 'lucide-react';
 import type { EventFormData } from '@/types/database';
 
 interface EventFormProps {
@@ -36,7 +36,12 @@ const EVENT_CATEGORIES = [
   'Other',
 ];
 
-export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventFormProps) {
+export function EventForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  isLoading,
+}: EventFormProps) {
   const [formData, setFormData] = useState<EventFormData>({
     title: initialData?.title || '',
     description: initialData?.description || '',
@@ -81,7 +86,8 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
       const registrationDeadline = new Date(formData.registration_deadline);
       const eventDate = new Date(formData.event_date);
       if (registrationDeadline > eventDate) {
-        newErrors.registration_deadline = 'Registration deadline cannot be after event date';
+        newErrors.registration_deadline =
+          'Registration deadline cannot be after event date';
       }
     }
 
@@ -95,7 +101,7 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -107,11 +113,14 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
     }
   };
 
-  const handleInputChange = (field: keyof EventFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof EventFormData,
+    value: string | boolean | number | undefined
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -170,7 +179,7 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
           <Calendar className="h-5 w-5 mr-2" />
           Date & Time
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="event_date">Start Date & Time *</Label>
@@ -208,7 +217,7 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
           <MapPin className="h-5 w-5 mr-2" />
           Location
         </h3>
-        
+
         <div className="space-y-2">
           <Label htmlFor="location">Event Location</Label>
           <Input
@@ -226,14 +235,18 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
           <Users className="h-5 w-5 mr-2" />
           Registration
         </h3>
-        
+
         <div className="flex items-center space-x-2">
           <Switch
             id="registration_required"
             checked={formData.registration_required}
-            onCheckedChange={(checked) => handleInputChange('registration_required', checked)}
+            onCheckedChange={(checked) =>
+              handleInputChange('registration_required', checked)
+            }
           />
-          <Label htmlFor="registration_required">Require registration for this event</Label>
+          <Label htmlFor="registration_required">
+            Require registration for this event
+          </Label>
         </div>
 
         {formData.registration_required && (
@@ -245,7 +258,12 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
                 type="number"
                 min="1"
                 value={formData.max_attendees || ''}
-                onChange={(e) => handleInputChange('max_attendees', e.target.value ? parseInt(e.target.value) : undefined)}
+                onChange={(e) =>
+                  handleInputChange(
+                    'max_attendees',
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )
+                }
                 placeholder="Leave empty for unlimited"
                 className={errors.max_attendees ? 'border-red-500' : ''}
               />
@@ -255,16 +273,22 @@ export function EventForm({ onSubmit, onCancel, initialData, isLoading }: EventF
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="registration_deadline">Registration Deadline</Label>
+              <Label htmlFor="registration_deadline">
+                Registration Deadline
+              </Label>
               <Input
                 id="registration_deadline"
                 type="datetime-local"
                 value={formData.registration_deadline}
-                onChange={(e) => handleInputChange('registration_deadline', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange('registration_deadline', e.target.value)
+                }
                 className={errors.registration_deadline ? 'border-red-500' : ''}
               />
               {errors.registration_deadline && (
-                <p className="text-sm text-red-500">{errors.registration_deadline}</p>
+                <p className="text-sm text-red-500">
+                  {errors.registration_deadline}
+                </p>
               )}
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -21,10 +21,7 @@ import {
   Save,
   Eye,
   EyeOff,
-  MapPin,
   Phone,
-  Mail,
-  Globe,
   Clock,
   Users,
   Calendar,
@@ -53,6 +50,14 @@ import { useAuth } from '@/contexts/AuthContext';
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
   // Additional fields for UI that might not be in the database yet
+  established_year?: string;
+  capacity?: string;
+  imam_name?: string;
+  services?: string[];
+}
+
+// Type for mosque settings
+interface MosqueSettings {
   established_year?: string;
   capacity?: string;
   imam_name?: string;
@@ -102,13 +107,16 @@ function MosqueProfileContent() {
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);
   const [programsLoading, setProgramsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
 
-  const updateProfile = (field: keyof MosqueProfileData, value: any) => {
+  const updateProfile = (
+    field: keyof MosqueProfileData,
+    value: string | boolean | Record<string, unknown>
+  ) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -122,30 +130,7 @@ function MosqueProfileContent() {
     }));
   };
 
-  const updateSettings = (field: string, value: any) => {
-    setProfile((prev) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        [field]: value,
-      },
-    }));
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadUserMosque();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (mosqueId) {
-      loadMosqueData();
-      loadPrograms();
-    }
-  }, [mosqueId]);
-
-  const loadUserMosque = async () => {
+  const loadUserMosque = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -155,9 +140,15 @@ function MosqueProfileContent() {
       console.error('Error loading user mosque:', error);
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const loadMosqueData = async () => {
+  useEffect(() => {
+    if (user) {
+      loadUserMosque();
+    }
+  }, [user, loadUserMosque]);
+
+  const loadMosqueData = useCallback(async () => {
     if (!mosqueId) return;
 
     setIsLoading(true);
@@ -167,10 +158,12 @@ function MosqueProfileContent() {
         const mosqueData: MosqueProfileData = {
           ...response.data,
           // Extract additional fields from settings if they exist
-          established_year: response.data.settings?.established_year || '',
-          capacity: response.data.settings?.capacity || '',
-          imam_name: response.data.settings?.imam_name || '',
-          services: response.data.settings?.services || [
+          established_year:
+            (response.data.settings as MosqueSettings)?.established_year || '',
+          capacity: (response.data.settings as MosqueSettings)?.capacity || '',
+          imam_name:
+            (response.data.settings as MosqueSettings)?.imam_name || '',
+          services: (response.data.settings as MosqueSettings)?.services || [
             'Daily Prayers',
             'Friday Prayers',
             'Islamic Education',
@@ -185,9 +178,9 @@ function MosqueProfileContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [mosqueId]);
 
-  const loadPrograms = async () => {
+  const loadPrograms = useCallback(async () => {
     if (!mosqueId) return;
 
     setProgramsLoading(true);
@@ -201,7 +194,14 @@ function MosqueProfileContent() {
     } finally {
       setProgramsLoading(false);
     }
-  };
+  }, [mosqueId]);
+
+  useEffect(() => {
+    if (mosqueId) {
+      loadMosqueData();
+      loadPrograms();
+    }
+  }, [mosqueId, loadMosqueData, loadPrograms]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -285,7 +285,7 @@ function MosqueProfileContent() {
                       Mosque Profile
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400">
-                      Manage your mosque's public profile and information
+                      Manage your mosque&apos;s public profile and information
                     </p>
                   </div>
                 </div>

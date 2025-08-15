@@ -10,6 +10,8 @@ import {
   Event,
   CreateEvent,
   UpdateEvent,
+  EventRegistration,
+  MosqueFollower,
   Donation,
   CreateDonation,
   ContributionProgram,
@@ -17,7 +19,6 @@ import {
   KhairatProgram,
   KhairatContribution,
 
-  Resource,
   Notification,
   OnboardingData,
   ApiResponse,
@@ -45,9 +46,9 @@ export async function getUserProfile(userId: string): Promise<ApiResponse<UserPr
     }
 
     return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch user profile' };
-  }
+      } catch {
+      return { success: false, error: 'Failed to fetch user profile' };
+    }
 }
 
 /**
@@ -70,9 +71,9 @@ export async function updateUserProfile(
     }
 
     return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to update user profile' };
-  }
+      } catch {
+      return { success: false, error: 'Failed to update user profile' };
+    }
 }
 
 /**
@@ -100,14 +101,14 @@ export async function completeOnboarding(
     if (onboardingData.accountType === 'admin') {
       if (onboardingData.mosqueAction === 'create' && onboardingData.mosqueName) {
         // Check if user already owns a mosque
-        const { data: existingMosque, error: checkError } = await supabase
+        const { data: existingMosque, error } = await supabase
           .from('mosques')
           .select('id')
           .eq('user_id', userId)
           .single();
 
-        if (checkError && checkError.code !== 'PGRST116') {
-          console.error('Error checking existing mosque:', checkError);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking existing mosque:', error);
           return { success: false, error: 'Failed to check existing mosque ownership' };
         }
 
@@ -462,7 +463,7 @@ export async function createEvent(eventData: CreateEvent): Promise<ApiResponse<E
 export async function registerForEvent(
   eventId: string,
   userId: string
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<EventRegistration>> {
   try {
     const { data, error } = await supabase
       .from('event_registrations')
@@ -631,9 +632,9 @@ export async function getUserEvents(
     const registeredEventData = registeredEvents?.map(reg => reg.event).filter(Boolean) || [];
     
     // Add registered events that aren't already in created events
-    registeredEventData.forEach((event: any) => {
-      if (event && !allEvents.find(e => e.id === event.id)) {
-        allEvents.push(event);
+    registeredEventData.forEach((event: unknown) => {
+      if (event && typeof event === 'object' && 'id' in event && !allEvents.find(e => e.id === (event as { id: string }).id)) {
+        allEvents.push(event as Event);
       }
     });
 
@@ -1387,7 +1388,7 @@ export async function globalSearch(
   mosqueId: string,
   query: string,
   limit = 10
-): Promise<ApiResponse<any[]>> {
+): Promise<ApiResponse<Array<{ type: 'event'; id: string; title: string; description?: string; event_date: string }>>> {
   try {
     // Search across multiple tables
     const eventsResult = await supabase
@@ -1398,7 +1399,7 @@ export async function globalSearch(
       .limit(limit);
 
     const results = [
-      ...(eventsResult.data || []).map(item => ({ ...item, type: 'event' }))
+      ...(eventsResult.data || []).map(item => ({ ...item, type: 'event' as const }))
     ];
 
     return { success: true, data: results };
@@ -1417,7 +1418,7 @@ export async function globalSearch(
 export async function followMosque(
   userId: string,
   mosqueId: string
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<MosqueFollower>> {
   try {
     // Check if user is already following this mosque
     const { data: existing, error: checkError } = await supabase
@@ -1456,7 +1457,7 @@ export async function followMosque(
 export async function unfollowMosque(
   userId: string,
   mosqueId: string
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<{ success: true }>> {
   try {
     const { error } = await supabase
       .from('mosque_followers')
@@ -1468,7 +1469,7 @@ export async function unfollowMosque(
       return { success: false, error: error.message };
     }
 
-    return { success: true, data: null };
+    return { success: true, data: { success: true } };
   } catch (error) {
     return { success: false, error: 'Failed to unfollow mosque' };
   }

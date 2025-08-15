@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -49,13 +49,7 @@ function ContributionsContent() {
   const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, mosqueId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -79,7 +73,13 @@ function ContributionsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, mosqueId]);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   if (loading) {
     return (

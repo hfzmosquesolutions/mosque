@@ -7,9 +7,6 @@ import { usePathname } from 'next/navigation';
 import {
   Home,
   Calendar,
-  Megaphone,
-  Heart,
-  BookOpen,
   Settings,
   Menu,
   X,
