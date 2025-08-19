@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -51,13 +51,7 @@ function ProfileContent() {
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
 
     setLoading(true);
@@ -69,7 +63,13 @@ function ProfileContent() {
       setError(response.error || 'Failed to load profile');
     }
     setLoading(false);
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchProfile();
+    }
+  }, [user?.id, fetchProfile]);
 
   const handleSave = async () => {
     if (!user?.id || !profile) return;
@@ -161,12 +161,12 @@ function ProfileContent() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
+    <DashboardLayout title="Profile">
+      <div className="space-y-6">
         {/* Enhanced Header */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl" />
-          <div className="relative p-8">
+          <div className="relative p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">

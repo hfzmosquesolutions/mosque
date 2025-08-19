@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllEvents } from '@/lib/api';
 import { Event } from '@/types/database';
@@ -19,6 +19,7 @@ import { Calendar, MapPin, Search, Users } from 'lucide-react';
 // No import needed - we'll define these functions locally
 
 type EventWithMosque = Event & { mosque: { name: string; id: string } };
+import { FEATURES } from '@/lib/utils';
 
 export default function PublicEventsPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function PublicEventsPage() {
   });
 
   // Fetch events
-  const fetchEvents = async (page = 1) => {
+  const fetchEvents = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const offset = (page - 1) * pagination.limit;
@@ -54,11 +55,27 @@ export default function PublicEventsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [pagination.limit]);
+    if (FEATURES.EVENTS_ENABLED) {
+      fetchEvents();
+    }
+  }, [pagination.limit, fetchEvents]);
+
+  // Check if events feature is enabled
+  if (!FEATURES.EVENTS_ENABLED) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>Events Unavailable</CardTitle>
+            <CardDescription>Event features are temporarily disabled.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   // Filter events based on search and tab
   const filteredEvents = events.filter((event) => {

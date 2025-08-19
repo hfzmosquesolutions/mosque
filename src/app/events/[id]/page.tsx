@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Calendar,
   Clock,
@@ -29,6 +30,7 @@ import {
   isUserRegisteredForEvent,
 } from '@/lib/api';
 import { toast } from 'sonner';
+import { FEATURES } from '@/lib/utils';
 
 function EventDetailsContent() {
   const { user } = useAuth();
@@ -362,10 +364,11 @@ function EventDetailsContent() {
           {/* Event Image */}
           {event.image_url && (
             <div className="relative h-64 md:h-80 overflow-hidden rounded-lg">
-              <img
+              <Image
                 src={event.image_url}
                 alt={event.title}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
@@ -510,5 +513,17 @@ function EventDetailsContent() {
 }
 
 export default function EventDetailsPage() {
+  if (!FEATURES.EVENTS_ENABLED) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Events Unavailable</CardTitle>
+            <CardDescription>Event features are temporarily disabled.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
   return <EventDetailsContent />;
 }

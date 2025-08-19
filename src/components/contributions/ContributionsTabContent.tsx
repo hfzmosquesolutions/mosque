@@ -31,6 +31,9 @@ import {
   FileText,
   MoreHorizontal,
   Eye,
+  Calendar,
+  User,
+  Building,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,6 +53,7 @@ import {
 import { getContributions, updateContributionStatus } from '@/lib/api';
 import type { ContributionProgram, Contribution } from '@/types/database';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ContributionsTabContentProps {
   programs: ContributionProgram[];
@@ -65,6 +69,7 @@ export function ContributionsTabContent({
   programs,
 }: ContributionsTabContentProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [contributions, setContributions] = useState<ContributionWithProgram[]>(
     []
@@ -158,17 +163,11 @@ export function ContributionsTabContent({
     if (programs.length > 0) {
       loadAllContributions();
     }
-  }, [programs, loadAllContributions]);
+  }, [programs]);
 
   useEffect(() => {
     filterContributions();
-  }, [
-    contributions,
-    searchTerm,
-    statusFilter,
-    programFilter,
-    filterContributions,
-  ]);
+  }, [contributions, searchTerm, statusFilter, programFilter]);
 
   const handleStatusUpdate = async (
     contributionId: string,
@@ -243,6 +242,100 @@ export function ContributionsTabContent({
         return <Clock className="h-4 w-4 text-yellow-600" />;
     }
   };
+
+  // Mobile Card Component
+  const MobileContributionCard = ({
+    contribution,
+  }: {
+    contribution: ContributionWithProgram;
+  }) => (
+    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Header with Contributor and Amount */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {contribution.contributor_name || 'Anonymous'}
+              </h3>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                <Building className="h-3 w-3" />
+                <span className="truncate">
+                  {contribution.program?.name || 'Unknown Program'}
+                </span>
+              </div>
+            </div>
+            <div className="text-right ml-3">
+              <div className="font-bold text-lg text-emerald-600">
+                {formatCurrency(contribution.amount)}
+              </div>
+            </div>
+          </div>
+
+          {/* Status and Date */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getStatusIcon(contribution.status)}
+              {getStatusBadge(contribution.status)}
+            </div>
+            <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(contribution.contributed_at)}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewDetails(contribution)}
+              className="h-8 px-3"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            {contribution.status === 'pending' && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleStatusUpdate(contribution.id, 'completed')
+                  }
+                  disabled={updating === contribution.id}
+                  className="h-8 px-3 text-green-600 border-green-200 hover:bg-green-50"
+                >
+                  {updating === contribution.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                  )}
+                  Approve
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleStatusUpdate(contribution.id, 'cancelled')
+                  }
+                  disabled={updating === contribution.id}
+                  className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  {updating === contribution.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <XCircle className="h-3 w-3 mr-1" />
+                  )}
+                  Reject
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   const handleViewDetails = (contribution: ContributionWithProgram) => {
     setSelectedContribution(contribution);
@@ -394,10 +487,10 @@ export function ContributionsTabContent({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Contributions Management
+              Payments Management
             </h2>
             <p className="text-muted-foreground mt-1">
-              View and manage all contributions across all programs
+              View and manage all payments across all programs
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -422,7 +515,7 @@ export function ContributionsTabContent({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Total Contributions
+                    Total Payments
                   </p>
                   <div className="text-2xl font-bold text-emerald-600">
                     {formatCurrency(totalAmount)}
@@ -492,32 +585,29 @@ export function ContributionsTabContent({
       <Card className="border-0 shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Contributions List
+            Payments List
           </CardTitle>
           <CardDescription>
-            {filteredContributions.length} of {contributions.length}{' '}
-            contributions
+            {filteredContributions.length} of {contributions.length} payments
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
-              <span className="text-muted-foreground">
-                Loading contributions...
-              </span>
+              <span className="text-muted-foreground">Loading payments...</span>
             </div>
           ) : filteredContributions.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-muted-foreground mb-2">
                 {contributions.length === 0
-                  ? 'No Contributions Yet'
+                  ? 'No Payments Yet'
                   : 'No Matching Results'}
               </h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-4">
                 {contributions.length === 0
-                  ? 'Contributions will appear here once people start donating to your programs.'
+                  ? 'Payments will appear here once people start donating to your programs.'
                   : "Try adjusting your search terms or filters to find what you're looking for."}
               </p>
               {contributions.length > 0 &&
@@ -534,44 +624,97 @@ export function ContributionsTabContent({
                 )}
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={filteredContributions}
-              searchKey="contributor_name"
-              searchPlaceholder="Search contributions..."
-              onResetFilters={handleResetFilters}
-              customFilters={
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Select
-                    value={programFilter}
-                    onValueChange={setProgramFilter}
-                  >
-                    <SelectTrigger className="w-full sm:w-48 border-slate-200">
-                      <SelectValue placeholder="Filter by program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Programs</SelectItem>
-                      {programs.map((program) => (
-                        <SelectItem key={program.id} value={program.id}>
-                          {program.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-48 border-slate-200">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <>
+              {isMobile ? (
+                <div className="space-y-4">
+                  {/* Mobile Filters */}
+                  <div className="flex flex-col gap-3">
+                    <Select
+                      value={programFilter}
+                      onValueChange={setProgramFilter}
+                    >
+                      <SelectTrigger className="w-full border-slate-200">
+                        <SelectValue placeholder="Filter by program" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Programs</SelectItem>
+                        {programs.map((program) => (
+                          <SelectItem key={program.id} value={program.id}>
+                            {program.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className="w-full border-slate-200">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="space-y-3">
+                    {filteredContributions.map((contribution) => (
+                      <MobileContributionCard
+                        key={contribution.id}
+                        contribution={contribution}
+                      />
+                    ))}
+                  </div>
                 </div>
-              }
-            />
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={filteredContributions}
+                  searchKey="contributor_name"
+                  searchPlaceholder="Search payments..."
+                  onResetFilters={handleResetFilters}
+                  customFilters={
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Select
+                        value={programFilter}
+                        onValueChange={setProgramFilter}
+                      >
+                        <SelectTrigger className="w-full sm:w-48 border-slate-200">
+                          <SelectValue placeholder="Filter by program" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Programs</SelectItem>
+                          {programs.map((program) => (
+                            <SelectItem key={program.id} value={program.id}>
+                              {program.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
+                      >
+                        <SelectTrigger className="w-full sm:w-48 border-slate-200">
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  }
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>

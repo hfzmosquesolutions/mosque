@@ -40,17 +40,27 @@ import {
   createContributionProgram,
   getUserMosqueId,
 } from '@/lib/api';
-import type { ContributionProgram } from '@/types/database';
+import type { ContributionProgram, ProgramType } from '@/types/database';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface ProgramManagementProps {
   onProgramSelect?: (program: ContributionProgram) => void;
   onProgramsUpdate?: () => void;
+  filterType?: ProgramType;
 }
 
 export function ProgramManagement({
   onProgramSelect,
   onProgramsUpdate,
+  filterType,
 }: ProgramManagementProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -68,16 +78,38 @@ export function ProgramManagement({
   const [targetAmount, setTargetAmount] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [programType, setProgramType] = useState<ProgramType>(
+    filterType ?? 'khairat'
+  );
 
+  // Keep local programType in sync if parent constrains filterType
+  useEffect(() => {
+    setProgramType(filterType ?? 'khairat');
+  }, [filterType]);
+
+  const PROGRAM_TYPES: ProgramType[] = [
+    'khairat',
+    'zakat',
+    'infaq',
+    'sadaqah',
+    'general',
+    'education',
+    'maintenance',
+  ];
   const loadUserMosque = async () => {
     if (!user) return;
 
     try {
       const userMosqueId = await getUserMosqueId(user.id);
       setMosqueId(userMosqueId);
+      // If user has no mosque, stop loading to avoid infinite spinner
+      if (!userMosqueId) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Error loading user mosque:', error);
       toast.error('Failed to load mosque information');
+      setLoading(false);
     }
   };
 
@@ -86,7 +118,7 @@ export function ProgramManagement({
 
     setLoading(true);
     try {
-      const response = await getContributionPrograms(mosqueId);
+      const response = await getContributionPrograms(mosqueId, filterType);
       if (response.success && response.data) {
         setPrograms(response.data);
       }
@@ -102,13 +134,13 @@ export function ProgramManagement({
     if (user) {
       loadUserMosque();
     }
-  }, [user, loadUserMosque]);
+  }, [user]);
 
   useEffect(() => {
     if (mosqueId) {
       loadPrograms();
     }
-  }, [mosqueId, loadPrograms]);
+  }, [mosqueId]);
 
   const handleCreateProgram = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +161,7 @@ export function ProgramManagement({
         end_date: endDate || undefined,
         is_active: true,
         created_by: user.id,
+        program_type: programType,
       };
 
       const response = await createContributionProgram(programData);
@@ -298,6 +331,24 @@ export function ProgramManagement({
         <Loader2 className="h-6 w-6 animate-spin" />
         <span className="ml-2">Loading programs...</span>
       </div>
+    );
+  }
+
+  if (!mosqueId) {
+    return (
+      <Card>
+        <CardContent className="text-center py-12">
+          <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Mosque Found</h3>
+          <p className="text-muted-foreground mb-4">
+            To manage contribution programs, please create your mosque profile
+            first.
+          </p>
+          <Button asChild>
+            <Link href="/mosque-profile">Go to Mosque Profile</Link>
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -504,6 +555,31 @@ export function ProgramManagement({
               </DialogHeader>
 
               <form onSubmit={handleCreateProgram} className="space-y-4">
+                {!filterType && (
+                  <div className="space-y-2">
+                    <Label htmlFor="programType">Program Type</Label>
+                    <Select
+                      value={programType}
+                      onValueChange={(val) =>
+                        setProgramType(val as ProgramType)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select program type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROGRAM_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose the program type for this new contribution program.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="name">Program Name *</Label>
                   <Input

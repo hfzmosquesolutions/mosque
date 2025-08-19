@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ export default function PublicUserProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getUserProfile(userId);
@@ -52,7 +52,7 @@ export default function PublicUserProfilePage() {
       setError('Failed to load profile');
     }
     setLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (userId) {

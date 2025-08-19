@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { FEATURES } from '@/lib/utils'
+
 interface UserProfile {
   accountType: 'member' | 'admin';
   mosqueRole?: string;
@@ -45,12 +47,15 @@ const memberFeatures: FeatureCard[] = [
     icon: <BookOpen className="h-5 w-5" />,
     href: '/prayer-times',
   },
-  {
-    title: 'Events',
-    description: 'Browse and register for mosque events',
-    icon: <Calendar className="h-5 w-5" />,
-    href: '/events',
-  },
+  // Events is hidden via feature flag
+  ...(FEATURES.EVENTS_ENABLED
+    ? [{
+        title: 'Events',
+        description: 'Browse and register for mosque events',
+        icon: <Calendar className="h-5 w-5" />,
+        href: '/events',
+      } as FeatureCard]
+    : []),
   {
     title: 'Donations',
     description: 'Make donations and view your contribution history',
@@ -72,14 +77,17 @@ const memberFeatures: FeatureCard[] = [
 ];
 
 const adminFeatures: FeatureCard[] = [
-  {
-    title: 'Event Management',
-    description: 'Create and manage mosque events',
-    icon: <Calendar className="h-5 w-5" />,
-    href: '/events',
-    badge: 'Admin',
-    adminOnly: true,
-  },
+  // Event Management hidden via feature flag
+  ...(FEATURES.EVENTS_ENABLED
+    ? [{
+        title: 'Event Management',
+        description: 'Create and manage mosque events',
+        icon: <Calendar className="h-5 w-5" />,
+        href: '/events',
+        badge: 'Admin',
+        adminOnly: true,
+      } as FeatureCard]
+    : []),
 
   {
     title: 'Financial Reports',
@@ -90,10 +98,10 @@ const adminFeatures: FeatureCard[] = [
     adminOnly: true,
   },
   {
-    title: 'Mosque Settings',
-    description: 'Configure mosque information and settings',
+    title: 'Payment Settings',
+    description: 'Configure payment providers and mosque settings',
     icon: <Building className="h-5 w-5" />,
-    href: '/mosque-settings',
+    href: '/settings?tab=payment-settings',
     badge: 'Admin',
     adminOnly: true,
   },

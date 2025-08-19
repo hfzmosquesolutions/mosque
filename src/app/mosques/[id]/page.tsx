@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   MapPin,
   Phone,
@@ -21,7 +21,6 @@ import {
   ArrowLeft,
   Calendar,
   Users,
-
 } from 'lucide-react';
 import {
   getMosque,
@@ -36,6 +35,7 @@ import {
 import { EventCard } from '@/components/events/EventCard';
 import { Mosque, Event } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { FEATURES } from '@/lib/utils';
 
 export default function MosqueProfilePage() {
   const params = useParams();
@@ -84,28 +84,31 @@ export default function MosqueProfilePage() {
       setMosque(mosqueResponse.data);
 
       // Fetch events
-      console.log(
-        '[PAGE] MosqueProfilePage - Fetching events'
-      );
-      const eventsResponse = await getEvents(mosqueId, 5);
+      if (FEATURES.EVENTS_ENABLED) {
+        console.log('[PAGE] MosqueProfilePage - Fetching events');
+        const eventsResponse = await getEvents(mosqueId, 5);
 
-      console.log(
-        '[PAGE] MosqueProfilePage - getEvents response:',
-        eventsResponse
-      );
-
-      if (eventsResponse.data) {
         console.log(
-          '[PAGE] MosqueProfilePage - Successfully set events, count:',
-          eventsResponse.data.length
+          '[PAGE] MosqueProfilePage - getEvents response:',
+          eventsResponse
         );
-        setEvents(eventsResponse.data);
-        
-        // Fetch user registrations for these events (only if user is logged in)
-        if (user?.id && eventsResponse.data.length > 0) {
-          const eventIds = eventsResponse.data.map(event => event.id);
-          const registrations = await getUserEventRegistrations(user.id, eventIds);
-          setUserRegistrations(registrations);
+
+        if (eventsResponse.data) {
+          console.log(
+            '[PAGE] MosqueProfilePage - Successfully set events, count:',
+            eventsResponse.data.length
+          );
+          setEvents(eventsResponse.data);
+
+          // Fetch user registrations for these events (only if user is logged in)
+          if (user?.id && eventsResponse.data.length > 0) {
+            const eventIds = eventsResponse.data.map((event) => event.id);
+            const registrations = await getUserEventRegistrations(
+              user.id,
+              eventIds
+            );
+            setUserRegistrations(registrations);
+          }
         }
       }
 
@@ -174,7 +177,7 @@ export default function MosqueProfilePage() {
       const response = await registerForEvent(eventId, user.id);
       if (response.success) {
         // Update user registrations
-        setUserRegistrations(prev => [...prev, eventId]);
+        setUserRegistrations((prev) => [...prev, eventId]);
       } else {
         console.error('Failed to register for event:', response.error);
       }
@@ -182,10 +185,6 @@ export default function MosqueProfilePage() {
       console.error('Failed to register for event:', error);
     }
   };
-
-
-
-
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -233,265 +232,377 @@ export default function MosqueProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Navigation Bar */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="container mx-auto px-4 py-4">
           <Button
             onClick={() => router.push('/mosques')}
             variant="ghost"
-            className="mb-4"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Mosques
           </Button>
+        </div>
+      </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center">
-                <Building className="h-8 w-8 text-blue-600 mr-3" />
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {mosque.name}
-                  </h1>
-                  {mosque.address && (
-                    <div className="flex items-center text-gray-600 dark:text-gray-400 mt-1">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      <span>{mosque.address}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <Users className="h-4 w-4 mr-1" />
-                    <span>
-                      {followerCount}{' '}
-                      {followerCount === 1 ? 'follower' : 'followers'}
-                    </span>
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
+          {/* Cover Image Placeholder */}
+          <div className="h-48 bg-gradient-to-r from-emerald-500 to-green-600 relative">
+            <div className="absolute inset-0 bg-black/20"></div>
+            <div className="absolute bottom-6 left-6 right-6">
+              <div className="flex items-end justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center">
+                    <Building className="h-10 w-10 text-emerald-600" />
+                  </div>
+                  <div className="text-white">
+                    <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
+                    {mosque.address && (
+                      <div className="flex items-center text-white/90">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span>{mosque.address}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                {user && (
-                  <Button
-                    onClick={handleFollow}
-                    disabled={followLoading}
-                    variant={isFollowing ? 'outline' : 'default'}
-                    size="sm"
+                <div className="flex items-center space-x-3">
+                  {user && (
+                    <Button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      variant={isFollowing ? 'secondary' : 'default'}
+                      className={
+                        isFollowing
+                          ? 'bg-white/20 text-white border-white/30 hover:bg-white/30'
+                          : 'bg-white text-emerald-600 hover:bg-gray-100'
+                      }
+                    >
+                      {followLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      ) : isFollowing ? (
+                        <>
+                          <Users className="h-4 w-4 mr-2" />
+                          Following
+                        </>
+                      ) : (
+                        <>
+                          <Users className="h-4 w-4 mr-2" />
+                          Follow
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <Badge
+                    variant="secondary"
+                    className="bg-white/20 text-white border-white/30"
                   >
-                    {followLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                    ) : isFollowing ? (
-                      <>
-                        <Users className="h-4 w-4 mr-2" />
-                        Following
-                      </>
-                    ) : (
-                      <>
-                        <Users className="h-4 w-4 mr-2" />
-                        Follow
-                      </>
-                    )}
-                  </Button>
-                )}
-                <Badge variant="secondary">Active</Badge>
+                    Active
+                  </Badge>
+                </div>
               </div>
-            </div>
-
-            {mosque.description && (
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {mosque.description}
-              </p>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {mosque.phone && (
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Phone className="h-4 w-4 mr-2" />
-                  <span>{mosque.phone}</span>
-                </div>
-              )}
-
-              {mosque.email && (
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span>{mosque.email}</span>
-                </div>
-              )}
-
-              {mosque.website && (
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Globe className="h-4 w-4 mr-2" />
-                  <a
-                    href={mosque.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-600 transition-colors"
-                  >
-                    Visit Website
-                  </a>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Stats Bar */}
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span className="font-medium">{followerCount}</span>
+                  <span className="ml-1">
+                    {followerCount === 1 ? 'Follower' : 'Followers'}
+                  </span>
+                </div>
+                {mosque.settings?.established_year != null && (
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <span>Est. {String(mosque.settings.established_year)}</span>
+                  </div>
+                )}
+                {mosque.settings?.capacity != null && (
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <Building className="h-4 w-4 mr-2" />
+                    <span>Capacity: {String(mosque.settings.capacity)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          {mosque.description && (
+            <div className="p-6">
+              <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+                {mosque.description}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="events">Events</TabsTrigger>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* About Section */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl">
+                  <Building className="h-5 w-5 mr-2 text-emerald-600" />
+                  About This Mosque
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mosque.settings?.imam_name != null && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      Imam
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {String(mosque.settings.imam_name)}
+                    </p>
+                  </div>
+                )}
+                {mosque.settings?.services != null &&
+                  Array.isArray(mosque.settings.services) &&
+                  mosque.settings.services.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        Services & Programs
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(mosque.settings.services as string[]).map(
+                          (service, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                            >
+                              {service}
+                            </Badge>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
 
-            <TabsTrigger value="contact">Contact</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Events */}
-              <Card>
+            {/* Prayer Times */}
+            {mosque.prayer_times && (
+              <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Calendar className="h-5 w-5 mr-2" />
-                    Upcoming Events
+                  <CardTitle className="flex items-center text-xl">
+                    <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                    Prayer Times
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {Object.entries(mosque.prayer_times).map(
+                      ([prayer, time]) => (
+                        <div
+                          key={prayer}
+                          className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        >
+                          <div className="font-semibold text-gray-900 dark:text-white capitalize mb-1">
+                            {prayer}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {String(time)}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Events Section */}
+            {FEATURES.EVENTS_ENABLED && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-xl">
+                    <div className="flex items-center">
+                      <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                      Upcoming Events
+                    </div>
+                    {events.length > 3 && (
+                      <Button variant="outline" size="sm">
+                        View All Events
+                      </Button>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {events.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                      No upcoming events
-                    </p>
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No upcoming events
+                      </p>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {events.slice(0, 3).map((event) => (
                         <div
                           key={event.id}
-                          className="border-l-4 border-blue-500 pl-3"
+                          className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
                         >
-                          <h4 className="font-medium text-gray-900 dark:text-white">
-                            {event.title}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {formatDateTime(event.event_date)}
-                          </p>
-                          {event.location && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500">
-                              📍 {event.location}
-                            </p>
-                          )}
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                {event.title}
+                              </h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                {formatDateTime(event.event_date)}
+                              </p>
+                              {event.location && (
+                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-500">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {event.location}
+                                </div>
+                              )}
+                            </div>
+                            {user && !userRegistrations.includes(event.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRegisterForEvent(event.id)}
+                                className="ml-4"
+                              >
+                                Register
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </CardContent>
               </Card>
+            )}
+          </div>
 
-
-            </div>
-          </TabsContent>
-
-          <TabsContent value="events" className="mt-6">
-            <Card>
+          {/* Right Column - Contact & Info */}
+          <div className="space-y-6">
+            {/* Contact Information */}
+            <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle>All Events</CardTitle>
-                <CardDescription>
-                  Upcoming events and programs at {mosque.name}
-                </CardDescription>
+                <CardTitle className="flex items-center text-lg">
+                  <Phone className="h-5 w-5 mr-2 text-emerald-600" />
+                  Contact Information
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                {events.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">
-                      No events scheduled
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {events.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onRegister={handleRegisterForEvent}
-                        hasAdminAccess={false}
-                        userRegistered={userRegistrations.includes(event.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-
-
-          <TabsContent value="contact" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-                <CardDescription>
-                  Get in touch with {mosque.name}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {mosque.address && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Address
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        {mosque.address}
-                      </p>
+              <CardContent className="space-y-4">
+                {mosque.phone && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                      <Phone className="h-4 w-4 text-emerald-600" />
                     </div>
-                  )}
-
-                  {mosque.phone && (
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                        <Phone className="h-4 w-4 mr-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Phone
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {mosque.phone}
                       </p>
                     </div>
-                  )}
-
-                  {mosque.email && (
+                  </div>
+                )}
+                {mosque.email && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                      <Mail className="h-4 w-4 text-emerald-600" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                        <Mail className="h-4 w-4 mr-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Email
-                      </h4>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {mosque.email}
                       </p>
                     </div>
-                  )}
-
-                  {mosque.website && (
+                  </div>
+                )}
+                {mosque.website && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                      <Globe className="h-4 w-4 text-emerald-600" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
-                        <Globe className="h-4 w-4 mr-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Website
-                      </h4>
+                      </p>
                       <a
                         href={mosque.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        {mosque.website}
+                        Visit Website
                       </a>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+                {mosque.address && (
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center mt-1">
+                      <MapPin className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Address
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white leading-relaxed">
+                        {mosque.address}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-      
 
+            {/* Quick Stats */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Users className="h-5 w-5 mr-2 text-emerald-600" />
+                  Community
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-600">
+                    {followerCount}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {followerCount === 1 ? 'Follower' : 'Followers'}
+                  </div>
+                </div>
+                {!user && (
+                  <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                      Join our community to stay updated
+                    </p>
+                    <Button
+                      onClick={() => router.push('/login')}
+                      className="w-full"
+                    >
+                      Sign In to Follow
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
