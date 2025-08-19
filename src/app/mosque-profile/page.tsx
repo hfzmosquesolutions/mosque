@@ -46,6 +46,7 @@ import type {
   UpdateMosque,
 } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { FEATURES } from '@/lib/utils';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -250,7 +251,7 @@ function MosqueProfileContent() {
 
   if (!hasAdminAccess) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Mosque Profile">
         <div className="flex items-center justify-center min-h-[400px]">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
@@ -268,27 +269,17 @@ function MosqueProfileContent() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Mosque Profile">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Welcome Section */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl" />
-          <div className="relative p-8">
+          <div className="relative p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <Building className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                      Mosque Profile
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Manage your mosque&apos;s public profile and information
-                    </p>
-                  </div>
-                </div>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Manage your mosque&apos;s public profile and information
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 {saveSuccess && (
@@ -343,23 +334,39 @@ function MosqueProfileContent() {
           </div>
         </div>
 
-        {/* Status Alert */}
-        <Alert>
-          <div className="flex items-center gap-2">
-            {profile.is_private ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-            <AlertDescription>
-              Your mosque profile is currently{' '}
-              <strong>{profile.is_private ? 'private' : 'public'}</strong>.
-              {profile.is_private
-                ? ' Only members can view your mosque information.'
-                : ' Anyone can discover and view your mosque profile.'}
-            </AlertDescription>
-          </div>
-        </Alert>
+        {/* Profile Status Card */}
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                {profile.is_private ? (
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                    <EyeOff className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                ) : (
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <Eye className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                    Profile Status
+                  </h3>
+                  <Badge variant={profile.is_private ? "secondary" : "default"}>
+                    {profile.is_private ? 'Private' : 'Public'}
+                  </Badge>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                  {profile.is_private
+                    ? 'Your mosque profile is currently private. Only members can view your mosque information and details.'
+                    : 'Your mosque profile is currently public. Anyone can discover and view your mosque profile, events, and basic information.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Basic Information */}
@@ -533,138 +540,140 @@ function MosqueProfileContent() {
             </Card>
 
             {/* Programs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Contribution Programs
-                </CardTitle>
-                <CardDescription>
-                  Active programs and initiatives at your mosque
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {programsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-                  </div>
-                ) : programs.length > 0 ? (
-                  <div className="space-y-4">
-                    {programs.map((program) => (
-                      <div
-                        key={program.id}
-                        className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                              {program.name}
-                            </h4>
-                            {program.description && (
-                              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                {program.description}
-                              </p>
+            {FEATURES.CONTRIBUTIONS_ENABLED && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Contribution Programs
+                  </CardTitle>
+                  <CardDescription>
+                    Active programs and initiatives at your mosque
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {programsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                    </div>
+                  ) : programs.length > 0 ? (
+                    <div className="space-y-4">
+                      {programs.map((program) => (
+                        <div
+                          key={program.id}
+                          className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                                {program.name}
+                              </h4>
+                              {program.description && (
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                  {program.description}
+                                </p>
+                              )}
+                            </div>
+                            <Badge
+                              variant={
+                                program.is_active ? 'default' : 'secondary'
+                              }
+                            >
+                              {program.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                            {program.target_amount && (
+                              <div className="flex items-center gap-1">
+                                <Target className="h-4 w-4" />
+                                <span>
+                                  Target: $
+                                  {program.target_amount.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {program.start_date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                  Started:{' '}
+                                  {new Date(
+                                    program.start_date
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <Badge
-                            variant={
-                              program.is_active ? 'default' : 'secondary'
-                            }
+
+                          {program.target_amount &&
+                            program.current_amount !== undefined && (
+                              <div className="mt-3">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="text-slate-600 dark:text-slate-400">
+                                    Progress
+                                  </span>
+                                  <span className="font-medium">
+                                    $
+                                    {(
+                                      program.current_amount || 0
+                                    ).toLocaleString()}{' '}
+                                    / ${program.target_amount.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                  <div
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${Math.min(
+                                        ((program.current_amount || 0) /
+                                          program.target_amount) *
+                                          100,
+                                        100
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      ))}
+
+                      <div className="pt-4 border-t">
+                        <Button variant="outline" className="w-full" asChild>
+                          <a
+                            href="/contributions"
+                            className="flex items-center gap-2"
                           >
-                            {program.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                          {program.target_amount && (
-                            <div className="flex items-center gap-1">
-                              <Target className="h-4 w-4" />
-                              <span>
-                                Target: $
-                                {program.target_amount.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          {program.start_date && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                Started:{' '}
-                                {new Date(
-                                  program.start_date
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {program.target_amount &&
-                          program.current_amount !== undefined && (
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-600 dark:text-slate-400">
-                                  Progress
-                                </span>
-                                <span className="font-medium">
-                                  $
-                                  {(
-                                    program.current_amount || 0
-                                  ).toLocaleString()}{' '}
-                                  / ${program.target_amount.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                <div
-                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                  style={{
-                                    width: `${Math.min(
-                                      ((program.current_amount || 0) /
-                                        program.target_amount) *
-                                        100,
-                                      100
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
+                            <TrendingUp className="h-4 w-4" />
+                            Manage All Programs
+                          </a>
+                        </Button>
                       </div>
-                    ))}
-
-                    <div className="pt-4 border-t">
-                      <Button variant="outline" className="w-full" asChild>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
+                        No Programs Yet
+                      </h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                        Create contribution programs to engage your community
+                      </p>
+                      <Button variant="outline" asChild>
                         <a
                           href="/contributions"
                           className="flex items-center gap-2"
                         >
-                          <TrendingUp className="h-4 w-4" />
-                          Manage All Programs
+                          <Plus className="h-4 w-4" />
+                          Create First Program
                         </a>
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
-                      No Programs Yet
-                    </h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      Create contribution programs to engage your community
-                    </p>
-                    <Button variant="outline" asChild>
-                      <a
-                        href="/contributions"
-                        className="flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create First Program
-                      </a>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}

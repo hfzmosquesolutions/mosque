@@ -54,6 +54,7 @@ import {
 import type { Event, EventFormData } from '@/types/database';
 import { EventForm } from '@/components/events/EventForm';
 import { EventCard } from '../../components/events/EventCard';
+import { FEATURES } from '@/lib/utils';
 
 function EventsContent() {
   const { user } = useAuth();
@@ -261,7 +262,7 @@ function EventsContent() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Events">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -279,22 +280,14 @@ function EventsContent() {
   const draftEvents = events.filter(event => event.status === 'draft');
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
-        {/* Enhanced Header */}
+    <DashboardLayout title="Events">
+      <div className="space-y-6">
+        {/* Welcome Section */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl" />
-          <div className="relative p-8">
+          <div className="relative p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    Events
-                  </h1>
-                </div>
                 <p className="text-muted-foreground text-lg">
                   {hasAdminAccess
                     ? 'Manage and organize mosque events and programs'
@@ -636,6 +629,18 @@ function EventsContent() {
 }
 
 export default function EventsPage() {
+  if (!FEATURES.EVENTS_ENABLED) {
+    return (
+      <DashboardLayout>
+        <Card>
+          <CardHeader>
+            <CardTitle>Events Unavailable</CardTitle>
+            <CardDescription>Event features are temporarily disabled.</CardDescription>
+          </CardHeader>
+        </Card>
+      </DashboardLayout>
+    );
+  }
   return (
     <ProtectedRoute>
       <EventsContent />

@@ -18,7 +18,9 @@ import {
   Contribution,
   KhairatProgram,
   KhairatContribution,
-
+  UserDependent,
+  CreateUserDependent,
+  UpdateUserDependent,
   Notification,
   OnboardingData,
   ApiResponse,
@@ -134,7 +136,9 @@ export async function completeOnboarding(
         }
 
         mosqueId = mosque.id;
-        // Note: The user will be set as the mosque owner
+
+        // TODO: Create default Khairat program for the new mosque
+        // This functionality can be added later if needed
       } else if (onboardingData.mosqueAction === 'join' && onboardingData.existingMosqueId) {
         mosqueId = onboardingData.existingMosqueId;
 
@@ -756,15 +760,22 @@ export async function getUserDonations(
  * Get contribution programs for a mosque
  */
 export async function getContributionPrograms(
-  mosqueId: string
+  mosqueId: string,
+  programType?: 'khairat' | 'zakat' | 'infaq' | 'sadaqah' | 'general' | 'education' | 'maintenance'
 ): Promise<ApiResponse<ContributionProgram[]>> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('contribution_programs')
       .select('*')
       .eq('mosque_id', mosqueId)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
+
+    if (programType) {
+      query = query.eq('program_type', programType);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return { success: false, error: error.message };
@@ -1039,7 +1050,8 @@ export async function createContributionProgram(
       .from('contribution_programs')
       .insert({
         ...programData,
-        current_amount: 0
+        current_amount: 0,
+        program_type: (programData as any).program_type || 'khairat',
       })
       .select()
       .single();
@@ -1286,13 +1298,23 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       .eq('status', 'published')
       .gte('event_date', new Date().toISOString());
 
-    // Get donation counts
+    // Get donation counts and amounts
     const { count: totalDonations } = await supabase
       .from('donations')
       .select('*', { count: 'exact', head: true })
       .eq('mosque_id', mosqueId)
       .eq('status', 'completed');
 
+    // Get total donation amount
+    const { data: totalDonationData } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'completed');
+
+    const totalDonationAmount = totalDonationData?.reduce((sum, donation) => sum + donation.amount, 0) || 0;
+
+    // Get monthly donation data
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -1304,7 +1326,35 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       .eq('status', 'completed')
       .gte('created_at', startOfMonth.toISOString());
 
-    // Get contribution program counts
+    const { data: monthlyDonationData } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'completed')
+      .gte('created_at', startOfMonth.toISOString());
+
+    const monthlyDonationAmount = monthlyDonationData?.reduce((sum, donation) => sum + donation.amount, 0) || 0;
+
+    // Get previous month donation amount for growth calculation
+    const startOfPreviousMonth = new Date(startOfMonth);
+    startOfPreviousMonth.setMonth(startOfPreviousMonth.getMonth() - 1);
+    const endOfPreviousMonth = new Date(startOfMonth);
+    endOfPreviousMonth.setTime(endOfPreviousMonth.getTime() - 1);
+
+    const { data: previousMonthDonationData } = await supabase
+      .from('donations')
+      .select('amount')
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'completed')
+      .gte('created_at', startOfPreviousMonth.toISOString())
+      .lte('created_at', endOfPreviousMonth.toISOString());
+
+    const previousMonthDonationAmount = previousMonthDonationData?.reduce((sum, donation) => sum + donation.amount, 0) || 0;
+    const donationTrendPercentage = previousMonthDonationAmount > 0 
+      ? ((monthlyDonationAmount - previousMonthDonationAmount) / previousMonthDonationAmount) * 100
+      : 0;
+
+    // Get contribution program counts and progress
     const { count: totalKhairatPrograms } = await supabase
       .from('contribution_programs')
       .select('*', { count: 'exact', head: true })
@@ -1315,6 +1365,61 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       .select('*', { count: 'exact', head: true })
       .eq('mosque_id', mosqueId)
       .eq('is_active', true);
+
+    // Get detailed contribution program progress
+    const { data: contributionPrograms } = await supabase
+      .from('contribution_programs')
+      .select('id, name, current_amount, target_amount')
+      .eq('mosque_id', mosqueId)
+      .eq('is_active', true)
+      .limit(5);
+
+    const khairatProgramsProgress = contributionPrograms?.map(program => ({
+      id: program.id,
+      name: program.name,
+      current_amount: program.current_amount,
+      target_amount: program.target_amount || 0,
+      progress_percentage: program.target_amount > 0 
+        ? Math.min((program.current_amount / program.target_amount) * 100, 100)
+        : 0
+    })) || [];
+
+    // Calculate total khairat amount and monthly contributions
+    const totalKhairatAmount = contributionPrograms?.reduce((sum, program) => sum + program.current_amount, 0) || 0;
+    
+    // Get monthly khairat contributions by joining with contribution_programs
+    const { data: monthlyKhairatData } = await supabase
+      .from('contributions')
+      .select('amount, contribution_programs!inner(mosque_id, program_type)')
+      .eq('contribution_programs.mosque_id', mosqueId)
+      .eq('contribution_programs.program_type', 'khairat')
+      .gte('contributed_at', startOfMonth.toISOString());
+    
+    const monthlyKhairatContributions = monthlyKhairatData?.reduce((sum, contribution) => sum + contribution.amount, 0) || 0;
+
+    // Get recent activities count (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { count: recentActivityCount } = await supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    // Get mosque profile completion
+    const { data: mosqueData } = await supabase
+      .from('mosques')
+      .select('name, description, address, phone, email, website, capacity')
+      .eq('id', mosqueId)
+      .single();
+
+    const profileFields = ['name', 'description', 'address', 'phone', 'email'];
+    const completedFields = profileFields.filter(field => mosqueData?.[field as keyof typeof mosqueData]);
+    const mosqueProfileCompletionPercentage = (completedFields.length / profileFields.length) * 100;
+    const profileMissingFields = profileFields.filter(field => !mosqueData?.[field as keyof typeof mosqueData]);
+
+
 
     const stats: DashboardStats = {
       total_members: totalMembers || 0,
@@ -1329,7 +1434,20 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       active_khairat_programs: activeKhairatPrograms || 0,
       unread_notifications: 0, // This would be user-specific
       recent_activities: [], // This would require a separate query
-    };
+      // Enhanced metrics
+      total_donation_amount: totalDonationAmount,
+      monthly_donation_amount: monthlyDonationAmount,
+      previous_month_donation_amount: previousMonthDonationAmount,
+      donation_trend_percentage: donationTrendPercentage,
+      khairat_programs_progress: khairatProgramsProgress,
+      mosque_profile_completion: {
+        percentage: mosqueProfileCompletionPercentage,
+        missing_fields: profileMissingFields
+      },
+      recent_activity_count: recentActivityCount || 0,
+       monthly_khairat_contributions: monthlyKhairatContributions,
+       total_khairat_amount: totalKhairatAmount
+     };
 
     return { success: true, data: stats };
   } catch (error) {
@@ -1618,5 +1736,100 @@ export async function searchMosques(
       has_next: false,
       has_prev: false
     };
+  }
+}
+
+// =============================================
+// USER DEPENDENTS OPERATIONS
+// =============================================
+
+/**
+ * Get user dependents
+ */
+export async function getUserDependents(userId: string): Promise<ApiResponse<UserDependent[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('user_dependents')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch user dependents' };
+  }
+}
+
+/**
+ * Create a new dependent
+ */
+export async function createUserDependent(
+  dependentData: CreateUserDependent
+): Promise<ApiResponse<UserDependent>> {
+  try {
+    const { data, error } = await supabase
+      .from('user_dependents')
+      .insert(dependentData)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Failed to create dependent' };
+  }
+}
+
+/**
+ * Update a dependent
+ */
+export async function updateUserDependent(
+  dependentId: string,
+  updates: UpdateUserDependent
+): Promise<ApiResponse<UserDependent>> {
+  try {
+    const { data, error } = await supabase
+      .from('user_dependents')
+      .update(updates)
+      .eq('id', dependentId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Failed to update dependent' };
+  }
+}
+
+/**
+ * Delete a dependent
+ */
+export async function deleteUserDependent(
+  dependentId: string
+): Promise<ApiResponse<{ success: true }>> {
+  try {
+    const { error } = await supabase
+      .from('user_dependents')
+      .delete()
+      .eq('id', dependentId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete dependent' };
   }
 }

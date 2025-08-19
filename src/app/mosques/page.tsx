@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Mail, Globe, Search, Building } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, Search, Building, Clock, Users, Star, Filter } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
 
@@ -117,125 +117,168 @@ export default function MosquesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Building className="h-8 w-8 text-blue-600 mr-2" />
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              Find a Mosque
-            </h1>
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mr-4">
+              <Building className="h-8 w-8 text-emerald-600" />
+            </div>
+            <div className="text-left">
+              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
+                Discover Mosques
+              </h1>
+              <p className="text-emerald-600 font-medium">Find Your Spiritual Community</p>
+            </div>
           </div>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Discover mosques in your community. Connect with local congregations
-            and find your spiritual home.
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+            Connect with local mosques in your area. Find prayer times, events, and join a vibrant community of believers.
           </p>
         </div>
 
-        {/* Search */}
-        <div className="max-w-md mx-auto mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="Search mosques by name, location, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full"
-            />
+        {/* Search and Filter Section */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                <Input
+                  type="text"
+                  placeholder="Search by mosque name, location, or services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-3 text-base border-slate-300 dark:border-slate-600"
+                />
+              </div>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="text-center mb-6">
-          <p className="text-gray-600 dark:text-gray-400">
-            {filteredMosques.length} mosque
-            {filteredMosques.length !== 1 ? 's' : ''} found
-          </p>
+        {/* Results Summary */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
+              {filteredMosques.length} Mosque{filteredMosques.length !== 1 ? 's' : ''} Found
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400">
+              {searchQuery ? `Results for "${searchQuery}"` : 'All registered mosques'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Star className="h-4 w-4 text-yellow-500" />
+            <span>Verified listings</span>
+          </div>
         </div>
 
         {/* Mosques Grid */}
         {filteredMosques.length === 0 ? (
-          <div className="text-center py-12">
-            <Building className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Building className="h-12 w-12 text-slate-400" />
+            </div>
+            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
               No mosques found
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
               {searchQuery
-                ? 'Try adjusting your search terms.'
-                : 'No mosques are currently listed.'}
+                ? 'Try adjusting your search terms or browse all available mosques.'
+                : 'No mosques are currently registered. Be the first to add your mosque!'}
             </p>
+            {!searchQuery && (
+              <Button className="mt-6" variant="outline">
+                Register Your Mosque
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMosques.map((mosque) => (
               <Card
                 key={mosque.id}
-                className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 bg-white dark:bg-gray-800 border-0 shadow-md"
+                className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden"
                 onClick={() => handleMosqueClick(mosque.id)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                      <CardTitle className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-1">
                         {mosque.name}
                       </CardTitle>
                       {mosque.address && (
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                          <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                          <span className="truncate">{mosque.address}</span>
+                        <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mb-2">
+                          <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-emerald-600" />
+                          <span className="line-clamp-1">{mosque.address}</span>
                         </div>
                       )}
                     </div>
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full mr-1"></div>
                       Active
                     </Badge>
                   </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
+                  
                   {mosque.description && (
-                    <CardDescription className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                    <CardDescription className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
                       {mosque.description}
                     </CardDescription>
                   )}
+                </CardHeader>
 
-                  <div className="space-y-2">
+                <CardContent className="pt-0">
+                  <div className="space-y-3 mb-4">
                     {mosque.phone && (
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-                        <span>{mosque.phone}</span>
+                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                        <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
+                          <Phone className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium">{mosque.phone}</span>
                       </div>
                     )}
 
                     {mosque.email && (
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
-                        <span className="truncate">{mosque.email}</span>
+                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                        <div className="w-8 h-8 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
+                          <Mail className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="truncate font-medium">{mosque.email}</span>
                       </div>
                     )}
 
                     {mosque.website && (
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Globe className="h-3 w-3 mr-2 flex-shrink-0" />
-                        <span className="truncate">{mosque.website}</span>
+                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                        <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
+                          <Globe className="h-4 w-4 text-green-600" />
+                        </div>
+                        <span className="truncate font-medium">{mosque.website}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Prayer times</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>Community</span>
+                      </div>
+                    </div>
                     <Button
-                      variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMosqueClick(mosque.id);
                       }}
                     >
-                      View Profile
+                      View Details
                     </Button>
                   </div>
                 </CardContent>

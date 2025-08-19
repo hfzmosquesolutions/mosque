@@ -39,6 +39,9 @@ yarn-error.log*
 # trae
 .trae
 
+# cursor
+.cursor
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -77,6 +77,22 @@ export interface UserFollower {
   created_at: string;
 }
 
+export interface UserDependent {
+  id: string;
+  user_id: string;
+  full_name: string;
+  relationship: string; // e.g., 'spouse', 'child', 'parent', 'sibling'
+  date_of_birth?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  emergency_contact: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MosqueUserFollower {
   id: string;
   mosque_id: string; // The mosque that is following
@@ -170,6 +186,7 @@ export interface ContributionProgram {
   created_by: string;
   created_at: string;
   updated_at: string;
+  program_type: ProgramType;
 }
 
 export interface Contribution {
@@ -417,13 +434,36 @@ export interface DashboardStats {
   upcoming_events: number;
   total_donations: number;
   monthly_donations: number;
+  // Enhanced donation metrics
+  total_donation_amount: number;
+  monthly_donation_amount: number;
+  previous_month_donation_amount: number;
+  donation_trend_percentage: number;
+  // Contribution program metrics
   total_contribution_programs: number;
   active_contribution_programs: number;
+  khairat_programs_progress: Array<{
+    id: string;
+    name: string;
+    current_amount: number;
+    target_amount: number;
+    progress_percentage: number;
+  }>;
   // Legacy aliases
   total_khairat_programs: number;
   active_khairat_programs: number;
+  // Activity and notification metrics
   unread_notifications: number;
   recent_activities: AuditLog[];
+  recent_activity_count: number;
+  // Mosque profile metrics
+  mosque_profile_completion: {
+    percentage: number;
+    missing_fields: string[];
+  };
+  // Additional metrics
+  monthly_khairat_contributions: number;
+  total_khairat_amount: number;
 }
 
 // =============================================
@@ -472,6 +512,7 @@ export type CreateMosque = Omit<Mosque, 'id' | 'created_at' | 'updated_at'>;
 export type CreateEvent = Omit<Event, 'id' | 'created_at' | 'updated_at'>;
 export type CreateDonation = Omit<Donation, 'id' | 'created_at' | 'updated_at'>;
 export type CreateResource = Omit<Resource, 'id' | 'created_at' | 'updated_at' | 'view_count'>;
+export type CreateUserDependent = Omit<UserDependent, 'id' | 'created_at' | 'updated_at'>;
 
 // For updating records (partial, without id, timestamps)
 export type UpdateMosque = Partial<Omit<Mosque, 'id' | 'created_at' | 'updated_at'>>;
@@ -479,6 +520,7 @@ export type UpdateUserProfile = Partial<Omit<UserProfile, 'id' | 'created_at' | 
 export type UpdateEvent = Partial<Omit<Event, 'id' | 'created_at' | 'updated_at'>>;
 export type UpdateDonation = Partial<Omit<Donation, 'id' | 'created_at' | 'updated_at'>>;
 export type UpdateResource = Partial<Omit<Resource, 'id' | 'created_at' | 'updated_at'>>;
+export type UpdateUserDependent = Partial<Omit<UserDependent, 'id' | 'created_at' | 'updated_at'>>;
 
 // Database table names (useful for generic functions)
 export type TableName = 
@@ -500,7 +542,8 @@ export type TableName =
   | 'system_settings'
   | 'mosque_followers'
   | 'user_followers'
-  | 'mosque_user_followers';
+  | 'mosque_user_followers'
+  | 'user_dependents';
 
 // Generic database record type
 export type DatabaseRecord = {
@@ -558,6 +601,11 @@ export interface Database {
         Insert: Omit<MosqueUserFollower, 'id' | 'created_at'>;
         Update: never; // Following relationships are insert/delete only
       };
+      user_dependents: {
+        Row: UserDependent;
+        Insert: CreateUserDependent;
+        Update: UpdateUserDependent;
+      };
       // Add other tables as needed
     };
     Views: Record<string, never>;
@@ -575,3 +623,11 @@ export interface Database {
     };
   };
 }
+export type ProgramType =
+  | 'khairat'
+  | 'zakat'
+  | 'infaq'
+  | 'sadaqah'
+  | 'general'
+  | 'education'
+  | 'maintenance';
