@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       contributionId,
-      mosqueId,
+      programId,
       amount,
       payerName,
       payerEmail,
@@ -28,11 +28,21 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!contributionId || !mosqueId || !amount || !payerName) {
+    if (!contributionId || !programId || !amount || !payerName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Validate Billplz specific requirements
+    if (providerType === 'billplz') {
+      if (!payerEmail && !payerMobile) {
+        return NextResponse.json(
+          { error: 'Email or mobile number is required for Billplz payments' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate amount
@@ -43,13 +53,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if contribution exists and is pending
+    // Get program details to validate mosque
     const supabaseAdmin = getSupabaseAdmin();
+    const { data: program, error: programError } = await supabaseAdmin
+      .from('contribution_programs')
+      .select('id, mosque_id')
+      .eq('id', programId)
+      .single();
+
+    if (programError || !program) {
+      return NextResponse.json(
+        { error: 'Program not found' },
+        { status: 404 }
+      );
+    }
+
+    const mosqueId = program.mosque_id;
+
+    // Check if contribution exists and is pending
     const { data: contribution, error: contributionError } = await supabaseAdmin
-      .from('khairat_contributions')
-      .select('id, status, mosque_id')
+      .from('contributions')
+      .select('id, status, program_id')
       .eq('id', contributionId)
-      .eq('mosque_id', mosqueId)
+      .eq('program_id', programId)
       .single();
 
     if (contributionError || !contribution) {

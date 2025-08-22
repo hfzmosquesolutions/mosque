@@ -3,11 +3,16 @@ import { PaymentService } from '@/lib/payments/payment-service';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== BILLPLZ CALLBACK RECEIVED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Request URL:', request.url);
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    
     // Get X-Signature from headers
     const xSignature = request.headers.get('x-signature');
     
     if (!xSignature) {
-      console.error('Missing X-Signature header');
+      console.error('❌ Missing X-Signature header');
       return NextResponse.json(
         { error: 'Missing X-Signature header' },
         { status: 400 }
@@ -23,21 +28,23 @@ export async function POST(request: NextRequest) {
       callbackData[key] = value.toString();
     }
 
-    // Log callback data for debugging (remove in production)
-    console.log('Billplz callback received:', {
+    // Log callback data for debugging
+    console.log('📥 Billplz callback data:', {
       ...callbackData,
       x_signature: xSignature
     });
 
     // Validate required fields
     if (!callbackData.id) {
-      console.error('Missing bill ID in callback');
+      console.error('❌ Missing bill ID in callback');
       return NextResponse.json(
         { error: 'Missing bill ID' },
         { status: 400 }
       );
     }
 
+    console.log('🔄 Processing callback for bill ID:', callbackData.id);
+    
     // Process the callback
     const result = await PaymentService.processBillplzCallback(
       callbackData,
@@ -45,7 +52,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      console.error('Callback processing failed:', result.error);
+      console.error('❌ Callback processing failed:', result.error);
+      console.error('❌ Full error details:', result);
       return NextResponse.json(
         { error: result.error },
         { status: 400 }
@@ -53,7 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Log successful processing
-    console.log('Billplz callback processed successfully for bill:', callbackData.id);
+    console.log('✅ Billplz callback processed successfully for bill:', callbackData.id);
+    console.log('✅ Database should be updated now');
 
     // Return success response to Billplz
     return NextResponse.json(

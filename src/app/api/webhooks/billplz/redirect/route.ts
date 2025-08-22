@@ -15,6 +15,10 @@ function getSupabaseAdmin() {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('=== BILLPLZ REDIRECT RECEIVED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Request URL:', request.url);
+    
     const { searchParams } = new URL(request.url);
     
     // Get parameters from Billplz redirect
@@ -22,49 +26,61 @@ export async function GET(request: NextRequest) {
     const billplzPaid = searchParams.get('billplz[paid]');
     const billplzPaidAt = searchParams.get('billplz[paid_at]');
     const billplzXSignature = searchParams.get('billplz[x_signature]');
-    const contributionId = searchParams.get('contribution_id');
     
+    console.log('📥 Billplz redirect parameters:', {
+      billplzId,
+      billplzPaid,
+      billplzPaidAt,
+      billplzXSignature: billplzXSignature ? '***provided***' : 'not provided'
+    });
+   
     // Validate required parameters
     if (!billplzId) {
+      console.error('❌ Missing payment information (billplz[id])');
       return redirectToError('Missing payment information');
     }
 
-    // Get contribution details
-    let contribution;
+    // Get contribution details using bill_id
     const supabaseAdmin = getSupabaseAdmin();
     
-    if (contributionId) {
-      const { data, error } = await supabaseAdmin
-        .from('khairat_contributions')
-        .select('id, status, mosque_id, amount, payer_name')
-        .eq('id', contributionId)
-        .single();
-      
-      if (error || !data) {
-        return redirectToError('Contribution not found');
-      }
-      contribution = data;
-    } else {
-      // Find contribution by payment reference
-      const { data, error } = await supabaseAdmin
-        .from('khairat_contributions')
-        .select('id, status, mosque_id, amount, payer_name')
-        .eq('payment_reference', billplzId)
-        .single();
-      
-      if (error || !data) {
-        return redirectToError('Contribution not found');
-      }
-      contribution = data;
+    console.log('🔍 Looking up contribution by bill ID:', billplzId);
+    const { data: contribution, error } = await supabaseAdmin
+      .from('contributions')
+      .select(`
+        id, 
+        status, 
+        amount, 
+        contributor_name
+      `)
+      .eq('bill_id', billplzId)
+      .single();
+    
+    if (error) {
+      console.error('❌ Database error finding contribution by bill ID:', error);
+      return redirectToError('Contribution not found');
     }
+    if (!contribution) {
+      console.error('❌ No contribution found with bill ID:', billplzId);
+      return redirectToError('Contribution not found');
+    }
+    
+    console.log('✅ Found contribution:', {
+      id: contribution.id,
+      current_status: contribution.status,
+      current_amount: contribution.amount,
+      contributor_name: contribution.contributor_name
+    });
 
     // Verify X-Signature if provided
     if (billplzXSignature) {
+      console.log('🔐 X-Signature provided, attempting verification...');
       const callbackData = {
         id: billplzId,
         paid: billplzPaid === 'true',
         paid_at: billplzPaidAt,
       };
+      
+      console.log('🔐 Callback data for verification:', callbackData);
 
       const verificationResult = await PaymentService.processBillplzCallback(
         callbackData,
@@ -72,43 +88,94 @@ export async function GET(request: NextRequest) {
       );
 
       if (!verificationResult.success) {
-        console.warn('X-Signature verification failed on redirect:', verificationResult.error);
-        // Continue anyway as this is just a redirect, callback will handle the actual verification
+        console.warn('⚠️ X-Signature verification failed on redirect:', verificationResult.error);
+        console.warn('⚠️ Continuing anyway as this is just a redirect, callback will handle the actual verification');
+      } else {
+        console.log('✅ X-Signature verification successful on redirect');
       }
+    } else {
+      console.log('ℹ️ No X-Signature provided in redirect');
     }
 
-    // Get current payment status
-    const statusResult = await PaymentService.getPaymentStatus(
+    // Update contribution status and payment data based on Billplz redirect parameters
+    console.log('🔄 Updating contribution status and payment data based on payment result...');
+    const isPaid = billplzPaid === 'true';
+    const newStatus = isPaid ? 'completed' : 'pending';
+    
+    // Prepare payment data for additional info
+    const paymentData = {
+      provider: 'billplz',
+      billplz_id: billplzId,
+      paid_at: billplzPaidAt || null,
+      transaction_status: isPaid ? 'completed' : 'pending',
+      state: isPaid ? 'paid' : 'pending',
+      redirect_processed_at: new Date().toISOString()
+    };
+    
+    console.log('💰 Payment details:', {
       billplzId,
-      contribution.mosque_id,
-      'billplz'
-    );
+      billplzPaid,
+      isPaid,
+      newStatus,
+      contributionId: contribution.id,
+      paymentData
+    });
 
-    // Determine payment status
+    // Update contribution in database with status and payment data
+    const { data: updatedContribution, error: updateError } = await supabaseAdmin
+      .from('contributions')
+      .update({
+        status: newStatus,
+        payment_data: paymentData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', contribution.id)
+      .select()
+      .single();
+      
+    if (updateError) {
+      console.error('❌ Database update failed:', updateError);
+      console.log('⚠️ Continuing with redirect despite update failure');
+    } else {
+      console.log('✅ Contribution status updated successfully:', {
+        contribution_id: updatedContribution.id,
+        new_status: updatedContribution.status,
+        updated_at: updatedContribution.updated_at
+      });
+    }
+
+    // Determine payment status for redirect
     let paymentStatus = 'pending';
     let statusMessage = 'Payment is being processed';
     
-    if (statusResult.success) {
-      if (statusResult.status === 'completed' || billplzPaid === 'true') {
-        paymentStatus = 'success';
-        statusMessage = 'Payment completed successfully';
-      } else if (statusResult.status === 'failed') {
-        paymentStatus = 'failed';
-        statusMessage = 'Payment failed';
-      } else if (statusResult.status === 'overdue') {
-        paymentStatus = 'expired';
-        statusMessage = 'Payment has expired';
-      }
+    if (isPaid) {
+      paymentStatus = 'success';
+      statusMessage = 'Payment completed successfully';
+      console.log('✅ Payment determined as SUCCESS');
+    } else {
+      console.log('⏳ Payment determined as PENDING');
     }
 
     // Redirect to payment result page with status
+    console.log('🔄 Preparing redirect to payment result page...');
     const redirectUrl = new URL('/khairat/payment-result', request.url);
     redirectUrl.searchParams.set('status', paymentStatus);
     redirectUrl.searchParams.set('message', statusMessage);
     redirectUrl.searchParams.set('contributionId', contribution.id);
     redirectUrl.searchParams.set('paymentId', billplzId);
     redirectUrl.searchParams.set('amount', contribution.amount.toString());
-    redirectUrl.searchParams.set('payerName', contribution.payer_name);
+    redirectUrl.searchParams.set('payerName', contribution.contributor_name);
+    
+    console.log('🔄 Redirect URL parameters:', {
+      status: paymentStatus,
+      message: statusMessage,
+      contributionId: contribution.id,
+      paymentId: billplzId,
+      amount: contribution.amount.toString(),
+      payerName: contribution.contributor_name
+    });
+    
+    console.log('🔄 Final redirect URL:', redirectUrl.toString());
 
     return NextResponse.redirect(redirectUrl.toString());
 

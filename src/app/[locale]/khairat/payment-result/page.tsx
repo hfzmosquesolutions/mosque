@@ -18,7 +18,7 @@ interface PaymentResultData {
 }
 
 function PaymentResultContent() {
-  const t = useTranslations('paymentResult');
+  const t = useTranslations('khairat');
   const searchParams = useSearchParams();
   const router = useRouter();
   const [resultData, setResultData] = useState<PaymentResultData | null>(null);

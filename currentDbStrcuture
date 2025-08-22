@@ -32,8 +32,41 @@ CREATE TABLE public.audit_logs (
   user_agent text,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT audit_logs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id)
+  CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT audit_logs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+);
+CREATE TABLE public.contribution_programs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  mosque_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  target_amount numeric,
+  current_amount numeric DEFAULT 0,
+  start_date date,
+  end_date date,
+  is_active boolean DEFAULT true,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  program_type text DEFAULT 'khairat'::text CHECK (program_type = ANY (ARRAY['khairat'::text, 'zakat'::text, 'infaq'::text, 'sadaqah'::text, 'general'::text, 'education'::text, 'maintenance'::text])),
+  CONSTRAINT contribution_programs_pkey PRIMARY KEY (id),
+  CONSTRAINT contribution_programs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT contribution_programs_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+);
+CREATE TABLE public.contributions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  program_id uuid NOT NULL,
+  contributor_id uuid,
+  contributor_name character varying,
+  amount numeric NOT NULL,
+  payment_method character varying,
+  payment_reference character varying,
+  status USER-DEFINED DEFAULT 'pending'::contribution_status,
+  notes text,
+  contributed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contributions_pkey PRIMARY KEY (id),
+  CONSTRAINT khairat_contributions_contributor_id_fkey FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT contributions_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.contribution_programs(id)
 );
 CREATE TABLE public.donation_categories (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -67,8 +100,8 @@ CREATE TABLE public.donations (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT donations_pkey PRIMARY KEY (id),
-  CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.user_profiles(id),
   CONSTRAINT donations_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.user_profiles(id),
   CONSTRAINT donations_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.donation_categories(id)
 );
 CREATE TABLE public.event_registrations (
@@ -100,40 +133,46 @@ CREATE TABLE public.events (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT events_pkey PRIMARY KEY (id),
-  CONSTRAINT events_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id),
-  CONSTRAINT events_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+  CONSTRAINT events_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT events_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
 );
-CREATE TABLE public.khairat_contributions (
+CREATE TABLE public.mosque_followers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  program_id uuid NOT NULL,
-  contributor_id uuid,
-  contributor_name character varying,
-  amount numeric NOT NULL,
-  payment_method character varying,
-  payment_reference character varying,
-  status USER-DEFINED DEFAULT 'pending'::khairat_status,
-  notes text,
-  contributed_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
-  CONSTRAINT khairat_contributions_contributor_id_fkey FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id),
-  CONSTRAINT khairat_contributions_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.khairat_programs(id)
+  user_id uuid NOT NULL,
+  mosque_id uuid NOT NULL,
+  followed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT mosque_followers_pkey PRIMARY KEY (id),
+  CONSTRAINT mosque_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT mosque_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
-CREATE TABLE public.khairat_programs (
+CREATE TABLE public.mosque_payment_providers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   mosque_id uuid NOT NULL,
-  name character varying NOT NULL,
-  description text,
-  target_amount numeric,
-  current_amount numeric DEFAULT 0,
-  start_date date,
-  end_date date,
+  provider_type USER-DEFINED NOT NULL,
   is_active boolean DEFAULT true,
-  created_by uuid NOT NULL,
+  is_sandbox boolean DEFAULT true,
+  billplz_api_key text,
+  billplz_x_signature_key text,
+  billplz_collection_id text,
+  chip_brand_id text,
+  chip_api_key text,
+  stripe_publishable_key text,
+  stripe_secret_key text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT khairat_programs_pkey PRIMARY KEY (id),
-  CONSTRAINT khairat_programs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT khairat_programs_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+  CONSTRAINT mosque_payment_providers_pkey PRIMARY KEY (id),
+  CONSTRAINT mosque_payment_providers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+);
+CREATE TABLE public.mosque_user_followers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  mosque_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  followed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT mosque_user_followers_pkey PRIMARY KEY (id),
+  CONSTRAINT mosque_user_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT mosque_user_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.mosques (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -148,6 +187,7 @@ CREATE TABLE public.mosques (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   user_id uuid UNIQUE,
+  is_private boolean DEFAULT false,
   CONSTRAINT mosques_pkey PRIMARY KEY (id),
   CONSTRAINT mosques_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -164,8 +204,8 @@ CREATE TABLE public.notifications (
   created_at timestamp with time zone DEFAULT now(),
   read_at timestamp with time zone,
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id)
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT notifications_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
 CREATE TABLE public.resource_categories (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -177,8 +217,8 @@ CREATE TABLE public.resource_categories (
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT resource_categories_pkey PRIMARY KEY (id),
-  CONSTRAINT resource_categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.resource_categories(id),
-  CONSTRAINT resource_categories_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+  CONSTRAINT resource_categories_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT resource_categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.resource_categories(id)
 );
 CREATE TABLE public.resources (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -199,9 +239,9 @@ CREATE TABLE public.resources (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT resources_pkey PRIMARY KEY (id),
-  CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id),
+  CONSTRAINT resources_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
   CONSTRAINT resources_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.resource_categories(id),
-  CONSTRAINT resources_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+  CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.system_settings (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -214,6 +254,33 @@ CREATE TABLE public.system_settings (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT system_settings_pkey PRIMARY KEY (id),
   CONSTRAINT system_settings_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+);
+CREATE TABLE public.user_dependents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  full_name character varying NOT NULL,
+  relationship character varying NOT NULL,
+  date_of_birth date,
+  gender character varying,
+  phone character varying,
+  email character varying,
+  address text,
+  emergency_contact boolean DEFAULT false,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_dependents_pkey PRIMARY KEY (id),
+  CONSTRAINT user_dependents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id)
+);
+CREATE TABLE public.user_followers (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  follower_id uuid NOT NULL,
+  following_id uuid NOT NULL,
+  followed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_followers_pkey PRIMARY KEY (id),
+  CONSTRAINT user_followers_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES auth.users(id),
+  CONSTRAINT user_followers_following_id_fkey FOREIGN KEY (following_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_profiles (
   id uuid NOT NULL,
@@ -235,6 +302,7 @@ CREATE TABLE public.user_profiles (
   preferences jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  is_profile_private boolean DEFAULT false,
   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
