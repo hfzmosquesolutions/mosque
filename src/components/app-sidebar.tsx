@@ -172,7 +172,7 @@ export function AppSidebar() {
                   isActive={pathname === '/settings'}
                   tooltip="Settings"
                 >
-                  <Link href="/settings">
+                  <Link href="settings">
                     <span className="flex items-center gap-2">
                       <Settings className="size-4" />
                       <span>{t('settings')}</span>
@@ -217,7 +217,7 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuItem asChild className="gap-2">
-                  <Link href="/settings">
+                  <Link href="settings">
                     <Settings className="h-4 w-4" />
                     <span>{t('settings')}</span>
                   </Link>

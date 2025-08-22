@@ -52,7 +52,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {!user ? (
               <>
-                <Link href="/signup">
+                <Link href="/en/signup">
                   <Button
                     size="lg"
                     className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg"
@@ -61,7 +61,7 @@ export default function Home() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/mosques">
+                <Link href="/en/mosques">
                   <Button
                     size="lg"
                     variant="outline"
@@ -73,7 +73,7 @@ export default function Home() {
               </>
             ) : (
               <>
-                <Link href="/dashboard">
+                <Link href="/en/dashboard">
                   <Button
                     size="lg"
                     className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 text-lg"
@@ -82,7 +82,7 @@ export default function Home() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/mosques">
+                <Link href="/en/mosques">
                   <Button
                     size="lg"
                     variant="outline"
@@ -356,7 +356,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
-              <Link href="/dashboard">
+              <Link href="/en/dashboard">
                 <Button
                   size="lg"
                   className="bg-white text-emerald-600 hover:bg-emerald-50"
@@ -366,7 +366,7 @@ export default function Home() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/signup">
+              <Link href="/en/signup">
                 <Button
                   size="lg"
                   className="bg-white text-emerald-600 hover:bg-emerald-50"
