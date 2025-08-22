@@ -97,54 +97,17 @@ export async function GET(request: NextRequest) {
       console.log('ℹ️ No X-Signature provided in redirect');
     }
 
-    // Update contribution status and payment data based on Billplz redirect parameters
-    console.log('🔄 Updating contribution status and payment data based on payment result...');
-    const isPaid = billplzPaid === 'true';
-    const newStatus = isPaid ? 'completed' : 'pending';
-    
-    // Prepare payment data for additional info
-    const paymentData = {
-      provider: 'billplz',
-      billplz_id: billplzId,
-      paid_at: billplzPaidAt || null,
-      transaction_status: isPaid ? 'completed' : 'pending',
-      state: isPaid ? 'paid' : 'pending',
-      redirect_processed_at: new Date().toISOString()
-    };
-    
-    console.log('💰 Payment details:', {
+    console.log('💰 Payment details from redirect:', {
       billplzId,
       billplzPaid,
-      isPaid,
-      newStatus,
-      contributionId: contribution.id,
-      paymentData
+      isPaid: billplzPaid === 'true',
+      contributionId: contribution.id
     });
-
-    // Update contribution in database with status and payment data
-    const { data: updatedContribution, error: updateError } = await supabaseAdmin
-      .from('contributions')
-      .update({
-        status: newStatus,
-        payment_data: paymentData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', contribution.id)
-      .select()
-      .single();
-      
-    if (updateError) {
-      console.error('❌ Database update failed:', updateError);
-      console.log('⚠️ Continuing with redirect despite update failure');
-    } else {
-      console.log('✅ Contribution status updated successfully:', {
-        contribution_id: updatedContribution.id,
-        new_status: updatedContribution.status,
-        updated_at: updatedContribution.updated_at
-      });
-    }
+    
+    console.log('ℹ️ Note: Payment data will be updated by the callback webhook for comprehensive tracking');
 
     // Determine payment status for redirect
+    const isPaid = billplzPaid === 'true';
     let paymentStatus = 'pending';
     let statusMessage = 'Payment is being processed';
     
