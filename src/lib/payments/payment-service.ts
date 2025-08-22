@@ -233,25 +233,25 @@ export class PaymentService {
       // Update contribution status based on payment status
       const isPaid = callbackData.paid === true || callbackData.paid === 'true';
       const status = isPaid ? 'completed' : 'failed';
-      const paidAmount = isPaid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0;
       
       console.log('💰 Payment details:', {
         paid: callbackData.paid,
         isPaid,
         status,
         paid_amount_sen: callbackData.paid_amount,
-        paid_amount_myr: paidAmount,
-        contribution_id: contribution.id
+        contribution_id: contribution.id,
+        original_amount: contribution.amount
       });
 
-      // Prepare detailed payment data for storage
+      // Prepare detailed payment data for storage - keep all payment references here
       const paymentData = {
         provider: 'billplz',
         billplz_id: String(callbackData.id),
         paid_at: callbackData.paid_at ? String(callbackData.paid_at) : null,
         transaction_status: String(callbackData.state || 'unknown'),
         state: String(callbackData.state || 'unknown'),
-        paid_amount: Number(callbackData.paid_amount) || 0,
+        paid_amount_sen: Number(callbackData.paid_amount) || 0,
+        paid_amount_myr: isPaid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0,
         collection_id: String(callbackData.collection_id || ''),
         transaction_id: String(callbackData.transaction_id || ''),
         due_at: callbackData.due_at ? String(callbackData.due_at) : null,
@@ -260,12 +260,11 @@ export class PaymentService {
         callback_processed_at: new Date().toISOString()
       };
 
-      console.log('🔄 Updating contribution status and payment data...');
+      console.log('🔄 Updating contribution status and payment data (keeping original amount)...');
       const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
         .from('contributions')
         .update({
           status,
-          amount: paidAmount,
           payment_data: paymentData,
           updated_at: new Date().toISOString(),
         })
@@ -281,7 +280,7 @@ export class PaymentService {
       console.log('✅ Database updated successfully:', {
         contribution_id: updatedContribution.id,
         new_status: updatedContribution.status,
-        new_amount: updatedContribution.amount,
+        amount_unchanged: updatedContribution.amount,
         updated_at: updatedContribution.updated_at
       });
 
