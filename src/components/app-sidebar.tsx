@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
-import { FEATURES } from '@/lib/utils';
+import { RUNTIME_FEATURES, FEATURES } from '@/lib/utils';
 import {
   Sidebar,
   SidebarContent,
@@ -51,7 +51,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     });
   } else {
     // For regular users, show community features
-    if (FEATURES.EVENTS_ENABLED) {
+    if (RUNTIME_FEATURES.EVENTS_VISIBLE) {
       baseNavigation.push({
         name: t('events'),
         href: '/events',

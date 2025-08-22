@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Building2, Menu, X, User2, Languages, Check } from 'lucide-react';
 import { useState } from 'react';
-import { FEATURES } from '@/lib/utils';
+import { RUNTIME_FEATURES } from '@/lib/utils';
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -101,7 +101,7 @@ export default function Header() {
                         Dashboard
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                    {FEATURES.EVENTS_ENABLED && (
+                    {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                       <NavigationMenuItem>
                         <NavigationMenuLink
                           href="/events"
@@ -231,7 +231,7 @@ export default function Header() {
                       Dashboard
                     </Button>
                   </Link>
-                  {FEATURES.EVENTS_ENABLED && (
+                  {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                     <Link
                       href="/events"
                       onClick={() => setIsMobileMenuOpen(false)}

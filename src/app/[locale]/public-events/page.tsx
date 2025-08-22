@@ -20,7 +20,7 @@ import { Calendar, MapPin, Search, Users } from 'lucide-react';
 // No import needed - we'll define these functions locally
 
 type EventWithMosque = Event & { mosque: { name: string; id: string } };
-import { FEATURES } from '@/lib/utils';
+import { FEATURES, RUNTIME_FEATURES } from '@/lib/utils';
 
 export default function PublicEventsPage() {
   const t = useTranslations('events');
@@ -67,7 +67,7 @@ export default function PublicEventsPage() {
   }, [pagination.limit, fetchEvents]);
 
   // Check if events feature is enabled
-  if (!FEATURES.EVENTS_ENABLED) {
+  if (!RUNTIME_FEATURES.EVENTS_VISIBLE) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
