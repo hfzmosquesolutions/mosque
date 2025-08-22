@@ -35,7 +35,7 @@ import {
 import { EventCard } from '@/components/events/EventCard';
 import { Mosque, Event } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
-import { FEATURES } from '@/lib/utils';
+import { RUNTIME_FEATURES } from '@/lib/utils';
 
 export default function MosqueProfilePage() {
   const params = useParams();
@@ -84,7 +84,7 @@ export default function MosqueProfilePage() {
       setMosque(mosqueResponse.data);
 
       // Fetch events
-      if (FEATURES.EVENTS_ENABLED) {
+      if (RUNTIME_FEATURES.EVENTS_VISIBLE) {
         console.log('[PAGE] MosqueProfilePage - Fetching events');
         const eventsResponse = await getEvents(mosqueId, 5);
 
@@ -424,7 +424,7 @@ export default function MosqueProfilePage() {
             )}
 
             {/* Events Section */}
-            {FEATURES.EVENTS_ENABLED && (
+            {RUNTIME_FEATURES.EVENTS_VISIBLE && (
               <Card className="border-0 shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-xl">

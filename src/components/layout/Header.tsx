@@ -3,17 +3,16 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, Menu, X } from 'lucide-react';
+import { Building2, Menu, X, User2, Languages, Check } from 'lucide-react';
 import { useState } from 'react';
-import { FEATURES } from '@/lib/utils';
+import { RUNTIME_FEATURES } from '@/lib/utils';
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import {
@@ -23,12 +22,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User2 } from 'lucide-react';
+import { useLocale } from 'next-intl';
+import { locales, type Locale } from '@/i18n';
 
 export default function Header() {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const locale = useLocale() as Locale;
+
+  const languageNames: Record<Locale, string> = {
+    en: 'English',
+    ms: 'Bahasa Malaysia',
+  };
 
   // Hide header on internal pages that have sidebar
   const internalPages = [
@@ -42,8 +48,10 @@ export default function Header() {
     '/dependents',
   ];
 
+  // Remove locale prefix from pathname for checking internal pages
+  const pathForInternalCheck = pathname.replace(/^\/(?:en|ms)/, '') || '/';
   const isInternalPage = internalPages.some((page) =>
-    pathname.startsWith(page)
+    pathForInternalCheck.startsWith(page)
   );
 
   // Don't render header at all for internal pages
@@ -51,18 +59,23 @@ export default function Header() {
     return null;
   }
 
+  // Compute pathname without leading locale prefix so we can link to the same page in another locale
+  const pathWithoutLocale = pathname.replace(/^\/(en|ms)(?=\/|$)/, '') || '/';
+
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-emerald-100 dark:border-slate-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <Building2 className="h-8 w-8 text-emerald-600" />
-            <span className="text-xl font-bold text-slate-900 dark:text-slate-100">
-              MosqueConnect
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <span className="flex items-center">
+              <Image 
+                src="/logo-kariah-masjid.jpg" 
+                alt="Kariah Masjid Logo" 
+                width={160} 
+                height={40} 
+                className="rounded-md"
+              />
             </span>
           </Link>
 
@@ -71,38 +84,60 @@ export default function Header() {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="/mosques" legacyBehavior passHref>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      Browse Mosques
-                    </NavigationMenuLink>
-                  </Link>
+                  <NavigationMenuLink
+                    href="/mosques"
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    Browse Mosques
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
                 {user && (
                   <>
                     <NavigationMenuItem>
-                      <Link href="/dashboard" legacyBehavior passHref>
+                      <NavigationMenuLink
+                        href="/dashboard"
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        Dashboard
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                    {RUNTIME_FEATURES.EVENTS_VISIBLE && (
+                      <NavigationMenuItem>
                         <NavigationMenuLink
+                          href="/events"
                           className={navigationMenuTriggerStyle()}
                         >
-                          Dashboard
+                          Events
                         </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-                    {FEATURES.EVENTS_ENABLED && (
-                      <NavigationMenuItem>
-                        <Link href="/events" legacyBehavior passHref>
-                          <NavigationMenuLink
-                            className={navigationMenuTriggerStyle()}
-                          >
-                            Events
-                          </NavigationMenuLink>
-                        </Link>
                       </NavigationMenuItem>
                     )}
                   </>
                 )}
+
+                {/* Language Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 h-10">
+                      <Languages className="h-4 w-4" />
+                      <span>{languageNames[locale]}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {locales.map((loc) => (
+                      <DropdownMenuItem key={loc} asChild>
+                        <Link
+                          href={`/${loc}${pathWithoutLocale}`}
+                          className="flex items-center justify-between w-full"
+                        >
+                          <span>{languageNames[loc as Locale]}</span>
+                          {loc === locale && (
+                            <Check className="h-4 w-4 text-emerald-600" />
+                          )}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </NavigationMenuList>
             </NavigationMenu>
 
@@ -196,7 +231,7 @@ export default function Header() {
                       Dashboard
                     </Button>
                   </Link>
-                  {FEATURES.EVENTS_ENABLED && (
+                  {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                     <Link
                       href="/events"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -212,6 +247,36 @@ export default function Header() {
                 </>
               )}
             </nav>
+
+            {/* Mobile Language Switcher */}
+            <div className="mt-4 pt-4 border-t border-emerald-100 dark:border-slate-700">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full flex items-center justify-between mb-4">
+                    <span className="flex items-center gap-2">
+                      <Languages className="h-4 w-4" />
+                      <span>{languageNames[locale]}</span>
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
+                  {locales.map((loc) => (
+                    <DropdownMenuItem key={loc} asChild>
+                      <Link
+                        href={`/${loc}${pathWithoutLocale}`}
+                        className="flex items-center justify-between w-full"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span>{languageNames[loc as Locale]}</span>
+                        {loc === locale && (
+                          <Check className="h-4 w-4 text-emerald-600" />
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             {/* Mobile Auth Section */}
             <div className="mt-4 pt-4 border-t border-emerald-100 dark:border-slate-700">

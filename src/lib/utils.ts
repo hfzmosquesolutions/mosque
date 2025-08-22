@@ -7,7 +7,12 @@ export function cn(...inputs: ClassValue[]) {
 
 // Feature flags
 export const FEATURES = {
-  EVENTS_ENABLED: false, // Events temporarily hidden
+  EVENTS_ENABLED: true, // Always enabled for build compatibility
   DONATIONS_ENABLED: true,
   CONTRIBUTIONS_ENABLED: false,
+} as const
+
+// Runtime feature flags (can be controlled via environment variables)
+export const RUNTIME_FEATURES = {
+  EVENTS_VISIBLE: process.env.NEXT_PUBLIC_EVENTS_ENABLED !== 'false',
 } as const

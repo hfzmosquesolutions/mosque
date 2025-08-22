@@ -11,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Building2,
   Users,
@@ -395,11 +396,14 @@ export default function Home() {
       <footer className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Building2 className="h-6 w-6 text-emerald-600" />
-              <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                MosqueConnect
-              </span>
+            <div className="flex items-center justify-center mb-4">
+              <Image 
+                src="/logo-kariah-masjid.jpg" 
+                alt="Kariah Masjid Logo" 
+                width={128} 
+                height={32} 
+                className="rounded-md"
+              />
             </div>
             <p className="text-slate-600 dark:text-slate-400">
               Connecting communities, one mosque at a time.
