@@ -243,21 +243,13 @@ export class PaymentService {
         original_amount: contribution.amount
       });
 
-      // Prepare detailed payment data for storage - keep all payment references here
+      // Merge existing payment data with complete raw callback data to preserve all information
+      const existingPaymentData = contribution.payment_data || {};
       const paymentData = {
-        provider: 'billplz',
-        billplz_id: String(callbackData.id),
-        paid_at: callbackData.paid_at ? String(callbackData.paid_at) : null,
-        transaction_status: String(callbackData.state || 'unknown'),
-        state: String(callbackData.state || 'unknown'),
-        paid_amount_sen: Number(callbackData.paid_amount) || 0,
-        paid_amount_myr: isPaid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0,
-        collection_id: String(callbackData.collection_id || ''),
-        transaction_id: String(callbackData.transaction_id || ''),
-        due_at: callbackData.due_at ? String(callbackData.due_at) : null,
-        email: callbackData.email ? String(callbackData.email) : null,
-        mobile: callbackData.mobile ? String(callbackData.mobile) : null,
-        callback_processed_at: new Date().toISOString()
+        ...existingPaymentData, // Keep original data like callback_url, redirect_url, created_at
+        ...callbackData, // Store complete raw callback data from Billplz
+        callback_processed_at: new Date().toISOString(),
+        paid_amount_myr: isPaid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0 // Add MYR conversion for convenience
       };
 
       console.log('🔄 Updating contribution status and payment data (keeping original amount)...');
