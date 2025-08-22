@@ -104,9 +104,16 @@ function PaymentResultContent() {
           <CardContent className="pt-6">
             <div className="text-center">
               <AlertCircle className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">{t('noPaymentInformation')}</h2>
-              <p className="text-gray-600 mb-4">{t('unableToRetrieveDetails')}</p>
-              <Button onClick={() => router.push('/khairat')} className="w-full">
+              <h2 className="text-xl font-semibold mb-2">
+                {t('noPaymentInformation')}
+              </h2>
+              <p className="text-gray-600 mb-4">
+                {t('unableToRetrieveDetails')}
+              </p>
+              <Button
+                onClick={() => router.push('/khairat')}
+                className="w-full"
+              >
                 {t('backToKhairat')}
               </Button>
             </div>
@@ -141,59 +148,69 @@ function PaymentResultContent() {
 
               {/* Payment Details */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900 mb-3">{t('paymentDetails')}</h3>
-                
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  {t('paymentDetails')}
+                </h3>
+
                 {resultData.payerName && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t('payerName')}:</span>
                     <span className="font-medium">{resultData.payerName}</span>
                   </div>
                 )}
-                
+
                 {resultData.amount && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t('amount')}:</span>
-                    <span className="font-medium">RM {parseFloat(resultData.amount).toFixed(2)}</span>
+                    <span className="font-medium">
+                      RM {parseFloat(resultData.amount).toFixed(2)}
+                    </span>
                   </div>
                 )}
-                
+
                 {resultData.paymentId && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">{t('paymentId')}:</span>
-                    <span className="font-mono text-sm">{resultData.paymentId}</span>
+                    <span className="font-mono text-sm">
+                      {resultData.paymentId}
+                    </span>
                   </div>
                 )}
-                
+
                 {resultData.contributionId && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('contributionId')}:</span>
-                    <span className="font-mono text-sm">{resultData.contributionId}</span>
+                    <span className="text-gray-600">
+                      {t('contributionId')}:
+                    </span>
+                    <span className="font-mono text-sm">
+                      {resultData.contributionId}
+                    </span>
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={() => router.push('/khairat')} 
-                  variant="outline" 
+                <Button
+                  onClick={() => router.push('/khairat')}
+                  variant="outline"
                   className="flex-1"
                 >
                   {t('backToKhairat')}
                 </Button>
-                
+
                 {resultData.status === 'success' && (
-                  <Button 
-                    onClick={() => router.push('/khairat/contributions')} 
+                  <Button
+                    onClick={() => router.push('/khairat')}
                     className="flex-1"
                   >
                     {t('viewMyContributions')}
                   </Button>
                 )}
-                
+
                 {resultData.status === 'failed' && (
-                  <Button 
-                    onClick={() => router.push('/khairat/contribute')} 
+                  <Button
+                    onClick={() => router.push('/khairat')}
                     className="flex-1"
                   >
                     {t('tryAgain')}
@@ -205,23 +222,26 @@ function PaymentResultContent() {
               {resultData.status === 'pending' && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-yellow-800 text-sm">
-                    <strong>{t('note')}:</strong> {t('paymentProcessingMessage')}
+                    <strong>{t('note')}:</strong>{' '}
+                    {t('paymentProcessingMessage')}
                   </p>
                 </div>
               )}
-              
+
               {resultData.status === 'failed' && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-red-800 text-sm">
-                    <strong>{t('paymentFailed')}:</strong> {t('paymentFailedMessage')}
+                    <strong>{t('paymentFailed')}:</strong>{' '}
+                    {t('paymentFailedMessage')}
                   </p>
                 </div>
               )}
-              
+
               {resultData.status === 'expired' && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <p className="text-orange-800 text-sm">
-                    <strong>{t('paymentExpired')}:</strong> {t('paymentExpiredMessage')}
+                    <strong>{t('paymentExpired')}:</strong>{' '}
+                    {t('paymentExpiredMessage')}
                   </p>
                 </div>
               )}

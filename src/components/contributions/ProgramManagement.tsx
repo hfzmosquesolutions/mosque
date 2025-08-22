@@ -345,7 +345,7 @@ export function ProgramManagement({
             first.
           </p>
           <Button asChild>
-            <Link href="/mosque-profile">Go to Mosque Profile</Link>
+            <Link href="mosque-profile">Go to Mosque Profile</Link>
           </Button>
         </CardContent>
       </Card>

@@ -85,7 +85,7 @@ export default function Header() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    href="/mosques"
+                    href="mosques"
                     className={navigationMenuTriggerStyle()}
                   >
                     Browse Mosques
@@ -95,7 +95,7 @@ export default function Header() {
                   <>
                     <NavigationMenuItem>
                       <NavigationMenuLink
-                        href="/dashboard"
+                        href="dashboard"
                         className={navigationMenuTriggerStyle()}
                       >
                         Dashboard
@@ -104,7 +104,7 @@ export default function Header() {
                     {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                       <NavigationMenuItem>
                         <NavigationMenuLink
-                          href="/events"
+                          href="events"
                           className={navigationMenuTriggerStyle()}
                         >
                           Events
@@ -171,12 +171,12 @@ export default function Header() {
                 </DropdownMenu>
               ) : (
                 <>
-                  <Link href="/login">
+                  <Link href="login">
                     <Button variant="ghost" size="sm">
                       Login
                     </Button>
                   </Link>
-                  <Link href="/signup">
+                  <Link href="signup">
                     <Button
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700"
@@ -210,7 +210,7 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-emerald-100 dark:border-slate-700 py-4">
             <nav className="flex flex-col gap-2">
-              <Link href="/mosques" onClick={() => setIsMobileMenuOpen(false)}>
+              <Link href="mosques" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -221,7 +221,7 @@ export default function Header() {
               {user && (
                 <>
                   <Link
-                    href="/dashboard"
+                    href="dashboard"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Button
@@ -233,7 +233,7 @@ export default function Header() {
                   </Link>
                   {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                     <Link
-                      href="/events"
+                      href="events"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Button
@@ -307,7 +307,7 @@ export default function Header() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="/login"
+                    href="login"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Button variant="ghost" size="sm" className="w-full">
@@ -315,7 +315,7 @@ export default function Header() {
                     </Button>
                   </Link>
                   <Link
-                    href="/signup"
+                    href="signup"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Button
