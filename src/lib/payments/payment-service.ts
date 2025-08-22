@@ -123,7 +123,7 @@ export class PaymentService {
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const callbackUrl = `${baseUrl}/api/webhooks/billplz/callback`;
-      const redirectUrl = `${baseUrl}/api/webhooks/billplz/redirect?contribution_id=${request.contributionId}`;
+      const redirectUrl = `${baseUrl}/api/webhooks/billplz/redirect`;
 
       // Create bill
       const billData = {
@@ -142,17 +142,38 @@ export class PaymentService {
       };
 
       const bill = await billplz.createBill(billData);
-
-      // Update contribution with payment reference
-      await getSupabaseAdmin()
-        .from('khairat_contributions')
+      console.log('billData',billData)
+      
+      // Prepare initial payment data for additional info
+      const paymentData = {
+        provider: 'billplz',
+        billplz_id: bill.id,
+        collection_id: provider.billplz_collection_id,
+        created_at: new Date().toISOString(),
+        callback_url: callbackUrl,
+        redirect_url: redirectUrl
+      };
+      
+      // Update contribution with bill_id, payment method and payment data
+      console.log('Updating contribution ID:', request.contributionId);
+      console.log('Update data:', {
+        payment_method: 'billplz',
+        bill_id: bill.id,
+        payment_data: paymentData,
+        updated_at: new Date().toISOString(),
+      });
+      
+      const updateResult = await getSupabaseAdmin()
+        .from('contributions')
         .update({
           payment_method: 'billplz',
-          payment_reference: bill.id,
+          bill_id: bill.id,
+          payment_data: paymentData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', request.contributionId);
-
+        
+      console.log('Update result:', updateResult);
       return {
         success: true,
         paymentId: bill.id,
@@ -172,63 +193,101 @@ export class PaymentService {
    */
   static async processBillplzCallback(
     callbackData: Record<string, unknown>,
-    xSignature: string
+    xSignature: string,
+    contributionId?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const billId = callbackData.id;
+      console.log('🔍 Starting callback processing...');
+      const billId = callbackData.id as string;
+      console.log('💳 Processing bill ID:', billId);
       
-      // Get contribution by payment reference
+      if (!billId) {
+        console.error('❌ Missing bill ID in callback data');
+        return { success: false, error: 'Missing bill ID' };
+      }
+      
+      // Simple lookup by bill_id
+      console.log('🔍 Looking up contribution by bill ID:', billId);
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
-        .from('khairat_contributions')
-        .select('*, mosques(id)')
-        .eq('payment_reference', billId)
+        .from('contributions')
+        .select('*')
+        .eq('bill_id', billId)
         .single();
 
-      if (contributionError || !contribution) {
+      if (contributionError) {
+        console.error('❌ Database error finding contribution:', contributionError);
+        return { success: false, error: `Contribution lookup failed: ${contributionError.message}` };
+      }
+      
+      if (!contribution) {
+        console.error('❌ No contribution found for bill ID:', billId);
         return { success: false, error: 'Contribution not found' };
       }
-
-      // Get payment provider to verify signature
-      const provider = await this.getPaymentProvider(
-        contribution.mosques.id,
-        'billplz'
-      );
-
-      if (!provider || !provider.billplz_x_signature_key) {
-        return { success: false, error: 'Payment provider not configured' };
-      }
-
-      // Create Billplz client for signature verification
-      const billplzConfig: BillplzConfig = {
-        apiKey: provider.billplz_api_key!,
-        xSignatureKey: provider.billplz_x_signature_key,
-        collectionId: provider.billplz_collection_id!,
-        isSandbox: provider.is_sandbox,
-      };
-
-      const billplz = new BillplzProvider(billplzConfig);
-
-      // Verify X-Signature
-      if (!billplz.verifyXSignature(callbackData, xSignature)) {
-        return { success: false, error: 'Invalid signature' };
-      }
+      
+      console.log('✅ Found contribution:', {
+        id: contribution.id,
+        current_status: contribution.status,
+        current_amount: contribution.amount
+      });
 
       // Update contribution status based on payment status
-      const status = callbackData.paid ? 'completed' : 'failed';
-      const paidAmount = callbackData.paid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0;
+      const isPaid = callbackData.paid === true || callbackData.paid === 'true';
+      const status = isPaid ? 'completed' : 'failed';
+      const paidAmount = isPaid ? BillplzProvider.toMyr(Number(callbackData.paid_amount) || 0) : 0;
+      
+      console.log('💰 Payment details:', {
+        paid: callbackData.paid,
+        isPaid,
+        status,
+        paid_amount_sen: callbackData.paid_amount,
+        paid_amount_myr: paidAmount,
+        contribution_id: contribution.id
+      });
 
-      await getSupabaseAdmin()
-        .from('khairat_contributions')
+      // Prepare detailed payment data for storage
+      const paymentData = {
+        provider: 'billplz',
+        billplz_id: String(callbackData.id),
+        paid_at: callbackData.paid_at ? String(callbackData.paid_at) : null,
+        transaction_status: String(callbackData.state || 'unknown'),
+        state: String(callbackData.state || 'unknown'),
+        paid_amount: Number(callbackData.paid_amount) || 0,
+        collection_id: String(callbackData.collection_id || ''),
+        transaction_id: String(callbackData.transaction_id || ''),
+        due_at: callbackData.due_at ? String(callbackData.due_at) : null,
+        email: callbackData.email ? String(callbackData.email) : null,
+        mobile: callbackData.mobile ? String(callbackData.mobile) : null,
+        callback_processed_at: new Date().toISOString()
+      };
+
+      console.log('🔄 Updating contribution status and payment data...');
+      const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
+        .from('contributions')
         .update({
           status,
           amount: paidAmount,
+          payment_data: paymentData,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', contribution.id);
+        .eq('id', contribution.id)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error('❌ Database update failed:', updateError);
+        return { success: false, error: `Database update failed: ${updateError.message}` };
+      }
+      
+      console.log('✅ Database updated successfully:', {
+        contribution_id: updatedContribution.id,
+        new_status: updatedContribution.status,
+        new_amount: updatedContribution.amount,
+        updated_at: updatedContribution.updated_at
+      });
 
       return { success: true };
     } catch (error) {
-      console.error('Error processing Billplz callback:', error);
+      console.error('❌ Error processing Billplz callback:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

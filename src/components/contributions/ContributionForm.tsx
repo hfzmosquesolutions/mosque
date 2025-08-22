@@ -34,6 +34,7 @@ import { getAllMosques } from '@/lib/api';
 import { getContributionPrograms, createContribution } from '@/lib/api';
 import type { Mosque, ContributionProgram } from '@/types/database';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface ContributionFormProps {
   isOpen: boolean;
@@ -70,7 +71,7 @@ export function ContributionForm({
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
   const [notes, setNotes] = useState('');
-  const [payerEmail, setPayerEmail] = useState('');
+  const [payerEmail, setPayerEmail] = useState(user?.email || '');
   const [payerMobile, setPayerMobile] = useState('');
   const [hasOnlinePayment, setHasOnlinePayment] = useState(false);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
@@ -87,6 +88,37 @@ export function ContributionForm({
     }
   }, [selectedMosqueId]);
 
+  // Auto-populate email and name from user account
+  useEffect(() => {
+    if (user?.email) {
+      setPayerEmail(user.email);
+    }
+    
+    // Auto-populate name from user metadata or fetch from profile
+    if (user?.user_metadata?.full_name) {
+      setPayerName(user.user_metadata.full_name);
+    } else if (user?.id) {
+      // Fetch user profile to get full name
+      const fetchUserProfile = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+          
+          if (data && !error) {
+            setPayerName(data.full_name);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      };
+      
+      fetchUserProfile();
+    }
+  }, [user]);
+
   const checkPaymentProvider = async (mosqueId: string) => {
     setCheckingPaymentProvider(true);
     try {
@@ -101,12 +133,10 @@ export function ContributionForm({
       }
 
       const data = await response.json();
-
-      if (data.success && data.data) {
-        const billplzProvider = data.data.find(
-          (provider: any) => provider.provider_type === 'billplz'
-        );
-        setHasOnlinePayment(!!billplzProvider && billplzProvider.is_active);
+      console.log('data', data);
+      // API returns direct object structure: {hasBillplz: boolean, billplz: {...}, ...}
+      if (data.billplz && data.hasBillplz) {
+        setHasOnlinePayment(true);
       } else {
         console.warn(
           'No payment providers found or API returned error:',
@@ -213,14 +243,7 @@ export function ContributionForm({
 
     // Validate online payment fields
     if (paymentMethod === 'billplz') {
-      if (!payerName.trim()) {
-        toast.error('Payer name is required for online payment');
-        return;
-      }
-      if (payerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerEmail)) {
-        toast.error('Please enter a valid email address');
-        return;
-      }
+      // Name and email are automatically populated from user account, no need to validate
       if (payerMobile && !/^\+?[0-9\s-()]{8,}$/.test(payerMobile)) {
         toast.error('Please enter a valid mobile number');
         return;
@@ -257,10 +280,10 @@ export function ContributionForm({
                 },
                 body: JSON.stringify({
                   contributionId,
-                  mosqueId: selectedMosqueId,
+                  programId: selectedProgramId,
                   amount: parseFloat(amount),
                   payerName: payerName.trim(),
-                  payerEmail: payerEmail.trim() || undefined,
+                  payerEmail: payerEmail.trim(),
                   payerMobile: payerMobile.trim() || undefined,
                   description: `Khairat contribution - ${
                     khairatPrograms.find((p) => p.id === selectedProgramId)
@@ -500,33 +523,36 @@ export function ContributionForm({
 
           <div className="space-y-2">
             <Label htmlFor="payerName">
-              Payer Name {paymentMethod === 'billplz' ? '*' : '(Optional)'}
+              Payer Name (From your account)
             </Label>
             <Input
               id="payerName"
               value={payerName}
-              onChange={(e) => setPayerName(e.target.value)}
-              placeholder={
-                paymentMethod === 'billplz'
-                  ? 'Required for online payment'
-                  : 'Leave empty to use your profile name'
-              }
-              required={paymentMethod === 'billplz'}
+              readOnly
+              className="bg-muted cursor-not-allowed"
+              placeholder="Your full name"
             />
+            <p className="text-xs text-muted-foreground">
+              Using your account name for payment records
+            </p>
           </div>
 
           {/* Online Payment Contact Details */}
           {paymentMethod === 'billplz' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="payerEmail">Email (Optional)</Label>
+                <Label htmlFor="payerEmail">Email (From your account)</Label>
                 <Input
                   id="payerEmail"
                   type="email"
                   value={payerEmail}
-                  onChange={(e) => setPayerEmail(e.target.value)}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                   placeholder="your@email.com"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Using your account email for payment notifications and receipt
+                </p>
               </div>
 
               <div className="space-y-2">

@@ -200,6 +200,7 @@ export interface Contribution {
   status: ContributionStatus;
   notes?: string;
   contributed_at: string;
+  payment_data?: PaymentData;
 }
 
 // Legacy alias for backward compatibility
@@ -531,9 +532,9 @@ export type TableName =
   | 'donation_categories'
   | 'donations'
   | 'contribution_programs'
-  | 'contribution_contributions'
+  | 'contributions'
   | 'khairat_programs'
-  | 'khairat_contributions'
+  | 'contributions'
 
   | 'resource_categories'
   | 'resources'
@@ -631,3 +632,43 @@ export type ProgramType =
   | 'general'
   | 'education'
   | 'maintenance';
+
+// =============================================
+// PAYMENT DATA TYPES
+// =============================================
+
+// Base payment data interface
+export interface BasePaymentData {
+  provider: string;
+  paid_at?: string;
+  transaction_id?: string;
+  transaction_status?: string;
+}
+
+// Billplz specific payment data
+export interface BillplzPaymentData extends BasePaymentData {
+  provider: 'billplz';
+  billplz_id: string;
+  paid_amount?: number;
+  collection_id?: string;
+  state?: string;
+  due_at?: string;
+  mobile?: string;
+  email?: string;
+}
+
+// Stripe specific payment data
+export interface StripePaymentData extends BasePaymentData {
+  provider: 'stripe';
+  payment_intent_id: string;
+  charge_id?: string;
+  transaction_fee?: number;
+  net_amount?: number;
+  currency?: string;
+  payment_method_type?: string;
+  last4?: string;
+  brand?: string;
+}
+
+// Union type for all payment providers
+export type PaymentData = BillplzPaymentData | StripePaymentData | BasePaymentData;

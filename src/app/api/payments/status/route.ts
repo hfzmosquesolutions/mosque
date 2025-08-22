@@ -34,8 +34,16 @@ export async function GET(request: NextRequest) {
     if (contributionId) {
       // Get contribution details
       const { data: contribution, error: contributionError } = await supabaseAdmin
-        .from('khairat_contributions')
-        .select('id, status, mosque_id, payment_reference, payment_method')
+        .from('contributions')
+        .select(`
+          id, 
+          status, 
+          payment_reference, 
+          payment_method,
+          contribution_programs!inner(
+            mosque_id
+          )
+        `)
         .eq('id', contributionId)
         .single();
 
@@ -46,7 +54,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      mosqueId = contribution.mosque_id;
+      mosqueId = contribution.contribution_programs[0].mosque_id;
       actualPaymentId = contribution.payment_reference || paymentId || '';
 
       // If no payment reference, return contribution status
@@ -61,8 +69,15 @@ export async function GET(request: NextRequest) {
     } else {
       // If only payment ID provided, try to find contribution
       const { data: contribution, error: contributionError } = await supabaseAdmin
-        .from('khairat_contributions')
-        .select('id, status, mosque_id, payment_method')
+        .from('contributions')
+        .select(`
+          id, 
+          status, 
+          payment_method,
+          contribution_programs!inner(
+            mosque_id
+          )
+        `)
         .eq('payment_reference', paymentId)
         .single();
 
@@ -73,7 +88,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      mosqueId = contribution.mosque_id;
+      mosqueId = contribution.contribution_programs[0].mosque_id;
       actualPaymentId = paymentId!;
     }
 
@@ -93,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     // Also get current contribution status from database
     const { data: currentContribution } = await supabaseAdmin
-      .from('khairat_contributions')
+      .from('contributions')
       .select('status, amount, updated_at')
       .eq('payment_reference', actualPaymentId)
       .single();
