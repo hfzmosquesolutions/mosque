@@ -23,7 +23,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Heart, Loader2, CreditCard, Banknote, AlertCircle } from 'lucide-react';
+import {
+  Heart,
+  Loader2,
+  CreditCard,
+  Banknote,
+  AlertCircle,
+} from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { getContributionPrograms, createContribution } from '@/lib/api';
 import type { Mosque, ContributionProgram } from '@/types/database';
@@ -68,6 +74,7 @@ export function ContributionForm({
   const [payerMobile, setPayerMobile] = useState('');
   const [hasOnlinePayment, setHasOnlinePayment] = useState(false);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
   useEffect(() => {
     if (selectedMosqueId) {
@@ -83,13 +90,38 @@ export function ContributionForm({
   const checkPaymentProvider = async (mosqueId: string) => {
     setCheckingPaymentProvider(true);
     try {
-      const response = await fetch(`${window.location.origin}/api/admin/payment-providers?mosqueId=${mosqueId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setHasOnlinePayment(data.hasBillplz || false);
+      const response = await fetch(
+        `${window.location.origin}/api/admin/payment-providers?mosqueId=${mosqueId}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to check payment providers: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const billplzProvider = data.data.find(
+          (provider: any) => provider.provider_type === 'billplz'
+        );
+        setHasOnlinePayment(!!billplzProvider && billplzProvider.is_active);
+      } else {
+        console.warn(
+          'No payment providers found or API returned error:',
+          data.error
+        );
+        setHasOnlinePayment(false);
       }
     } catch (error) {
       console.error('Error checking payment provider:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to check payment availability';
+      // Don't show toast for this as it's not critical - just disable online payment
+      console.warn('Online payment disabled due to error:', errorMessage);
       setHasOnlinePayment(false);
     } finally {
       setCheckingPaymentProvider(false);
@@ -102,10 +134,18 @@ export function ContributionForm({
     setLoading(true);
     try {
       const response = await getAllMosques();
-      setAvailableMosques(response.data || []);
+      if (response.success && response.data) {
+        setAvailableMosques(response.data);
+      } else {
+        throw new Error(response.error || 'Failed to load mosques');
+      }
     } catch (error) {
       console.error('Error loading available mosques:', error);
-      toast.error('Failed to load available mosques');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to load available mosques';
+      toast.error(errorMessage);
       setAvailableMosques([]); // Ensure we set empty array on error
     } finally {
       setLoading(false);
@@ -119,6 +159,7 @@ export function ContributionForm({
   }, [isOpen, user]);
 
   const loadKhairatPrograms = async (mosqueId: string) => {
+    setLoadingPrograms(true);
     try {
       const response = await getContributionPrograms(
         mosqueId,
@@ -126,18 +167,47 @@ export function ContributionForm({
       );
       if (response.success && response.data) {
         setKhairatPrograms(response.data);
+      } else {
+        throw new Error(response.error || 'Failed to load khairat programs');
       }
     } catch (error) {
       console.error('Error loading khairat programs:', error);
-      toast.error('Failed to load khairat programs');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to load khairat programs';
+      toast.error(errorMessage);
+      setKhairatPrograms([]);
+    } finally {
+      setLoadingPrograms(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !selectedProgramId || !amount || !paymentMethod) {
-      toast.error('Please fill in all required fields');
+    if (!user) {
+      toast.error('You must be logged in to make a payment');
+      return;
+    }
+
+    if (!selectedMosqueId) {
+      toast.error('Please select a mosque');
+      return;
+    }
+
+    if (!selectedProgramId) {
+      toast.error('Please select a payment program');
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid amount greater than 0');
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast.error('Please select a payment method');
       return;
     }
 
@@ -178,22 +248,43 @@ export function ContributionForm({
         // Handle online payment (Billplz)
         if (paymentMethod === 'billplz') {
           try {
-            const paymentResponse = await fetch(`${window.location.origin}/api/payments/create`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                contributionId,
-                mosqueId: selectedMosqueId,
-                amount: parseFloat(amount),
-                payerName: payerName.trim(),
-                payerEmail: payerEmail.trim() || undefined,
-                payerMobile: payerMobile.trim() || undefined,
-                description: `Khairat contribution - ${khairatPrograms.find(p => p.id === selectedProgramId)?.name}`,
-                providerType: 'billplz',
-              }),
-            });
+            const paymentResponse = await fetch(
+              `${window.location.origin}/api/payments/create`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  contributionId,
+                  mosqueId: selectedMosqueId,
+                  amount: parseFloat(amount),
+                  payerName: payerName.trim(),
+                  payerEmail: payerEmail.trim() || undefined,
+                  payerMobile: payerMobile.trim() || undefined,
+                  description: `Khairat contribution - ${
+                    khairatPrograms.find((p) => p.id === selectedProgramId)
+                      ?.name
+                  }`,
+                  providerType: 'billplz',
+                }),
+              }
+            );
+
+            if (!paymentResponse.ok) {
+              const errorText = await paymentResponse.text();
+              let errorMessage = 'Failed to create payment';
+
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorMessage;
+              } catch {
+                // If response is not JSON, use status text
+                errorMessage = `Payment failed: ${paymentResponse.status} ${paymentResponse.statusText}`;
+              }
+
+              throw new Error(errorMessage);
+            }
 
             const paymentResult = await paymentResponse.json();
 
@@ -203,11 +294,17 @@ export function ContributionForm({
               window.location.href = paymentResult.paymentUrl;
               return;
             } else {
-              throw new Error(paymentResult.error || 'Failed to create payment');
+              throw new Error(
+                paymentResult.error || 'Failed to create payment'
+              );
             }
           } catch (paymentError) {
             console.error('Error creating online payment:', paymentError);
-            toast.error('Failed to create online payment. Please try again.');
+            const errorMessage =
+              paymentError instanceof Error
+                ? paymentError.message
+                : 'Failed to create online payment';
+            toast.error(errorMessage);
             return;
           }
         } else {
@@ -217,11 +314,17 @@ export function ContributionForm({
           handleClose();
         }
       } else {
-        toast.error(response.error || 'Failed to submit contribution');
+        const errorMessage = response.error || 'Failed to submit contribution';
+        console.error('Contribution submission failed:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error submitting contribution:', error);
-      toast.error('Failed to submit contribution');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred while submitting your contribution';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -243,7 +346,7 @@ export function ContributionForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-rose-600" />
@@ -254,7 +357,7 @@ export function ContributionForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pb-4">
           <div className="space-y-2">
             <Label htmlFor="mosque">Select Mosque *</Label>
             <Select
@@ -270,30 +373,40 @@ export function ContributionForm({
                 >
                   {selectedMosqueId && (
                     <span>
-                      {availableMosques.find(m => m.id === selectedMosqueId)?.name}
+                      {
+                        availableMosques.find((m) => m.id === selectedMosqueId)
+                          ?.name
+                      }
                     </span>
                   )}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {availableMosques.map((mosque) => (
-                  <SelectItem key={mosque.id} value={mosque.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{mosque.name}</span>
-                      {mosque.address && (
-                        <span className="text-xs text-muted-foreground">
-                          {mosque.address}
-                        </span>
-                      )}
+                {loading ? (
+                  <SelectItem value="loading" disabled>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                      Loading mosques...
                     </div>
                   </SelectItem>
-                ))}
-                {(!availableMosques || availableMosques.length === 0) &&
-                  !loading && (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No mosques available
-                    </div>
-                  )}
+                ) : availableMosques.length === 0 ? (
+                  <SelectItem value="no-mosques" disabled>
+                    No mosques available
+                  </SelectItem>
+                ) : (
+                  availableMosques.map((mosque) => (
+                    <SelectItem key={mosque.id} value={mosque.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{mosque.name}</span>
+                        {mosque.address && (
+                          <span className="text-xs text-muted-foreground">
+                            {mosque.address}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             {loading && (
@@ -315,39 +428,58 @@ export function ContributionForm({
                 <SelectValue placeholder="Choose a program">
                   {selectedProgramId && (
                     <span>
-                      {khairatPrograms.find(p => p.id === selectedProgramId)?.name}
+                      {
+                        khairatPrograms.find((p) => p.id === selectedProgramId)
+                          ?.name
+                      }
                     </span>
                   )}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {khairatPrograms.map((program) => (
-                  <SelectItem key={program.id} value={program.id}>
-                    <div className="space-y-1">
-                      <div className="font-medium">{program.name}</div>
-                      {program.description && (
-                        <div className="text-sm text-muted-foreground">
-                          {program.description}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-xs">
-                        {program.target_amount ? (
-                          <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-                            Target: RM {program.target_amount.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
-                            Ongoing program
-                          </span>
-                        )}
-                        <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
-                          Raised: RM{' '}
-                          {(program.current_amount || 0).toLocaleString()}
-                        </span>
-                      </div>
+                {loadingPrograms ? (
+                  <SelectItem value="loading" disabled>
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                      Loading programs...
                     </div>
                   </SelectItem>
-                ))}
+                ) : khairatPrograms.length === 0 ? (
+                  <SelectItem value="no-programs" disabled>
+                    {selectedMosqueId
+                      ? 'No programs available'
+                      : 'Select a mosque first'}
+                  </SelectItem>
+                ) : (
+                  khairatPrograms.map((program) => (
+                    <SelectItem key={program.id} value={program.id}>
+                      <div className="space-y-1">
+                        <div className="font-medium">{program.name}</div>
+                        {program.description && (
+                          <div className="text-sm text-muted-foreground">
+                            {program.description}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-xs">
+                          {program.target_amount ? (
+                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                              Target: RM{' '}
+                              {program.target_amount.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                              Ongoing program
+                            </span>
+                          )}
+                          <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
+                            Raised: RM{' '}
+                            {(program.current_amount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -374,7 +506,11 @@ export function ContributionForm({
               id="payerName"
               value={payerName}
               onChange={(e) => setPayerName(e.target.value)}
-              placeholder={paymentMethod === 'billplz' ? 'Required for online payment' : 'Leave empty to use your profile name'}
+              placeholder={
+                paymentMethod === 'billplz'
+                  ? 'Required for online payment'
+                  : 'Leave empty to use your profile name'
+              }
               required={paymentMethod === 'billplz'}
             />
           </div>
@@ -392,7 +528,7 @@ export function ContributionForm({
                   placeholder="your@email.com"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="payerMobile">Mobile Number (Optional)</Label>
                 <Input
@@ -414,73 +550,101 @@ export function ContributionForm({
                 Checking payment options...
               </div>
             ) : (
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={setPaymentMethod}
+              >
                 {/* Online Payment Option */}
                 {hasOnlinePayment && (
                   <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
                     <RadioGroupItem value="billplz" id="billplz" />
-                    <Label htmlFor="billplz" className="flex items-center gap-3 cursor-pointer flex-1">
+                    <Label
+                      htmlFor="billplz"
+                      className="flex items-center gap-3 cursor-pointer flex-1"
+                    >
                       <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
                         <CreditCard className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
-                        <div className="font-medium">Online Payment (Billplz)</div>
-                        <div className="text-sm text-muted-foreground">Pay instantly with FPX, credit card, or e-wallet</div>
+                        <div className="font-medium">
+                          Online Payment (Billplz)
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Pay instantly with FPX, credit card, or e-wallet
+                        </div>
                       </div>
                     </Label>
                   </div>
                 )}
-                
+
                 {/* Manual Payment Options */}
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
                   <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-3 cursor-pointer flex-1">
+                  <Label
+                    htmlFor="cash"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
                       <Banknote className="h-4 w-4 text-green-600" />
                     </div>
                     <div>
                       <div className="font-medium">Cash</div>
-                      <div className="text-sm text-muted-foreground">Pay in person at the mosque</div>
+                      <div className="text-sm text-muted-foreground">
+                        Pay in person at the mosque
+                      </div>
                     </div>
                   </Label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
                   <RadioGroupItem value="bank_transfer" id="bank_transfer" />
-                  <Label htmlFor="bank_transfer" className="flex items-center gap-3 cursor-pointer flex-1">
+                  <Label
+                    htmlFor="bank_transfer"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
                       <CreditCard className="h-4 w-4 text-purple-600" />
                     </div>
                     <div>
                       <div className="font-medium">Bank Transfer</div>
-                      <div className="text-sm text-muted-foreground">Transfer to mosque bank account</div>
+                      <div className="text-sm text-muted-foreground">
+                        Transfer to mosque bank account
+                      </div>
                     </div>
                   </Label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
                   <RadioGroupItem value="ewallet" id="ewallet" />
-                  <Label htmlFor="ewallet" className="flex items-center gap-3 cursor-pointer flex-1">
+                  <Label
+                    htmlFor="ewallet"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full">
                       <CreditCard className="h-4 w-4 text-orange-600" />
                     </div>
                     <div>
                       <div className="font-medium">E-Wallet</div>
-                      <div className="text-sm text-muted-foreground">GrabPay, Touch 'n Go, etc.</div>
+                      <div className="text-sm text-muted-foreground">
+                        GrabPay, Touch 'n Go, etc.
+                      </div>
                     </div>
                   </Label>
                 </div>
               </RadioGroup>
             )}
-            
-            {!hasOnlinePayment && selectedMosqueId && !checkingPaymentProvider && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Online payment is not available for this mosque. Please use manual payment methods.
-                </AlertDescription>
-              </Alert>
-            )}
+
+            {!hasOnlinePayment &&
+              selectedMosqueId &&
+              !checkingPaymentProvider && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Online payment is not available for this mosque. Please use
+                    manual payment methods.
+                  </AlertDescription>
+                </Alert>
+              )}
           </div>
 
           {/* Payment Reference - Only show for manual payments */}

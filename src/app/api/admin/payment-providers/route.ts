@@ -20,12 +20,10 @@ function getSupabaseAdmin() {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('GET /api/admin/payment-providers called');
   try {
     const { searchParams } = new URL(request.url);
     const mosqueId = searchParams.get('mosqueId');
-    console.log('Processing request for mosqueId:', mosqueId);
-   
+  
     if (!mosqueId) {
       return NextResponse.json(
         { error: 'Mosque ID is required' },
