@@ -22,7 +22,7 @@ export function useWelcomeEmail() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/email/welcome', {
+      const response = await fetch(`${window.location.origin}/api/email/welcome`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export function useWelcomeEmail() {
     setIsChecking(true);
     
     try {
-      const response = await fetch(`/api/email/welcome?userId=${encodeURIComponent(userId)}`);
+      const response = await fetch(`${window.location.origin}/api/email/welcome?userId=${encodeURIComponent(userId)}`);
       const data = await response.json();
 
       if (!response.ok) {

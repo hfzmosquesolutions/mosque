@@ -113,8 +113,9 @@ export function PaymentProviderSettings() {
       setError(null);
 
       const response = await fetch(
-        `/api/admin/payment-providers?mosqueId=${mosqueId}`
+        `${window.location.origin}/api/admin/payment-providers?mosqueId=${mosqueId}`
       );
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -154,7 +155,7 @@ export function PaymentProviderSettings() {
       setSaving(true);
       setError(null);
 
-      const response = await fetch('/api/admin/payment-providers', {
+      const response = await fetch(`${window.location.origin}/api/admin/payment-providers`, {
         method: paymentProvider ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -200,7 +201,7 @@ export function PaymentProviderSettings() {
     try {
       setTesting(true);
 
-      const response = await fetch('/api/admin/payment-providers/test', {
+      const response = await fetch(`${window.location.origin}/api/admin/payment-providers/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

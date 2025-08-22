@@ -83,7 +83,7 @@ export function ContributionForm({
   const checkPaymentProvider = async (mosqueId: string) => {
     setCheckingPaymentProvider(true);
     try {
-      const response = await fetch(`/api/admin/payment-providers?mosqueId=${mosqueId}`);
+      const response = await fetch(`${window.location.origin}/api/admin/payment-providers?mosqueId=${mosqueId}`);
       if (response.ok) {
         const data = await response.json();
         setHasOnlinePayment(data.hasBillplz || false);
@@ -178,7 +178,7 @@ export function ContributionForm({
         // Handle online payment (Billplz)
         if (paymentMethod === 'billplz') {
           try {
-            const paymentResponse = await fetch('/api/payments/create', {
+            const paymentResponse = await fetch(`${window.location.origin}/api/payments/create`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
