@@ -3,6 +3,7 @@
 import { Calendar, Home, Settings, HandHeart, User, Building, LogOut, ChevronUp, User2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { FEATURES } from '@/lib/utils';
@@ -27,10 +28,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const getNavigation = (hasAdminAccess: boolean) => {
+const getNavigation = (hasAdminAccess: boolean, t: any) => {
   const baseNavigation = [
     {
-      name: 'Dashboard',
+      name: t('dashboard'),
       href: '/dashboard',
       icon: Home,
     },
@@ -39,12 +40,12 @@ const getNavigation = (hasAdminAccess: boolean) => {
   // For admin users, only show the three core features
   if (hasAdminAccess) {
     baseNavigation.push({
-      name: 'Khairat',
+      name: t('khairat'),
       href: '/khairat',
       icon: HandHeart,
     });
     baseNavigation.push({
-      name: 'Mosque Profile',
+      name: t('mosqueProfile'),
       href: '/mosque-profile',
       icon: Building,
     });
@@ -52,7 +53,7 @@ const getNavigation = (hasAdminAccess: boolean) => {
     // For regular users, show community features
     if (FEATURES.EVENTS_ENABLED) {
       baseNavigation.push({
-        name: 'Events',
+        name: t('events'),
         href: '/events',
         icon: Calendar,
       });
@@ -61,7 +62,7 @@ const getNavigation = (hasAdminAccess: boolean) => {
     // Only include Contributions if enabled for regular users
     if (FEATURES.CONTRIBUTIONS_ENABLED) {
       baseNavigation.push({
-        name: 'Contributions',
+        name: t('contributions'),
         href: '/contributions',
         icon: HandHeart,
       });
@@ -69,21 +70,21 @@ const getNavigation = (hasAdminAccess: boolean) => {
 
     // Dedicated Khairat page for regular users
     baseNavigation.push({
-      name: 'Khairat',
+      name: t('khairat'),
       href: '/khairat',
       icon: HandHeart,
     });
 
     // Dependents management for regular users only
     baseNavigation.push({
-      name: 'Dependents',
+      name: t('dependents'),
       href: '/dependents',
       icon: Users,
     });
 
     // Only show personal Profile link for non-admin (normal) users
     baseNavigation.push({
-      name: 'Profile',
+      name: t('profile'),
       href: '/profile',
       icon: User,
     });
@@ -96,8 +97,9 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { hasAdminAccess } = useAdminAccess();
   const { user, signOut } = useAuth();
+  const t = useTranslations('sidebar');
 
-  const navigation = getNavigation(hasAdminAccess);
+  const navigation = getNavigation(hasAdminAccess, t);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -117,7 +119,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('navigation')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => {
@@ -128,8 +130,10 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.name}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
                       <Link href={item.href}>
-                        <Icon className="size-4" />
-                        <span>{item.name}</span>
+                        <span className="flex items-center gap-2">
+                          <Icon className="size-4" />
+                          <span>{item.name}</span>
+                        </span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -142,14 +146,16 @@ export function AppSidebar() {
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('system')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip="Settings">
                   <Link href="/settings">
-                    <Settings className="size-4" />
-                    <span>Settings</span>
+                    <span className="flex items-center gap-2">
+                      <Settings className="size-4" />
+                      <span>{t('settings')}</span>
+                    </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -191,7 +197,7 @@ export function AppSidebar() {
               >
                 <DropdownMenuItem onClick={signOut} className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20">
                   <LogOut className="h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>{t('signOut')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

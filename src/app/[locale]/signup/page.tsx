@@ -11,29 +11,22 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Shield,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  ArrowLeft,
-  UserPlus,
-  Check,
-} from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowLeft, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function SignupPageContent() {
+  const t = useTranslations('auth');
+  const te = useTranslations('errors');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
@@ -55,69 +48,51 @@ function SignupPageContent() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(te('passwordsDoNotMatch'));
       return;
     }
 
     if (passwordStrength < 3) {
-      toast.error('Please use a stronger password');
+      toast.error(te('strongerPassword'));
       return;
     }
 
     setLoading(true);
     try {
       await signUp(email, password);
-      toast.success('Account created successfully!');
+      toast.success(te('accountCreatedSuccessfully'));
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+      toast.error(error?.message || te('failedToCreateAccount'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
-    setGoogleLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Redirecting to Google...');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up with Google');
-    } finally {
-      setGoogleLoading(false);
+    setLoading(true);
+    const result = await signInWithGoogle();
+    
+    if (result.error) {
+      toast.error(result.error);
+      setLoading(false);
     }
+    // Note: If successful, the user will be redirected by OAuth flow
+    // so we don't need to handle success case here
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center">
-              <UserPlus className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Create Account
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Join our platform today
-            </p>
-          </div>
-        </div>
-
         {/* Signup Card */}
         <Card className="border-emerald-100 dark:border-slate-700 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
-              Sign Up
+              {t('signup')}
             </CardTitle>
+            <CardDescription className="text-center text-slate-600 dark:text-slate-400">
+              {t('joinPlatform')}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
@@ -127,7 +102,7 @@ function SignupPageContent() {
                   htmlFor="email"
                   className="text-sm font-medium text-slate-700 dark:text-slate-300"
                 >
-                  Email Address
+                  {t('emailAddress')}
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -149,14 +124,14 @@ function SignupPageContent() {
                   htmlFor="password"
                   className="text-sm font-medium text-slate-700 dark:text-slate-300"
                 >
-                  Password
+                  {t('password')}
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a strong password"
+                    placeholder={t('createStrongPassword')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 h-11"
@@ -195,12 +170,12 @@ function SignupPageContent() {
                       ))}
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">
-                      Password strength:{' '}
+                      {t('passwordStrength')}{' '}
                       {passwordStrength <= 2
-                        ? 'Weak'
+                        ? t('weak')
                         : passwordStrength <= 3
-                        ? 'Medium'
-                        : 'Strong'}
+                        ? t('medium')
+                        : t('strong')}
                     </div>
                   </div>
                 )}
@@ -212,14 +187,14 @@ function SignupPageContent() {
                   htmlFor="confirmPassword"
                   className="text-sm font-medium text-slate-700 dark:text-slate-300"
                 >
-                  Confirm Password
+                  {t('confirmPassword')}
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
+                    placeholder={t('confirmYourPassword')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10 h-11"
@@ -244,12 +219,12 @@ function SignupPageContent() {
                       <>
                         <Check className="h-3 w-3 text-emerald-600" />
                         <span className="text-emerald-600">
-                          Passwords match
+                          {t('passwordsMatch')}
                         </span>
                       </>
                     ) : (
                       <span className="text-red-500">
-                        Passwords don't match
+                        {t('passwordsDontMatch')}
                       </span>
                     )}
                   </div>
@@ -266,7 +241,7 @@ function SignupPageContent() {
                   passwordStrength < 3
                 }
               >
-                {loading ? 'Creating account...' : 'Create Account'}
+                {loading ? t('creatingAccount') : t('signupButton')}
               </Button>
 
               {/* Divider */}
@@ -276,7 +251,7 @@ function SignupPageContent() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-white dark:bg-slate-800 px-3 text-slate-500 dark:text-slate-400 font-medium">
-                    Or continue with
+                    {t('orContinueWith')}
                   </span>
                 </div>
               </div>
@@ -286,7 +261,7 @@ function SignupPageContent() {
                 variant="outline"
                 type="button"
                 onClick={handleGoogleSignup}
-                disabled={googleLoading || loading}
+                disabled={loading}
                 className="w-full mt-4 h-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 <svg
@@ -304,20 +279,21 @@ function SignupPageContent() {
                     d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
                   ></path>
                 </svg>
-                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+                {t('continueWithGoogle')}
               </Button>
             </form>
 
             {/* Sign In Link */}
             <div className="mt-6 text-center text-sm">
               <span className="text-slate-600 dark:text-slate-400">
-                Already have an account?{' '}
+                {t('alreadyHaveAccountText')}{' '}
               </span>
               <Link
                 href="/login"
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
+               
               >
-                Sign in
+                {t('login')}
               </Link>
             </div>
           </CardContent>
@@ -328,9 +304,10 @@ function SignupPageContent() {
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
+           
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to home
+            {t('backToHome')}
           </Link>
         </div>
       </div>

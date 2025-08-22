@@ -11,19 +11,20 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Shield, Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 function LoginPageContent() {
+  const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
@@ -33,71 +34,49 @@ function LoginPageContent() {
     setLoading(true);
     try {
       await signIn(email, password);
-      toast.success('Welcome back!');
+      toast.success(t('loginSuccess'));
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error?.message || t('loginError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Redirecting to Google...');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
-    } finally {
-      setGoogleLoading(false);
+    setLoading(true);
+    const result = await signInWithGoogle();
+    
+    if (result.error) {
+      toast.error(result.error);
+      setLoading(false);
     }
+    // Note: If successful, the user will be redirected by OAuth flow
+    // so we don't need to handle success case here
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center">
-              <Lock className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Welcome Back
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Sign in to your account
-            </p>
-          </div>
-          {/* Trust badge */}
-          <div className="flex justify-center">
-            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-              <Shield className="h-3 w-3 mr-1" />
-              Secure & Trusted Platform
-            </Badge>
-          </div>
-        </div>
-
         {/* Login Card */}
         <Card className="border-emerald-100 dark:border-slate-700 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
-              Sign In
+              {t('signIn')}
             </CardTitle>
+            <CardDescription className="text-center text-slate-600 dark:text-slate-400">
+              {t('signInToAccount')}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Email Address
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                >
+                  {t('emailAddress')}
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -115,18 +94,20 @@ function LoginPageContent() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Password
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
+                >
+                  {t('password')}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11"
+                    className="pr-10 h-11"
                     required
                   />
                   <button
@@ -134,18 +115,22 @@ function LoginPageContent() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" 
+              <Button
+                type="submit"
+                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                 disabled={loading}
               >
-                {loading ? 'Signing in...' : 'Sign In to Dashboard'}
+                {loading ? t('signingIn') : t('signInToDashboard')}
               </Button>
 
               {/* Forgot Password & SSL Badge */}
@@ -153,12 +138,11 @@ function LoginPageContent() {
                 <Link
                   href="/forgot-password"
                   className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-                >
-                  Forgot password?
+                 >
+                  {t('forgotPassword')}
                 </Link>
                 <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                  <Shield className="h-3 w-3" />
-                  <span className="text-xs">SSL Secured</span>
+                  <span className="text-xs">{t('sslSecured')}</span>
                 </div>
               </div>
 
@@ -169,17 +153,17 @@ function LoginPageContent() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-white dark:bg-slate-800 px-3 text-slate-500 dark:text-slate-400 font-medium">
-                    Or continue with
+                    {t('orContinueWith')}
                   </span>
                 </div>
               </div>
 
               {/* Google Sign In Button */}
-              <Button 
-                variant="outline" 
-                type="button" 
+              <Button
+                variant="outline"
+                type="button"
                 onClick={handleGoogleLogin}
-                disabled={googleLoading || loading}
+                disabled={loading}
                 className="w-full mt-4 h-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 <svg
@@ -197,24 +181,22 @@ function LoginPageContent() {
                     d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
                   ></path>
                 </svg>
-                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+                {t('continueWithGoogle')}
               </Button>
             </form>
 
             {/* Sign Up Link */}
             <div className="mt-6 text-center text-sm">
               <span className="text-slate-600 dark:text-slate-400">
-                Don&apos;t have an account?{' '}
+                {t('dontHaveAccount')}{' '}
               </span>
               <Link
                 href="/signup"
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-              >
-                Create account
+               >
+                {t('createAccount')}
               </Link>
             </div>
-
-
           </CardContent>
         </Card>
 
@@ -223,9 +205,9 @@ function LoginPageContent() {
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
-          >
+           >
             <ArrowLeft className="h-4 w-4" />
-            Back to home
+            {t('backToHome')}
           </Link>
         </div>
       </div>
