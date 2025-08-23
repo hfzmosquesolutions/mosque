@@ -7,7 +7,7 @@ import {
   Activity,
   Heart,
   Building,
-  DollarSign,
+  Banknote,
   ArrowRight,
   Clock,
 } from 'lucide-react';
@@ -68,7 +68,7 @@ export function EnhancedRecentActivity({ stats }: EnhancedRecentActivityProps) {
         2
       )} collected this month`,
       timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      icon: DollarSign,
+      icon: Banknote,
       color: 'text-green-600',
     });
   }

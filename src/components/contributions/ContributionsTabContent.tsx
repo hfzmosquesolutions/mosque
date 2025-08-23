@@ -203,10 +203,7 @@ export function ContributionsTabContent({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+    return `RM ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string) => {

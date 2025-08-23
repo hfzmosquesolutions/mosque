@@ -18,7 +18,7 @@ import {
   Eye,
   Receipt,
   TrendingUp,
-  DollarSign,
+  Banknote,
   Building,
   Calendar,
 } from 'lucide-react';
@@ -274,7 +274,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               Total Payments
             </CardTitle>
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
           </CardHeader>
           <CardContent>
