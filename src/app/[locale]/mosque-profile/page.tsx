@@ -46,6 +46,7 @@ import type {
   UpdateMosque,
 } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -102,6 +103,7 @@ const getDefaultMosqueProfile = (): MosqueProfileData => ({
 function MosqueProfileContent() {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations();
   const [profile, setProfile] = useState<MosqueProfileData>(
     getDefaultMosqueProfile()
@@ -150,7 +152,7 @@ function MosqueProfileContent() {
     if (user) {
       loadUserMosque();
     }
-  }, [user, loadUserMosque]);
+  }, [user, loadUserMosque, isCompleted, onboardingLoading]);
 
   const loadMosqueData = useCallback(async () => {
     if (!mosqueId) return;
@@ -251,6 +253,10 @@ function MosqueProfileContent() {
     setProfile(originalProfile);
     setIsEditing(false);
   };
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (!hasAdminAccess) {
     return (

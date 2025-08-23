@@ -18,16 +18,13 @@ export function useOnboardingStatus(): OnboardingStatus {
   useEffect(() => {
     const checkOnboardingStatusAsync = async () => {
       if (!user?.id) {
-        console.log('[HOOK] useOnboardingStatus - No user ID, skipping check');
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log('[HOOK] useOnboardingStatus - Checking onboarding status for user:', user.id);
         // Check the user's onboarding status from the database
         const status = await checkOnboardingStatus(user.id);
-        console.log('[HOOK] useOnboardingStatus - Onboarding status result:', status);
         setIsCompleted(status);
       } catch (error) {
         console.error('[HOOK] useOnboardingStatus - Error checking onboarding status:', error);

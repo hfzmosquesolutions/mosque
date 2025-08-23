@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import {
   getUserProfile,
   updateUserProfile,
@@ -94,6 +95,7 @@ interface UserSettings {
 function SettingsContent() {
   const { user } = useAuth();
   const { isAdmin, mosqueId } = useUserRole();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
   const t = useTranslations();
@@ -169,7 +171,7 @@ function SettingsContent() {
     }
 
     fetchData();
-  }, [user?.id, user?.email, isAdmin, mosqueId]);
+  }, [user?.id, user?.email, isAdmin, mosqueId, isCompleted, onboardingLoading]);
 
   const updateSettings = (
     section: keyof UserSettings,
@@ -282,6 +284,10 @@ function SettingsContent() {
       setSaving(false);
     }
   };
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (loading || !settings) {
     return null; // Or a loading spinner

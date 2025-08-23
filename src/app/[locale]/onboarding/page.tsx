@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { completeOnboarding } from '@/lib/api';
+import { completeOnboarding, getUserProfile, getUserMosqueId, getMosque } from '@/lib/api';
 import {
   Users,
   Shield,
@@ -60,6 +60,54 @@ function OnboardingContent() {
   });
   const { user, signOut } = useAuth();
   const router = useRouter();
+
+  // Fetch and populate existing user data if available
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await getUserProfile(user.id);
+        if (response.success && response.data) {
+          const profile = response.data;
+          
+          // Populate form with existing data
+          const updatedData: Partial<OnboardingData> = {
+            fullName: profile.full_name || '',
+            phone: profile.phone || '',
+            address: profile.address || '',
+            accountType: profile.account_type || '',
+          };
+
+          // If user is admin, try to fetch mosque data
+          if (profile.account_type === 'admin') {
+            try {
+              const mosqueId = await getUserMosqueId(user.id);
+              if (mosqueId) {
+                const mosqueResponse = await getMosque(mosqueId);
+                if (mosqueResponse.success && mosqueResponse.data) {
+                  const mosque = mosqueResponse.data;
+                  updatedData.mosqueAction = 'create'; // Assume they created it since they own it
+                  updatedData.mosqueName = mosque.name;
+                  updatedData.mosqueAddress = mosque.address || '';
+                }
+              }
+            } catch (mosqueError) {
+              console.error('Error fetching mosque data:', mosqueError);
+              // Continue without mosque data
+            }
+          }
+
+          setData(prev => ({ ...prev, ...updatedData }));
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Don't show error toast as this is just pre-population
+      }
+    };
+
+    fetchUserData();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     await signOut();

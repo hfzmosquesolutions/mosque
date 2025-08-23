@@ -28,6 +28,7 @@ import {
   Target,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import {
   getContributions,
   getUserContributions,
@@ -38,6 +39,7 @@ function ContributionsContent() {
   const t = useTranslations('contributions');
   const tCommon = useTranslations('common');
   const { user } = useAuth();
+  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
   const [loading, setLoading] = useState(true);
   const [userContributions, setUserContributions] = useState<(Contribution & { program: ContributionProgram & { mosque: Mosque } })[]>([]);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);
@@ -88,7 +90,11 @@ function ContributionsContent() {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, isCompleted, onboardingLoading]);
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (loading) {
     return (

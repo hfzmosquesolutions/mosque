@@ -50,6 +50,7 @@ import {
 } from '@/lib/api';
 import { UserDependent, CreateUserDependent } from '@/types/database';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,6 +59,7 @@ function DependentsContent() {
   const t = useTranslations('dependents');
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
   const router = useRouter();
 
   const [dependents, setDependents] = useState<UserDependent[]>([]);
@@ -113,7 +115,7 @@ function DependentsContent() {
     }
 
     fetchDependents();
-  }, [user?.id, isAdmin]);
+  }, [user?.id, isAdmin, isCompleted, onboardingLoading]);
 
   const updateDependentForm = (
     field: keyof CreateUserDependent,
@@ -222,6 +224,10 @@ function DependentsContent() {
       );
     }
   };
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (loading) {
     return (

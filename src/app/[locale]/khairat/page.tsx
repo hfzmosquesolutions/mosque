@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { ContributionForm } from '@/components/contributions/ContributionForm';
 import { ContributionsTabContent } from '@/components/contributions/ContributionsTabContent';
 import { UserPaymentsTable } from '@/components/contributions/UserPaymentsTable';
@@ -42,6 +43,7 @@ function KhairatContent() {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   const { mosqueId } = useUserMosque();
+  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
   const [userContributions, setUserContributions] = useState<
     (Contribution & { program: ContributionProgram & { mosque: Mosque } })[]
   >([]);
@@ -80,7 +82,11 @@ function KhairatContent() {
 
   useEffect(() => {
     if (user) fetchData();
-  }, [user, fetchData]);
+  }, [user, fetchData, isCompleted, onboardingLoading]);
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (loading) {
     return (

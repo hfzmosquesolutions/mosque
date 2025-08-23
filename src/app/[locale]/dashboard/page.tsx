@@ -24,6 +24,7 @@ import { supabase } from '@/lib/supabase';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 
 interface Contribution {
   id: string;
@@ -47,12 +48,13 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
 
   useEffect(() => {
-    if (user) {
+    if (!onboardingLoading && isCompleted && user) {
       fetchDashboardData();
     }
-  }, [user]);
+  }, [user, onboardingLoading, isCompleted]);
 
   const fetchDashboardData = async () => {
     try {
@@ -90,14 +92,15 @@ function DashboardContent() {
       if (contributionsError) {
         console.error('Error fetching contributions:', contributionsError);
       } else {
-        const formattedContributions = contributionsData?.map((item: any) => ({
-          id: item.id,
-          amount: item.amount,
-          contributed_at: item.contributed_at,
-          program: {
-            name: item.khairat_programs?.name || t('unknownProgram'),
-          },
-        })) || [];
+        const formattedContributions =
+          contributionsData?.map((item: any) => ({
+            id: item.id,
+            amount: item.amount,
+            contributed_at: item.contributed_at,
+            program: {
+              name: item.khairat_programs?.name || t('unknownProgram'),
+            },
+          })) || [];
         setContributions(formattedContributions);
       }
 
@@ -123,6 +126,10 @@ function DashboardContent() {
     0
   );
   const recentContributions = contributions.slice(0, 5);
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (userLoading || loading) {
     return (
@@ -252,8 +259,7 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {/* This would need to be fetched from dependents */}
-                0
+                {/* This would need to be fetched from dependents */}0
               </div>
               <p className="text-xs text-muted-foreground">
                 {t('familyMembersAdded')}
@@ -374,19 +380,6 @@ function DashboardContent() {
                     <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
-                <Link href="dependents">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between hover:bg-orange-50 hover:text-orange-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Users className="h-3 w-3" />
-                      {t('myDependents')}
-                    </span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
                 <Link href="profile">
                   <Button
                     variant="ghost"
@@ -447,9 +440,7 @@ function DashboardContent() {
                 ) : (
                   <>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        0
-                      </div>
+                      <div className="text-2xl font-bold text-blue-600">0</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {t('activeMembers')}
                       </div>

@@ -76,11 +76,11 @@ function FindMosqueContent() {
             const isFollowing = await isUserFollowingMosque(user.id, mosque.id);
             followingStatusMap[mosque.id] = isFollowing;
           }
-          
+
           const followed = response.data.filter(
             (mosque: Mosque) => followingStatusMap[mosque.id]
           );
-           
+
           setFollowedMosques(followed);
           setFollowingStatus(followingStatusMap);
         }
@@ -131,7 +131,7 @@ function FindMosqueContent() {
             [mosqueId]: false,
           };
           setFollowingStatus(newFollowingStatus);
-          
+
           // Update followed mosques list
           const followed = mosques.filter(
             (mosque) => newFollowingStatus[mosque.id]
@@ -146,7 +146,7 @@ function FindMosqueContent() {
             [mosqueId]: true,
           };
           setFollowingStatus(newFollowingStatus);
-          
+
           // Update followed mosques list
           const followed = mosques.filter(
             (mosque) => newFollowingStatus[mosque.id]
@@ -218,12 +218,13 @@ function FindMosqueContent() {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                   <div className="flex items-center gap-1">
                     <Building className="h-4 w-4" />
-                    <span>{t('mosquesAvailable', { count: filteredMosques.length })}</span>
+                    <span>
+                      {t('mosquesAvailable', { count: filteredMosques.length })}
+                    </span>
                   </div>
                   <span>{t('verifiedListings')}</span>
                 </div>
               </div>
-              
             </div>
           </div>
         </div>
@@ -235,7 +236,7 @@ function FindMosqueContent() {
               <TabsTrigger value="all">{t('allMosques')}</TabsTrigger>
               <TabsTrigger value="following">{t('following')}</TabsTrigger>
             </TabsList>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 sm:w-auto w-full">
               <div className="flex-1 sm:w-80 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
@@ -247,7 +248,10 @@ function FindMosqueContent() {
                   className="pl-9 w-full"
                 />
               </div>
-              <Button variant="outline" className="flex items-center gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 sm:w-auto"
+              >
                 <Filter className="h-4 w-4" />
                 {t('filters')}
               </Button>
@@ -258,7 +262,10 @@ function FindMosqueContent() {
             <div>
               <p className="text-muted-foreground">
                 {searchQuery
-                  ? t('searchResults', { count: filteredMosques.length, query: searchQuery })
+                  ? t('searchResults', {
+                      count: filteredMosques.length,
+                      query: searchQuery,
+                    })
                   : t('showingMosques', { count: filteredMosques.length })}
               </p>
             </div>
@@ -281,7 +288,10 @@ function FindMosqueContent() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredMosques.map((mosque) => (
-                  <Card key={mosque.id} className="hover:shadow-md transition-shadow">
+                  <Card
+                    key={mosque.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -353,7 +363,9 @@ function FindMosqueContent() {
                               followingStatus[mosque.id] ? 'fill-current' : ''
                             }`}
                           />
-                          {followingStatus[mosque.id] ? t('following') : t('follow')}
+                          {followingStatus[mosque.id]
+                            ? t('following')
+                            : t('follow')}
                         </Button>
                         <Button
                           size="sm"
@@ -396,7 +408,10 @@ function FindMosqueContent() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {followedMosques.map((mosque) => (
-                  <Card key={mosque.id} className="hover:shadow-md transition-shadow">
+                  <Card
+                    key={mosque.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

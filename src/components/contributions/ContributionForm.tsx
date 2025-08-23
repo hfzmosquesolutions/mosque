@@ -93,7 +93,7 @@ export function ContributionForm({
     if (user?.email) {
       setPayerEmail(user.email);
     }
-    
+
     // Auto-populate name from user metadata or fetch from profile
     if (user?.user_metadata?.full_name) {
       setPayerName(user.user_metadata.full_name);
@@ -106,7 +106,7 @@ export function ContributionForm({
             .select('full_name')
             .eq('id', user.id)
             .single();
-          
+
           if (data && !error) {
             setPayerName(data.full_name);
           }
@@ -114,7 +114,7 @@ export function ContributionForm({
           console.error('Error fetching user profile:', error);
         }
       };
-      
+
       fetchUserProfile();
     }
   }, [user]);
@@ -388,7 +388,7 @@ export function ContributionForm({
               onValueChange={setSelectedMosqueId}
               disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue
                   placeholder={
                     loading ? 'Loading mosques...' : 'Choose a mosque'
@@ -447,7 +447,7 @@ export function ContributionForm({
               onValueChange={setSelectedProgramId}
               disabled={!selectedMosqueId}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a program">
                   {selectedProgramId && (
                     <span>
@@ -483,7 +483,7 @@ export function ContributionForm({
                             {program.description}
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-xs">
+                        {/* <div className="flex items-center gap-2 text-xs">
                           {program.target_amount ? (
                             <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
                               Target: RM{' '}
@@ -498,7 +498,7 @@ export function ContributionForm({
                             Raised: RM{' '}
                             {(program.current_amount || 0).toLocaleString()}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </SelectItem>
                   ))
@@ -522,9 +522,7 @@ export function ContributionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payerName">
-              Payer Name (From your account)
-            </Label>
+            <Label htmlFor="payerName">Payer Name (From your account)</Label>
             <Input
               id="payerName"
               value={payerName}
@@ -617,42 +615,6 @@ export function ContributionForm({
                       <div className="font-medium">Cash</div>
                       <div className="text-sm text-muted-foreground">
                         Pay in person at the mosque
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="bank_transfer" id="bank_transfer" />
-                  <Label
-                    htmlFor="bank_transfer"
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
-                      <CreditCard className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Bank Transfer</div>
-                      <div className="text-sm text-muted-foreground">
-                        Transfer to mosque bank account
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="ewallet" id="ewallet" />
-                  <Label
-                    htmlFor="ewallet"
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full">
-                      <CreditCard className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">E-Wallet</div>
-                      <div className="text-sm text-muted-foreground">
-                        GrabPay, Touch 'n Go, etc.
                       </div>
                     </div>
                   </Label>
