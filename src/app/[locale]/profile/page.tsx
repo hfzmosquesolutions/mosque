@@ -47,7 +47,7 @@ import { useTranslations } from 'next-intl';
 
 function ProfileContent() {
   const { user } = useAuth();
-  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations('users');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);

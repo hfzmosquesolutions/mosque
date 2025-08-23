@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import {
@@ -48,6 +49,7 @@ interface DependentsTableProps {
 }
 
 export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTableProps) {
+  const t = useTranslations('dependents');
   const [selectedDependent, setSelectedDependent] = useState<UserDependent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -75,11 +77,11 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
 
   const getRelationshipBadge = (relationship: string) => {
     const relationshipConfig = {
-      spouse: { label: 'Spouse', variant: 'default' as const },
-      child: { label: 'Child', variant: 'secondary' as const },
-      parent: { label: 'Parent', variant: 'outline' as const },
-      sibling: { label: 'Sibling', variant: 'secondary' as const },
-      other: { label: 'Other', variant: 'outline' as const },
+      spouse: { label: t('spouse'), variant: 'default' as const },
+      child: { label: t('child'), variant: 'secondary' as const },
+      parent: { label: t('parent'), variant: 'outline' as const },
+      sibling: { label: t('sibling'), variant: 'secondary' as const },
+      other: { label: t('other'), variant: 'outline' as const },
     };
 
     const config = relationshipConfig[relationship.toLowerCase() as keyof typeof relationshipConfig] || relationshipConfig.other;
@@ -96,7 +98,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
   };
 
   const handleDelete = (dependentId: string) => {
-    if (confirm('Are you sure you want to delete this dependent?')) {
+    if (confirm(t('confirmDeleteDependent'))) {
       onDelete(dependentId);
     }
   };
@@ -105,7 +107,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
     {
       accessorKey: 'full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={t('name')} />
       ),
       cell: ({ row }) => {
         const dependent = row.original;
@@ -133,7 +135,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
     {
       accessorKey: 'relationship',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Relationship" />
+        <DataTableColumnHeader column={column} title={t('relationship')} />
       ),
       cell: ({ row }) => {
         return getRelationshipBadge(row.getValue('relationship'));
@@ -142,7 +144,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
     {
       accessorKey: 'date_of_birth',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date of Birth" />
+        <DataTableColumnHeader column={column} title={t('dateOfBirth')} />
       ),
       cell: ({ row }) => {
         const dateOfBirth = row.getValue('date_of_birth') as string;
@@ -152,14 +154,14 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
             <span className="text-sm">{formatDate(dateOfBirth)}</span>
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">Not specified</span>
+          <span className="text-sm text-muted-foreground">{t('notSpecified')}</span>
         );
       },
     },
     {
       accessorKey: 'phone',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Contact" />
+        <DataTableColumnHeader column={column} title={t('contact')} />
       ),
       cell: ({ row }) => {
         const dependent = row.original;
@@ -178,7 +180,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
               </div>
             )}
             {!dependent.phone && !dependent.email && (
-              <span className="text-sm text-muted-foreground">No contact info</span>
+              <span className="text-sm text-muted-foreground">{t('noContactInfo')}</span>
             )}
           </div>
         );
@@ -187,7 +189,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
     {
       accessorKey: 'emergency_contact',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Emergency" />
+        <DataTableColumnHeader column={column} title={t('emergency')} />
       ),
       cell: ({ row }) => {
         const isEmergencyContact = row.getValue('emergency_contact') as boolean;
@@ -195,7 +197,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
           <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-red-500" />
             <Badge variant="destructive" className="text-xs">
-              Emergency
+              {t('emergency')}
             </Badge>
           </div>
         ) : (
@@ -205,7 +207,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('actions'),
       cell: ({ row }) => {
         const dependent = row.original;
         return (
@@ -228,14 +230,14 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEdit(dependent)}>
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  {t('edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDelete(dependent.id)}
                   className="text-red-600"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {t('delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -265,7 +267,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
                 {getRelationshipBadge(dependent.relationship)}
                 {dependent.emergency_contact && (
                   <Badge variant="destructive" className="text-xs">
-                    Emergency
+                    {t('emergency')}
                   </Badge>
                 )}
               </div>
@@ -315,7 +317,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
               className="h-8 px-3 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              {t('view')}
             </Button>
             <div className="flex items-center gap-1">
               <Button
@@ -348,10 +350,10 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-emerald-600" />
-            Dependents List
+            {t('dependentsList')}
           </CardTitle>
           <CardDescription>
-            Manage information for your family members and dependents
+            {t('manageInformation')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -359,11 +361,10 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
             <div className="text-center py-12">
               <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No dependents added yet
+                {t('noDependentsYet')}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Add your family members and dependents to keep track of their
-                information and manage their details in one place.
+                {t('addDependentsDescription')}
               </p>
             </div>
           ) : isMobile ? (
@@ -384,10 +385,10 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-emerald-600" />
-              Dependent Details
+              {t('dependentDetails')}
             </DialogTitle>
             <DialogDescription>
-              Complete information about this dependent
+              {t('completeInformation')}
             </DialogDescription>
           </DialogHeader>
           {selectedDependent && (
@@ -395,70 +396,70 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Full Name
+                    {t('fullName')}
                   </h4>
                   <p className="font-semibold">{selectedDependent.full_name}</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Relationship
+                    {t('relationship')}
                   </h4>
                   <div>{getRelationshipBadge(selectedDependent.relationship)}</div>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Date of Birth
+                    {t('dateOfBirth')}
                   </h4>
                   <p className="font-semibold">
                     {selectedDependent.date_of_birth
-                      ? `${formatDate(selectedDependent.date_of_birth)} (${calculateAge(selectedDependent.date_of_birth)} years old)`
-                      : 'Not specified'}
+                      ? `${formatDate(selectedDependent.date_of_birth)} (${calculateAge(selectedDependent.date_of_birth)} ${t('yearsOld')})`
+                      : t('notSpecified')}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Gender
+                    {t('gender')}
                   </h4>
                   <p className="font-semibold capitalize">
-                    {selectedDependent.gender || 'Not specified'}
+                    {selectedDependent.gender || t('notSpecified')}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Phone
+                    {t('phone')}
                   </h4>
                   <p className="font-semibold">
-                    {selectedDependent.phone || 'Not provided'}
+                    {selectedDependent.phone || t('notProvided')}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Email
+                    {t('email')}
                   </h4>
                   <p className="font-semibold">
-                    {selectedDependent.email || 'Not provided'}
+                    {selectedDependent.email || t('notProvided')}
                   </p>
                 </div>
               </div>
               <div>
                 <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                  Emergency Contact
+                  {t('emergencyContact')}
                 </h4>
                 <div className="flex items-center gap-2">
                   {selectedDependent.emergency_contact ? (
                     <>
                       <Heart className="h-4 w-4 text-red-500" />
-                      <Badge variant="destructive">Yes</Badge>
+                      <Badge variant="destructive">{t('yes')}</Badge>
                     </>
                   ) : (
-                    <Badge variant="outline">No</Badge>
+                    <Badge variant="outline">{t('no')}</Badge>
                   )}
                 </div>
               </div>
               {selectedDependent.address && (
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Address
+                    {t('address')}
                   </h4>
                   <p className="text-sm bg-gray-50 dark:bg-gray-900 p-3 rounded">
                     {selectedDependent.address}
@@ -468,7 +469,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
               {selectedDependent.notes && (
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Notes
+                    {t('notes')}
                   </h4>
                   <p className="text-sm bg-gray-50 dark:bg-gray-900 p-3 rounded">
                     {selectedDependent.notes}

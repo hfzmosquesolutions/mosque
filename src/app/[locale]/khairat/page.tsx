@@ -43,7 +43,7 @@ function KhairatContent() {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   const { mosqueId } = useUserMosque();
-  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const [userContributions, setUserContributions] = useState<
     (Contribution & { program: ContributionProgram & { mosque: Mosque } })[]
   >([]);

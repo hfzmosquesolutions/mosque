@@ -26,9 +26,6 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
-
-  LogOut,
-  Home,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -109,14 +106,7 @@ function OnboardingContent() {
     fetchUserData();
   }, [user?.id]);
 
-  const handleLogout = async () => {
-    await signOut();
-    router.push('/login');
-  };
 
-  const handleGoHome = () => {
-    router.push('/');
-  };
 
   const updateData = (field: keyof OnboardingData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -192,7 +182,7 @@ function OnboardingContent() {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Users className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+        <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">{t('personalInformation')}</h3>
         <p className="text-slate-600 dark:text-slate-400">
           {t('personalInfoDescription')}
@@ -239,7 +229,7 @@ function OnboardingContent() {
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+        <Shield className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">{t('accountType')}</h3>
         <p className="text-slate-600 dark:text-slate-400">
           {t('accountTypeDescription')}
@@ -250,13 +240,13 @@ function OnboardingContent() {
         <Card
           className={`cursor-pointer transition-all ${
             data.accountType === 'member'
-              ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950'
+              ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
               : 'hover:shadow-md'
           }`}
           onClick={() => updateData('accountType', 'member')}
         >
           <CardContent className="p-6 text-center">
-            <Users className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+            <Users className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
             <h4 className="font-semibold mb-2">{t('communityMember')}</h4>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {t('communityMemberDescription')}
@@ -270,13 +260,13 @@ function OnboardingContent() {
         <Card
           className={`cursor-pointer transition-all ${
             data.accountType === 'admin'
-              ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950'
+              ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
               : 'hover:shadow-md'
           }`}
           onClick={() => updateData('accountType', 'admin')}
         >
           <CardContent className="p-6 text-center">
-            <Shield className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+            <Shield className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
             <h4 className="font-semibold mb-2">{t('mosqueAdministrator')}</h4>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {t('mosqueAdministratorDescription')}
@@ -295,19 +285,19 @@ function OnboardingContent() {
       return (
         <div className="space-y-4">
           <div className="text-center mb-6">
-            <Users className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">{t('membershipDetails')}</h3>
             <p className="text-slate-600 dark:text-slate-400">
               {t('membershipDetailsDescription')}
             </p>
           </div>
 
-          <div className="text-center p-6 bg-green-50 dark:bg-green-950 rounded-lg">
-            <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-3" />
-            <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+          <div className="text-center p-6 bg-emerald-50 dark:bg-emerald-950 rounded-lg">
+            <CheckCircle className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
+            <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
               {t('memberAccountSetup')}
             </h4>
-            <p className="text-green-700 dark:text-green-300">
+            <p className="text-emerald-700 dark:text-emerald-300">
               {t('memberAccountSetupDescription')}
             </p>
           </div>
@@ -318,7 +308,7 @@ function OnboardingContent() {
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
-          <Building className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <Building className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">{t('mosqueSetup')}</h3>
           <p className="text-slate-600 dark:text-slate-400">
             {t('mosqueSetupDescription')}
@@ -332,13 +322,13 @@ function OnboardingContent() {
               <Card
                 className={`cursor-pointer transition-all ${
                   data.mosqueAction === 'join'
-                    ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950'
+                    ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
                     : 'hover:shadow-md'
                 }`}
                 onClick={() => updateData('mosqueAction', 'join')}
               >
                 <CardContent className="p-4 text-center">
-                  <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                  <Users className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
                   <h4 className="font-medium mb-1">{t('joinExistingMosque')}</h4>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
                     {t('joinExistingMosqueDescription')}
@@ -349,13 +339,13 @@ function OnboardingContent() {
               <Card
                 className={`cursor-pointer transition-all ${
                   data.mosqueAction === 'create'
-                    ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950'
+                    ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
                     : 'hover:shadow-md'
                 }`}
                 onClick={() => updateData('mosqueAction', 'create')}
               >
                 <CardContent className="p-4 text-center">
-                  <Building className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                  <Building className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
                   <h4 className="font-medium mb-1">{t('createNewMosque')}</h4>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
                     {t('createNewMosqueDescription')}
@@ -411,7 +401,7 @@ function OnboardingContent() {
   const renderStep4 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+        <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">{t('reviewConfirm')}</h3>
         <p className="text-slate-600 dark:text-slate-400">
           {t('reviewConfirmDescription')}
@@ -478,44 +468,23 @@ function OnboardingContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Top Navigation */}
-      <div className="flex justify-between items-center p-4">
-        <Button
-          variant="outline"
-          onClick={handleGoHome}
-          className="flex items-center gap-2"
-        >
-          <Home className="h-4 w-4" />
-          {t('home')}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          <LogOut className="h-4 w-4" />
-          {t('logout')}
-        </Button>
-      </div>
-
       {/* Main Content */}
-      <div className="flex items-center justify-center p-4 pt-0">
+      <div className="flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Building className="h-8 w-8 text-blue-600" />
-              <CardTitle className="text-3xl font-bold">
-                {t('welcomeToOurMosque')}
-              </CardTitle>
-            </div>
-            <CardDescription>
-              {t('stepOf', { step, total: 4 })} - {t('setupAccount')}
-            </CardDescription>
+            <div className="mb-6">
+               <CardTitle className="text-3xl font-bold mb-2">
+                 {t('setupAccount')}
+               </CardTitle>
+               <CardDescription className="text-lg">
+                 {t('stepOf', { step, total: 4 })}
+               </CardDescription>
+             </div>
 
             {/* Progress Bar */}
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-4">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(step / 4) * 100}%` }}
               />
             </div>

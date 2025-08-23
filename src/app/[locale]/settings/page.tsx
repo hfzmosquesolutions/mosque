@@ -466,7 +466,6 @@ function SettingsContent() {
                         <SelectContent>
                           <SelectItem value="male">{t('settings.male')}</SelectItem>
                           <SelectItem value="female">{t('settings.female')}</SelectItem>
-                          <SelectItem value="other">{t('settings.other')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -519,90 +518,7 @@ function SettingsContent() {
               </CardContent>
             </Card>
 
-            {/* Mosque Settings - Only for admin users */}
-            {isAdmin && mosque && (
-              <Card className="border-0 shadow-md">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    <CardTitle>{t('settings.mosqueSettings')}</CardTitle>
-                  </div>
-                  <CardDescription>
-                    {t('settings.manageMosqueInformation')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mosqueName">{t('settings.mosqueName')}</Label>
-                      <Input
-                        id="mosqueName"
-                        value={settings!.mosque.name}
-                        onChange={(e) =>
-                          updateSettings('mosque', 'name', e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mosquePhone">{t('settings.phone')}</Label>
-                      <Input
-                        id="mosquePhone"
-                        value={settings!.mosque.phone}
-                        onChange={(e) =>
-                          updateSettings('mosque', 'phone', e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mosqueEmail">{t('settings.email')}</Label>
-                      <Input
-                        id="mosqueEmail"
-                        type="email"
-                        value={settings!.mosque.email}
-                        onChange={(e) =>
-                          updateSettings('mosque', 'email', e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mosqueWebsite">{t('settings.website')}</Label>
-                      <Input
-                        id="mosqueWebsite"
-                        value={settings!.mosque.website}
-                        onChange={(e) =>
-                          updateSettings('mosque', 'website', e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mosqueAddress">{t('settings.address')}</Label>
-                    <Textarea
-                      id="mosqueAddress"
-                      placeholder={t('settings.fullMosqueAddress')}
-                      value={settings!.mosque.address}
-                      onChange={(e) =>
-                        updateSettings('mosque', 'address', e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isPrivate"
-                      checked={settings!.mosque.is_private}
-                      onChange={(e) =>
-                        updateSettings('mosque', 'is_private', e.target.checked)
-                      }
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="isPrivate">
-                      {t('settings.makeMosqueProfilePrivate')}
-                    </Label>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+
           </TabsContent>
 
           {/* Notifications Tab */}
@@ -743,7 +659,7 @@ function SettingsContent() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">{t('settings.language')}</Label>
-                  <LanguageSwitcher />
+                  <LanguageSwitcher variant="compact" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone">{t('settings.timezone')}</Label>

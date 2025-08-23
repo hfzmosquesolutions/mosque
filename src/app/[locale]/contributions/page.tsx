@@ -39,7 +39,7 @@ function ContributionsContent() {
   const t = useTranslations('contributions');
   const tCommon = useTranslations('common');
   const { user } = useAuth();
-  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const [loading, setLoading] = useState(true);
   const [userContributions, setUserContributions] = useState<(Contribution & { program: ContributionProgram & { mosque: Mosque } })[]>([]);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);

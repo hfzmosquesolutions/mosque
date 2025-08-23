@@ -59,7 +59,7 @@ function DependentsContent() {
   const t = useTranslations('dependents');
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
-  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const router = useRouter();
 
   const [dependents, setDependents] = useState<UserDependent[]>([]);
@@ -247,10 +247,10 @@ function DependentsContent() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('myDependents')}</h1>
-            <p className="text-gray-600">
-              {t('manageFamilyMembers')}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t('myDependents')}
+            </h1>
+            <p className="text-gray-600">{t('manageFamilyMembers')}</p>
           </div>
         </div>
         <Button
@@ -287,7 +287,9 @@ function DependentsContent() {
                 <UserPlus className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">{t('emergencyContacts')}</p>
+                <p className="text-sm text-gray-600">
+                  {t('emergencyContacts')}
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {dependents.filter((d) => d.emergency_contact).length}
                 </p>
@@ -497,7 +499,9 @@ function DependentsContent() {
                   {t('saving')}
                 </>
               ) : (
-                <>{editingDependent ? t('updateDependent') : t('addDependent')}</>
+                <>
+                  {editingDependent ? t('updateDependent') : t('addDependent')}
+                </>
               )}
             </Button>
           </DialogFooter>
