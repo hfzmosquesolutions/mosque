@@ -39,7 +39,7 @@ export function OnboardingTestControls() {
     setIsResetting(true);
     try {
       const result = await resetOnboardingStatus(user.id);
-      
+
       if (result.success) {
         toast.success('Onboarding status reset successfully!');
         setIsDialogOpen(false);
@@ -90,11 +90,21 @@ export function OnboardingTestControls() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isResetting}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isResetting}
+              >
                 Cancel
               </Button>
-              <Button onClick={resetOnboarding} disabled={isResetting} className="gap-2">
-                <RefreshCw className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+              <Button
+                onClick={resetOnboarding}
+                disabled={isResetting}
+                className="gap-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isResetting ? 'animate-spin' : ''}`}
+                />
                 {isResetting ? 'Resetting...' : 'Reset Onboarding'}
               </Button>
             </DialogFooter>

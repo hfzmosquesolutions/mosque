@@ -50,6 +50,7 @@ import {
 } from '@/lib/api';
 import { UserDependent, CreateUserDependent } from '@/types/database';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,6 +59,7 @@ function DependentsContent() {
   const t = useTranslations('dependents');
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const router = useRouter();
 
   const [dependents, setDependents] = useState<UserDependent[]>([]);
@@ -113,7 +115,7 @@ function DependentsContent() {
     }
 
     fetchDependents();
-  }, [user?.id, isAdmin]);
+  }, [user?.id, isAdmin, isCompleted, onboardingLoading]);
 
   const updateDependentForm = (
     field: keyof CreateUserDependent,
@@ -223,6 +225,10 @@ function DependentsContent() {
     }
   };
 
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -241,10 +247,10 @@ function DependentsContent() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('myDependents')}</h1>
-            <p className="text-gray-600">
-              {t('manageFamilyMembers')}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t('myDependents')}
+            </h1>
+            <p className="text-gray-600">{t('manageFamilyMembers')}</p>
           </div>
         </div>
         <Button
@@ -281,7 +287,9 @@ function DependentsContent() {
                 <UserPlus className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">{t('emergencyContacts')}</p>
+                <p className="text-sm text-gray-600">
+                  {t('emergencyContacts')}
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {dependents.filter((d) => d.emergency_contact).length}
                 </p>
@@ -491,7 +499,9 @@ function DependentsContent() {
                   {t('saving')}
                 </>
               ) : (
-                <>{editingDependent ? t('updateDependent') : t('addDependent')}</>
+                <>
+                  {editingDependent ? t('updateDependent') : t('addDependent')}
+                </>
               )}
             </Button>
           </DialogFooter>

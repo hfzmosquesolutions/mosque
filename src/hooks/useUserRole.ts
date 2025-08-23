@@ -35,7 +35,6 @@ export function useUserRole(): UserRoleData {
         setError(null);
 
         // Fetch user profile
-        console.log('[HOOK] useUserRole - Fetching user profile for userId:', user.id);
         const { data: profileData, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
@@ -47,11 +46,9 @@ export function useUserRole(): UserRoleData {
           throw profileError;
         }
 
-        console.log('[HOOK] useUserRole - Profile fetch success:', profileData);
         setProfile(profileData);
 
         // Check if user owns a mosque
-        console.log('[HOOK] useUserRole - Checking mosque ownership for userId:', user.id);
         const { data: mosqueData, error: mosqueError } = await supabase
           .from('mosques')
           .select('id')
@@ -63,7 +60,6 @@ export function useUserRole(): UserRoleData {
         }
         
         if (mosqueData && !mosqueError) {
-          console.log('[HOOK] useUserRole - User owns mosque:', mosqueData.id);
           setIsMosqueOwner(true);
           setIsAdmin(true);
           setMosqueId(mosqueData.id);

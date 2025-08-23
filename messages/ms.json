@@ -147,6 +147,9 @@
     "totalPaymentsMade": "Jumlah pembayaran dibuat",
     "activePrograms": "Program Aktif",
     "programsYouCanJoin": "Program yang boleh anda sertai",
+    "followers": "Pengikut",
+    "mosqueFollowers": "Pengikut masjid",
+    "peopleFollowingYou": "Orang yang mengikuti anda",
     "myDependents": "Tanggungan Saya",
     "familyMembersAdded": "Ahli keluarga ditambah",
     "recentPayments": "Pembayaran Terkini",
@@ -346,6 +349,19 @@
       "cancel": "Batal",
       "submitPayment": "Hantar Pembayaran",
       "submitting": "Menghantar..."
+    },
+    "form": {
+      "payerNameFromAccount": "Nama Pembayar (Dari Akaun)",
+      "payerNamePlaceholder": "Nama akaun anda",
+      "usingAccountName": "Menggunakan nama dari akaun anda",
+      "emailFromAccount": "Emel (Dari Akaun)",
+      "emailPlaceholder": "Emel akaun anda",
+      "usingAccountEmail": "Menggunakan emel dari akaun anda",
+      "mobileOptional": "Nombor Telefon (Pilihan)",
+      "mobilePlaceholder": "+60123456789",
+      "notesOptional": "Nota (Pilihan)",
+      "notesPlaceholder": "Sebarang nota tambahan...",
+      "submitting": "Menghantar..."
     }
   },
   "mosques": {
@@ -539,6 +555,15 @@
     "female": "Perempuan",
     "other": "Lain-lain",
     "preferNotToSay": "Lebih suka tidak menyatakan",
+    "dependentsList": "Senarai Tanggungan",
+    "manageInformation": "Urus maklumat untuk ahli keluarga dan tanggungan anda",
+    "yearsOld": "tahun",
+    "gender": "Jantina",
+    "notProvided": "Tidak disediakan",
+    "emergencyContact": "Hubungan Kecemasan",
+    "address": "Alamat",
+    "notSpecified": "Tidak dinyatakan",
+    "view": "Lihat",
     "occupation": "Pekerjaan",
     "yourProfessionPlaceholder": "Profesion atau pekerjaan anda",
     "updateContactDetails": "Kemas kini butiran hubungan anda",
@@ -1045,7 +1070,28 @@
     "noNotesAdded": "Tiada nota ditambah",
     "isEmergencyContact": "Hubungan Kecemasan",
     "yes": "Ya",
-    "no": "Tidak"
+    "no": "Tidak",
+    "failedToLoadDependents": "Gagal memuatkan tanggungan",
+    "fullNameRelationshipRequired": "Nama penuh dan hubungan diperlukan",
+    "dependentUpdatedSuccess": "Tanggungan berjaya dikemas kini",
+    "failedToUpdateDependent": "Gagal mengemas kini tanggungan",
+    "failedToAddDependent": "Gagal menambah tanggungan",
+    "dependentAddedSuccess": "Tanggungan berjaya ditambah",
+    "failedToSaveDependent": "Gagal menyimpan tanggungan",
+    "confirmDeleteDependent": "Adakah anda pasti mahu memadam tanggungan ini?",
+    "failedToDeleteDependent": "Gagal memadam tanggungan",
+    "dependentDeletedSuccess": "Tanggungan berjaya dipadam",
+    "myDependents": "Tanggungan Saya",
+    "manageFamilyMembers": "Urus maklumat untuk ahli keluarga dan tanggungan anda",
+    "emergencyContacts": "Hubungan Kecemasan",
+    "fullNamePlaceholder": "Masukkan nama penuh",
+    "relationshipPlaceholder": "Masukkan hubungan",
+    "phone": "Telefon",
+    "email": "Emel",
+    "phoneNumberPlaceholder": "Masukkan nombor telefon",
+    "emailAddressPlaceholder": "Masukkan alamat emel",
+    "fullAddressPlaceholder": "Masukkan alamat penuh",
+    "preferNotToSay": "Lebih suka tidak menyatakan"
   },
   "sidebar": {
     "navigation": "Navigasi",
@@ -1058,6 +1104,8 @@
     "khairat": "Khairat",
     "mosqueProfile": "Profil Masjid",
     "settings": "Tetapan",
-    "signOut": "Log keluar"
+    "signOut": "Log keluar",
+    "administrator": "Pentadbir",
+    "member": "Ahli"
   }
 }

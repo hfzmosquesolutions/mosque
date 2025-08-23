@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export function ContributionForm({
   defaultProgramType,
 }: ContributionFormProps) {
   const { user } = useAuth();
+  const t = useTranslations('contributions');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
@@ -90,14 +92,14 @@ export function ContributionForm({
 
   // Auto-populate email and name from user account
   useEffect(() => {
-    if (user?.email) {
+    if (isOpen && user?.email) {
       setPayerEmail(user.email);
     }
-    
+
     // Auto-populate name from user metadata or fetch from profile
-    if (user?.user_metadata?.full_name) {
+    if (isOpen && user?.user_metadata?.full_name) {
       setPayerName(user.user_metadata.full_name);
-    } else if (user?.id) {
+    } else if (isOpen && user?.id) {
       // Fetch user profile to get full name
       const fetchUserProfile = async () => {
         try {
@@ -106,7 +108,7 @@ export function ContributionForm({
             .select('full_name')
             .eq('id', user.id)
             .single();
-          
+
           if (data && !error) {
             setPayerName(data.full_name);
           }
@@ -114,10 +116,10 @@ export function ContributionForm({
           console.error('Error fetching user profile:', error);
         }
       };
-      
+
       fetchUserProfile();
     }
-  }, [user]);
+  }, [user, isOpen]);
 
   const checkPaymentProvider = async (mosqueId: string) => {
     setCheckingPaymentProvider(true);
@@ -217,27 +219,27 @@ export function ContributionForm({
     e.preventDefault();
 
     if (!user) {
-      toast.error('You must be logged in to make a payment');
+      toast.error(t('errors.mustBeLoggedIn'));
       return;
     }
 
     if (!selectedMosqueId) {
-      toast.error('Please select a mosque');
+      toast.error(t('makePaymentDialog.selectMosqueRequired'));
       return;
     }
 
     if (!selectedProgramId) {
-      toast.error('Please select a payment program');
+      toast.error(t('makePaymentDialog.paymentProgramRequired'));
       return;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount greater than 0');
+      toast.error(t('errors.validAmountRequired'));
       return;
     }
 
     if (!paymentMethod) {
-      toast.error('Please select a payment method');
+      toast.error(t('makePaymentDialog.paymentMethodRequired'));
       return;
     }
 
@@ -245,7 +247,7 @@ export function ContributionForm({
     if (paymentMethod === 'billplz') {
       // Name and email are automatically populated from user account, no need to validate
       if (payerMobile && !/^\+?[0-9\s-()]{8,}$/.test(payerMobile)) {
-        toast.error('Please enter a valid mobile number');
+        toast.error(t('errors.validMobileRequired'));
         return;
       }
     }
@@ -312,13 +314,13 @@ export function ContributionForm({
             const paymentResult = await paymentResponse.json();
 
             if (paymentResult.success && paymentResult.paymentUrl) {
-              toast.success('Redirecting to payment gateway...');
+              toast.success(t('payment.redirectingToGateway'));
               // Redirect to Billplz payment page
               window.location.href = paymentResult.paymentUrl;
               return;
             } else {
               throw new Error(
-                paymentResult.error || 'Failed to create payment'
+                paymentResult.error || t('errors.failedToCreatePayment')
               );
             }
           } catch (paymentError) {
@@ -332,7 +334,7 @@ export function ContributionForm({
           }
         } else {
           // Handle manual payment methods
-          toast.success('Contribution submitted successfully!');
+          toast.success(t('payment.contributionSubmitted'));
           onSuccess?.();
           handleClose();
         }
@@ -373,25 +375,29 @@ export function ContributionForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-rose-600" />
-            Make Payment
+            {t('makePaymentDialog.title')}
           </DialogTitle>
           <DialogDescription>
-            Make a payment to a program at one of your followed mosques
+            {t('makePaymentDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pb-4">
           <div className="space-y-2">
-            <Label htmlFor="mosque">Select Mosque *</Label>
+            <Label htmlFor="mosque">
+              {t('makePaymentDialog.selectMosqueRequired')}
+            </Label>
             <Select
               value={selectedMosqueId}
               onValueChange={setSelectedMosqueId}
               disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue
                   placeholder={
-                    loading ? 'Loading mosques...' : 'Choose a mosque'
+                    loading
+                      ? t('makePaymentDialog.loadingMosques')
+                      : t('makePaymentDialog.chooseMosque')
                   }
                 >
                   {selectedMosqueId && (
@@ -409,12 +415,12 @@ export function ContributionForm({
                   <SelectItem value="loading" disabled>
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                      Loading mosques...
+                      {t('makePaymentDialog.loadingMosques')}
                     </div>
                   </SelectItem>
                 ) : availableMosques.length === 0 ? (
                   <SelectItem value="no-mosques" disabled>
-                    No mosques available
+                    {t('makePaymentDialog.noMosquesAvailable')}
                   </SelectItem>
                 ) : (
                   availableMosques.map((mosque) => (
@@ -435,20 +441,22 @@ export function ContributionForm({
             {loading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading mosques...
+                {t('makePaymentDialog.loadingMosques')}
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="program">Payment Program *</Label>
+            <Label htmlFor="program">
+              {t('makePaymentDialog.paymentProgramRequired')}
+            </Label>
             <Select
               value={selectedProgramId}
               onValueChange={setSelectedProgramId}
               disabled={!selectedMosqueId}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a program">
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('makePaymentDialog.chooseProgram')}>
                   {selectedProgramId && (
                     <span>
                       {
@@ -464,14 +472,14 @@ export function ContributionForm({
                   <SelectItem value="loading" disabled>
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                      Loading programs...
+                      {t('makePaymentDialog.loadingPrograms')}
                     </div>
                   </SelectItem>
                 ) : khairatPrograms.length === 0 ? (
                   <SelectItem value="no-programs" disabled>
                     {selectedMosqueId
-                      ? 'No programs available'
-                      : 'Select a mosque first'}
+                      ? t('makePaymentDialog.noProgramsAvailable')
+                      : t('makePaymentDialog.selectMosqueFirst')}
                   </SelectItem>
                 ) : (
                   khairatPrograms.map((program) => (
@@ -483,7 +491,7 @@ export function ContributionForm({
                             {program.description}
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-xs">
+                        {/* <div className="flex items-center gap-2 text-xs">
                           {program.target_amount ? (
                             <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
                               Target: RM{' '}
@@ -498,7 +506,7 @@ export function ContributionForm({
                             Raised: RM{' '}
                             {(program.current_amount || 0).toLocaleString()}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </SelectItem>
                   ))
@@ -508,7 +516,9 @@ export function ContributionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (RM) *</Label>
+            <Label htmlFor="amount">
+              {t('makePaymentDialog.amountRequired')}
+            </Label>
             <Input
               id="amount"
               type="number"
@@ -516,24 +526,22 @@ export function ContributionForm({
               min="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder={t('makePaymentDialog.enterAmount')}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payerName">
-              Payer Name (From your account)
-            </Label>
+            <Label htmlFor="payerName">{t('form.payerNameFromAccount')}</Label>
             <Input
               id="payerName"
               value={payerName}
               readOnly
               className="bg-muted cursor-not-allowed"
-              placeholder="Your full name"
+              placeholder={t('form.payerNamePlaceholder')}
             />
             <p className="text-xs text-muted-foreground">
-              Using your account name for payment records
+              {t('form.usingAccountName')}
             </p>
           </div>
 
@@ -541,45 +549,46 @@ export function ContributionForm({
           {paymentMethod === 'billplz' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="payerEmail">Email (From your account)</Label>
+                <Label htmlFor="payerEmail">{t('form.emailFromAccount')}</Label>
                 <Input
                   id="payerEmail"
                   type="email"
                   value={payerEmail}
                   readOnly
                   className="bg-muted cursor-not-allowed"
-                  placeholder="your@email.com"
+                  placeholder={t('form.emailPlaceholder')}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Using your account email for payment notifications and receipt
+                  {t('form.usingAccountEmail')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="payerMobile">Mobile Number (Optional)</Label>
+                <Label htmlFor="payerMobile">{t('form.mobileOptional')}</Label>
                 <Input
                   id="payerMobile"
                   type="tel"
                   value={payerMobile}
                   onChange={(e) => setPayerMobile(e.target.value)}
-                  placeholder="+60123456789"
+                  placeholder={t('form.mobilePlaceholder')}
                 />
               </div>
             </>
           )}
 
-          <div className="space-y-3">
-            <Label>Payment Method *</Label>
-            {checkingPaymentProvider ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking payment options...
-              </div>
-            ) : (
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={setPaymentMethod}
-              >
+          {selectedMosqueId && selectedProgramId && (
+            <div className="space-y-3">
+              <Label>{t('makePaymentDialog.paymentMethodRequired')}</Label>
+              {checkingPaymentProvider ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('makePaymentDialog.checkingPaymentOptions')}
+                </div>
+              ) : (
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={setPaymentMethod}
+                >
                 {/* Online Payment Option */}
                 {hasOnlinePayment && (
                   <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
@@ -593,10 +602,10 @@ export function ContributionForm({
                       </div>
                       <div>
                         <div className="font-medium">
-                          Online Payment (Billplz)
+                          {t('makePaymentDialog.onlinePaymentBillplz')}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Pay instantly with FPX, credit card, or e-wallet
+                          {t('makePaymentDialog.onlinePaymentDescription')}
                         </div>
                       </div>
                     </Label>
@@ -614,45 +623,11 @@ export function ContributionForm({
                       <Banknote className="h-4 w-4 text-green-600" />
                     </div>
                     <div>
-                      <div className="font-medium">Cash</div>
-                      <div className="text-sm text-muted-foreground">
-                        Pay in person at the mosque
+                      <div className="font-medium">
+                        {t('makePaymentDialog.cashPayment')}
                       </div>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="bank_transfer" id="bank_transfer" />
-                  <Label
-                    htmlFor="bank_transfer"
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
-                      <CreditCard className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Bank Transfer</div>
                       <div className="text-sm text-muted-foreground">
-                        Transfer to mosque bank account
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="ewallet" id="ewallet" />
-                  <Label
-                    htmlFor="ewallet"
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full">
-                      <CreditCard className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">E-Wallet</div>
-                      <div className="text-sm text-muted-foreground">
-                        GrabPay, Touch 'n Go, etc.
+                        {t('makePaymentDialog.cashPaymentDescription')}
                       </div>
                     </div>
                   </Label>
@@ -660,46 +635,48 @@ export function ContributionForm({
               </RadioGroup>
             )}
 
-            {!hasOnlinePayment &&
-              selectedMosqueId &&
-              !checkingPaymentProvider && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Online payment is not available for this mosque. Please use
-                    manual payment methods.
-                  </AlertDescription>
-                </Alert>
-              )}
-          </div>
+              {!hasOnlinePayment &&
+                selectedMosqueId &&
+                !checkingPaymentProvider && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {t('makePaymentDialog.onlinePaymentNotAvailable')}
+                    </AlertDescription>
+                  </Alert>
+                )}
+            </div>
+          )}
 
           {/* Payment Reference - Only show for manual payments */}
           {paymentMethod && paymentMethod !== 'billplz' && (
             <div className="space-y-2">
-              <Label htmlFor="paymentReference">Payment Reference</Label>
+              <Label htmlFor="paymentReference">
+                {t('makePaymentDialog.paymentReferenceOptional')}
+              </Label>
               <Input
                 id="paymentReference"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
-                placeholder="Transaction ID, receipt number, etc."
+                placeholder={t('makePaymentDialog.paymentReferencePlaceholder')}
               />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">{t('form.notesOptional')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional notes..."
+              placeholder={t('form.notesPlaceholder')}
               rows={3}
             />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t('makePaymentDialog.cancel')}
             </Button>
             <Button
               type="submit"
@@ -708,10 +685,10 @@ export function ContributionForm({
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Submitting...
+                  {t('form.submitting')}
                 </>
               ) : (
-                'Submit Payment'
+                t('makePaymentDialog.submitPayment')
               )}
             </Button>
           </DialogFooter>

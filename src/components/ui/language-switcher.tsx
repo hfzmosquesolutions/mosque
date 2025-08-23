@@ -1,16 +1,17 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { locales, type Locale } from '@/i18n';
-import { Globe } from 'lucide-react';
+import { Globe, Check } from 'lucide-react';
 
 interface LanguageSwitcherProps {
   variant?: 'default' | 'compact';
@@ -28,49 +29,65 @@ export function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const t = useTranslations('common');
   const locale = useLocale() as Locale;
-  const router = useRouter();
   const pathname = usePathname();
 
-  const handleLanguageChange = (newLocale: string) => {
-    // Remove the current locale from the pathname
-    const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/';
-    // Navigate to the new locale
-    router.push(`/${newLocale}${pathWithoutLocale}`);
-  };
+  // Compute pathname without leading locale prefix so we can link to the same page in another locale
+  const pathWithoutLocale = pathname.replace(/^\/(en|ms)(?=\/|$)/, '') || '/';
 
   if (variant === 'compact') {
     return (
-      <Select value={locale} onValueChange={handleLanguageChange}>
-        <SelectTrigger className={`w-[140px] ${className}`}>
-          <Globe className="h-4 w-4 mr-2" />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className={`w-[140px] ${className}`}>
+            <Globe className="h-4 w-4 mr-2" />
+            <span>{languageNames[locale]}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
           {locales.map((loc) => (
-            <SelectItem key={loc} value={loc}>
-              {languageNames[loc]}
-            </SelectItem>
+            <DropdownMenuItem key={loc} asChild>
+              <Link
+                href={`/${loc}${pathWithoutLocale}`}
+                className="flex items-center justify-between w-full"
+              >
+                <span>{languageNames[loc as Locale]}</span>
+                {loc === locale && (
+                  <Check className="h-4 w-4 text-emerald-600" />
+                )}
+              </Link>
+            </DropdownMenuItem>
           ))}
-        </SelectContent>
-      </Select>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
   return (
     <div className={`space-y-2 ${className}`}>
       <label className="text-sm font-medium">{t('language')}</label>
-      <Select value={locale} onValueChange={handleLanguageChange}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full justify-start">
+            <Globe className="h-4 w-4 mr-2" />
+            <span>{languageNames[locale]}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-full">
           {locales.map((loc) => (
-            <SelectItem key={loc} value={loc}>
-              {languageNames[loc]}
-            </SelectItem>
+            <DropdownMenuItem key={loc} asChild>
+              <Link
+                href={`/${loc}${pathWithoutLocale}`}
+                className="flex items-center justify-between w-full"
+              >
+                <span>{languageNames[loc as Locale]}</span>
+                {loc === locale && (
+                  <Check className="h-4 w-4 text-emerald-600" />
+                )}
+              </Link>
+            </DropdownMenuItem>
           ))}
-        </SelectContent>
-      </Select>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

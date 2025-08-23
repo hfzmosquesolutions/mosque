@@ -24,6 +24,10 @@ import { supabase } from '@/lib/supabase';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
+import { useUserRole } from '@/hooks/useUserRole';
+import { getUserFollowStats } from '@/lib/api/following';
+import { getMosqueFollowerCount } from '@/lib/api';
 
 interface Contribution {
   id: string;
@@ -44,15 +48,18 @@ function DashboardContent() {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [followerCount, setFollowerCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
+  const { isAdmin, mosqueId, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
-    if (user) {
+    if (!onboardingLoading && !roleLoading && isCompleted && user) {
       fetchDashboardData();
     }
-  }, [user]);
+  }, [user, onboardingLoading, roleLoading, isCompleted, isAdmin, mosqueId]);
 
   const fetchDashboardData = async () => {
     try {
@@ -90,14 +97,15 @@ function DashboardContent() {
       if (contributionsError) {
         console.error('Error fetching contributions:', contributionsError);
       } else {
-        const formattedContributions = contributionsData?.map((item: any) => ({
-          id: item.id,
-          amount: item.amount,
-          contributed_at: item.contributed_at,
-          program: {
-            name: item.khairat_programs?.name || t('unknownProgram'),
-          },
-        })) || [];
+        const formattedContributions =
+          contributionsData?.map((item: any) => ({
+            id: item.id,
+            amount: item.amount,
+            contributed_at: item.contributed_at,
+            program: {
+              name: item.khairat_programs?.name || t('unknownProgram'),
+            },
+          })) || [];
         setContributions(formattedContributions);
       }
 
@@ -110,6 +118,22 @@ function DashboardContent() {
         console.error('Error fetching stats:', statsError);
       } else {
         setStats(statsData);
+      }
+
+      // Fetch follower count based on user role
+      try {
+        if (isAdmin && mosqueId) {
+          // For admin users, get mosque follower count
+          const mosqueFollowerCount = await getMosqueFollowerCount(mosqueId);
+          setFollowerCount(mosqueFollowerCount);
+        } else if (user?.id) {
+          // For normal users, get user follower count
+          const userStats = await getUserFollowStats(user.id);
+          setFollowerCount(userStats.followers_count);
+        }
+      } catch (followerError) {
+        console.error('Error fetching follower count:', followerError);
+        setFollowerCount(0);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -124,7 +148,11 @@ function DashboardContent() {
   );
   const recentContributions = contributions.slice(0, 5);
 
-  if (userLoading || loading) {
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
+
+  if (userLoading || loading || roleLoading) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
@@ -228,17 +256,16 @@ function DashboardContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {t('activePrograms')}
+                {t('followers')}
               </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {/* This would need to be calculated based on active programs */}
-                3
+                {followerCount}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t('programsYouCanJoin')}
+                {isAdmin ? t('mosqueFollowers') : t('peopleFollowingYou')}
               </p>
             </CardContent>
           </Card>
@@ -252,8 +279,7 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {/* This would need to be fetched from dependents */}
-                0
+                {/* This would need to be fetched from dependents */}0
               </div>
               <p className="text-xs text-muted-foreground">
                 {t('familyMembersAdded')}
@@ -374,19 +400,6 @@ function DashboardContent() {
                     <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
-                <Link href="dependents">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between hover:bg-orange-50 hover:text-orange-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Users className="h-3 w-3" />
-                      {t('myDependents')}
-                    </span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
                 <Link href="profile">
                   <Button
                     variant="ghost"
@@ -447,9 +460,7 @@ function DashboardContent() {
                 ) : (
                   <>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        0
-                      </div>
+                      <div className="text-2xl font-bold text-blue-600">0</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {t('activeMembers')}
                       </div>

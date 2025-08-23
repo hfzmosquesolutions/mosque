@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAdminAccess } from '@/hooks/useUserRole';
@@ -106,7 +107,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { hasAdminAccess } = useAdminAccess();
+  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { user, signOut } = useAuth();
   const t = useTranslations('sidebar');
 
@@ -117,13 +118,19 @@ export function AppSidebar() {
       <SidebarHeader>
         <Link href="/" className="block">
           <div className="flex items-center gap-2 px-2 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors cursor-pointer">
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-600 text-sidebar-primary-foreground">
-              <Building className="size-4" />
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+              <Image 
+                src="/icon-karian-masjid.png" 
+                alt="Kariah Masjid Logo" 
+                width={32} 
+                height={32} 
+                className="object-cover"
+              />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">Mosque Admin</span>
+              <span className="truncate font-semibold">Kariah Masjid</span>
               <span className="truncate text-xs text-sidebar-foreground/70">
-                {hasAdminAccess ? 'Administrator' : 'Member'}
+                {adminLoading ? '...' : (hasAdminAccess ? t('administrator') : t('member'))}
               </span>
             </div>
           </div>
@@ -135,27 +142,41 @@ export function AppSidebar() {
           <SidebarGroupLabel>{t('navigation')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-
-                return (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.name}
-                    >
-                      <Link href={item.href}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="size-4" />
-                          <span>{item.name}</span>
-                        </span>
-                      </Link>
+              {adminLoading ? (
+                // Show skeleton loading state
+                Array.from({ length: 3 }).map((_, index) => (
+                  <SidebarMenuItem key={`skeleton-${index}`}>
+                    <SidebarMenuButton disabled>
+                      <span className="flex items-center gap-2">
+                        <div className="size-4 bg-sidebar-accent rounded animate-pulse" />
+                        <div className="h-4 w-20 bg-sidebar-accent rounded animate-pulse" />
+                      </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                );
-              })}
+                ))
+              ) : (
+                navigation.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.name}
+                      >
+                        <Link href={item.href}>
+                          <span className="flex items-center gap-2">
+                            <Icon className="size-4" />
+                            <span>{item.name}</span>
+                          </span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -166,20 +187,31 @@ export function AppSidebar() {
           <SidebarGroupLabel>{t('system')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === '/settings'}
-                  tooltip="Settings"
-                >
-                  <Link href="settings">
+              {adminLoading ? (
+                <SidebarMenuItem>
+                  <SidebarMenuButton disabled>
                     <span className="flex items-center gap-2">
-                      <Settings className="size-4" />
-                      <span>{t('settings')}</span>
+                      <div className="size-4 bg-sidebar-accent rounded animate-pulse" />
+                      <div className="h-4 w-16 bg-sidebar-accent rounded animate-pulse" />
                     </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === '/settings'}
+                    tooltip="Settings"
+                  >
+                    <Link href="settings">
+                      <span className="flex items-center gap-2">
+                        <Settings className="size-4" />
+                        <span>{t('settings')}</span>
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -188,28 +220,38 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                      <User2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {user?.email?.split('@')[0] || 'User'}
-                    </span>
-                    <span className="truncate text-xs text-sidebar-foreground/70">
-                      {user?.email || ''}
-                    </span>
-                  </div>
-                  <ChevronUp className="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
+            {adminLoading ? (
+              <SidebarMenuButton size="lg" disabled>
+                <div className="h-8 w-8 rounded-lg bg-sidebar-accent animate-pulse" />
+                <div className="grid flex-1 text-left text-sm leading-tight gap-1">
+                  <div className="h-4 w-20 bg-sidebar-accent rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-sidebar-accent rounded animate-pulse" />
+                </div>
+                <div className="ml-auto size-4 bg-sidebar-accent rounded animate-pulse" />
+              </SidebarMenuButton>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarFallback className="rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                        <User2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">
+                        {user?.email?.split('@')[0] || 'User'}
+                      </span>
+                      <span className="truncate text-xs text-sidebar-foreground/70">
+                        {user?.email || ''}
+                      </span>
+                    </div>
+                    <ChevronUp className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                 side="bottom"
@@ -230,7 +272,8 @@ export function AppSidebar() {
                   <span>{t('signOut')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

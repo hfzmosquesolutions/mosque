@@ -188,7 +188,6 @@ export async function completeOnboarding(
  */
 export async function checkOnboardingStatus(userId: string): Promise<boolean> {
   try {
-    console.log('[API] checkOnboardingStatus - Starting request for userId:', userId);
     const { data, error } = await supabase
       .from('user_profiles')
       .select('onboarding_completed')
@@ -205,7 +204,6 @@ export async function checkOnboardingStatus(userId: string): Promise<boolean> {
       return false;
     }
 
-    console.log('[API] checkOnboardingStatus - Success:', data.onboarding_completed);
     return data.onboarding_completed;
   } catch (error) {
     console.error('[API] checkOnboardingStatus - Catch error:', error);

@@ -38,6 +38,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
 import { UserProfile } from '@/types/database';
 import { FollowingDashboard } from '@/components/following';
@@ -46,6 +47,7 @@ import { useTranslations } from 'next-intl';
 
 function ProfileContent() {
   const { user } = useAuth();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations('users');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ function ProfileContent() {
     if (user?.id) {
       fetchProfile();
     }
-  }, [user?.id, fetchProfile]);
+  }, [user?.id, fetchProfile, isCompleted, onboardingLoading]);
 
   const handleSave = async () => {
     if (!user?.id || !profile) return;
@@ -122,6 +124,10 @@ function ProfileContent() {
   const getRoleBadgeVariant = () => {
     return profile?.account_type === 'admin' ? 'default' : 'secondary';
   };
+
+  if (onboardingLoading || !isCompleted) {
+    return null;
+  }
 
   if (loading) {
     return (
