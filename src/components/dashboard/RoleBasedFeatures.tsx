@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Calendar,
-  DollarSign,
+  Banknote,
   FileText,
   Heart,
   Building,
@@ -59,7 +59,7 @@ const memberFeatures: FeatureCard[] = [
   {
     title: 'Donations',
     description: 'Make donations and view your contribution history',
-    icon: <DollarSign className="h-5 w-5" />,
+    icon: <Banknote className="h-5 w-5" />,
     href: '/donations',
   },
   {
@@ -92,7 +92,7 @@ const adminFeatures: FeatureCard[] = [
   {
     title: 'Financial Reports',
     description: 'View donation reports and financial analytics',
-    icon: <DollarSign className="h-5 w-5" />,
+    icon: <Banknote className="h-5 w-5" />,
     href: '/financial-reports',
     badge: 'Admin',
     adminOnly: true,
