@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,6 +49,18 @@ export function ShareProfileButton({
   const t = useTranslations('mosqueProfile');
   const [copied, setCopied] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Generate the mosque profile URL
   const mosqueUrl = `${window.location.origin}/mosques/${mosque.id}`;
@@ -94,13 +106,17 @@ export function ShareProfileButton({
       document.getElementById('mosque-qr-code')?.parentElement;
     if (!qrContainer) return;
 
-    // Create a larger canvas to include branding
+    // Create a canvas with responsive sizing
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = 300;
-    canvas.height = 350;
+    const qrSize = isMobile ? 180 : 240;
+    const canvasWidth = qrSize + 60;
+    const canvasHeight = qrSize + 110;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
     // Fill white background
     ctx.fillStyle = 'white';
@@ -113,18 +129,20 @@ export function ShareProfileButton({
     const qrImg = new window.Image();
 
     qrImg.onload = () => {
-      // Draw QR code
-      ctx.drawImage(qrImg, 30, 30, 240, 240);
+      // Draw QR code (centered)
+      const qrX = (canvasWidth - qrSize) / 2;
+      const qrY = 30;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
       // Add branding text
       ctx.fillStyle = '#374151';
       ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('www.kariahmasjid.com', canvas.width / 2, 290);
+      ctx.fillText('www.kariahmasjid.com', canvasWidth / 2, qrY + qrSize + 30);
 
       ctx.fillStyle = '#6B7280';
       ctx.font = '12px Arial';
-      ctx.fillText('Powered by Kariah Masjid', canvas.width / 2, 310);
+      ctx.fillText('Powered by Kariah Masjid', canvasWidth / 2, qrY + qrSize + 50);
 
       const pngFile = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
@@ -147,7 +165,7 @@ export function ShareProfileButton({
             {t('shareProfile')}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-48 sm:w-56">
           <DropdownMenuItem onClick={() => setQrDialogOpen(true)}>
             <QrCode className="h-4 w-4 mr-2" />
             {t('showQRCode')}
@@ -177,7 +195,7 @@ export function ShareProfileButton({
 
       {/* QR Code Dialog */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5" />
@@ -185,7 +203,7 @@ export function ShareProfileButton({
             </DialogTitle>
             <DialogDescription>{t('qrCodeDescription')}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-3 sm:space-y-4 px-2 sm:px-0">
             {/* Mosque Info */}
             <div className="text-center space-y-2">
               <h3 className="font-semibold text-lg">{mosque.name}</h3>
@@ -197,19 +215,19 @@ export function ShareProfileButton({
             </div>
 
             {/* QR Code with Branding */}
-            <div className="bg-white p-6 rounded-lg border">
+            <div className="bg-white p-4 sm:p-6 rounded-lg border">
               <div className="relative inline-block">
                 <QRCodeSVG
                   id="mosque-qr-code"
                   value={mosqueUrl}
-                  size={240}
+                  size={isMobile ? 180 : 240}
                   level="M"
                   includeMargin
                 />
               </div>
               {/* Branding Text */}
-              <div className="mt-4 text-center">
-                <p className="text-sm font-medium text-gray-700">
+              <div className="mt-3 sm:mt-4 text-center">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">
                   www.kariahmasjid.com
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -240,26 +258,26 @@ export function ShareProfileButton({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-2 w-full">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={downloadQRCode}
-                className="flex-1"
+                className="flex-1 text-xs sm:text-sm"
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 {t('downloadQR')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleCopyLink}
-                className="flex-1"
+                className="flex-1 text-xs sm:text-sm"
               >
                 {copied ? (
-                  <Check className="h-4 w-4 mr-2 text-green-600" />
+                  <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-green-600" />
                 ) : (
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 )}
                 {copied ? t('copied') : t('copyLink')}
               </Button>

@@ -276,20 +276,6 @@ export default function MosqueProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Navigation Bar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <Button
-            onClick={() => router.push('/mosques')}
-            variant="ghost"
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('backToMosques')}
-          </Button>
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
@@ -306,10 +292,10 @@ export default function MosqueProfilePage() {
             }}
           >
             <div className="absolute inset-0 bg-black/20"></div>
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="flex items-end justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center overflow-hidden">
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+              <div className="flex flex-col space-y-4 sm:flex-row sm:items-end sm:justify-between sm:space-y-0">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                     {mosque.logo_url ? (
                       <img
                         src={mosque.logo_url}
@@ -317,37 +303,49 @@ export default function MosqueProfilePage() {
                         className="w-full h-full object-cover rounded-xl"
                       />
                     ) : (
-                      <Building className="h-10 w-10 text-emerald-600" />
+                      <Building className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
                     )}
                   </div>
-                  <div className="text-white">
-                    <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
+                  <div className="text-white min-w-0 flex-1">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 leading-tight">
+                      {mosque.name}
+                    </h1>
                     {mosque.address && (
-                      <div className="flex items-center text-white/90">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        <span>{mosque.address}</span>
+                      <div className="flex items-start text-white/90">
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm sm:text-base leading-tight">
+                          {mosque.address}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-end space-x-2 sm:space-x-3 flex-shrink-0">
                   {user && (
                     <Button
                       onClick={handleFollow}
                       disabled={followLoading}
                       variant={isFollowing ? 'secondary' : 'default'}
+                      size="sm"
+                      className="text-xs sm:text-sm"
                     >
                       {followLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-current mr-1 sm:mr-2"></div>
                       ) : isFollowing ? (
                         <>
-                          <Users className="h-4 w-4 mr-2" />
-                          {t('following')}
+                          <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">
+                            {t('following')}
+                          </span>
+                          <span className="sm:hidden">Following</span>
                         </>
                       ) : (
                         <>
-                          <Users className="h-4 w-4 mr-2" />
-                          {t('follow')}
+                          <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">
+                            {t('follow')}
+                          </span>
+                          <span className="sm:hidden">Follow</span>
                         </>
                       )}
                     </Button>
@@ -355,7 +353,7 @@ export default function MosqueProfilePage() {
                   <ShareProfileButton mosque={mosque} />
                   <Badge
                     variant="secondary"
-                    className="bg-white/20 text-white border-white/30"
+                    className="bg-white/20 text-white border-white/30 text-xs sm:text-sm px-2 py-1"
                   >
                     {t('active')}
                   </Badge>
