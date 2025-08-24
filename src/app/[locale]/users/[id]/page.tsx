@@ -135,7 +135,7 @@ export default function PublicUserProfilePage() {
               <p className="text-slate-600 dark:text-slate-400 mb-6">
                 {error || t('profileNotFoundDescription')}
               </p>
-              <Link href="../../dashboard">
+              <Link href="/dashboard">
                 <Button className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   {t('backToDashboard')}
@@ -153,7 +153,7 @@ export default function PublicUserProfilePage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Link href="../../dashboard">
+          <Link href="/dashboard">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               {tCommon('back')}
@@ -170,7 +170,7 @@ export default function PublicUserProfilePage() {
               />
             )}
             {isOwnProfile && (
-              <Link href="../../profile">
+              <Link href="/profile">
                 <Button variant="outline" className="gap-2">
                   <User className="h-4 w-4" />
                   {t('editProfile')}
@@ -361,7 +361,7 @@ export default function PublicUserProfilePage() {
               {isOwnProfile && (
                 <p className="mt-2">
                   <Link
-                    href="../../profile"
+                    href="/profile"
                     className="text-blue-600 hover:text-blue-800"
                    >
                     {t('editProfileSettings')}

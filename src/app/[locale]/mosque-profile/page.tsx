@@ -738,7 +738,7 @@ function MosqueProfileContent() {
                       <div className="pt-4 border-t">
                         <Button variant="outline" className="w-full" asChild>
                           <a
-                            href="contributions"
+                            href="/contributions"
                             className="flex items-center gap-2"
                           >
                             <TrendingUp className="h-4 w-4" />
@@ -758,7 +758,7 @@ function MosqueProfileContent() {
                       </p>
                       <Button variant="outline" asChild>
                         <a
-                          href="contributions"
+                          href="/contributions"
                           className="flex items-center gap-2"
                         >
                           <Plus className="h-4 w-4" />

@@ -165,7 +165,7 @@ function ResetPasswordContent() {
               asChild
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              <Link href="login">{t('backToLogin')}</Link>
+              <Link href="/login">{t('backToLogin')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -332,7 +332,7 @@ function ResetPasswordContent() {
               variant="ghost"
               className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
             >
-              <Link href="login">
+              <Link href="/login">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {t('backToLogin')}
               </Link>
