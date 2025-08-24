@@ -32,6 +32,7 @@ import { getMosqueFollowerCount, getMosqueKhairatContributions } from '@/lib/api
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 
+
 interface Contribution {
   id: string;
   amount: number;
@@ -283,6 +284,8 @@ function DashboardContent() {
           </div>
         </div>
 
+        {/* Dashboard Content */}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
@@ -508,6 +511,9 @@ function DashboardContent() {
             <NotificationCard />
           </div>
         </div>
+
+
+
       </div>
     </DashboardLayout>
   );

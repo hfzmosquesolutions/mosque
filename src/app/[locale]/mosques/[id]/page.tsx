@@ -37,6 +37,7 @@ import {
 } from '@/lib/api';
 import { EventCard } from '@/components/events/EventCard';
 import { ContributionForm } from '@/components/contributions/ContributionForm';
+import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
 import { Mosque, Event, ContributionProgram } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
@@ -335,11 +336,6 @@ export default function MosqueProfilePage() {
                       onClick={handleFollow}
                       disabled={followLoading}
                       variant={isFollowing ? 'secondary' : 'default'}
-                      className={
-                        isFollowing
-                          ? 'bg-white/20 text-white border-white/30 hover:bg-white/30'
-                          : 'bg-white text-emerald-600 hover:bg-gray-100'
-                      }
                     >
                       {followLoading ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
@@ -356,6 +352,7 @@ export default function MosqueProfilePage() {
                       )}
                     </Button>
                   )}
+                  <ShareProfileButton mosque={mosque} />
                   <Badge
                     variant="secondary"
                     className="bg-white/20 text-white border-white/30"
@@ -398,8 +395,6 @@ export default function MosqueProfilePage() {
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Main Content */}
@@ -468,7 +463,6 @@ export default function MosqueProfilePage() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
-
                 {/* Prayer Times */}
                 {mosque.prayer_times && (
                   <Card className="border-0 shadow-sm">

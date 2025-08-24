@@ -103,7 +103,7 @@ export default function Header() {
                         Dashboard
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                    {RUNTIME_FEATURES.EVENTS_VISIBLE && (
+                    {/* {RUNTIME_FEATURES.EVENTS_VISIBLE && (
                       <NavigationMenuItem>
                         <NavigationMenuLink
                           href="events"
@@ -112,7 +112,7 @@ export default function Header() {
                           Events
                         </NavigationMenuLink>
                       </NavigationMenuItem>
-                    )}
+                    )} */}
                   </>
                 )}
 

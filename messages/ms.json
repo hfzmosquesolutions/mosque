@@ -477,6 +477,8 @@
     "enterFullName": "Masukkan nama penuh anda",
     "phoneNumber": "Nombor Telefon",
     "enterPhoneNumber": "Masukkan nombor telefon anda",
+    "icPassportNumber": "No. IC/Pasport",
+    "enterIcPassportNumber": "Masukkan nombor IC/Pasport",
     "addressOptional": "Alamat (Pilihan)",
     "enterAddress": "Masukkan alamat anda",
     "accountType": "Jenis Akaun",
@@ -519,7 +521,8 @@
     "back": "Kembali",
     "next": "Seterusnya",
     "completing": "Menyelesaikan...",
-    "completeSetup": "Lengkapkan Persediaan"
+    "completeSetup": "Lengkapkan Persediaan",
+    "icPassportNumber": "No. IC/Pasport"
   },
   "users": {
     "title": "Pengguna",
@@ -812,11 +815,17 @@
     "adminNotesPlaceholder": "Tambah nota untuk penuntut...",
     "noClaimsFound": "Tiada tuntutan dijumpai",
     "rejectedClaims": "Tuntutan Ditolak",
+    "titlePlaceholder": "Masukkan tajuk tuntutan...",
     "stats": {
       "totalClaims": "Jumlah Tuntutan",
       "pendingClaims": "Tuntutan Tertunda",
       "approvedClaims": "Tuntutan Diluluskan",
-      "rejectedClaims": "Tuntutan Ditolak"
+      "rejectedClaims": "Tuntutan Ditolak",
+      "claimedAmount": "Jumlah Dituntut",
+      "totalAmount": "Jumlah Keseluruhan",
+      "allTimeSubmissions": "Semua Penyerahan",
+      "awaitingReview": "Menunggu Semakan",
+      "readyForPayment": "Sedia untuk Pembayaran"
     },
     "mosque": "Masjid"
   },
@@ -962,7 +971,20 @@
     "address": "Alamat",
     "community": "Komuniti",
     "joinCommunity": "Sertai komuniti kami untuk kekal dikemas kini",
-    "signInToFollow": "Log Masuk untuk Mengikuti"
+    "signInToFollow": "Log Masuk untuk Mengikuti",
+    "shareProfile": "Kongsi Profil",
+    "showQRCode": "Tunjuk Kod QR",
+    "copyLink": "Salin Pautan",
+    "shareOnWhatsApp": "Kongsi di WhatsApp",
+    "shareOnFacebook": "Kongsi di Facebook",
+    "shareOnTwitter": "Kongsi di Twitter",
+    "qrCodeTitle": "Kod QR untuk Profil Masjid",
+    "qrCodeDescription": "Imbas kod QR ini untuk melawat profil masjid",
+    "downloadQR": "Muat Turun QR",
+    "linkCopied": "Pautan disalin!",
+    "failedToCopyLink": "Gagal menyalin pautan",
+    "checkOutMosque": "Lihat masjid ini:",
+    "copied": "Disalin"
   },
   "findMosque": {
     "failedToFetchMosques": "Gagal mengambil data masjid",
@@ -1006,6 +1028,7 @@
     "totalContributed": "Jumlah Disumbang",
     "recentActivity": "Aktiviti Terkini",
     "recentPayments": "Pembayaran Terkini",
+    "latestKhairatPayments": "Pembayaran Khairat Terkini",
     "averagePayment": "Purata Pembayaran",
     "perPayment": "setiap pembayaran",
     "programsSupported": "Program Disokong",
