@@ -14,5 +14,6 @@ export const FEATURES = {
 
 // Runtime feature flags (can be controlled via environment variables)
 export const RUNTIME_FEATURES = {
-  EVENTS_VISIBLE: process.env.NEXT_PUBLIC_EVENTS_ENABLED !== 'false',
+  // Events are hidden for all users
+  EVENTS_VISIBLE: false,
 } as const
