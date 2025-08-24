@@ -15,10 +15,10 @@ function getSupabaseAdmin() {
 // POST /api/claims/[id]/mark-paid - Mark a claim as paid
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       markedBy,

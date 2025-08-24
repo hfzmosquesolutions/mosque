@@ -16,10 +16,10 @@ function getSupabaseAdmin() {
 // GET /api/claims/[id] - Get single claim with details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const includeHistory = searchParams.get('includeHistory') === 'true';
     const includeDocuments = searchParams.get('includeDocuments') === 'true';
@@ -113,10 +113,10 @@ export async function GET(
 // PUT /api/claims/[id] - Update claim
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       claimAmount,
@@ -242,10 +242,10 @@ export async function PUT(
 // DELETE /api/claims/[id] - Cancel/Delete claim
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 

@@ -783,7 +783,8 @@
       "approvedClaims": "Approved Claims",
       "rejectedClaims": "Rejected Claims",
       "claimedAmount": "Claimed amount"
-    }
+    },
+    "mosque": "Mosque"
   },
   "test": {
     "testPublicAccess": {
@@ -1145,6 +1146,9 @@
     "kariahApplication": "Kariah Application",
     "mosqueProfile": "Mosque Profile",
     "kariah": "Kariah Members",
+    "claims": {
+      "title": "Claims"
+    },
     "settings": "Settings",
     "signOut": "Sign Out",
     "administrator": "Administrator",

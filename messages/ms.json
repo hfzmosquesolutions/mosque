@@ -817,7 +817,8 @@
       "pendingClaims": "Tuntutan Tertunda",
       "approvedClaims": "Tuntutan Diluluskan",
       "rejectedClaims": "Tuntutan Ditolak"
-    }
+    },
+    "mosque": "Masjid"
   },
   "testPublicAccess": {
     "testingPublicAccess": "Menguji Akses Awam",
@@ -1185,6 +1186,9 @@
     "kariahApplication": "Permohonan Kariah",
     "mosqueProfile": "Profil Masjid",
     "kariah": "Ahli Kariah",
+    "claims": {
+      "title": "Tuntutan"
+    },
     "settings": "Tetapan",
     "signOut": "Log Keluar",
     "administrator": "Pentadbir",
