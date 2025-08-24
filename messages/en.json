@@ -443,6 +443,8 @@
     "enterFullName": "Enter your full name",
     "phoneNumber": "Phone Number",
     "enterPhoneNumber": "Enter your phone number",
+    "icPassportNumber": "IC/Passport Number",
+    "enterIcPassportNumber": "Enter IC/Passport number",
     "addressOptional": "Address (Optional)",
     "enterAddress": "Enter your address",
     "accountType": "Account Type",
@@ -485,7 +487,8 @@
     "back": "Back",
     "next": "Next",
     "completing": "Completing...",
-    "completeSetup": "Complete Setup"
+    "completeSetup": "Complete Setup",
+    "icPassportNumber": "IC/Passport Number"
   },
   "users": {
     "title": "Users",
@@ -777,12 +780,18 @@
     "adminNotesPlaceholder": "Add notes for the claimant...",
     "noClaimsFound": "No claims found",
     "rejectedClaims": "Rejected Claims",
+    "titlePlaceholder": "Enter claim title...",
+    "cancel": "Cancel",
     "stats": {
       "totalClaims": "Total Claims",
       "pendingClaims": "Pending Claims",
       "approvedClaims": "Approved Claims",
       "rejectedClaims": "Rejected Claims",
-      "claimedAmount": "Claimed amount"
+      "claimedAmount": "Claimed amount",
+      "totalAmount": "Total Amount",
+      "allTimeSubmissions": "All Time Submissions",
+      "awaitingReview": "Awaiting Review",
+      "readyForPayment": "Ready for Payment"
     },
     "mosque": "Mosque"
   },
@@ -913,7 +922,20 @@
     "address": "Address",
     "community": "Community",
     "joinCommunity": "Join our community to stay updated",
-    "signInToFollow": "Sign In to Follow"
+    "signInToFollow": "Sign In to Follow",
+    "shareProfile": "Share Profile",
+    "showQRCode": "Show QR Code",
+    "copyLink": "Copy Link",
+    "shareOnWhatsApp": "Share on WhatsApp",
+    "shareOnFacebook": "Share on Facebook",
+    "shareOnTwitter": "Share on Twitter",
+    "qrCodeTitle": "QR Code for Mosque Profile",
+    "qrCodeDescription": "Scan this QR code to visit the mosque profile",
+    "downloadQR": "Download QR",
+    "linkCopied": "Link copied!",
+    "failedToCopyLink": "Failed to copy link",
+    "checkOutMosque": "Check out this mosque:",
+    "copied": "Copied"
   },
   "findMosque": {
     "failedToFetchMosques": "Failed to fetch mosques",
@@ -957,6 +979,7 @@
     "totalContributed": "Total Contributed",
     "recentActivity": "Recent Activity",
     "recentPayments": "Recent Payments",
+    "latestKhairatPayments": "Latest Khairat Payments",
     "averagePayment": "Average Payment",
     "perPayment": "per payment",
     "programsSupported": "Programs Supported",
