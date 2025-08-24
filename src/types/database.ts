@@ -17,6 +17,16 @@ export type KhairatStatus = ContributionStatus;
 
 export type ResourceType = 'article' | 'video' | 'audio' | 'document' | 'link';
 export type NotificationType = 'info' | 'warning' | 'success' | 'error';
+export type NotificationCategory = 
+  | 'kariah_application' 
+  | 'contribution' 
+  | 'donation' 
+  | 'event' 
+  | 'announcement' 
+  | 'system' 
+  | 'following' 
+  | 'membership' 
+  | 'payment';
 
 // =============================================
 // CORE INTERFACES
@@ -30,6 +40,8 @@ export interface Mosque {
   email?: string;
   website?: string;
   description?: string;
+  logo_url?: string | null; // URL to the mosque logo image
+  banner_url?: string | null; // URL to the mosque banner image
   user_id: string; // References auth.users(id) - mosque owner/creator
   prayer_times?: Record<string, unknown>; // JSON object for prayer times configuration
   settings?: Record<string, unknown>; // JSON object for mosque-specific settings
@@ -43,6 +55,7 @@ export interface UserProfile {
   full_name: string;
   phone?: string;
   address?: string;
+  ic_passport_number?: string; // Identity Card or Passport number
   account_type: UserAccountType;
   membership_type?: MembershipType;
   role: UserRole;
@@ -271,6 +284,7 @@ export interface Notification {
   title: string;
   message: string;
   type: NotificationType;
+  category?: NotificationCategory;
   is_read: boolean;
   action_url?: string;
   metadata?: Record<string, unknown>;
@@ -360,6 +374,7 @@ export interface OnboardingData {
   fullName: string;
   phone: string;
   address: string;
+  icPassportNumber: string;
   accountType: UserAccountType | '';
   mosqueAction?: 'join' | 'create';
   mosqueName?: string;
@@ -534,8 +549,9 @@ export type TableName =
   | 'contribution_programs'
   | 'contributions'
   | 'khairat_programs'
-  | 'contributions'
-
+  | 'khairat_claims'
+  | 'claim_documents'
+  | 'claim_history'
   | 'resource_categories'
   | 'resources'
   | 'audit_logs'
@@ -607,7 +623,21 @@ export interface Database {
         Insert: CreateUserDependent;
         Update: UpdateUserDependent;
       };
-      // Add other tables as needed
+      khairat_claims: {
+        Row: KhairatClaim;
+        Insert: CreateKhairatClaim;
+        Update: UpdateKhairatClaim;
+      };
+      claim_documents: {
+        Row: ClaimDocument;
+        Insert: Omit<ClaimDocument, 'id' | 'created_at'>;
+        Update: never; // Documents are insert/delete only
+      };
+      claim_history: {
+        Row: ClaimHistory;
+        Insert: Omit<ClaimHistory, 'id' | 'created_at'>;
+        Update: never; // History is insert only
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -619,8 +649,9 @@ export interface Database {
       event_status: EventStatus;
       donation_status: DonationStatus;
       contribution_status: ContributionStatus;
-  khairat_status: KhairatStatus; // Legacy alias
-    
+      khairat_status: KhairatStatus; // Legacy alias
+      claim_status: ClaimStatus;
+      claim_priority: ClaimPriority;
     };
   };
 }
@@ -672,3 +703,94 @@ export interface StripePaymentData extends BasePaymentData {
 
 // Union type for all payment providers
 export type PaymentData = BillplzPaymentData | StripePaymentData | BasePaymentData;
+
+// Claim-related types
+export type ClaimStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'paid' | 'cancelled';
+export type ClaimPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+// Khairat Claims interfaces
+export interface KhairatClaim {
+  id: string;
+  claimant_id: string;
+  mosque_id: string;
+  program_id?: string;
+  title: string;
+  description: string;
+  requested_amount: number;
+  approved_amount?: number;
+  status: ClaimStatus;
+  priority: ClaimPriority;
+  reason_category?: string;
+  supporting_documents?: any;
+  admin_notes?: string;
+  rejection_reason?: string;
+  disbursement_method?: string;
+  disbursement_reference?: string;
+  disbursed_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  approved_by?: string;
+  approved_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClaimDocument {
+  id: string;
+  claim_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface ClaimHistory {
+  id: string;
+  claim_id: string;
+  action: string;
+  old_status?: ClaimStatus;
+  new_status?: ClaimStatus;
+  performed_by: string;
+  notes?: string;
+  created_at: string;
+}
+
+// Extended interfaces with relations
+export interface KhairatClaimWithDetails extends KhairatClaim {
+  claimant?: UserProfile;
+  mosque?: Mosque;
+  program?: ContributionProgram;
+  documents?: ClaimDocument[];
+  history?: ClaimHistory[];
+  reviewer?: UserProfile;
+  approver?: UserProfile;
+}
+
+// Form data interfaces
+export interface ClaimFormData {
+  mosque_id: string;
+  requested_amount: number;
+  title: string;
+  description?: string;
+  priority: ClaimPriority;
+  documents?: File[];
+}
+
+// Create and Update types
+export type CreateKhairatClaim = Omit<KhairatClaim, 'id' | 'created_at' | 'updated_at' | 'status' | 'submitted_at'>;
+export type UpdateKhairatClaim = Partial<Omit<KhairatClaim, 'id' | 'created_at' | 'updated_at' | 'claimant_id' | 'mosque_id'>>;
+
+// Filters for claims
+export interface ClaimFilters extends SearchFilters {
+  mosque_id?: string;
+  status?: ClaimStatus;
+  priority?: ClaimPriority;
+  program_id?: string;
+  claimant_id?: string;
+  amount_min?: number;
+  amount_max?: number;
+  submitted_from?: string;
+  submitted_to?: string;
+}

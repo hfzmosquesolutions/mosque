@@ -1,0 +1,3 @@
+name,ic_number,phone,address_line1,address_line2,address_line3,payment_date,payment_amount,payment_method,description
+Ahmad bin Ali,123456789012,0123456789,123 Jalan Mawar,Taman Seri Indah,50000 Kuala Lumpur,2024-01-15,100.00,Cash,Monthly contribution
+Siti Fatimah,987654321098,0198765432,456 Lorong Melati,Kampung Baru,53000 Kuala Lumpur,2024-02-20,150.00,Bank Transfer,Annual payment

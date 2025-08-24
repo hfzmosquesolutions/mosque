@@ -86,6 +86,7 @@ function ProfileContent() {
       date_of_birth: profile.date_of_birth,
       gender: profile.gender,
       occupation: profile.occupation,
+      ic_passport_number: profile.ic_passport_number,
       emergency_contact_name: profile.emergency_contact_name,
       emergency_contact_phone: profile.emergency_contact_phone,
     });
@@ -306,6 +307,15 @@ function ProfileContent() {
                     <p className="text-xs text-slate-500">
                       {t('emailCannotBeChanged')}
                     </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="icPassportNumber">IC/Passport Number</Label>
+                    <Input
+                      id="icPassportNumber"
+                      value={profile.ic_passport_number || ''}
+                      onChange={(e) => updateField('ic_passport_number', e.target.value)}
+                      placeholder="Enter your IC or Passport number"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dateOfBirth">{t('dateOfBirth')}</Label>

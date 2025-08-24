@@ -106,15 +106,11 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-5 w-5 text-emerald-600" />
-              <span className="text-sm font-medium">
-                {t('rating')}
-              </span>
+              <span className="text-sm font-medium">{t('rating')}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-emerald-600" />
-              <span className="text-sm font-medium">
-                {t('support24x7')}
-              </span>
+              <span className="text-sm font-medium">{t('support24x7')}</span>
             </div>
           </div>
         </div>
@@ -166,7 +162,9 @@ export default function Home() {
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
                 <Calendar className="h-6 w-6 text-blue-600" />
               </div>
-              <CardTitle className="text-xl">{t('eventsProgramsTitle')}</CardTitle>
+              <CardTitle className="text-xl">
+                {t('eventsProgramsTitle')}
+              </CardTitle>
               <CardDescription className="text-base">
                 {t('eventsProgramsDescription')}
               </CardDescription>
@@ -224,7 +222,9 @@ export default function Home() {
               <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900 rounded-lg flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-rose-600" />
               </div>
-              <CardTitle className="text-xl">{t('communityFeaturesTitle')}</CardTitle>
+              <CardTitle className="text-xl">
+                {t('communityFeaturesTitle')}
+              </CardTitle>
               <CardDescription className="text-base">
                 {t('communityFeaturesDescription')}
               </CardDescription>
@@ -252,7 +252,9 @@ export default function Home() {
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center mb-4">
                 <Shield className="h-6 w-6 text-amber-600" />
               </div>
-              <CardTitle className="text-xl">{t('securityPrivacyTitle')}</CardTitle>
+              <CardTitle className="text-xl">
+                {t('securityPrivacyTitle')}
+              </CardTitle>
               <CardDescription className="text-base">
                 {t('securityPrivacyDescription')}
               </CardDescription>
@@ -385,9 +387,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-          <p className="text-emerald-100 text-sm mt-6">
-              {t('ctaNoCredit')}
-            </p>
+          <p className="text-emerald-100 text-sm mt-6">{t('ctaNoCredit')}</p>
         </div>
       </div>
       {/* Footer */}
@@ -395,11 +395,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
-              <Image 
-                src="/logo-kariah-masjid.jpg" 
-                alt="Kariah Masjid Logo" 
-                width={128} 
-                height={32} 
+              <Image
+                src="/logo-kariah-masjid.png"
+                alt="Kariah Masjid Logo"
+                width={128}
+                height={32}
                 className="rounded-md"
               />
             </div>

@@ -23,6 +23,7 @@ import {
   DollarSign,
   TrendingUp,
   Users,
+  Edit,
 } from 'lucide-react';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,8 +31,23 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { ContributionForm } from '@/components/contributions/ContributionForm';
 import { ContributionsTabContent } from '@/components/contributions/ContributionsTabContent';
 import { UserPaymentsTable } from '@/components/contributions/UserPaymentsTable';
-import { getUserContributions, getContributionPrograms } from '@/lib/api';
+
+import { ProgramManagement } from '@/components/contributions/ProgramManagement';
+import {
+  getUserContributions,
+  getContributionPrograms,
+  getMosque,
+  getMosqueKhairatContributions,
+} from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { EditProgramForm } from '@/components/contributions/EditProgramForm';
 import type {
   Contribution,
   ContributionProgram,
@@ -47,9 +63,19 @@ function KhairatContent() {
   const [userContributions, setUserContributions] = useState<
     (Contribution & { program: ContributionProgram & { mosque: Mosque } })[]
   >([]);
+  const [allContributions, setAllContributions] = useState<
+    (Contribution & { program: any; contributor?: any })[]
+  >([]);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);
+  const [mosque, setMosque] = useState<Mosque | null>(null);
   const [loading, setLoading] = useState(true);
   const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
+  const [isProgramManagementOpen, setIsProgramManagementOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] =
+    useState<ContributionProgram | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [programToEdit, setProgramToEdit] =
+    useState<ContributionProgram | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -70,15 +96,37 @@ function KhairatContent() {
         if (programsResult.success && programsResult.data) {
           setPrograms(programsResult.data);
         }
+
+        const mosqueResult = await getMosque(mosqueId);
+        if (mosqueResult.success && mosqueResult.data) {
+          setMosque(mosqueResult.data);
+        }
+
+        // Fetch all contributions for admin users
+        if (hasAdminAccess) {
+          try {
+            const allContributionsResult = await getMosqueKhairatContributions(
+              mosqueId,
+              50,
+              0
+            );
+            setAllContributions(allContributionsResult.data || []);
+          } catch (error) {
+            console.error('Error fetching all contributions:', error);
+            setAllContributions([]);
+          }
+        }
       } else {
         setPrograms([]);
+        setMosque(null);
+        setAllContributions([]);
       }
     } catch (error) {
       console.error('Error fetching khairat data:', error);
     } finally {
       setLoading(false);
     }
-  }, [user, mosqueId]);
+  }, [user, mosqueId, hasAdminAccess]);
 
   useEffect(() => {
     if (user) fetchData();
@@ -99,18 +147,24 @@ function KhairatContent() {
     );
   }
 
-  const totalContributed = userContributions.reduce(
+  // Use allContributions for admin users, userContributions for regular users
+  const contributionsToCalculate = hasAdminAccess ? allContributions : userContributions;
+  
+  const totalContributed = contributionsToCalculate.reduce(
     (sum, contribution) => sum + contribution.amount,
     0
   );
   const activePrograms = programs.filter((p) => p.is_active).length;
-  const recentContributions = userContributions.slice(0, 5);
+  const recentContributions = hasAdminAccess
+    ? allContributions.slice(0, 5)
+    : userContributions.slice(0, 5);
   const averageContribution =
-    userContributions.length > 0
-      ? totalContributed / userContributions.length
+    contributionsToCalculate.length > 0
+      ? totalContributed / contributionsToCalculate.length
       : 0;
-  const programsSupported = new Set(userContributions.map((c) => c.program_id))
-    .size;
+  const programsSupported = hasAdminAccess 
+    ? new Set(allContributions.map((c) => c.program_id)).size
+    : new Set(userContributions.map((c) => c.program_id)).size;
 
   return (
     <div className="space-y-6">
@@ -127,11 +181,15 @@ function KhairatContent() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Activity className="h-4 w-4" />
-                  <span>{userContributions.length} {t('paymentsMade')}</span>
+                  <span>
+                    {userContributions.length} {t('paymentsMade')}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Target className="h-4 w-4" />
-                  <span>{activePrograms} {t('activePrograms')}</span>
+                  <span>
+                    {activePrograms} {t('activePrograms')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -184,7 +242,9 @@ function KhairatContent() {
                   RM {totalContributed.toLocaleString()}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {t('acrossPayments', { count: userContributions.length })}
+                  {hasAdminAccess 
+                    ? t('acrossPayments', { count: allContributions.length }) + ' (All Users)'
+                    : t('acrossPayments', { count: userContributions.length })}
                 </p>
               </CardContent>
             </Card>
@@ -262,11 +322,24 @@ function KhairatContent() {
                       {t('supportWelfareInitiatives')}
                     </CardDescription>
                   </div>
-                  {programs.filter((p) => p.is_active).length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {programs.filter((p) => p.is_active).length} {t('active')}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {programs.filter((p) => p.is_active).length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {programs.filter((p) => p.is_active).length}{' '}
+                        {t('active')}
+                      </Badge>
+                    )}
+                    {hasAdminAccess && (
+                      <Button
+                        onClick={() => setIsProgramManagementOpen(true)}
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add Program
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -297,7 +370,10 @@ function KhairatContent() {
                           <div
                             key={program.id}
                             className="group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all duration-200 p-3 rounded-lg border border-gray-100 dark:border-gray-800"
-                            onClick={() => setIsContributionModalOpen(true)}
+                            onClick={() => {
+                              setProgramToEdit(program);
+                              setIsEditDialogOpen(true);
+                            }}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1 min-w-0">
@@ -359,7 +435,9 @@ function KhairatContent() {
                       {t('recentPayments')}
                     </CardTitle>
                     <CardDescription className="text-sm">
-                      {t('yourLatestKhairatActivity')}
+                      {hasAdminAccess
+                        ? t('latestKhairatPayments')
+                        : t('yourLatestKhairatActivity')}
                     </CardDescription>
                   </div>
                   {recentContributions.length > 0 && (
@@ -400,7 +478,11 @@ function KhairatContent() {
                             {contribution.program?.name || 'Program'}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {contribution.program?.mosque?.name || ''}
+                            {hasAdminAccess
+                              ? (contribution as any).contributor?.full_name ||
+                                contribution.contributor_name ||
+                                'Anonymous'
+                              : contribution.contributor_name || 'Anonymous'}
                           </p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -434,11 +516,50 @@ function KhairatContent() {
         </TabsContent>
       </Tabs>
 
+      {hasAdminAccess && (
+        <ProgramManagement
+          filterType="khairat"
+          onProgramsUpdate={fetchData}
+          isCreateDialogOpen={isProgramManagementOpen}
+          onCreateDialogOpenChange={setIsProgramManagementOpen}
+        />
+      )}
+
       <ContributionForm
         isOpen={isContributionModalOpen}
         onClose={() => setIsContributionModalOpen(false)}
-        defaultProgramType="khairat"
+        onSuccess={fetchData}
       />
+
+      {/* Edit Program Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Program
+            </DialogTitle>
+            <DialogDescription>
+              Update the details of this khairat program
+            </DialogDescription>
+          </DialogHeader>
+
+          {programToEdit && (
+            <EditProgramForm
+              program={programToEdit}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                setProgramToEdit(null);
+                fetchData();
+              }}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setProgramToEdit(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

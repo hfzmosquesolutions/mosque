@@ -12,7 +12,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Mail, Globe, Search, Building, Clock, Users, Star, Filter } from 'lucide-react';
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Search,
+  Building,
+  Clock,
+  Users,
+  Star,
+  Filter,
+} from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
 import { useTranslations } from 'next-intl';
@@ -131,7 +142,9 @@ export default function MosquesPage() {
               <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
                 {t('mosques.discoverMosques')}
               </h1>
-              <p className="text-emerald-600 font-medium">{t('mosques.findCommunity')}</p>
+              <p className="text-emerald-600 font-medium">
+                {t('mosques.findCommunity')}
+              </p>
             </div>
           </div>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
@@ -168,7 +181,9 @@ export default function MosquesPage() {
               {t('mosques.mosquesFound', { count: filteredMosques.length })}
             </h2>
             <p className="text-slate-600 dark:text-slate-400">
-              {searchQuery ? t('mosques.resultsFor', { query: searchQuery }) : t('mosques.allRegistered')}
+              {searchQuery
+                ? t('mosques.resultsFor', { query: searchQuery })
+                : t('mosques.allRegistered')}
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -218,12 +233,15 @@ export default function MosquesPage() {
                         </div>
                       )}
                     </div>
-                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                    <Badge
+                      variant="secondary"
+                      className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
+                    >
                       <div className="w-2 h-2 bg-emerald-500 rounded-full mr-1"></div>
                       {t('mosques.active')}
                     </Badge>
                   </div>
-                  
+
                   {mosque.description && (
                     <CardDescription className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
                       {mosque.description}
@@ -247,7 +265,9 @@ export default function MosquesPage() {
                         <div className="w-8 h-8 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
                           <Mail className="h-4 w-4 text-purple-600" />
                         </div>
-                        <span className="truncate font-medium">{mosque.email}</span>
+                        <span className="truncate font-medium">
+                          {mosque.email}
+                        </span>
                       </div>
                     )}
 
@@ -256,22 +276,24 @@ export default function MosquesPage() {
                         <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
                           <Globe className="h-4 w-4 text-green-600" />
                         </div>
-                        <span className="truncate font-medium">{mosque.website}</span>
+                        <span className="truncate font-medium">
+                          {mosque.website}
+                        </span>
                       </div>
                     )}
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{t('mosques.prayerTimes')}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          <span>{t('mosques.community')}</span>
-                        </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{t('mosques.prayerTimes')}</span>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{t('mosques.community')}</span>
+                      </div>
+                    </div>
                     <Button
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"

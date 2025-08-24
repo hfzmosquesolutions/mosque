@@ -397,11 +397,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
-              <Image 
-                src="/logo-kariah-masjid.jpg" 
-                alt="Kariah Masjid Logo" 
-                width={128} 
-                height={32} 
+              <Image
+                src="/logo-kariah-masjid.png"
+                alt="Kariah Masjid Logo"
+                width={128}
+                height={32}
                 className="rounded-md"
               />
             </div>

@@ -1,0 +1,4 @@
+ic_passport_number,full_name,address_line_1,address_line_2,address_line_3,payment_date,payment_amount,payment_method,payment_description
+123456789012,Ahmad bin Abdullah,"123 Jalan Masjid","Taman Harmoni","50000 Kuala Lumpur",2023-01-15,50.00,Cash,Monthly contribution
+987654321098,Siti binti Hassan,"456 Lorong Damai","Kampung Sejahtera","40000 Shah Alam",2023-02-20,75.00,Bank Transfer,Annual payment
+111222333444,Muhammad bin Omar,"789 Jalan Bahagia","","30000 Ipoh",2023-03-10,100.00,Cash,Special donation

@@ -307,7 +307,7 @@ export function ContributionsList({
                       <TableCell>
                         <div>
                           <div className="font-medium">
-                            {contribution.contributor_name || 'Anonymous'}
+                            {(contribution as any).contributor?.full_name || contribution.contributor_name || 'Anonymous'}
                           </div>
                           {contribution.notes && (
                             <div className="text-sm text-muted-foreground truncate max-w-32">

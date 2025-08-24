@@ -202,6 +202,61 @@ export function ContributionsTabContent({
     setProgramFilter('all');
   };
 
+  const handleExportCSV = () => {
+    if (filteredContributions.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Contributor Name',
+      'Program Name',
+      'Amount (RM)',
+      'Status',
+      'Payment Method',
+      'Payment Reference',
+      'Notes',
+      'Contributed Date'
+    ];
+
+    // Convert data to CSV format
+    const csvData = filteredContributions.map(contribution => [
+      contribution.contributor_name || 'Anonymous',
+      contribution.program?.name || 'Unknown Program',
+      contribution.amount.toString(),
+      contribution.status,
+      contribution.payment_method || 'Not specified',
+      contribution.payment_reference || '',
+      contribution.notes || '',
+      new Date(contribution.contributed_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payments-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`Exported ${filteredContributions.length} payment records`);
+  };
+
   const formatCurrency = (amount: number) => {
     return `RM ${amount.toLocaleString()}`;
   };
@@ -497,6 +552,7 @@ export function ContributionsTabContent({
             <Button
               variant="outline"
               size="sm"
+              onClick={handleExportCSV}
               className="hover:bg-emerald-50 hover:border-emerald-200"
             >
               <Download className="h-4 w-4 mr-2" />

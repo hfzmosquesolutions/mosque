@@ -18,7 +18,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { completeOnboarding, getUserProfile, getUserMosqueId, getMosque } from '@/lib/api';
+import {
+  completeOnboarding,
+  getUserProfile,
+  getUserMosqueId,
+  getMosque,
+} from '@/lib/api';
 import {
   Users,
   Shield,
@@ -34,6 +39,7 @@ interface OnboardingData {
   fullName: string;
   phone: string;
   address: string;
+  icPassportNumber: string;
 
   // Role Selection
   accountType: 'member' | 'admin' | '';
@@ -53,6 +59,7 @@ function OnboardingContent() {
     fullName: '',
     phone: '',
     address: '',
+    icPassportNumber: '',
     accountType: '',
   });
   const { user, signOut } = useAuth();
@@ -62,17 +69,18 @@ function OnboardingContent() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user?.id) return;
-      
+
       try {
         const response = await getUserProfile(user.id);
         if (response.success && response.data) {
           const profile = response.data;
-          
+
           // Populate form with existing data
           const updatedData: Partial<OnboardingData> = {
             fullName: profile.full_name || '',
             phone: profile.phone || '',
             address: profile.address || '',
+            icPassportNumber: profile.ic_passport_number || '',
             accountType: profile.account_type || '',
           };
 
@@ -95,7 +103,7 @@ function OnboardingContent() {
             }
           }
 
-          setData(prev => ({ ...prev, ...updatedData }));
+          setData((prev) => ({ ...prev, ...updatedData }));
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -106,15 +114,13 @@ function OnboardingContent() {
     fetchUserData();
   }, [user?.id]);
 
-
-
   const updateData = (field: keyof OnboardingData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleNext = () => {
     if (step === 1) {
-      if (!data.fullName || !data.phone) {
+      if (!data.fullName || !data.phone || !data.icPassportNumber) {
         toast.error(t('fillRequiredFields'));
         return;
       }
@@ -158,11 +164,15 @@ function OnboardingContent() {
         fullName: data.fullName,
         phone: data.phone,
         address: data.address,
+        icPassportNumber: data.icPassportNumber,
         accountType: data.accountType as 'member' | 'admin',
-        mosqueAction: data.accountType === 'admin' ? data.mosqueAction : undefined,
+        mosqueAction:
+          data.accountType === 'admin' ? data.mosqueAction : undefined,
         mosqueName: data.accountType === 'admin' ? data.mosqueName : undefined,
-        mosqueAddress: data.accountType === 'admin' ? data.mosqueAddress : undefined,
-        existingMosqueId: data.accountType === 'admin' ? data.existingMosqueId : undefined,
+        mosqueAddress:
+          data.accountType === 'admin' ? data.mosqueAddress : undefined,
+        existingMosqueId:
+          data.accountType === 'admin' ? data.existingMosqueId : undefined,
       });
 
       if (result.success) {
@@ -183,7 +193,9 @@ function OnboardingContent() {
     <div className="space-y-4">
       <div className="text-center mb-6">
         <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold mb-2">{t('personalInformation')}</h3>
+        <h3 className="text-xl font-semibold mb-2">
+          {t('personalInformation')}
+        </h3>
         <p className="text-slate-600 dark:text-slate-400">
           {t('personalInfoDescription')}
         </p>
@@ -208,6 +220,17 @@ function OnboardingContent() {
             value={data.phone}
             onChange={(e) => updateData('phone', e.target.value)}
             placeholder={t('enterPhoneNumber')}
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="icPassportNumber">{t('icPassportNumber')} *</Label>
+          <Input
+            id="icPassportNumber"
+            value={data.icPassportNumber}
+            onChange={(e) => updateData('icPassportNumber', e.target.value)}
+            placeholder={t('enterIcPassportNumber')}
             className="mt-1"
           />
         </div>
@@ -286,7 +309,9 @@ function OnboardingContent() {
         <div className="space-y-4">
           <div className="text-center mb-6">
             <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">{t('membershipDetails')}</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              {t('membershipDetails')}
+            </h3>
             <p className="text-slate-600 dark:text-slate-400">
               {t('membershipDetailsDescription')}
             </p>
@@ -329,7 +354,9 @@ function OnboardingContent() {
               >
                 <CardContent className="p-4 text-center">
                   <Users className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
-                  <h4 className="font-medium mb-1">{t('joinExistingMosque')}</h4>
+                  <h4 className="font-medium mb-1">
+                    {t('joinExistingMosque')}
+                  </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
                     {t('joinExistingMosqueDescription')}
                   </p>
@@ -369,7 +396,9 @@ function OnboardingContent() {
               </div>
 
               <div>
-                <Label htmlFor="mosqueAddress">{t('mosqueAddressOptional')}</Label>
+                <Label htmlFor="mosqueAddress">
+                  {t('mosqueAddressOptional')}
+                </Label>
                 <Input
                   id="mosqueAddress"
                   value={data.mosqueAddress || ''}
@@ -414,11 +443,15 @@ function OnboardingContent() {
             <h4 className="font-semibold mb-2">{t('personalInformation')}</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-slate-600 dark:text-slate-400">{t('name')}:</span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  {t('name')}:
+                </span>
                 <p className="font-medium">{data.fullName}</p>
               </div>
               <div>
-                <span className="text-slate-600 dark:text-slate-400">{t('phone')}:</span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  {t('phone')}:
+                </span>
                 <p className="font-medium">{data.phone}</p>
               </div>
             </div>
@@ -426,8 +459,12 @@ function OnboardingContent() {
 
           <div>
             <h4 className="font-semibold mb-2">{t('accountType')}</h4>
-            <Badge variant={data.accountType === 'admin' ? 'default' : 'secondary'}>
-              {data.accountType === 'admin' ? t('mosqueAdministrator') : t('communityMember')}
+            <Badge
+              variant={data.accountType === 'admin' ? 'default' : 'secondary'}
+            >
+              {data.accountType === 'admin'
+                ? t('mosqueAdministrator')
+                : t('communityMember')}
             </Badge>
           </div>
 
@@ -436,18 +473,26 @@ function OnboardingContent() {
               <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
                 <p>
-                  <span className="text-slate-600 dark:text-slate-400">{t('action')}:</span>{' '}
-                  <span className="font-medium capitalize">{data.mosqueAction}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('action')}:
+                  </span>{' '}
+                  <span className="font-medium capitalize">
+                    {data.mosqueAction}
+                  </span>
                 </p>
                 {data.mosqueAction === 'create' && data.mosqueName && (
                   <p>
-                    <span className="text-slate-600 dark:text-slate-400">{t('mosqueName')}:</span>{' '}
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {t('mosqueName')}:
+                    </span>{' '}
                     <span className="font-medium">{data.mosqueName}</span>
                   </p>
                 )}
                 {data.mosqueAction === 'join' && data.existingMosqueId && (
                   <p>
-                    <span className="text-slate-600 dark:text-slate-400">{t('mosqueId')}:</span>{' '}
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {t('mosqueId')}:
+                    </span>{' '}
                     <span className="font-medium">{data.existingMosqueId}</span>
                   </p>
                 )}
@@ -473,13 +518,13 @@ function OnboardingContent() {
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
             <div className="mb-6">
-               <CardTitle className="text-3xl font-bold mb-2">
-                 {t('setupAccount')}
-               </CardTitle>
-               <CardDescription className="text-lg">
-                 {t('stepOf', { step, total: 4 })}
-               </CardDescription>
-             </div>
+              <CardTitle className="text-3xl font-bold mb-2">
+                {t('setupAccount')}
+              </CardTitle>
+              <CardDescription className="text-lg">
+                {t('stepOf', { step, total: 4 })}
+              </CardDescription>
+            </div>
 
             {/* Progress Bar */}
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-4">
@@ -508,7 +553,10 @@ function OnboardingContent() {
               </Button>
 
               {step < 4 ? (
-                <Button onClick={handleNext} className="flex items-center gap-2">
+                <Button
+                  onClick={handleNext}
+                  className="flex items-center gap-2"
+                >
                   {t('next')}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
