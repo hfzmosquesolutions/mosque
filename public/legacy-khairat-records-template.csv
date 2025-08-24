@@ -1,0 +1,5 @@
+ic_passport_number,full_name,address_line1,address_line2,address_line3,payment_date,amount,payment_method,description,invoice_number,customer_po,item_number
+"123456789012","Ahmad bin Ali","123 Jalan Masjid","Taman Sejahtera","12345 Kuala Lumpur","2023-01-15","50.00","Cash","Monthly Khairat Payment","KH001","PO001","ITM001"
+"987654321098","Siti binti Abdullah","456 Lorong Damai","","54321 Shah Alam","2023-02-15","75.00","Bank Transfer","Quarterly Khairat Payment","KH002","","ITM002"
+"111222333444","Muhammad bin Hassan","789 Jalan Harmoni","Taman Indah","67890 Petaling Jaya","2023-03-15","100.00","Online Banking","","KH003","PO003",""
+"555666777888","Fatimah binti Omar","321 Jalan Bayu","","","2023-04-15","25.00","Cash","Monthly Khairat Payment","","","ITM004"

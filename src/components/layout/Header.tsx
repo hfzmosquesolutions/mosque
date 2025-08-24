@@ -40,6 +40,8 @@ export default function Header() {
   const internalPages = [
     '/dashboard',
     '/khairat',
+    '/kariah',
+    '/claims',
     '/mosque-profile',
     '/settings',
     '/events',
@@ -69,11 +71,11 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="hover:opacity-80 transition-opacity">
             <span className="flex items-center">
-              <Image 
-                src="/logo-kariah-masjid.jpg" 
-                alt="Kariah Masjid Logo" 
-                width={160} 
-                height={40} 
+              <Image
+                src="/logo-kariah-masjid.png"
+                alt="Kariah Masjid Logo"
+                width={160}
+                height={40}
                 className="rounded-md"
               />
             </span>
@@ -117,7 +119,10 @@ export default function Header() {
                 {/* Language Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2 h-10">
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 h-10"
+                    >
                       <Languages className="h-4 w-4" />
                       <span>{languageNames[locale]}</span>
                     </Button>
@@ -252,7 +257,10 @@ export default function Header() {
             <div className="mt-4 pt-4 border-t border-emerald-100 dark:border-slate-700">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full flex items-center justify-between mb-4">
+                  <Button
+                    variant="outline"
+                    className="w-full flex items-center justify-between mb-4"
+                  >
                     <span className="flex items-center gap-2">
                       <Languages className="h-4 w-4" />
                       <span>{languageNames[locale]}</span>
@@ -306,10 +314,7 @@ export default function Header() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Link
-                    href="login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
+                  <Link href="login" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" size="sm" className="w-full">
                       Login
                     </Button>

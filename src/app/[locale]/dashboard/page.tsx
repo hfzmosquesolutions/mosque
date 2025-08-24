@@ -17,6 +17,7 @@ import {
   DollarSign,
   TrendingUp,
   Activity,
+  Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +28,9 @@ import { useTranslations } from 'next-intl';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
 import { getUserFollowStats } from '@/lib/api/following';
-import { getMosqueFollowerCount } from '@/lib/api';
+import { getMosqueFollowerCount, getMosqueKhairatContributions } from '@/lib/api';
+import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
+import { NotificationCard } from '@/components/dashboard/NotificationCard';
 
 interface Contribution {
   id: string;
@@ -46,9 +49,12 @@ interface Stats {
 function DashboardContent() {
   const { user, loading: userLoading } = useAuth();
   const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [allContributions, setAllContributions] = useState<Contribution[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [followerCount, setFollowerCount] = useState<number>(0);
+  const [membershipStats, setMembershipStats] = useState<any>(null);
+  const [mosqueName, setMosqueName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
@@ -82,15 +88,18 @@ function DashboardContent() {
           .from('contributions')
           .select(
             `
-            id,
-            amount,
-            contributed_at,
-            khairat_programs!inner(
-              name
+            *,
+            program:contribution_programs(
+              *,
+              mosque:mosques(
+                id,
+                name,
+                address
+              )
             )
           `
           )
-          .eq('user_id', user?.id)
+          .eq('contributor_id', user?.id)
           .order('contributed_at', { ascending: false })
           .limit(10);
 
@@ -103,10 +112,21 @@ function DashboardContent() {
             amount: item.amount,
             contributed_at: item.contributed_at,
             program: {
-              name: item.khairat_programs?.name || t('unknownProgram'),
+              name: item.program?.name || t('unknownProgram'),
             },
           })) || [];
         setContributions(formattedContributions);
+      }
+
+      // Fetch mosque-wide contributions for admin users
+      if (isAdmin && mosqueId) {
+        try {
+          const mosqueContributions = await getMosqueKhairatContributions(mosqueId);
+          setAllContributions(mosqueContributions.data || []);
+        } catch (error) {
+          console.error('Error fetching mosque contributions:', error);
+          setAllContributions([]);
+        }
       }
 
       // Fetch community stats
@@ -126,6 +146,30 @@ function DashboardContent() {
           // For admin users, get mosque follower count
           const mosqueFollowerCount = await getMosqueFollowerCount(mosqueId);
           setFollowerCount(mosqueFollowerCount);
+          
+          // Fetch mosque name for admin users
+          try {
+            const { data: mosqueData, error: mosqueError } = await supabase
+              .from('mosques')
+              .select('name')
+              .eq('id', mosqueId)
+              .single();
+            
+            if (!mosqueError && mosqueData) {
+              setMosqueName(mosqueData.name);
+            }
+          } catch (mosqueError) {
+            console.error('Error fetching mosque name:', mosqueError);
+          }
+          
+          // Fetch membership statistics for admin users
+          try {
+            const membershipData = await getMembershipStatistics(mosqueId);
+            setMembershipStats(membershipData);
+          } catch (membershipError) {
+            console.error('Error fetching membership statistics:', membershipError);
+            setMembershipStats(null);
+          }
         } else if (user?.id) {
           // For normal users, get user follower count
           const userStats = await getUserFollowStats(user.id);
@@ -142,11 +186,11 @@ function DashboardContent() {
     }
   };
 
-  const totalContributed = contributions.reduce(
+  const totalContributed = (isAdmin ? allContributions : contributions).reduce(
     (sum, contribution) => sum + contribution.amount,
     0
   );
-  const recentContributions = contributions.slice(0, 5);
+  const recentContributions = isAdmin ? allContributions.slice(0, 5) : contributions.slice(0, 5);
 
   if (onboardingLoading || !isCompleted) {
     return null;
@@ -229,7 +273,12 @@ function DashboardContent() {
               {t('welcome')}, {userProfile?.full_name || user?.email}
             </h1>
             <p className="text-gray-500 dark:text-gray-400">
-              {userProfile?.role === 'admin' ? t('adminRole') : t('memberRole')}
+              {userProfile?.role === 'admin' 
+                ? mosqueName 
+                  ? `Administrator for ${mosqueName}`
+                  : t('adminRole')
+                : t('memberRole')
+              }
             </p>
           </div>
         </div>
@@ -248,7 +297,7 @@ function DashboardContent() {
                 RM {totalContributed.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t('totalPaymentsMade')}
+                {isAdmin ? 'Total payments from all users' : t('totalPaymentsMade')}
               </p>
             </CardContent>
           </Card>
@@ -270,22 +319,43 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('myDependents')}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {/* This would need to be fetched from dependents */}0
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('familyMembersAdded')}
-              </p>
-            </CardContent>
-          </Card>
+          {!isAdmin && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t('myDependents')}
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {/* This would need to be fetched from dependents */}0
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('familyMembersAdded')}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAdmin && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Kariah Members
+                </CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {membershipStats?.total || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Registered kariah members
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -299,7 +369,7 @@ function DashboardContent() {
                 {recentContributions.length}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t('yourLatestKhairatPayments')}
+                {isAdmin ? 'Latest khairat payments' : t('yourLatestKhairatPayments')}
               </p>
             </CardContent>
           </Card>
@@ -348,9 +418,12 @@ function DashboardContent() {
                                 {contribution.program.name}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {new Date(
-                                  contribution.contributed_at
-                                ).toLocaleDateString()}
+                                {isAdmin 
+                                  ? (contribution as any).contributor?.full_name || 'Anonymous'
+                                  : new Date(
+                                      contribution.contributed_at
+                                    ).toLocaleDateString()
+                                }
                               </p>
                             </div>
                           </div>
@@ -413,80 +486,26 @@ function DashboardContent() {
                     <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
-                <Link href="dependents">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between hover:bg-orange-50 hover:text-orange-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Users className="h-3 w-3" />
-                      {t('myDependents')}
-                    </span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
+                {!isAdmin && (
+                  <Link href="dependents">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between hover:bg-orange-50 hover:text-orange-700"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Users className="h-3 w-3" />
+                        {t('myDependents')}
+                      </span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
 
-            {/* Community Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="h-4 w-4 text-blue-600" />
-                  {t('community')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {stats ? (
-                  <>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {stats.active_members}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('activeMembers')}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-emerald-600">
-                        RM {stats.total_khairat_amount.toLocaleString()}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('totalPayments')}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">0</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('activeMembers')}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-emerald-600">
-                        RM 0
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('totalPayments')}
-                      </div>
-                    </div>
-                  </>
-                )}
-                <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    {t('joinOurGrowingCommunity')}
-                  </p>
-                  <Link href="mosques">
-                    <Button variant="outline" size="sm" className="w-full">
-                      {t('exploreMosques')}
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Notifications */}
+            <NotificationCard />
           </div>
         </div>
       </div>

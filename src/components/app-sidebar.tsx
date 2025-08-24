@@ -11,14 +11,20 @@ import {
   ChevronUp,
   User2,
   Users,
+  UserPlus,
+  Database,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useAdminAccess } from '@/hooks/useUserRole';
+import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES, FEATURES } from '@/lib/utils';
+import { getMosque } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import type { Mosque } from '@/types/database';
 import {
   Sidebar,
   SidebarContent,
@@ -49,12 +55,22 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     },
   ];
 
-  // For admin users, only show the three core features
+  // For admin users, only show the core features
   if (hasAdminAccess) {
     baseNavigation.push({
       name: t('khairat'),
       href: '/khairat',
       icon: HandHeart,
+    });
+    baseNavigation.push({
+      name: t('kariah'),
+      href: '/kariah',
+      icon: Users,
+    });
+    baseNavigation.push({
+      name: t('claims.title'),
+      href: '/claims',
+      icon: FileText,
     });
     baseNavigation.push({
       name: t('mosqueProfile'),
@@ -87,6 +103,20 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       icon: HandHeart,
     });
 
+    // Kariah application for regular users only
+    baseNavigation.push({
+      name: t('kariahApplication'),
+      href: '/kariah-application',
+      icon: UserPlus,
+    });
+
+    // Claims page for regular users
+    baseNavigation.push({
+      name: t('claims.title'),
+      href: '/claims',
+      icon: FileText,
+    });
+
     // Dependents management for regular users only
     baseNavigation.push({
       name: t('dependents'),
@@ -108,10 +138,37 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
 export function AppSidebar() {
   const pathname = usePathname();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
+  const { mosqueId } = useUserMosque();
   const { user, signOut } = useAuth();
   const t = useTranslations('sidebar');
+  const [mosque, setMosque] = useState<Mosque | null>(null);
+  const [mosqueLoading, setMosqueLoading] = useState(false);
 
   const navigation = getNavigation(hasAdminAccess, t);
+
+  // Fetch mosque data when mosqueId is available
+  useEffect(() => {
+    async function fetchMosqueData() {
+      if (!mosqueId) {
+        setMosque(null);
+        return;
+      }
+
+      try {
+        setMosqueLoading(true);
+        const response = await getMosque(mosqueId);
+        if (response.success && response.data) {
+          setMosque(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching mosque data:', error);
+      } finally {
+        setMosqueLoading(false);
+      }
+    }
+
+    fetchMosqueData();
+  }, [mosqueId]);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -119,18 +176,26 @@ export function AppSidebar() {
         <Link href="/" className="block">
           <div className="flex items-center gap-2 px-2 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors cursor-pointer">
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
-              <Image 
-                src="/icon-karian-masjid.png" 
-                alt="Kariah Masjid Logo" 
-                width={32} 
-                height={32} 
+              <Image
+                src={mosque?.logo_url || '/icon-kariah-masjid.png'}
+                alt={
+                  mosque?.name ? `${mosque.name} Logo` : 'Kariah Masjid Logo'
+                }
+                width={32}
+                height={32}
                 className="object-cover"
               />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">Kariah Masjid</span>
+              <span className="truncate font-semibold">
+                {mosqueLoading ? '...' : mosque?.name || 'Kariah Masjid'}
+              </span>
               <span className="truncate text-xs text-sidebar-foreground/70">
-                {adminLoading ? '...' : (hasAdminAccess ? t('administrator') : t('member'))}
+                {adminLoading
+                  ? '...'
+                  : hasAdminAccess
+                  ? t('administrator')
+                  : t('member')}
               </span>
             </div>
           </div>
@@ -142,41 +207,39 @@ export function AppSidebar() {
           <SidebarGroupLabel>{t('navigation')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {adminLoading ? (
-                // Show skeleton loading state
-                Array.from({ length: 3 }).map((_, index) => (
-                  <SidebarMenuItem key={`skeleton-${index}`}>
-                    <SidebarMenuButton disabled>
-                      <span className="flex items-center gap-2">
-                        <div className="size-4 bg-sidebar-accent rounded animate-pulse" />
-                        <div className="h-4 w-20 bg-sidebar-accent rounded animate-pulse" />
-                      </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))
-              ) : (
-                navigation.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href;
-
-                  return (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={item.name}
-                      >
-                        <Link href={item.href}>
-                          <span className="flex items-center gap-2">
-                            <Icon className="size-4" />
-                            <span>{item.name}</span>
-                          </span>
-                        </Link>
+              {adminLoading
+                ? // Show skeleton loading state
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <SidebarMenuItem key={`skeleton-${index}`}>
+                      <SidebarMenuButton disabled>
+                        <span className="flex items-center gap-2">
+                          <div className="size-4 bg-sidebar-accent rounded animate-pulse" />
+                          <div className="h-4 w-20 bg-sidebar-accent rounded animate-pulse" />
+                        </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  );
-                })
-              )}
+                  ))
+                : navigation.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+
+                    return (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.name}
+                        >
+                          <Link href={item.href}>
+                            <span className="flex items-center gap-2">
+                              <Icon className="size-4" />
+                              <span>{item.name}</span>
+                            </span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -252,26 +315,26 @@ export function AppSidebar() {
                     <ChevronUp className="ml-auto size-4" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuItem asChild className="gap-2">
-                  <Link href="settings">
-                    <Settings className="h-4 w-4" />
-                    <span>{t('settings')}</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={signOut}
-                  className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>{t('signOut')}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
+                  <DropdownMenuItem asChild className="gap-2">
+                    <Link href="settings">
+                      <Settings className="h-4 w-4" />
+                      <span>{t('settings')}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={signOut}
+                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>{t('signOut')}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             )}
           </SidebarMenuItem>

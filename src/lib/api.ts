@@ -25,7 +25,13 @@ import {
   OnboardingData,
   ApiResponse,
   PaginatedResponse,
-  DashboardStats
+  DashboardStats,
+  KhairatClaim,
+  KhairatClaimWithDetails,
+  CreateKhairatClaim,
+  UpdateKhairatClaim,
+  ClaimFilters,
+  ClaimStatus
 } from '@/types/database';
 
 // =============================================
@@ -159,6 +165,7 @@ export async function completeOnboarding(
       full_name: onboardingData.fullName,
       phone: onboardingData.phone,
       address: onboardingData.address || undefined,
+      ic_passport_number: onboardingData.icPassportNumber,
       account_type: onboardingData.accountType as 'member' | 'admin',
       role: onboardingData.accountType === 'admin' ? 'admin' : 'member',
       onboarding_completed: true,
@@ -1065,6 +1072,31 @@ export async function createContributionProgram(
 }
 
 /**
+ * Update contribution program
+ */
+export async function updateContributionProgram(
+  programId: string,
+  updateData: Partial<Omit<ContributionProgram, 'id' | 'created_at' | 'updated_at'>>
+): Promise<ApiResponse<ContributionProgram>> {
+  try {
+    const { data, error } = await supabase
+      .from('contribution_programs')
+      .update(updateData)
+      .eq('id', programId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: 'Failed to update contribution program' };
+  }
+}
+
+/**
  * Get all khairat contributions for a mosque (admin view)
  */
 export async function getMosqueKhairatContributions(
@@ -1830,4 +1862,367 @@ export async function deleteUserDependent(
   } catch (error) {
     return { success: false, error: 'Failed to delete dependent' };
   }
+}
+
+// =============================================
+// KHAIRAT CLAIMS OPERATIONS
+// =============================================
+
+/**
+ * Get claims with optional filtering and pagination
+ */
+export async function getClaims(
+  filters?: ClaimFilters,
+  limit = 20,
+  offset = 0
+): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
+  try {
+    let query = supabase
+      .from('khairat_claims')
+      .select(`
+        *,
+        claimant:user_profiles!khairat_claims_claimant_id_fkey(
+          id,
+          full_name,
+          email,
+          phone
+        ),
+        mosque:mosques!khairat_claims_mosque_id_fkey(
+          id,
+          name
+        ),
+        program:contribution_programs!khairat_claims_program_id_fkey(
+          id,
+          name,
+          program_type
+        )
+      `);
+
+    // Apply filters
+    if (filters?.mosque_id) {
+      query = query.eq('mosque_id', filters.mosque_id);
+    }
+    if (filters?.claimant_id) {
+      query = query.eq('claimant_id', filters.claimant_id);
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.priority) {
+      query = query.eq('priority', filters.priority);
+    }
+    if (filters?.program_id) {
+      query = query.eq('program_id', filters.program_id);
+    }
+
+    // Apply sorting
+    const sortBy = filters?.sort_by || 'created_at';
+    const sortOrder = filters?.sort_order || 'desc';
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return { 
+        data: [], 
+        count: 0, 
+        page: Math.floor(offset / limit) + 1, 
+        limit, 
+        total_pages: 0, 
+        has_next: false, 
+        has_prev: false 
+      };
+    }
+
+    const totalPages = Math.ceil((count || 0) / limit);
+    const currentPage = Math.floor(offset / limit) + 1;
+
+    return {
+      data: data || [],
+      count: count || 0,
+      page: currentPage,
+      limit,
+      total_pages: totalPages,
+      has_next: currentPage < totalPages,
+      has_prev: currentPage > 1
+    };
+  } catch {
+    return { 
+      data: [], 
+      count: 0, 
+      page: Math.floor(offset / limit) + 1, 
+      limit, 
+      total_pages: 0, 
+      has_next: false, 
+      has_prev: false 
+    };
+  }
+}
+
+/**
+ * Get a single claim by ID with optional details
+ */
+export async function getClaimById(
+  claimId: string,
+  includeHistory = false,
+  includeDocuments = false
+): Promise<ApiResponse<KhairatClaimWithDetails>> {
+  try {
+    let selectQuery = `
+      *,
+      claimant:user_profiles!khairat_claims_claimant_id_fkey(
+        id,
+        full_name,
+        email,
+        phone
+      ),
+      mosque:mosques!khairat_claims_mosque_id_fkey(
+        id,
+        name
+      ),
+      program:contribution_programs!khairat_claims_program_id_fkey(
+        id,
+        name,
+        program_type
+      )
+    `;
+
+    if (includeHistory) {
+      selectQuery += `,
+        history:claim_history(
+          id,
+          action,
+          old_status,
+          new_status,
+          notes,
+          created_at,
+          created_by:user_profiles!claim_history_created_by_fkey(
+            id,
+            full_name
+          )
+        )`;
+    }
+
+    if (includeDocuments) {
+      selectQuery += `,
+        documents:claim_documents(
+          id,
+          file_name,
+          file_url,
+          file_type,
+          file_size,
+          uploaded_at
+        )`;
+    }
+
+    const { data, error } = await supabase
+      .from('khairat_claims')
+      .select(selectQuery)
+      .eq('id', claimId)
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data) {
+      return { success: false, error: 'Claim not found' };
+    }
+
+    return { success: true, data: data as unknown as KhairatClaimWithDetails };
+  } catch {
+    return { success: false, error: 'Failed to fetch claim' };
+  }
+}
+
+/**
+ * Create a new khairat claim
+ */
+export async function createClaim(
+  claimData: CreateKhairatClaim
+): Promise<ApiResponse<KhairatClaim>> {
+  try {
+    const { data, error } = await supabase
+      .from('khairat_claims')
+      .insert(claimData)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch {
+    return { success: false, error: 'Failed to create claim' };
+  }
+}
+
+/**
+ * Update an existing khairat claim
+ */
+export async function updateClaim(
+  claimId: string,
+  updates: UpdateKhairatClaim
+): Promise<ApiResponse<KhairatClaim>> {
+  try {
+    const { data, error } = await supabase
+      .from('khairat_claims')
+      .update(updates)
+      .eq('id', claimId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch {
+    return { success: false, error: 'Failed to update claim' };
+  }
+}
+
+/**
+ * Update claim status
+ */
+export async function updateClaimStatus(
+  claimId: string,
+  status: ClaimStatus,
+  notes?: string
+): Promise<ApiResponse<KhairatClaim>> {
+  try {
+    const updates: any = { status };
+    
+    if (status === 'approved' || status === 'paid') {
+      updates.processed_at = new Date().toISOString();
+    }
+    
+    if (notes) {
+      updates.admin_notes = notes;
+    }
+
+    const { data, error } = await supabase
+      .from('khairat_claims')
+      .update(updates)
+      .eq('id', claimId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch {
+    return { success: false, error: 'Failed to update claim status' };
+  }
+}
+
+/**
+ * Cancel a claim (set status to cancelled)
+ */
+export async function cancelClaim(
+  claimId: string
+): Promise<ApiResponse<KhairatClaim>> {
+  try {
+    const { data, error } = await supabase
+      .from('khairat_claims')
+      .update({ status: 'cancelled' })
+      .eq('id', claimId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch {
+    return { success: false, error: 'Failed to cancel claim' };
+  }
+}
+
+/**
+ * Get user's claims
+ */
+export async function getUserClaims(
+  userId: string,
+  limit = 20,
+  offset = 0
+): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
+  try {
+    const { data, error, count } = await supabase
+      .from('khairat_claims')
+      .select(`
+        *,
+        mosque:mosques!khairat_claims_mosque_id_fkey(
+          id,
+          name
+        ),
+        program:contribution_programs!khairat_claims_program_id_fkey(
+          id,
+          name,
+          program_type
+        )
+      `, { count: 'exact' })
+      .eq('claimant_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return { 
+        data: [], 
+        count: 0, 
+        page: Math.floor(offset / limit) + 1, 
+        limit, 
+        total_pages: 0, 
+        has_next: false, 
+        has_prev: false 
+      };
+    }
+
+    const totalPages = Math.ceil((count || 0) / limit);
+    const currentPage = Math.floor(offset / limit) + 1;
+
+    return {
+      data: data || [],
+      count: count || 0,
+      page: currentPage,
+      limit,
+      total_pages: totalPages,
+      has_next: currentPage < totalPages,
+      has_prev: currentPage > 1
+    };
+  } catch {
+    return { 
+      data: [], 
+      count: 0, 
+      page: Math.floor(offset / limit) + 1, 
+      limit, 
+      total_pages: 0, 
+      has_next: false, 
+      has_prev: false 
+    };
+  }
+}
+
+/**
+ * Get mosque claims for admin management
+ */
+export async function getMosqueClaims(
+  mosqueId: string,
+  filters?: Omit<ClaimFilters, 'mosque_id'>,
+  limit = 20,
+  offset = 0
+): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
+  const claimFilters: ClaimFilters = {
+    ...filters,
+    mosque_id: mosqueId
+  };
+  
+  return getClaims(claimFilters, limit, offset);
 }

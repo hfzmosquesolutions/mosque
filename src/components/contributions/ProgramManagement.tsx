@@ -55,17 +55,33 @@ interface ProgramManagementProps {
   onProgramSelect?: (program: ContributionProgram) => void;
   onProgramsUpdate?: () => void;
   filterType?: ProgramType;
+  isCreateDialogOpen?: boolean;
+  onCreateDialogOpenChange?: (open: boolean) => void;
 }
 
 export function ProgramManagement({
   onProgramSelect,
   onProgramsUpdate,
   filterType,
+  isCreateDialogOpen: externalIsCreateDialogOpen,
+  onCreateDialogOpenChange,
 }: ProgramManagementProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [programs, setPrograms] = useState<ContributionProgram[]>([]);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [internalIsCreateDialogOpen, setInternalIsCreateDialogOpen] =
+    useState(false);
+
+  // Use external state if provided, otherwise use internal state
+  const isCreateDialogOpen =
+    externalIsCreateDialogOpen ?? internalIsCreateDialogOpen;
+  const setIsCreateDialogOpen = (open: boolean) => {
+    if (onCreateDialogOpenChange) {
+      onCreateDialogOpenChange(open);
+    } else {
+      setInternalIsCreateDialogOpen(open);
+    }
+  };
   const [submitting, setSubmitting] = useState(false);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [selectedProgram, setSelectedProgram] =
@@ -528,23 +544,23 @@ export function ProgramManagement({
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
+          {/* <div>
             <h2 className="text-2xl font-bold">Contribution Programs</h2>
             <p className="text-muted-foreground">
               Manage your mosque&apos;s contribution programs and track
               contributions
             </p>
-          </div>
+          </div> */}
 
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              {/* <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Program
-              </Button>
+              </Button> */}
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
@@ -667,7 +683,7 @@ export function ProgramManagement({
           </Dialog>
         </div>
 
-        {programs.length === 0 ? (
+        {/* {programs.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -698,7 +714,7 @@ export function ProgramManagement({
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
     </>
   );

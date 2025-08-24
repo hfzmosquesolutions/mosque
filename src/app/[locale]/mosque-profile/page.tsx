@@ -31,6 +31,7 @@ import {
   Plus,
   TrendingUp,
   ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -50,6 +51,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -222,6 +224,8 @@ function MosqueProfileContent() {
         phone: profile.phone || undefined,
         email: profile.email || undefined,
         website: profile.website || undefined,
+        logo_url: profile.logo_url || undefined,
+        banner_url: profile.banner_url || undefined,
         prayer_times: profile.prayer_times,
         settings: {
           ...profile.settings,
@@ -265,7 +269,9 @@ function MosqueProfileContent() {
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
               <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{t('mosqueProfile.accessRestricted')}</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {t('mosqueProfile.accessRestricted')}
+              </h3>
               <p className="text-slate-600 dark:text-slate-400">
                 {t('mosqueProfile.onlyAdministratorsAccess')}
               </p>
@@ -362,8 +368,10 @@ function MosqueProfileContent() {
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100">
                     {t('mosqueProfile.profileStatus')}
                   </h3>
-                  <Badge variant={profile.is_private ? "secondary" : "default"}>
-                    {profile.is_private ? t('mosqueProfile.private') : t('mosqueProfile.public')}
+                  <Badge variant={profile.is_private ? 'secondary' : 'default'}>
+                    {profile.is_private
+                      ? t('mosqueProfile.private')
+                      : t('mosqueProfile.public')}
                   </Badge>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
@@ -392,7 +400,9 @@ function MosqueProfileContent() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="mosqueName">{t('mosqueProfile.mosqueNameRequired')}</Label>
+                    <Label htmlFor="mosqueName">
+                      {t('mosqueProfile.mosqueNameRequired')}
+                    </Label>
                     <Input
                       id="mosqueName"
                       value={profile.name}
@@ -401,7 +411,9 @@ function MosqueProfileContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="establishedYear">{t('mosqueProfile.establishedYear')}</Label>
+                    <Label htmlFor="establishedYear">
+                      {t('mosqueProfile.establishedYear')}
+                    </Label>
                     <Input
                       id="establishedYear"
                       value={profile.established_year}
@@ -409,12 +421,16 @@ function MosqueProfileContent() {
                         updateProfile('established_year', e.target.value)
                       }
                       disabled={!isEditing}
-                      placeholder={t('mosqueProfile.establishedYearPlaceholder')}
+                      placeholder={t(
+                        'mosqueProfile.establishedYearPlaceholder'
+                      )}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">{t('mosqueProfile.description')}</Label>
+                  <Label htmlFor="description">
+                    {t('mosqueProfile.description')}
+                  </Label>
                   <Textarea
                     id="description"
                     value={profile.description}
@@ -428,7 +444,9 @@ function MosqueProfileContent() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="capacity">{t('mosqueProfile.capacity')}</Label>
+                    <Label htmlFor="capacity">
+                      {t('mosqueProfile.capacity')}
+                    </Label>
                     <Input
                       id="capacity"
                       value={profile.capacity}
@@ -440,7 +458,9 @@ function MosqueProfileContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="imamName">{t('mosqueProfile.imamName')}</Label>
+                    <Label htmlFor="imamName">
+                      {t('mosqueProfile.imamName')}
+                    </Label>
                     <Input
                       id="imamName"
                       value={profile.imam_name}
@@ -451,6 +471,66 @@ function MosqueProfileContent() {
                       placeholder={t('mosqueProfile.imamNamePlaceholder')}
                     />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mosque Branding */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Mosque Branding
+                </CardTitle>
+                <CardDescription>
+                  Upload your mosque logo and banner to enhance your public
+                  profile
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ImageUpload
+                    label="Mosque Logo"
+                    description="Square logo that represents your mosque"
+                    currentImageUrl={profile.logo_url}
+                    onImageUpload={(url) => updateProfile('logo_url', url)}
+                    onImageRemove={() => updateProfile('logo_url', '')}
+                    onImageChange={async (url) => {
+                      if (!mosqueId) return;
+                      const response = await updateMosque(mosqueId, {
+                        logo_url: url === null ? (null as any) : url,
+                      });
+                      if (!response.success) {
+                        throw new Error(
+                          response.error || 'Failed to update logo'
+                        );
+                      }
+                      toast.success('Logo updated successfully');
+                    }}
+                    aspectRatio="square"
+                    maxSizeInMB={5}
+                  />
+                  <ImageUpload
+                    label="Mosque Banner"
+                    description="Wide banner image for your mosque profile header"
+                    currentImageUrl={profile.banner_url}
+                    onImageUpload={(url) => updateProfile('banner_url', url)}
+                    onImageRemove={() => updateProfile('banner_url', '')}
+                    onImageChange={async (url) => {
+                      if (!mosqueId) return;
+                      const response = await updateMosque(mosqueId, {
+                        banner_url: url === null ? (null as any) : url,
+                      });
+                      if (!response.success) {
+                        throw new Error(
+                          response.error || 'Failed to update banner'
+                        );
+                      }
+                      toast.success('Banner updated successfully');
+                    }}
+                    aspectRatio="banner"
+                    maxSizeInMB={5}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -468,7 +548,9 @@ function MosqueProfileContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="address">{t('mosqueProfile.addressRequired')}</Label>
+                  <Label htmlFor="address">
+                    {t('mosqueProfile.addressRequired')}
+                  </Label>
                   <Textarea
                     id="address"
                     value={profile.address}
@@ -479,7 +561,9 @@ function MosqueProfileContent() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">{t('mosqueProfile.phoneNumber')}</Label>
+                    <Label htmlFor="phone">
+                      {t('mosqueProfile.phoneNumber')}
+                    </Label>
                     <Input
                       id="phone"
                       value={profile.phone}
@@ -488,7 +572,9 @@ function MosqueProfileContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">{t('mosqueProfile.emailAddress')}</Label>
+                    <Label htmlFor="email">
+                      {t('mosqueProfile.emailAddress')}
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -587,7 +673,9 @@ function MosqueProfileContent() {
                                 program.is_active ? 'default' : 'secondary'
                               }
                             >
-                              {program.is_active ? t('mosqueProfile.active') : t('mosqueProfile.inactive')}
+                              {program.is_active
+                                ? t('mosqueProfile.active')
+                                : t('mosqueProfile.inactive')}
                             </Badge>
                           </div>
 
@@ -713,7 +801,9 @@ function MosqueProfileContent() {
                 <div className="pt-4 border-t">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant={profile.is_private ? 'outline' : 'default'}>
-                      {profile.is_private ? t('mosqueProfile.private') : t('mosqueProfile.public')}
+                      {profile.is_private
+                        ? t('mosqueProfile.private')
+                        : t('mosqueProfile.public')}
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-500">
@@ -733,17 +823,25 @@ function MosqueProfileContent() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">{t('mosqueProfile.capacity')}</span>
-                  <span className="font-medium">{profile.capacity} {t('mosqueProfile.people')}</span>
+                  <span className="text-sm text-slate-600">
+                    {t('mosqueProfile.capacity')}
+                  </span>
+                  <span className="font-medium">
+                    {profile.capacity} {t('mosqueProfile.people')}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">{t('mosqueProfile.established')}</span>
+                  <span className="text-sm text-slate-600">
+                    {t('mosqueProfile.established')}
+                  </span>
                   <span className="font-medium">
                     {profile.established_year}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">{t('mosqueProfile.services')}</span>
+                  <span className="text-sm text-slate-600">
+                    {t('mosqueProfile.services')}
+                  </span>
                   <span className="font-medium">
                     {profile.services?.length || 0} {t('mosqueProfile.offered')}
                   </span>
@@ -763,7 +861,9 @@ function MosqueProfileContent() {
                       {service}
                     </Badge>
                   )) || (
-                    <p className="text-sm text-slate-500">{t('mosqueProfile.noServicesListed')}</p>
+                    <p className="text-sm text-slate-500">
+                      {t('mosqueProfile.noServicesListed')}
+                    </p>
                   )}
                 </div>
               </CardContent>

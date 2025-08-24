@@ -51,7 +51,9 @@ export default function MosqueProfilePage() {
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [contributionPrograms, setContributionPrograms] = useState<ContributionProgram[]>([]);
+  const [contributionPrograms, setContributionPrograms] = useState<
+    ContributionProgram[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -130,9 +132,14 @@ export default function MosqueProfilePage() {
       const programsResponse = await getContributionPrograms(mosqueId);
       if (programsResponse.success && programsResponse.data) {
         // Filter only active programs
-        const activePrograms = programsResponse.data.filter(program => program.is_active);
+        const activePrograms = programsResponse.data.filter(
+          (program) => program.is_active
+        );
         setContributionPrograms(activePrograms);
-        console.log('[PAGE] MosqueProfilePage - Active programs count:', activePrograms.length);
+        console.log(
+          '[PAGE] MosqueProfilePage - Active programs count:',
+          activePrograms.length
+        );
       }
 
       // Check if user is following this mosque (only if user is logged in)
@@ -272,27 +279,45 @@ export default function MosqueProfilePage() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4 py-4">
           <Button
-              onClick={() => router.push('/mosques')}
-              variant="ghost"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {t('backToMosques')}
-            </Button>
+            onClick={() => router.push('/mosques')}
+            variant="ghost"
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {t('backToMosques')}
+          </Button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
-          {/* Cover Image Placeholder */}
-          <div className="h-48 bg-gradient-to-r from-emerald-500 to-green-600 relative">
+          {/* Cover Image */}
+          <div
+            className="h-48 relative"
+            style={{
+              backgroundImage: mosque.banner_url
+                ? `url(${mosque.banner_url})`
+                : 'linear-gradient(to right, rgb(16, 185, 129), rgb(34, 197, 94))',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
             <div className="absolute inset-0 bg-black/20"></div>
             <div className="absolute bottom-6 left-6 right-6">
               <div className="flex items-end justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center">
-                    <Building className="h-10 w-10 text-emerald-600" />
+                  <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center overflow-hidden">
+                    {mosque.logo_url ? (
+                      <img
+                        src={mosque.logo_url}
+                        alt={`${mosque.name} logo`}
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <Building className="h-10 w-10 text-emerald-600" />
+                    )}
                   </div>
                   <div className="text-white">
                     <h1 className="text-3xl font-bold mb-1">{mosque.name}</h1>
@@ -356,42 +381,33 @@ export default function MosqueProfilePage() {
                 {mosque.settings?.established_year != null && (
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>{t('established')} {String(mosque.settings.established_year)}</span>
+                    <span>
+                      {t('established')}{' '}
+                      {String(mosque.settings.established_year)}
+                    </span>
                   </div>
                 )}
                 {mosque.settings?.capacity != null && (
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Building className="h-4 w-4 mr-2" />
-                    <span>{t('capacity')}: {String(mosque.settings.capacity)}</span>
+                    <span>
+                      {t('capacity')}: {String(mosque.settings.capacity)}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Description */}
-          {mosque.description && (
-            <div className="p-6">
-              <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                {mosque.description}
-              </p>
-            </div>
-          )}
+
         </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
-                <TabsTrigger value="programs">{t('programs')}</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="space-y-6 mt-6">
             {/* About Section */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
                   <Building className="h-5 w-5 mr-2 text-emerald-600" />
@@ -399,6 +415,13 @@ export default function MosqueProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {mosque.description && (
+                  <div>
+                    <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-4">
+                      {mosque.description}
+                    </p>
+                  </div>
+                )}
                 {mosque.settings?.imam_name != null && (
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
@@ -434,226 +457,68 @@ export default function MosqueProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Prayer Times */}
-            {mosque.prayer_times && (
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-xl">
-                    <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
-                    {t('prayerTimes')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {Object.entries(mosque.prayer_times).map(
-                      ([prayer, time]) => (
-                        <div
-                          key={prayer}
-                          className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                        >
-                          <div className="font-semibold text-gray-900 dark:text-white capitalize mb-1">
-                            {prayer}
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {String(time)}
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+                <TabsTrigger value="programs">{t('programs')}</TabsTrigger>
+              </TabsList>
 
-            {/* Active Programs Section */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-xl">
-                  <div className="flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                    {t('activePrograms')}
-                  </div>
-                  {contributionPrograms.length > 3 && (
-                    <Button 
-                       variant="outline" 
-                       size="sm"
-                       onClick={() => setActiveTab('programs')}
-                     >
-                       {t('viewAllPrograms')}
-                     </Button>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  {t('supportPrograms')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {contributionPrograms.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">
-                      {t('noActivePrograms')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {contributionPrograms.slice(0, 3).map((program) => {
-                      const progressPercentage = program.target_amount 
-                        ? Math.min((program.current_amount || 0) / program.target_amount * 100, 100)
-                        : 0;
-                      
-                      return (
-                        <div
-                          key={program.id}
-                          className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
-                                  {program.name}
-                                </h4>
-                                <Badge 
-                                  variant="secondary" 
-                                  className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
-                                >
-                                  {program.program_type}
-                                </Badge>
-                              </div>
-                              {program.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                  {program.description}
-                                </p>
-                              )}
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleContributeToProgram(program.id)}
-                              className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+              <TabsContent value="overview" className="space-y-6 mt-6">
+
+                {/* Prayer Times */}
+                {mosque.prayer_times && (
+                  <Card className="border-0 shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-xl">
+                        <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                        {t('prayerTimes')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {Object.entries(mosque.prayer_times).map(
+                          ([prayer, time]) => (
+                            <div
+                              key={prayer}
+                              className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                             >
-                              <CreditCard className="h-4 w-4 mr-1" />
-                              {t('contribute')}
-                            </Button>
-                          </div>
-                          
-                          {/* Progress Bar */}
-                          {program.target_amount && (
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600 dark:text-gray-400">
-                                  {t('progress')}
-                                </span>
-                                <span className="font-medium text-gray-900 dark:text-white">
-                                  RM {(program.current_amount || 0).toLocaleString()} / RM {program.target_amount.toLocaleString()}
-                                </span>
+                              <div className="font-semibold text-gray-900 dark:text-white capitalize mb-1">
+                                {prayer}
                               </div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div 
-                                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${progressPercentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {t('completed', { percentage: progressPercentage.toFixed(1) })}
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {String(time)}
                               </div>
                             </div>
-                          )}
-                          
-                          {/* Ongoing program without target */}
-                          {!program.target_amount && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">
-                                {t('totalRaised')}
-                              </span>
-                              <span className="font-medium text-emerald-600">
-                                RM {(program.current_amount || 0).toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
 
-            {/* Events Section */}
-            {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-xl">
-                    <div className="flex items-center">
-                      <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
-                      {t('upcomingEvents')}
-                    </div>
-                    {events.length > 3 && (
-                      <Button variant="outline" size="sm">
-                        {t('viewAllEvents')}
-                      </Button>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {events.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {t('noUpcomingEvents')}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {events.slice(0, 3).map((event) => (
-                        <div
-                          key={event.id}
-                          className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                                {event.title}
-                              </h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                {formatDateTime(event.event_date)}
-                              </p>
-                              {event.location && (
-                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-500">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {event.location}
-                                </div>
-                              )}
-                            </div>
-                            {user && !userRegistrations.includes(event.id) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleRegisterForEvent(event.id)}
-                                className="ml-4"
-                              >
-                                {t('register')}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-              </TabsContent>
-              
-              <TabsContent value="programs" className="space-y-6 mt-6">
+                {/* Active Programs Section */}
                 <Card className="border-0 shadow-sm">
                   <CardHeader>
-                    <CardTitle className="flex items-center text-xl">
-                    <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                    {t('allPrograms')}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('supportPrograms')}
-                  </CardDescription>
+                    <CardTitle className="flex items-center justify-between text-xl">
+                      <div className="flex items-center">
+                        <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
+                        {t('activePrograms')}
+                      </div>
+                      {contributionPrograms.length > 3 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveTab('programs')}
+                        >
+                          {t('viewAllPrograms')}
+                        </Button>
+                      )}
+                    </CardTitle>
+                    <CardDescription>{t('supportPrograms')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {contributionPrograms.length === 0 ? (
@@ -665,11 +530,16 @@ export default function MosqueProfilePage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {contributionPrograms.map((program) => {
-                          const progressPercentage = program.target_amount 
-                            ? Math.min((program.current_amount || 0) / program.target_amount * 100, 100)
+                        {contributionPrograms.slice(0, 3).map((program) => {
+                          const progressPercentage = program.target_amount
+                            ? Math.min(
+                                ((program.current_amount || 0) /
+                                  program.target_amount) *
+                                  100,
+                                100
+                              )
                             : 0;
-                          
+
                           return (
                             <div
                               key={program.id}
@@ -681,8 +551,8 @@ export default function MosqueProfilePage() {
                                     <h4 className="font-semibold text-gray-900 dark:text-white">
                                       {program.name}
                                     </h4>
-                                    <Badge 
-                                      variant="secondary" 
+                                    <Badge
+                                      variant="secondary"
                                       className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
                                     >
                                       {program.program_type}
@@ -696,14 +566,16 @@ export default function MosqueProfilePage() {
                                 </div>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleContributeToProgram(program.id)}
+                                  onClick={() =>
+                                    handleContributeToProgram(program.id)
+                                  }
                                   className="ml-4 bg-emerald-600 hover:bg-emerald-700"
                                 >
                                   <CreditCard className="h-4 w-4 mr-1" />
                                   {t('contribute')}
                                 </Button>
                               </div>
-                              
+
                               {/* Progress Bar */}
                               {program.target_amount && (
                                 <div className="space-y-2">
@@ -712,21 +584,30 @@ export default function MosqueProfilePage() {
                                       {t('progress')}
                                     </span>
                                     <span className="font-medium text-gray-900 dark:text-white">
-                                      RM {(program.current_amount || 0).toLocaleString()} / RM {program.target_amount.toLocaleString()}
+                                      RM{' '}
+                                      {(
+                                        program.current_amount || 0
+                                      ).toLocaleString()}{' '}
+                                      / RM{' '}
+                                      {program.target_amount.toLocaleString()}
                                     </span>
                                   </div>
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div 
+                                    <div
                                       className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                      style={{ width: `${progressPercentage}%` }}
+                                      style={{
+                                        width: `${progressPercentage}%`,
+                                      }}
                                     ></div>
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {t('completed', { percentage: progressPercentage.toFixed(1) })}
+                                    {t('completed', {
+                                      percentage: progressPercentage.toFixed(1),
+                                    })}
                                   </div>
                                 </div>
                               )}
-                              
+
                               {/* Ongoing program without target */}
                               {!program.target_amount && (
                                 <div className="flex items-center justify-between text-sm">
@@ -734,7 +615,198 @@ export default function MosqueProfilePage() {
                                     {t('totalRaised')}
                                   </span>
                                   <span className="font-medium text-emerald-600">
-                                    RM {(program.current_amount || 0).toLocaleString()}
+                                    RM{' '}
+                                    {(
+                                      program.current_amount || 0
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Events Section */}
+                {RUNTIME_FEATURES.EVENTS_VISIBLE && (
+                  <Card className="border-0 shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between text-xl">
+                        <div className="flex items-center">
+                          <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                          {t('upcomingEvents')}
+                        </div>
+                        {events.length > 3 && (
+                          <Button variant="outline" size="sm">
+                            {t('viewAllEvents')}
+                          </Button>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {events.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500 dark:text-gray-400">
+                            {t('noUpcomingEvents')}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {events.slice(0, 3).map((event) => (
+                            <div
+                              key={event.id}
+                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                    {event.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    {formatDateTime(event.event_date)}
+                                  </p>
+                                  {event.location && (
+                                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-500">
+                                      <MapPin className="h-3 w-3 mr-1" />
+                                      {event.location}
+                                    </div>
+                                  )}
+                                </div>
+                                {user &&
+                                  !userRegistrations.includes(event.id) && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleRegisterForEvent(event.id)
+                                      }
+                                      className="ml-4"
+                                    >
+                                      {t('register')}
+                                    </Button>
+                                  )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="programs" className="space-y-6 mt-6">
+                <Card className="border-0 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-xl">
+                      <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
+                      {t('allPrograms')}
+                    </CardTitle>
+                    <CardDescription>{t('supportPrograms')}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {contributionPrograms.length === 0 ? (
+                      <div className="text-center py-8">
+                        <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {t('noActivePrograms')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {contributionPrograms.map((program) => {
+                          const progressPercentage = program.target_amount
+                            ? Math.min(
+                                ((program.current_amount || 0) /
+                                  program.target_amount) *
+                                  100,
+                                100
+                              )
+                            : 0;
+
+                          return (
+                            <div
+                              key={program.id}
+                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                      {program.name}
+                                    </h4>
+                                    <Badge
+                                      variant="secondary"
+                                      className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                                    >
+                                      {program.program_type}
+                                    </Badge>
+                                  </div>
+                                  {program.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                      {program.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleContributeToProgram(program.id)
+                                  }
+                                  className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+                                >
+                                  <CreditCard className="h-4 w-4 mr-1" />
+                                  {t('contribute')}
+                                </Button>
+                              </div>
+
+                              {/* Progress Bar */}
+                              {program.target_amount && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                      {t('progress')}
+                                    </span>
+                                    <span className="font-medium text-gray-900 dark:text-white">
+                                      RM{' '}
+                                      {(
+                                        program.current_amount || 0
+                                      ).toLocaleString()}{' '}
+                                      / RM{' '}
+                                      {program.target_amount.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div
+                                      className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                                      style={{
+                                        width: `${progressPercentage}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {t('completed', {
+                                      percentage: progressPercentage.toFixed(1),
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Ongoing program without target */}
+                              {!program.target_amount && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {t('totalRaised')}
+                                  </span>
+                                  <span className="font-medium text-emerald-600">
+                                    RM{' '}
+                                    {(
+                                      program.current_amount || 0
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                               )}
@@ -755,9 +827,9 @@ export default function MosqueProfilePage() {
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
-                <Phone className="h-5 w-5 mr-2 text-emerald-600" />
-                {t('contactInformation')}
-              </CardTitle>
+                  <Phone className="h-5 w-5 mr-2 text-emerald-600" />
+                  {t('contactInformation')}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mosque.phone && (
@@ -832,9 +904,9 @@ export default function MosqueProfilePage() {
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
-                <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                {t('community')}
-              </CardTitle>
+                  <Users className="h-5 w-5 mr-2 text-emerald-600" />
+                  {t('community')}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
@@ -863,7 +935,7 @@ export default function MosqueProfilePage() {
           </div>
         </div>
       </div>
-      
+
       {/* Contribution Modal */}
       <ContributionForm
         isOpen={isContributionModalOpen}
