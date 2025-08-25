@@ -358,11 +358,17 @@
       "emailFromAccount": "Emel (Dari Akaun)",
       "emailPlaceholder": "Emel akaun anda",
       "usingAccountEmail": "Menggunakan emel dari akaun anda",
-      "mobileOptional": "Nombor Telefon (Pilihan)",
+      "mobile": "Nombor Telefon",
       "mobilePlaceholder": "+60123456789",
       "notesOptional": "Nota (Pilihan)",
       "notesPlaceholder": "Sebarang nota tambahan...",
       "submitting": "Menghantar..."
+    },
+    "errors": {
+      "mobileRequiredForToyyibpay": "Nombor telefon diperlukan untuk pembayaran ToyyibPay",
+      "validMobileRequired": "Sila masukkan nombor telefon yang sah",
+      "mustBeLoggedIn": "Anda mesti log masuk untuk membuat sumbangan",
+      "validAmountRequired": "Sila masukkan jumlah yang sah"
     }
   },
   "mosques": {
@@ -718,7 +724,9 @@
     "registerFailed": "Gagal mendaftar untuk acara",
     "updateFailed": "Gagal mengemas kini acara",
     "deleteFailed": "Gagal memadamkan acara",
-    "loadEventFailed": "Gagal memuatkan acara"
+    "loadEventFailed": "Gagal memuatkan acara",
+    "validMobileRequired": "Sila masukkan nombor telefon bimbit yang sah",
+    "mobileRequiredForToyyibpay": "Nombor telefon bimbit diperlukan untuk pembayaran ToyyibPay"
   },
   "lookup": {
     "title": "Carian Sumbangan",

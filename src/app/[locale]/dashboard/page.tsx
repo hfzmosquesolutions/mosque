@@ -396,7 +396,7 @@ function DashboardContent() {
                     <p className="text-gray-500 dark:text-gray-400 mb-4">
                       {t('noPaymentsYet')}
                     </p>
-                    <Link href="khairat">
+                    <Link href="/khairat">
                       <Button>
                         <Heart className="mr-2 h-4 w-4" />
                         {t('makeYourFirstPayment')}
@@ -439,7 +439,7 @@ function DashboardContent() {
                       ))}
                     {recentContributions.length > 3 && (
                       <div className="text-center pt-2">
-                        <Link href="khairat">
+                        <Link href="/khairat">
                           <Button variant="outline" size="sm">
                             {t('viewAllPayments')}
                           </Button>
@@ -463,7 +463,7 @@ function DashboardContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Link href="khairat">
+                <Link href="/khairat">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -476,7 +476,7 @@ function DashboardContent() {
                     <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
-                <Link href="profile">
+                <Link href="/profile">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -490,7 +490,7 @@ function DashboardContent() {
                   </Button>
                 </Link>
                 {!isAdmin && (
-                  <Link href="dependents">
+                  <Link href="/dependents">
                     <Button
                       variant="ghost"
                       size="sm"

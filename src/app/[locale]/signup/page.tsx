@@ -289,7 +289,7 @@ function SignupPageContent() {
                 {t('alreadyHaveAccountText')}{' '}
               </span>
               <Link
-                href="login"
+                href="/login"
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
                
               >

@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     const statusResult = await PaymentService.getPaymentStatus(
       actualPaymentId,
       mosqueId,
-      providerType as 'billplz' | 'chip' | 'stripe'
+      providerType as 'billplz' | 'chip' | 'stripe' | 'toyyibpay'
     );
 
     if (!statusResult.success) {

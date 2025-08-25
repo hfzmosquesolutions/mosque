@@ -33,19 +33,19 @@ import { toast } from 'sonner';
 interface PaymentProvider {
   id: string;
   mosque_id: string;
-  provider_type: string;
-  provider_config: {
-    billplz_api_key: string;
-    billplz_x_signature_key: string;
-    billplz_collection_id: string;
-  };
+  provider_type: 'billplz' | 'toyyibpay';
+  billplz_api_key?: string;
+  billplz_x_signature_key?: string;
+  billplz_collection_id?: string;
+  toyyibpay_secret_key?: string;
+  toyyibpay_category_code?: string;
   is_active: boolean;
   is_sandbox: boolean;
   created_at: string;
   updated_at: string;
 }
 
-interface PaymentProviderFormData {
+interface BillplzFormData {
   billplz_api_key: string;
   billplz_x_signature_key: string;
   billplz_collection_id: string;
@@ -53,33 +53,55 @@ interface PaymentProviderFormData {
   is_sandbox: boolean;
 }
 
+interface ToyyibPayFormData {
+  toyyibpay_secret_key: string;
+  toyyibpay_category_code: string;
+  is_active: boolean;
+  is_sandbox: boolean;
+}
+
+type PaymentProviderFormData = BillplzFormData | ToyyibPayFormData;
+type ProviderType = 'billplz' | 'toyyibpay';
+
 export function PaymentProviderSettings() {
   const { user } = useAuth();
   const { isAdmin, mosqueId } = useUserRole();
 
-  const [paymentProvider, setPaymentProvider] =
-    useState<PaymentProvider | null>(null);
-  const [formData, setFormData] = useState<PaymentProviderFormData>({
+  const [selectedProvider, setSelectedProvider] =
+    useState<ProviderType>('billplz');
+  const [paymentProviders, setPaymentProviders] = useState<{
+    billplz?: PaymentProvider;
+    toyyibpay?: PaymentProvider;
+  }>({});
+  const [billplzFormData, setBillplzFormData] = useState<BillplzFormData>({
     billplz_api_key: '',
     billplz_x_signature_key: '',
     billplz_collection_id: '',
     is_active: false,
     is_sandbox: true,
   });
+  const [toyyibPayFormData, setToyyibPayFormData] = useState<ToyyibPayFormData>(
+    {
+      toyyibpay_secret_key: '',
+      toyyibpay_category_code: '',
+      is_active: false,
+      is_sandbox: true,
+    }
+  );
 
   // Generate system URLs
-  const generateSystemUrls = () => {
+  const generateSystemUrls = (providerType: ProviderType) => {
     if (typeof window === 'undefined' || !mosqueId)
       return { webhookUrl: '', redirectUrl: '' };
 
     const baseUrl = `${window.location.protocol}//${window.location.host}`;
     return {
-      webhookUrl: `${baseUrl}/api/webhooks/billplz/callback`,
-      redirectUrl: `${baseUrl}/api/webhooks/billplz/redirect?mosque_id=${mosqueId}`,
+      webhookUrl: `${baseUrl}/api/webhooks/${providerType}/callback`,
+      redirectUrl: `${baseUrl}/api/webhooks/${providerType}/redirect?mosque_id=${mosqueId}`,
     };
   };
 
-  const { webhookUrl, redirectUrl } = generateSystemUrls();
+  const { webhookUrl, redirectUrl } = generateSystemUrls(selectedProvider);
 
   // Copy to clipboard function
   const copyToClipboard = async (text: string, label: string) => {
@@ -96,6 +118,7 @@ export function PaymentProviderSettings() {
   const [testing, setTesting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSignatureKey, setShowSignatureKey] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,10 +127,10 @@ export function PaymentProviderSettings() {
       setLoading(false);
       return;
     }
-    loadPaymentProvider();
+    loadPaymentProviders();
   }, [isAdmin, mosqueId]);
 
-  const loadPaymentProvider = async () => {
+  const loadPaymentProviders = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -119,12 +142,12 @@ export function PaymentProviderSettings() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load payment provider');
+        throw new Error(data.error || 'Failed to load payment providers');
       }
 
       if (data.billplz) {
-        setPaymentProvider(data.billplz);
-        setFormData({
+        setPaymentProviders((prev) => ({ ...prev, billplz: data.billplz }));
+        setBillplzFormData({
           billplz_api_key: data.billplz.billplz_api_key || '',
           billplz_x_signature_key: data.billplz.billplz_x_signature_key || '',
           billplz_collection_id: data.billplz.billplz_collection_id || '',
@@ -132,20 +155,31 @@ export function PaymentProviderSettings() {
           is_sandbox: data.billplz.is_sandbox,
         });
       }
+
+      if (data.toyyibpay) {
+        setPaymentProviders((prev) => ({ ...prev, toyyibpay: data.toyyibpay }));
+        setToyyibPayFormData({
+          toyyibpay_secret_key: data.toyyibpay.toyyibpay_secret_key || '',
+          toyyibpay_category_code: data.toyyibpay.toyyibpay_category_code || '',
+          is_active: data.toyyibpay.is_active,
+          is_sandbox: data.toyyibpay.is_sandbox,
+        });
+      }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load payment provider'
+        err instanceof Error ? err.message : 'Failed to load payment providers'
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const updateFormData = (
-    field: keyof PaymentProviderFormData,
-    value: string | boolean
-  ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const updateFormData = (field: string, value: string | boolean) => {
+    if (selectedProvider === 'billplz') {
+      setBillplzFormData((prev) => ({ ...prev, [field]: value }));
+    } else {
+      setToyyibPayFormData((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSave = async () => {
@@ -155,21 +189,24 @@ export function PaymentProviderSettings() {
       setSaving(true);
       setError(null);
 
-      const response = await fetch(`${window.location.origin}/api/admin/payment-providers`, {
-        method: paymentProvider ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mosqueId: mosqueId,
-          providerType: 'billplz',
-          billplz_api_key: formData.billplz_api_key,
-          billplz_x_signature_key: formData.billplz_x_signature_key,
-          billplz_collection_id: formData.billplz_collection_id,
-          is_active: formData.is_active,
-          is_sandbox: formData.is_sandbox,
-        }),
-      });
+      const formData =
+        selectedProvider === 'billplz' ? billplzFormData : toyyibPayFormData;
+      const existingProvider = paymentProviders[selectedProvider];
+
+      const response = await fetch(
+        `${window.location.origin}/api/admin/payment-providers`,
+        {
+          method: existingProvider ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            mosqueId: mosqueId,
+            providerType: selectedProvider,
+            ...formData,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -178,7 +215,7 @@ export function PaymentProviderSettings() {
       }
 
       // Refresh the data after successful save
-      await loadPaymentProvider();
+      await loadPaymentProviders();
       toast.success('Payment provider settings saved successfully!');
     } catch (err) {
       const errorMessage =
@@ -191,28 +228,59 @@ export function PaymentProviderSettings() {
   };
 
   const handleTestConnection = async () => {
-    if (!formData.billplz_api_key || !formData.billplz_collection_id) {
-      toast.error(
-        'Please provide API Key and Collection ID to test connection'
-      );
-      return;
+    const formData =
+      selectedProvider === 'billplz' ? billplzFormData : toyyibPayFormData;
+
+    if (selectedProvider === 'billplz') {
+      if (
+        !billplzFormData.billplz_api_key ||
+        !billplzFormData.billplz_collection_id
+      ) {
+        toast.error(
+          'Please provide API Key and Collection ID to test connection'
+        );
+        return;
+      }
+    } else {
+      if (
+        !toyyibPayFormData.toyyibpay_secret_key ||
+        !toyyibPayFormData.toyyibpay_category_code
+      ) {
+        toast.error(
+          'Please provide Secret Key and Category Code to test connection'
+        );
+        return;
+      }
     }
 
     try {
       setTesting(true);
 
-      const response = await fetch(`${window.location.origin}/api/admin/payment-providers/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          providerType: 'billplz',
-          apiKey: formData.billplz_api_key,
-          collectionId: formData.billplz_collection_id,
-          isSandbox: formData.is_sandbox,
-        }),
-      });
+      const testData =
+        selectedProvider === 'billplz'
+          ? {
+              providerType: 'billplz',
+              apiKey: billplzFormData.billplz_api_key,
+              collectionId: billplzFormData.billplz_collection_id,
+              isSandbox: billplzFormData.is_sandbox,
+            }
+          : {
+              providerType: 'toyyibpay',
+              secretKey: toyyibPayFormData.toyyibpay_secret_key,
+              categoryCode: toyyibPayFormData.toyyibpay_category_code,
+              isSandbox: toyyibPayFormData.is_sandbox,
+            };
+
+      const response = await fetch(
+        `${window.location.origin}/api/admin/payment-providers/test`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testData),
+        }
+      );
 
       const data = await response.json();
 
@@ -221,7 +289,9 @@ export function PaymentProviderSettings() {
       }
 
       toast.success(
-        'Connection test successful! Billplz API is working correctly.'
+        `Connection test successful! ${
+          selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'
+        } API is working correctly.`
       );
     } catch (err) {
       const errorMessage =
@@ -271,7 +341,7 @@ export function PaymentProviderSettings() {
               contributions from members
             </CardDescription>
           </div>
-          {paymentProvider?.is_active && (
+          {paymentProviders[selectedProvider]?.is_active && (
             <Badge variant="default" className="bg-green-100 text-green-800">
               <CheckCircle className="h-3 w-3 mr-1" />
               Active
@@ -286,11 +356,48 @@ export function PaymentProviderSettings() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+        {/* Provider Selection */}
+        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+          <Label className="text-sm font-medium">Payment Provider:</Label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="provider"
+                value="billplz"
+                checked={selectedProvider === 'billplz'}
+                onChange={(e) =>
+                  setSelectedProvider(e.target.value as ProviderType)
+                }
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Billplz</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="provider"
+                value="toyyibpay"
+                checked={selectedProvider === 'toyyibpay'}
+                onChange={(e) =>
+                  setSelectedProvider(e.target.value as ProviderType)
+                }
+                className="w-4 h-4"
+              />
+              <span className="text-sm">ToyyibPay</span>
+            </label>
+          </div>
+        </div>
+
         {/* Status and Mode */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div className="flex items-center gap-3">
             <Switch
-              checked={formData.is_active}
+              checked={
+                selectedProvider === 'billplz'
+                  ? billplzFormData.is_active
+                  : toyyibPayFormData.is_active
+              }
               onCheckedChange={(checked) =>
                 updateFormData('is_active', checked)
               }
@@ -308,7 +415,11 @@ export function PaymentProviderSettings() {
           <div className="flex items-center gap-2">
             <Label className="text-sm">Sandbox Mode</Label>
             <Switch
-              checked={formData.is_sandbox}
+              checked={
+                selectedProvider === 'billplz'
+                  ? billplzFormData.is_sandbox
+                  : toyyibPayFormData.is_sandbox
+              }
               onCheckedChange={(checked) =>
                 updateFormData('is_sandbox', checked)
               }
@@ -318,75 +429,122 @@ export function PaymentProviderSettings() {
 
         {/* API Configuration */}
         <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="apiKey">API Key *</Label>
-            <div className="relative">
-              <Input
-                id="apiKey"
-                type={showApiKey ? 'text' : 'password'}
-                value={formData.billplz_api_key}
-                onChange={(e) =>
-                  updateFormData('billplz_api_key', e.target.value)
-                }
-                placeholder="Enter your Billplz API Key"
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+          {selectedProvider === 'billplz' ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">API Key *</Label>
+                <div className="relative">
+                  <Input
+                    id="apiKey"
+                    type={showApiKey ? 'text' : 'password'}
+                    value={billplzFormData.billplz_api_key}
+                    onChange={(e) =>
+                      updateFormData('billplz_api_key', e.target.value)
+                    }
+                    placeholder="Enter your Billplz API Key"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="signatureKey">X-Signature Key *</Label>
-            <div className="relative">
-              <Input
-                id="signatureKey"
-                type={showSignatureKey ? 'text' : 'password'}
-                value={formData.billplz_x_signature_key}
-                onChange={(e) =>
-                  updateFormData('billplz_x_signature_key', e.target.value)
-                }
-                placeholder="Enter your X-Signature Key"
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowSignatureKey(!showSignatureKey)}
-              >
-                {showSignatureKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="signatureKey">X-Signature Key *</Label>
+                <div className="relative">
+                  <Input
+                    id="signatureKey"
+                    type={showSignatureKey ? 'text' : 'password'}
+                    value={billplzFormData.billplz_x_signature_key}
+                    onChange={(e) =>
+                      updateFormData('billplz_x_signature_key', e.target.value)
+                    }
+                    placeholder="Enter your X-Signature Key"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowSignatureKey(!showSignatureKey)}
+                  >
+                    {showSignatureKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="collectionId">Collection ID *</Label>
-            <Input
-              id="collectionId"
-              value={formData.billplz_collection_id}
-              onChange={(e) =>
-                updateFormData('billplz_collection_id', e.target.value)
-              }
-              placeholder="Enter your Billplz Collection ID"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="collectionId">Collection ID *</Label>
+                <Input
+                  id="collectionId"
+                  value={billplzFormData.billplz_collection_id}
+                  onChange={(e) =>
+                    updateFormData('billplz_collection_id', e.target.value)
+                  }
+                  placeholder="Enter your Billplz Collection ID"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="secretKey">Secret Key *</Label>
+                <div className="relative">
+                  <Input
+                    id="secretKey"
+                    type={showApiKey ? 'text' : 'password'}
+                    value={toyyibPayFormData.toyyibpay_secret_key}
+                    onChange={(e) =>
+                      updateFormData('toyyibpay_secret_key', e.target.value)
+                    }
+                    placeholder="Enter your ToyyibPay Secret Key"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="categoryCode">Category Code *</Label>
+                <Input
+                  id="categoryCode"
+                  value={toyyibPayFormData.toyyibpay_category_code}
+                  onChange={(e) =>
+                    updateFormData('toyyibpay_category_code', e.target.value)
+                  }
+                  placeholder="Enter your ToyyibPay Category Code"
+                />
+              </div>
+            </>
+          )}
 
           {/* System Generated URLs */}
           <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
@@ -462,44 +620,88 @@ export function PaymentProviderSettings() {
             <div className="space-y-3">
               <div>
                 <p className="font-medium mb-2">Setup Instructions:</p>
-                <ol className="list-decimal list-inside space-y-1 text-sm">
-                  <li>Sign up for a Billplz account at billplz.com</li>
-                  <li>Go to Settings → API Keys to get your API Key</li>
-                  <li>
-                    Go to Settings → X-Signature Key to get your X-Signature Key
-                  </li>
-                  <li>Create a Collection and copy the Collection ID</li>
-                  <li>
-                    <strong>
-                      Copy the Webhook URL and Redirect URL above and paste them
-                      into your Billplz Collection settings
-                    </strong>
-                  </li>
-                </ol>
+                {selectedProvider === 'billplz' ? (
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Sign up for a Billplz account at billplz.com</li>
+                    <li>Go to Settings → API Keys to get your API Key</li>
+                    <li>
+                      Go to Settings → X-Signature Key to get your X-Signature
+                      Key
+                    </li>
+                    <li>Create a Collection and copy the Collection ID</li>
+                    <li>
+                      <strong>
+                        Copy the Webhook URL and Redirect URL above and paste
+                        them into your Billplz Collection settings
+                      </strong>
+                    </li>
+                  </ol>
+                ) : (
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Sign up for a ToyyibPay account at toyyibpay.com</li>
+                    <li>Go to Settings → API to get your Secret Key</li>
+                    <li>Create a Category and copy the Category Code</li>
+                    <li>
+                      <strong>
+                        Copy the Webhook URL and Redirect URL above and paste
+                        them into your ToyyibPay settings
+                      </strong>
+                    </li>
+                  </ol>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href="https://www.billplz.com/api#introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    API Documentation
-                  </a>
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href="https://www.billplz.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Billplz Dashboard
-                  </a>
-                </Button>
+                {selectedProvider === 'billplz' ? (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href="https://www.billplz.com/api#introduction"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        API Documentation
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href="https://www.billplz.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Billplz Dashboard
+                      </a>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href="https://dev.toyyibpay.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        API Documentation
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href="https://toyyibpay.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        ToyyibPay Dashboard
+                      </a>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </AlertDescription>
@@ -526,8 +728,12 @@ export function PaymentProviderSettings() {
             onClick={handleTestConnection}
             disabled={
               testing ||
-              !formData.billplz_api_key ||
-              !formData.billplz_collection_id
+              (selectedProvider === 'billplz' &&
+                (!billplzFormData.billplz_api_key ||
+                  !billplzFormData.billplz_collection_id)) ||
+              (selectedProvider === 'toyyibpay' &&
+                (!toyyibPayFormData.toyyibpay_secret_key ||
+                  !toyyibPayFormData.toyyibpay_category_code))
             }
           >
             {testing ? (
