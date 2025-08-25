@@ -165,13 +165,14 @@ export class ToyyibPayProvider {
   }
 
   /**
-   * Get user details (for testing connection)
+   * Get category details (for testing connection)
    */
-  async getUserDetails(): Promise<any> {
-    const url = `${this.baseUrl}/index.php/api/getUserDetails`;
+  async getCategoryDetails(): Promise<any> {
+    const url = `${this.baseUrl}/index.php/api/getCategoryDetails`;
     
     const formData = new URLSearchParams();
     formData.append('userSecretKey', this.config.secretKey);
+    formData.append('categoryCode', this.config.categoryCode);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -180,13 +181,24 @@ export class ToyyibPayProvider {
       },
       body: formData,
     });
-
+    
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`ToyyibPay API error: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    // Get response text first to check if it's empty
+    const responseText = await response.text();
+    
+    if (!responseText || responseText.trim() === '') {
+      throw new Error('ToyyibPay API returned empty response');
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (error) {
+      throw new Error(`ToyyibPay API returned invalid JSON: ${responseText}`);
+    }
   }
 
   /**

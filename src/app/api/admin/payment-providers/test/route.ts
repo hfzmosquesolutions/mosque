@@ -90,22 +90,25 @@ export async function POST(request: NextRequest) {
           isSandbox,
         });
 
-        // Test by trying to get user details
-        const testResult = await toyyibpay.getUserDetails();
+        // Test by trying to get category details (validates both secretKey and categoryCode)
+        const testResult = await toyyibpay.getCategoryDetails();
         
-        if (testResult) {
+        if (testResult && typeof testResult === 'object' && testResult.CategoryName) {
           return NextResponse.json({
             success: true,
             message: 'Connection successful',
-            userInfo: {
+            connectionInfo: {
               secretKey: 'Valid',
               categoryCode: categoryCode,
               status: 'Connected',
+              categoryName: testResult.CategoryName || 'Unknown',
+              categoryDescription: testResult.categoryDescription || 'Unknown',
+              categoryStatus: testResult.categoryStatus || 'Unknown',
             },
           });
         } else {
           return NextResponse.json(
-            { error: 'Failed to retrieve category information' },
+            { error: 'Failed to retrieve category information or invalid credentials' },
             { status: 400 }
           );
         }
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
         }
         
         return NextResponse.json(
-          { error: errorMessage },
+          { error: `ToyyibPay API error: ${errorMessage}` },
           { status: 400 }
         );
       }

@@ -24,7 +24,6 @@ import {
   Save,
   Loader2,
   ExternalLink,
-  Copy,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -89,29 +88,9 @@ export function PaymentProviderSettings() {
     }
   );
 
-  // Generate system URLs
-  const generateSystemUrls = (providerType: ProviderType) => {
-    if (typeof window === 'undefined' || !mosqueId)
-      return { webhookUrl: '', redirectUrl: '' };
 
-    const baseUrl = `${window.location.protocol}//${window.location.host}`;
-    return {
-      webhookUrl: `${baseUrl}/api/webhooks/${providerType}/callback`,
-      redirectUrl: `${baseUrl}/api/webhooks/${providerType}/redirect?mosque_id=${mosqueId}`,
-    };
-  };
 
-  const { webhookUrl, redirectUrl } = generateSystemUrls(selectedProvider);
 
-  // Copy to clipboard function
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`${label} copied to clipboard!`);
-    } catch (err) {
-      toast.error('Failed to copy to clipboard');
-    }
-  };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -192,6 +171,113 @@ export function PaymentProviderSettings() {
       const formData =
         selectedProvider === 'billplz' ? billplzFormData : toyyibPayFormData;
       const existingProvider = paymentProviders[selectedProvider];
+
+      // If payment provider is being enabled, test connection first
+      if (formData.is_active) {
+        // Validate required fields before testing
+        if (selectedProvider === 'billplz') {
+          if (
+            !billplzFormData.billplz_api_key ||
+            !billplzFormData.billplz_collection_id
+          ) {
+            throw new Error(
+              'Please provide API Key and Collection ID before enabling the payment provider'
+            );
+          }
+        } else {
+          if (
+            !toyyibPayFormData.toyyibpay_secret_key ||
+            !toyyibPayFormData.toyyibpay_category_code
+          ) {
+            throw new Error(
+              'Please provide Secret Key and Category Code before enabling the payment provider'
+            );
+          }
+        }
+
+        // Test connection before saving
+        const testData =
+          selectedProvider === 'billplz'
+            ? {
+                providerType: 'billplz',
+                apiKey: billplzFormData.billplz_api_key,
+                collectionId: billplzFormData.billplz_collection_id,
+                isSandbox: billplzFormData.is_sandbox,
+              }
+            : {
+                providerType: 'toyyibpay',
+                secretKey: toyyibPayFormData.toyyibpay_secret_key,
+                categoryCode: toyyibPayFormData.toyyibpay_category_code,
+                isSandbox: toyyibPayFormData.is_sandbox,
+              };
+
+        const testResponse = await fetch(
+          `${window.location.origin}/api/admin/payment-providers/test`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testData),
+          }
+        );
+
+        const testData_result = await testResponse.json();
+
+        if (!testResponse.ok) {
+          throw new Error(
+            testData_result.error ||
+              `Connection test failed. Please verify your ${selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'} credentials and try again.`
+          );
+        }
+
+        toast.success(
+          `Connection test successful! Proceeding to save settings...`
+        );
+
+        // If enabling this provider, disable other active providers first
+        const otherProvider = selectedProvider === 'billplz' ? 'toyyibpay' : 'billplz';
+        const otherProviderData = paymentProviders[otherProvider];
+        
+        if (otherProviderData && otherProviderData.is_active) {
+          // Disable the other provider first
+          const disableResponse = await fetch(
+            `${window.location.origin}/api/admin/payment-providers`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                mosqueId: mosqueId,
+                providerType: otherProvider,
+                ...(
+                  otherProvider === 'billplz' 
+                    ? {
+                        billplz_api_key: otherProviderData.billplz_api_key,
+                        billplz_x_signature_key: otherProviderData.billplz_x_signature_key,
+                        billplz_collection_id: otherProviderData.billplz_collection_id,
+                        is_sandbox: otherProviderData.is_sandbox,
+                      }
+                    : {
+                        toyyibpay_secret_key: otherProviderData.toyyibpay_secret_key,
+                        toyyibpay_category_code: otherProviderData.toyyibpay_category_code,
+                        is_sandbox: otherProviderData.is_sandbox,
+                      }
+                ),
+                is_active: false, // Disable the other provider
+              }),
+            }
+          );
+
+          if (!disableResponse.ok) {
+            const disableData = await disableResponse.json();
+            throw new Error(
+              disableData.error || `Failed to disable ${otherProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'} provider`
+            );
+          }
+        }
+      }
 
       const response = await fetch(
         `${window.location.origin}/api/admin/payment-providers`,
@@ -389,6 +475,22 @@ export function PaymentProviderSettings() {
           </div>
         </div>
 
+        {/* Warning message about single active provider */}
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-800">
+                <strong>Important:</strong> Only one payment provider can be active at a time. Enabling a new provider will automatically disable any currently active provider.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Status and Mode */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div className="flex items-center gap-3">
@@ -546,71 +648,7 @@ export function PaymentProviderSettings() {
             </>
           )}
 
-          {/* System Generated URLs */}
-          <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <Label className="text-sm font-medium text-blue-600">
-                System Generated URLs
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">
-              Copy these URLs and paste them into your Billplz dashboard
-              settings.
-            </p>
 
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Webhook URL (Callback URL)
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={webhookUrl}
-                    readOnly
-                    className="bg-background font-mono text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(webhookUrl, 'Webhook URL')}
-                    className="shrink-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Billplz will send payment notifications to this URL
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Redirect URL (Return URL)
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={redirectUrl}
-                    readOnly
-                    className="bg-background font-mono text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(redirectUrl, 'Redirect URL')}
-                    className="shrink-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Users will be redirected to this URL after payment completion
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Help Information */}
@@ -629,24 +667,12 @@ export function PaymentProviderSettings() {
                       Key
                     </li>
                     <li>Create a Collection and copy the Collection ID</li>
-                    <li>
-                      <strong>
-                        Copy the Webhook URL and Redirect URL above and paste
-                        them into your Billplz Collection settings
-                      </strong>
-                    </li>
                   </ol>
                 ) : (
                   <ol className="list-decimal list-inside space-y-1 text-sm">
                     <li>Sign up for a ToyyibPay account at toyyibpay.com</li>
                     <li>Go to Settings → API to get your Secret Key</li>
                     <li>Create a Category and copy the Category Code</li>
-                    <li>
-                      <strong>
-                        Copy the Webhook URL and Redirect URL above and paste
-                        them into your ToyyibPay settings
-                      </strong>
-                    </li>
                   </ol>
                 )}
               </div>
