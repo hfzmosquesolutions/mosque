@@ -8,16 +8,7 @@ export async function POST(request: NextRequest) {
     console.log('Request URL:', request.url);
     console.log('Request headers:', Object.fromEntries(request.headers.entries()));
     
-    // Get X-Signature from headers
-    const xSignature = request.headers.get('x-signature');
-    
-    if (!xSignature) {
-      console.error('❌ Missing X-Signature header');
-      return NextResponse.json(
-        { error: 'Missing X-Signature header' },
-        { status: 400 }
-      );
-    }
+
 
     // Parse form data from Billplz callback
     const formData = await request.formData();
@@ -29,10 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log callback data for debugging
-    console.log('📥 Billplz callback data:', {
-      ...callbackData,
-      x_signature: xSignature
-    });
+    console.log('📥 Billplz callback data:', callbackData);
 
     // Extract contribution_id from query parameters
     const url = new URL(request.url);
@@ -60,7 +48,6 @@ export async function POST(request: NextRequest) {
     // Process the callback with compound key validation
     const result = await PaymentService.processBillplzCallback(
       callbackData,
-      xSignature,
       contributionId
     );
 

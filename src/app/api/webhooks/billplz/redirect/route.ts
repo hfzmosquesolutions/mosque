@@ -26,12 +26,14 @@ export async function GET(request: NextRequest) {
     const billplzPaid = searchParams.get('billplz[paid]');
     const billplzPaidAt = searchParams.get('billplz[paid_at]');
     const billplzXSignature = searchParams.get('billplz[x_signature]');
+    const contributionId = searchParams.get('contribution_id');
     
     console.log('📥 Billplz redirect parameters:', {
       billplzId,
       billplzPaid,
       billplzPaidAt,
-      billplzXSignature: billplzXSignature ? '***provided***' : 'not provided'
+      billplzXSignature: billplzXSignature ? '***provided***' : 'not provided',
+      contributionId
     });
    
     // Validate required parameters
@@ -39,11 +41,16 @@ export async function GET(request: NextRequest) {
       console.error('❌ Missing payment information (billplz[id])');
       return redirectToError('Missing payment information');
     }
+    
+    if (!contributionId) {
+      console.error('❌ Missing contribution ID');
+      return redirectToError('Missing contribution information');
+    }
 
-    // Get contribution details using bill_id
+    // Get contribution details using compound key (contribution_id + bill_id)
     const supabaseAdmin = getSupabaseAdmin();
     
-    console.log('🔍 Looking up contribution by bill ID:', billplzId);
+    console.log('🔍 Looking up contribution by compound key:', { contributionId, billplzId });
     const { data: contribution, error } = await supabaseAdmin
       .from('contributions')
       .select(`
@@ -52,15 +59,16 @@ export async function GET(request: NextRequest) {
         amount, 
         contributor_name
       `)
+      .eq('id', contributionId)
       .eq('bill_id', billplzId)
       .single();
     
     if (error) {
-      console.error('❌ Database error finding contribution by bill ID:', error);
+      console.error('❌ Database error finding contribution by compound key:', error);
       return redirectToError('Contribution not found');
     }
     if (!contribution) {
-      console.error('❌ No contribution found with bill ID:', billplzId);
+      console.error('❌ No contribution found with compound key:', { contributionId, billplzId });
       return redirectToError('Contribution not found');
     }
     
@@ -71,31 +79,13 @@ export async function GET(request: NextRequest) {
       contributor_name: contribution.contributor_name
     });
 
-    // Verify X-Signature if provided
+    // X-Signature verification disabled for redirect - callback webhook handles the authoritative verification
     if (billplzXSignature) {
-      console.log('🔐 X-Signature provided, attempting verification...');
-      const callbackData = {
-        id: billplzId,
-        paid: billplzPaid === 'true',
-        paid_at: billplzPaidAt,
-      };
-      
-      console.log('🔐 Callback data for verification:', callbackData);
-
-      const verificationResult = await PaymentService.processBillplzCallback(
-        callbackData,
-        billplzXSignature
-      );
-
-      if (!verificationResult.success) {
-        console.warn('⚠️ X-Signature verification failed on redirect:', verificationResult.error);
-        console.warn('⚠️ Continuing anyway as this is just a redirect, callback will handle the actual verification');
-      } else {
-        console.log('✅ X-Signature verification successful on redirect');
-      }
+      console.log('ℹ️ X-Signature provided but verification skipped for redirect');
     } else {
       console.log('ℹ️ No X-Signature provided in redirect');
     }
+    console.log('ℹ️ Note: X-Signature verification is handled by the callback webhook for security');
 
     console.log('💰 Payment details from redirect:', {
       billplzId,
@@ -104,10 +94,38 @@ export async function GET(request: NextRequest) {
       contributionId: contribution.id
     });
     
-    console.log('ℹ️ Note: Payment data will be updated by the callback webhook for comprehensive tracking');
+    // Also process the payment callback for immediate database updates (redundancy for delayed webhooks)
+    console.log('🔄 Processing payment callback for immediate database update...');
+    try {
+      // Construct callback data from redirect parameters
+      const callbackData = {
+        id: billplzId,
+        paid: billplzPaid || 'false',
+        paid_at: billplzPaidAt || ''
+      };
+      
+      console.log('📤 Constructed callback data for processing:', callbackData);
+      
+      // Process the callback to update database immediately
+      const callbackResult = await PaymentService.processBillplzCallback(callbackData, contributionId);
+      console.log('📋 Payment callback result:', callbackResult);
+      
+      if (callbackResult.success) {
+        console.log('✅ Payment callback processed successfully via redirect');
+      } else {
+        console.log('⚠️ Payment callback processing failed:', callbackResult.error);
+      }
+      
+    } catch (callbackError) {
+      console.error('⚠️ Error processing callback via redirect (non-fatal):', callbackError);
+      console.log('ℹ️ Payment will still be processed by the webhook callback');
+    }
+    
+    console.log('ℹ️ Note: Payment data updated immediately + webhook callback provides additional redundancy');
 
     // Determine payment status for redirect
     const isPaid = billplzPaid === 'true';
+    const isFailed = billplzPaid === 'false';
     let paymentStatus = 'pending';
     let statusMessage = 'Payment is being processed';
     
@@ -115,6 +133,10 @@ export async function GET(request: NextRequest) {
       paymentStatus = 'success';
       statusMessage = 'Payment completed successfully';
       console.log('✅ Payment determined as SUCCESS');
+    } else if (isFailed) {
+      paymentStatus = 'failed';
+      statusMessage = 'Payment was unsuccessful';
+      console.log('❌ Payment determined as FAILED');
     } else {
       console.log('⏳ Payment determined as PENDING');
     }

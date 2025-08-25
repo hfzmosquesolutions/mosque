@@ -25,13 +25,13 @@ export async function GET(request: NextRequest) {
     const statusId = searchParams.get('status_id');
     const billCode = searchParams.get('billcode');
     const orderNumber = searchParams.get('order_id');
-    const mosqueId = searchParams.get('mosque_id');
+    const contributionId = searchParams.get('contribution_id');
     
     console.log('📥 ToyyibPay redirect parameters:', {
       statusId,
       billCode,
       orderNumber,
-      mosqueId
+      contributionId
     });
    
     // Validate required parameters
@@ -40,15 +40,15 @@ export async function GET(request: NextRequest) {
       return redirectToError('Missing payment information');
     }
 
-    if (!mosqueId) {
-      console.error('❌ Missing mosque_id parameter');
-      return redirectToError('Missing mosque information');
+    if (!contributionId) {
+      console.error('❌ Missing contribution ID');
+      return redirectToError('Missing contribution information');
     }
 
-    // Get contribution details using bill_id (ToyyibPay bill code)
+    // Get contribution details using compound key (contribution_id + bill_id)
     const supabaseAdmin = getSupabaseAdmin();
     
-    console.log('🔍 Looking up contribution by bill ID:', billCode);
+    console.log('🔍 Looking up contribution by compound key:', { contributionId, billCode });
     const { data: contribution, error } = await supabaseAdmin
       .from('contributions')
       .select(`
@@ -57,15 +57,16 @@ export async function GET(request: NextRequest) {
         amount, 
         contributor_name
       `)
+      .eq('id', contributionId)
       .eq('bill_id', billCode)
       .single();
     
     if (error) {
-      console.error('❌ Database error finding contribution by bill ID:', error);
+      console.error('❌ Database error finding contribution by compound key:', error);
       return redirectToError('Contribution not found');
     }
     if (!contribution) {
-      console.error('❌ No contribution found with bill ID:', billCode);
+      console.error('❌ No contribution found with compound key:', { contributionId, billCode });
       return redirectToError('Contribution not found');
     }
     
@@ -83,7 +84,41 @@ export async function GET(request: NextRequest) {
       contributionId: contribution.id
     });
     
-    console.log('ℹ️ Note: Payment data will be updated by the callback webhook for comprehensive tracking');
+    // Also process the callback for immediate database updates (redundancy)
+    console.log('🔄 Processing callback from redirect for immediate database update...');
+    try {
+      // Construct ToyyibPayCallbackData from redirect parameters
+      const toyyibPayCallbackData = {
+        refno: '',
+        status: statusId === '1' ? 'success' : statusId === '3' ? 'failed' : 'pending',
+        reason: '',
+        billcode: billCode,
+        order_id: orderNumber || '',
+        amount: contribution.amount.toString(),
+        transaction_id: '',
+        fpx_transaction_id: undefined,
+        fpx_sellerOrderNo: undefined,
+        status_id: statusId || '',
+        msg: '',
+      };
+
+      const callbackResult = await PaymentService.processToyyibPayCallback(
+        toyyibPayCallbackData,
+        contributionId
+      );
+
+      console.log('📊 Callback processing result from redirect:', callbackResult);
+      if (callbackResult.success) {
+        console.log('✅ Payment status updated successfully via redirect');
+      } else {
+        console.log('❌ Callback processing failed via redirect:', callbackResult.error);
+      }
+    } catch (callbackError) {
+      console.error('❌ Error processing callback from redirect:', callbackError);
+      // Don't fail the redirect if callback processing fails
+    }
+    
+    console.log('ℹ️ Note: Payment data is also updated by the callback webhook for comprehensive tracking');
 
     // Determine payment status for redirect based on ToyyibPay status_id
     // status_id: 1 = successful payment, 2 = pending payment, 3 = unsuccessful payment

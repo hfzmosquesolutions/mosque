@@ -314,6 +314,7 @@
       "description": "Buat pembayaran kepada program di salah satu masjid yang anda ikuti",
       "selectMosque": "Pilih Masjid",
       "selectMosqueRequired": "Pilih Masjid *",
+      "selectMosqueFirst": "Sila pilih masjid terlebih dahulu",
       "loadingMosques": "Memuatkan masjid...",
       "chooseMosque": "Pilih masjid",
       "noMosquesAvailable": "Tiada masjid tersedia",
@@ -368,7 +369,12 @@
       "mobileRequiredForToyyibpay": "Nombor telefon diperlukan untuk pembayaran ToyyibPay",
       "validMobileRequired": "Sila masukkan nombor telefon yang sah",
       "mustBeLoggedIn": "Anda mesti log masuk untuk membuat sumbangan",
-      "validAmountRequired": "Sila masukkan jumlah yang sah"
+      "validAmountRequired": "Sila masukkan jumlah yang sah",
+      "failedToCreatePayment": "Gagal mencipta pembayaran"
+    },
+    "payment": {
+      "redirectingToGateway": "Mengalihkan ke gateway pembayaran...",
+      "contributionSubmitted": "Sumbangan berjaya dihantar"
     }
   },
   "mosques": {
@@ -1111,6 +1117,7 @@
     "viewPaymentHistoryDescription": "Lihat dan jejaki sejarah pembayaran anda merentas semua program",
     "paymentHistory": "Sejarah Pembayaran",
     "completeRecordDescription": "Rekod lengkap semua sumbangan dan pembayaran anda",
+    "tryAgain": "Cuba Lagi",
     "active": "Aktif",
     "inactive": "Tidak Aktif",
     "program": "Program",

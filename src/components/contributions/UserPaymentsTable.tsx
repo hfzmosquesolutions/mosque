@@ -31,15 +31,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { Contribution, ContributionProgram, Mosque } from '@/types/database';
+import type {
+  Contribution,
+  ContributionProgram,
+  Mosque,
+} from '@/types/database';
 
 interface UserPaymentsTableProps {
-  contributions: (Contribution & { program: ContributionProgram & { mosque: Mosque } })[];
+  contributions: (Contribution & {
+    program: ContributionProgram & { mosque: Mosque };
+  })[];
 }
 
 export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
   const [selectedContribution, setSelectedContribution] = useState<
-    (Contribution & { program: ContributionProgram & { mosque: Mosque } }) | null
+    | (Contribution & { program: ContributionProgram & { mosque: Mosque } })
+    | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -63,6 +70,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
       pending: { label: 'Pending', variant: 'secondary' as const },
       completed: { label: 'Completed', variant: 'default' as const },
       cancelled: { label: 'Cancelled', variant: 'destructive' as const },
+      failed: { label: 'Failed', variant: 'destructive' as const },
     };
 
     const config =
@@ -76,18 +84,26 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'cancelled':
         return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'failed':
+        return <XCircle className="h-4 w-4 text-red-600" />;
       case 'pending':
       default:
         return <Clock className="h-4 w-4 text-yellow-600" />;
     }
   };
 
-  const handleViewDetails = (contribution: Contribution & { program: ContributionProgram & { mosque: Mosque } }) => {
+  const handleViewDetails = (
+    contribution: Contribution & {
+      program: ContributionProgram & { mosque: Mosque };
+    }
+  ) => {
     setSelectedContribution(contribution);
     setIsModalOpen(true);
   };
 
-  const columns: ColumnDef<Contribution & { program: ContributionProgram & { mosque: Mosque } }>[] = [
+  const columns: ColumnDef<
+    Contribution & { program: ContributionProgram & { mosque: Mosque } }
+  >[] = [
     {
       accessorKey: 'program.name',
       header: ({ column }) => (
@@ -184,7 +200,13 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
   ];
 
   // Mobile Card Component
-  const MobilePaymentCard = ({ contribution }: { contribution: Contribution & { program: ContributionProgram & { mosque: Mosque } } }) => (
+  const MobilePaymentCard = ({
+    contribution,
+  }: {
+    contribution: Contribution & {
+      program: ContributionProgram & { mosque: Mosque };
+    };
+  }) => (
     <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="space-y-3">
@@ -196,7 +218,9 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               </h3>
               <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                 <Building className="h-3 w-3" />
-                <span className="truncate">{contribution.program?.mosque?.name || 'Unknown Mosque'}</span>
+                <span className="truncate">
+                  {contribution.program?.mosque?.name || 'Unknown Mosque'}
+                </span>
               </div>
             </div>
             <div className="text-right ml-3">
@@ -249,6 +273,9 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
   const pendingAmount = contributions
     .filter((c) => c.status === 'pending')
     .reduce((sum, contribution) => sum + contribution.amount, 0);
+  const failedAmount = contributions
+    .filter((c) => c.status === 'failed')
+    .reduce((sum, contribution) => sum + contribution.amount, 0);
 
   return (
     <div className="space-y-8">
@@ -267,7 +294,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-4">
         <Card className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -301,7 +328,8 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               {formatCurrency(completedAmount)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'completed').length} completed
+              {contributions.filter((c) => c.status === 'completed').length}{' '}
+              completed
             </p>
           </CardContent>
         </Card>
@@ -320,7 +348,27 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               {formatCurrency(pendingAmount)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'pending').length} pending
+              {contributions.filter((c) => c.status === 'pending').length}{' '}
+              pending
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Failed
+            </CardTitle>
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+              {formatCurrency(failedAmount)}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {contributions.filter((c) => c.status === 'failed').length} failed
             </p>
           </CardContent>
         </Card>
@@ -345,13 +393,17 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 No payments yet
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Your payment history will appear here once you make your first contribution.
+                Your payment history will appear here once you make your first
+                contribution.
               </p>
             </div>
           ) : isMobile ? (
             <div className="space-y-3">
               {contributions.map((contribution) => (
-                <MobilePaymentCard key={contribution.id} contribution={contribution} />
+                <MobilePaymentCard
+                  key={contribution.id}
+                  contribution={contribution}
+                />
               ))}
             </div>
           ) : (
@@ -388,7 +440,8 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                     Mosque
                   </h4>
                   <p className="font-semibold">
-                    {selectedContribution.program?.mosque?.name || 'Unknown Mosque'}
+                    {selectedContribution.program?.mosque?.name ||
+                      'Unknown Mosque'}
                   </p>
                 </div>
                 <div>

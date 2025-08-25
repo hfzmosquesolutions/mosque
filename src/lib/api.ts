@@ -1176,7 +1176,7 @@ export async function createKhairatProgram(
  */
 export async function updateContributionStatus(
   contributionId: string,
-  status: 'pending' | 'completed' | 'cancelled'
+  status: 'pending' | 'completed' | 'cancelled' | 'failed'
 ): Promise<ApiResponse<Contribution>> {
   try {
     const { data, error } = await supabase
@@ -1201,7 +1201,7 @@ export async function updateContributionStatus(
  */
 export async function updateKhairatContributionStatus(
   contributionId: string,
-  status: 'pending' | 'completed' | 'cancelled'
+  status: 'pending' | 'completed' | 'cancelled' | 'failed'
 ): Promise<ApiResponse<KhairatContribution>> {
   try {
     const { data, error } = await supabase

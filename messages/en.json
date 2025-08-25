@@ -315,7 +315,8 @@
       "notesPlaceholder": "Any additional notes...",
       "cancel": "Cancel",
       "submitPayment": "Submit Payment",
-      "submitting": "Submitting..."
+      "submitting": "Submitting...",
+      "selectMosqueFirst": "Please select a mosque first"
     },
     "form": {
       "payerNameFromAccount": "Payer Name (From Account)",
@@ -334,7 +335,12 @@
       "mobileRequiredForToyyibpay": "Mobile number is required for ToyyibPay payments",
       "validMobileRequired": "Please enter a valid mobile number",
       "mustBeLoggedIn": "You must be logged in to make a contribution",
-      "validAmountRequired": "Please enter a valid amount"
+      "validAmountRequired": "Please enter a valid amount",
+      "failedToCreatePayment": "Failed to create payment"
+    },
+    "payment": {
+      "redirectingToGateway": "Redirecting to payment gateway...",
+      "contributionSubmitted": "Contribution submitted successfully"
     }
   },
   "mosques": {
@@ -1084,7 +1090,8 @@
     "myPayments": "My Payments",
     "viewPaymentHistoryDescription": "View and track your payment history across all programs",
     "paymentHistory": "Payment History",
-    "completeRecordDescription": "Complete record of all your contributions and payments"
+    "completeRecordDescription": "Complete record of all your contributions and payments",
+    "tryAgain": "Try Again"
   },
   "dependents": {
     "title": "Dependents",
