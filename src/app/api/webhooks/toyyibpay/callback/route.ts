@@ -29,18 +29,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get mosque_id from query parameters
-    const { searchParams } = new URL(request.url);
-    const mosqueId = searchParams.get('mosque_id');
-    
-    if (!mosqueId) {
-      console.error('❌ Missing mosque_id in callback URL');
-      return NextResponse.json(
-        { error: 'Missing mosque_id' },
-        { status: 400 }
-      );
-    }
-
     console.log('🔄 Processing callback for bill code:', callbackData.billcode);
     
     // Convert to proper ToyyibPayCallbackData structure
@@ -61,8 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Process the callback
     const result = await PaymentService.processToyyibPayCallback(
-      toyyibPayCallbackData,
-      mosqueId
+      toyyibPayCallbackData
     );
 
     if (!result.success) {

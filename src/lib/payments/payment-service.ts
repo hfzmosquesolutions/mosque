@@ -208,7 +208,7 @@ export class PaymentService {
 
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback?mosque_id=${request.mosqueId}`;
+      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback`;
       const redirectUrl = `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${request.mosqueId}`;
 
       // Create bill
@@ -368,8 +368,7 @@ export class PaymentService {
    * Process ToyyibPay callback
    */
   static async processToyyibPayCallback(
-    callbackData: ToyyibPayCallbackData,
-    mosqueId: string
+    callbackData: ToyyibPayCallbackData
   ): Promise<{ success: boolean; error?: string }> {
     try {
      
@@ -380,8 +379,26 @@ export class PaymentService {
         return { success: false, error: 'Missing bill code' };
       }
       
-      // Get ToyyibPay provider for signature verification
-      const provider = await this.getPaymentProvider(mosqueId, 'toyyibpay');
+      // First lookup contribution by bill_id to get mosque_id
+      console.log('🔍 Looking up contribution by bill ID:', billCode);
+      const { data: contribution, error: contributionError } = await getSupabaseAdmin()
+        .from('contributions')
+        .select('*')
+        .eq('bill_id', billCode)
+        .single();
+
+      if (contributionError) {
+        console.error('❌ Database error finding contribution:', contributionError);
+        return { success: false, error: `Contribution lookup failed: ${contributionError.message}` };
+      }
+      
+      if (!contribution) {
+        console.error('❌ No contribution found for bill code:', billCode);
+        return { success: false, error: 'Contribution not found' };
+      }
+      
+      // Get ToyyibPay provider for signature verification using mosque_id from contribution
+      const provider = await this.getPaymentProvider(contribution.mosque_id, 'toyyibpay');
       
       if (!provider || !provider.toyyibpay_secret_key) {
         console.error('❌ ToyyibPay provider not configured');
@@ -401,24 +418,6 @@ export class PaymentService {
       if (!isValidHash) {
         console.error('❌ Invalid hash signature');
         return { success: false, error: 'Invalid hash signature' };
-      }
-      
-      // Simple lookup by bill_id (bill code)
-      console.log('🔍 Looking up contribution by bill ID:', billCode);
-      const { data: contribution, error: contributionError } = await getSupabaseAdmin()
-        .from('contributions')
-        .select('*')
-        .eq('bill_id', billCode)
-        .single();
-
-      if (contributionError) {
-        console.error('❌ Database error finding contribution:', contributionError);
-        return { success: false, error: `Contribution lookup failed: ${contributionError.message}` };
-      }
-      
-      if (!contribution) {
-        console.error('❌ No contribution found for bill code:', billCode);
-        return { success: false, error: 'Contribution not found' };
       }
       
       console.log('✅ Found contribution:', {
