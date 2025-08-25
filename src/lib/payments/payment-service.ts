@@ -145,7 +145,6 @@ export class PaymentService {
       };
 
       const bill = await billplz.createBill(billData);
-      console.log('billData',billData)
       
       // Prepare initial payment data for additional info
       const paymentData = {
@@ -209,7 +208,7 @@ export class PaymentService {
 
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback`;
+      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback?mosque_id=${request.mosqueId}`;
       const redirectUrl = `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${request.mosqueId}`;
 
       // Create bill
