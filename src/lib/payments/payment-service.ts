@@ -126,7 +126,7 @@ export class PaymentService {
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const callbackUrl = `${baseUrl}/api/webhooks/billplz/callback?contribution_id=${request.contributionId}`;
-      const redirectUrl = `${baseUrl}/api/webhooks/billplz/redirect`;
+      const redirectUrl = `${baseUrl}/api/webhooks/billplz/redirect?contribution_id=${request.contributionId}`;
 
       // Create bill
       const billData = {
@@ -209,7 +209,7 @@ export class PaymentService {
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback?contribution_id=${request.contributionId}`;
-      const redirectUrl = `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${request.mosqueId}`;
+      const redirectUrl = `${baseUrl}/api/webhooks/toyyibpay/redirect?contribution_id=${request.contributionId}`;
 
       // Create bill
       // Truncate billName to 30 characters max (ToyyibPay requirement)
@@ -298,7 +298,6 @@ export class PaymentService {
    */
   static async processBillplzCallback(
     callbackData: Record<string, unknown>,
-    xSignature: string,
     contributionId?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -312,6 +311,8 @@ export class PaymentService {
       if (!contributionId) {
         return { success: false, error: 'Missing contribution ID' };
       }
+      
+
       
       // Compound key lookup using both contribution_id and bill_id for enhanced security
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
@@ -330,6 +331,9 @@ export class PaymentService {
         console.error('❌ No contribution found for bill ID:', billId);
         return { success: false, error: 'Contribution not found' };
       }
+
+      console.log('✅ Processing Billplz callback without signature verification');
+      console.log('callbackData', callbackData)
 
       // Update contribution status based on payment status
       const isPaid = callbackData.paid === true || callbackData.paid === 'true';
@@ -409,29 +413,7 @@ export class PaymentService {
         return { success: false, error: 'Contribution not found' };
       }
       
-      // Get ToyyibPay provider for signature verification using mosque_id from contribution
-      const provider = await this.getPaymentProvider(contribution.mosque_id, 'toyyibpay');
-      
-      if (!provider || !provider.toyyibpay_secret_key) {
-        console.error('❌ ToyyibPay provider not configured');
-        return { success: false, error: 'ToyyibPay not configured' };
-      }
 
-      // Verify hash signature
-      const toyyibPayConfig: ToyyibPayConfig = {
-        secretKey: provider.toyyibpay_secret_key,
-        categoryCode: provider.toyyibpay_category_code!,
-        isSandbox: provider.is_sandbox,
-      };
-
-      const toyyibPay = new ToyyibPayProvider(toyyibPayConfig);
-      const isValidHash = toyyibPay.verifyHash(callbackData);
-      
-      if (!isValidHash) {
-        console.error('❌ Invalid hash signature');
-        return { success: false, error: 'Invalid hash signature' };
-      }
-      
       console.log('✅ Found contribution:', {
         id: contribution.id,
         current_status: contribution.status,

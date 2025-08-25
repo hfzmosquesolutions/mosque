@@ -11,7 +11,7 @@ export type UserRole = 'admin' | 'imam' | 'board_member' | 'volunteer_coordinato
 export type UserStatus = 'active' | 'inactive' | 'pending';
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
 export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-export type ContributionStatus = 'pending' | 'completed' | 'cancelled';
+export type ContributionStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
 // Legacy alias for backward compatibility
 export type KhairatStatus = ContributionStatus;
 

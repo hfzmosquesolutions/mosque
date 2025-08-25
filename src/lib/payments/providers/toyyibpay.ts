@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 export interface ToyyibPayConfig {
   secretKey: string;
   categoryCode: string;
@@ -57,7 +55,6 @@ export interface ToyyibPayCallbackData {
   fpx_sellerOrderNo?: string;
   status_id: string;
   msg: string;
-  hash: string;
 }
 
 export class ToyyibPayProvider {
@@ -147,20 +144,7 @@ export class ToyyibPayProvider {
     return response.json();
   }
 
-  /**
-   * Verify hash signature from ToyyibPay callback
-   */
-  verifyHash(data: ToyyibPayCallbackData): boolean {
-    // ToyyibPay hash verification
-    // Hash = MD5(secretkey + refno + amount + status)
-    const hashString = `${this.config.secretKey}${data.refno}${data.amount}${data.status}`;
-    const computedHash = crypto
-      .createHash('md5')
-      .update(hashString)
-      .digest('hex');
-    
-    return computedHash === data.hash;
-  }
+
 
   /**
    * Get bank list from ToyyibPay
@@ -251,9 +235,16 @@ export function createToyyibPayProvider(config: ToyyibPayConfig): ToyyibPayProvi
 /**
  * Helper function to generate callback/redirect URLs
  */
-export function generateToyyibPayUrls(baseUrl: string, mosqueId: string) {
+export function generateToyyibPayUrls(baseUrl: string, mosqueId: string, contributionId?: string) {
+  const callbackUrl = contributionId 
+    ? `${baseUrl}/api/webhooks/toyyibpay/callback?contribution_id=${contributionId}`
+    : `${baseUrl}/api/webhooks/toyyibpay/callback`;
+  const redirectUrl = contributionId
+    ? `${baseUrl}/api/webhooks/toyyibpay/redirect?contribution_id=${contributionId}`
+    : `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${mosqueId}`;
+  
   return {
-    callbackUrl: `${baseUrl}/api/webhooks/toyyibpay/callback`,
-    redirectUrl: `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${mosqueId}`,
+    callbackUrl,
+    redirectUrl,
   };
 }

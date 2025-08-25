@@ -48,12 +48,24 @@ export interface BillplzCallbackData {
   id: string;
   collection_id: string;
   paid: boolean;
-  state: 'overdue' | 'paid' | 'due';
+  state: 'overdue' | 'paid' | 'due' | 'deleted';
   amount: number;
   paid_amount: number;
+  due_at: string;
+  email: string;
+  mobile: string;
+  name: string;
+  url: string;
   paid_at?: string;
   transaction_id?: string;
-  transaction_status?: string;
+  transaction_status?: 'pending' | 'completed' | 'failed';
+  reference_1_label?: string;
+  reference_1?: string;
+  reference_2_label?: string;
+  reference_2?: string;
+  redirect_url?: string;
+  callback_url?: string;
+  description?: string;
   x_signature: string;
 }
 
@@ -124,21 +136,86 @@ export class BillplzProvider {
    */
   verifyXSignature(data: Record<string, unknown>, receivedSignature: string): boolean {
     // Remove x_signature from data for verification
-    const { ...dataToVerify } = data;
+    const { x_signature, ...dataToVerify } = data;
     
-    // Sort keys and create query string
+    console.log('🔍 X-Signature Debug Info:');
+    console.log('Original data:', data);
+    console.log('Data to verify (without x_signature):', dataToVerify);
+    console.log('Received signature:', receivedSignature);
+    
+    // Construct source string for verification (plain keys)
     const sortedKeys = Object.keys(dataToVerify).sort();
-    const queryString = sortedKeys
+    
+    // Try both encoded and non-encoded versions to see which one matches (plain keys)
+    const queryStringRaw = sortedKeys
       .map(key => `${key}${dataToVerify[key]}`)
       .join('|');
     
-    // Create HMAC SHA256 signature
-    const computedSignature = crypto
-      .createHmac('sha256', this.config.xSignatureKey)
-      .update(queryString)
-      .digest('hex');
+    const queryStringEncoded = sortedKeys
+      .map(key => `${key}${encodeURIComponent(String(dataToVerify[key]))}`)
+      .join('|');
+
+    // Additionally, Billplz Redirect X-Signature uses bracketed keys: billplz[id], billplz[paid], billplz[paid_at]
+    // Build bracketed variants to support verification from redirect URLs
+    const entries = Object.entries(dataToVerify).map(([k, v]) => [k, v] as const);
+    const bracketedEntries = entries.map(([k, v]) => [`billplz[${k}]`, v] as const).sort(([a], [b]) => a.localeCompare(b));
+
+    const queryStringBracketedRaw = bracketedEntries
+      .map(([k, v]) => `${k}${v}`)
+      .join('|');
     
-    return computedSignature === receivedSignature;
+    const queryStringBracketedEncoded = bracketedEntries
+      .map(([k, v]) => `${k}${encodeURIComponent(String(v))}`)
+      .join('|');
+
+    console.log('🔍 X-Signature Debug Info:');
+    console.log('Sorted keys (plain):', sortedKeys);
+    console.log('Raw source string (plain):', queryStringRaw);
+    console.log('URL encoded source string (plain):', queryStringEncoded);
+    console.log('Bracketed entries keys:', bracketedEntries.map(([k]) => k));
+    console.log('Raw source string (bracketed):', queryStringBracketedRaw);
+    console.log('URL encoded source string (bracketed):', queryStringBracketedEncoded);
+    console.log('X-Signature key (first 10 chars):', this.config.xSignatureKey.substring(0, 10) + '...');
+
+    // Generate signatures for all variants
+    const computedSignatureRaw = crypto
+      .createHmac('sha256', this.config.xSignatureKey)
+      .update(queryStringRaw)
+      .digest('hex');
+      
+    const computedSignatureEncoded = crypto
+      .createHmac('sha256', this.config.xSignatureKey)
+      .update(queryStringEncoded)
+      .digest('hex');
+
+    const computedSignatureBracketedRaw = crypto
+      .createHmac('sha256', this.config.xSignatureKey)
+      .update(queryStringBracketedRaw)
+      .digest('hex');
+
+    const computedSignatureBracketedEncoded = crypto
+      .createHmac('sha256', this.config.xSignatureKey)
+      .update(queryStringBracketedEncoded)
+      .digest('hex');
+
+    console.log('Computed signature (plain/raw):', computedSignatureRaw);
+    console.log('Computed signature (plain/encoded):', computedSignatureEncoded);
+    console.log('Computed signature (bracketed/raw):', computedSignatureBracketedRaw);
+    console.log('Computed signature (bracketed/encoded):', computedSignatureBracketedEncoded);
+    console.log('Match (plain/raw):', computedSignatureRaw === receivedSignature);
+    console.log('Match (plain/encoded):', computedSignatureEncoded === receivedSignature);
+    console.log('Match (bracketed/raw):', computedSignatureBracketedRaw === receivedSignature);
+    console.log('Match (bracketed/encoded):', computedSignatureBracketedEncoded === receivedSignature);
+    
+    // Check which version matches
+    const isValid = (
+      computedSignatureRaw === receivedSignature ||
+      computedSignatureEncoded === receivedSignature ||
+      computedSignatureBracketedRaw === receivedSignature ||
+      computedSignatureBracketedEncoded === receivedSignature
+    );
+    
+    return isValid;
   }
 
   /**
@@ -242,9 +319,16 @@ export function createBillplzProvider(config: BillplzConfig): BillplzProvider {
 /**
  * Helper function to generate callback/redirect URLs
  */
-export function generateBillplzUrls(baseUrl: string, mosqueId: string) {
+export function generateBillplzUrls(baseUrl: string, mosqueId: string, contributionId?: string) {
+  const callbackUrl = contributionId 
+    ? `${baseUrl}/api/webhooks/billplz/callback?contribution_id=${contributionId}`
+    : `${baseUrl}/api/webhooks/billplz/callback`;
+  const redirectUrl = contributionId
+    ? `${baseUrl}/api/webhooks/billplz/redirect?contribution_id=${contributionId}`
+    : `${baseUrl}/api/webhooks/billplz/redirect?mosque_id=${mosqueId}`;
+  
   return {
-    callbackUrl: `${baseUrl}/api/webhooks/billplz/callback`,
-    redirectUrl: `${baseUrl}/api/webhooks/billplz/redirect?mosque_id=${mosqueId}`,
+    callbackUrl,
+    redirectUrl,
   };
 }

@@ -59,7 +59,7 @@ interface ContributionsTabContentProps {
   programs: ContributionProgram[];
 }
 
-type ContributionStatus = 'pending' | 'completed' | 'cancelled';
+type ContributionStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
 
 interface ContributionWithProgram extends Contribution {
   program?: ContributionProgram;
@@ -175,6 +175,19 @@ export function ContributionsTabContent({
   ) => {
     if (!user) return;
 
+    // Find the contribution to check payment method
+    const contribution = contributions.find(c => c.id === contributionId);
+    if (!contribution) {
+      toast.error('Contribution not found');
+      return;
+    }
+
+    // Only allow status updates for cash payments
+    if (contribution.payment_method !== 'cash') {
+      toast.error('Only cash payments can be manually updated. Online payments are handled automatically by the payment provider.');
+      return;
+    }
+
     setUpdating(contributionId);
     try {
       const response = await updateContributionStatus(
@@ -276,6 +289,7 @@ export function ContributionsTabContent({
       pending: { label: 'Pending', variant: 'secondary' as const },
       completed: { label: 'Completed', variant: 'default' as const },
       cancelled: { label: 'Cancelled', variant: 'destructive' as const },
+      failed: { label: 'Failed', variant: 'destructive' as const },
     };
 
     const config =
@@ -288,6 +302,8 @@ export function ContributionsTabContent({
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'cancelled':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'failed':
         return <XCircle className="h-4 w-4 text-red-600" />;
       case 'pending':
       default:
@@ -347,7 +363,7 @@ export function ContributionsTabContent({
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>
-            {contribution.status === 'pending' && (
+            {contribution.status === 'pending' && contribution.payment_method === 'cash' && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -472,7 +488,7 @@ export function ContributionsTabContent({
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>
-            {contribution.status === 'pending' && (
+            {contribution.status === 'pending' && contribution.payment_method === 'cash' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -530,6 +546,9 @@ export function ContributionsTabContent({
     .reduce((sum, contribution) => sum + contribution.amount, 0);
   const pendingAmount = filteredContributions
     .filter((c) => c.status === 'pending')
+    .reduce((sum, contribution) => sum + contribution.amount, 0);
+  const failedAmount = filteredContributions
+    .filter((c) => c.status === 'failed')
     .reduce((sum, contribution) => sum + contribution.amount, 0);
 
   return (
@@ -619,14 +638,14 @@ export function ContributionsTabContent({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Total Records
+                    Failed
                   </p>
-                  <div className="text-2xl font-bold text-slate-700 dark:text-slate-300">
-                    {filteredContributions.length}
+                  <div className="text-2xl font-bold text-red-600">
+                    {formatCurrency(failedAmount)}
                   </div>
                 </div>
-                <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <FileText className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <XCircle className="h-6 w-6 text-red-600" />
                 </div>
               </div>
             </CardContent>
@@ -710,6 +729,7 @@ export function ContributionsTabContent({
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -761,6 +781,7 @@ export function ContributionsTabContent({
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="failed">Failed</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -912,7 +933,7 @@ export function ContributionsTabContent({
               )}
 
               {/* Action Buttons */}
-              {selectedContribution.status === 'pending' && (
+              {selectedContribution.status === 'pending' && selectedContribution.payment_method === 'cash' && (
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Actions</h3>
                   <div className="flex gap-3">

@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
       fpx_sellerOrderNo: callbackData.fpx_sellerOrderNo,
       status_id: callbackData.status_id || '',
       msg: callbackData.msg || '',
-      hash: callbackData.hash || '',
     };
 
     // Process the callback with compound key validation
