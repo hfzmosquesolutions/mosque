@@ -125,7 +125,7 @@ export class PaymentService {
 
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const callbackUrl = `${baseUrl}/api/webhooks/billplz/callback`;
+      const callbackUrl = `${baseUrl}/api/webhooks/billplz/callback?contribution_id=${request.contributionId}`;
       const redirectUrl = `${baseUrl}/api/webhooks/billplz/redirect`;
 
       // Create bill
@@ -208,7 +208,7 @@ export class PaymentService {
 
       // Generate callback and redirect URLs
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback`;
+      const callbackUrl = `${baseUrl}/api/webhooks/toyyibpay/callback?contribution_id=${request.contributionId}`;
       const redirectUrl = `${baseUrl}/api/webhooks/toyyibpay/redirect?mosque_id=${request.mosqueId}`;
 
       // Create bill
@@ -309,10 +309,15 @@ export class PaymentService {
         return { success: false, error: 'Missing bill ID' };
       }
       
-      // Simple lookup by bill_id
+      if (!contributionId) {
+        return { success: false, error: 'Missing contribution ID' };
+      }
+      
+      // Compound key lookup using both contribution_id and bill_id for enhanced security
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
         .from('contributions')
         .select('*')
+        .eq('id', contributionId)
         .eq('bill_id', billId)
         .single();
 
@@ -368,7 +373,8 @@ export class PaymentService {
    * Process ToyyibPay callback
    */
   static async processToyyibPayCallback(
-    callbackData: ToyyibPayCallbackData
+    callbackData: ToyyibPayCallbackData,
+    contributionId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
      
@@ -379,11 +385,17 @@ export class PaymentService {
         return { success: false, error: 'Missing bill code' };
       }
       
-      // First lookup contribution by bill_id to get mosque_id
-      console.log('🔍 Looking up contribution by bill ID:', billCode);
+      if (!contributionId) {
+        console.error('❌ Missing contribution ID');
+        return { success: false, error: 'Missing contribution ID' };
+      }
+      
+      // Compound key lookup using both contribution_id and bill_id for enhanced security
+      console.log('🔍 Looking up contribution by compound key - ID:', contributionId, 'Bill Code:', billCode);
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
         .from('contributions')
         .select('*')
+        .eq('id', contributionId)
         .eq('bill_id', billCode)
         .single();
 

@@ -34,6 +34,10 @@ export async function POST(request: NextRequest) {
       x_signature: xSignature
     });
 
+    // Extract contribution_id from query parameters
+    const url = new URL(request.url);
+    const contributionId = url.searchParams.get('contribution_id');
+    
     // Validate required fields
     if (!callbackData.id) {
       console.error('❌ Missing bill ID in callback');
@@ -42,13 +46,22 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🔄 Processing callback for bill ID:', callbackData.id);
     
-    // Process the callback
+    if (!contributionId) {
+      console.error('❌ Missing contribution ID in callback URL');
+      return NextResponse.json(
+        { error: 'Missing contribution ID' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🔄 Processing callback for bill ID:', callbackData.id, 'contribution ID:', contributionId);
+    
+    // Process the callback with compound key validation
     const result = await PaymentService.processBillplzCallback(
       callbackData,
-      xSignature
+      xSignature,
+      contributionId
     );
 
     if (!result.success) {
