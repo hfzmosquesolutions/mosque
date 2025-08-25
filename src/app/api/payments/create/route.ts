@@ -35,11 +35,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate Billplz specific requirements
+    // Validate provider specific requirements
     if (providerType === 'billplz') {
       if (!payerEmail && !payerMobile) {
         return NextResponse.json(
           { error: 'Email or mobile number is required for Billplz payments' },
+          { status: 400 }
+        );
+      }
+    } else if (providerType === 'toyyibpay') {
+      if (!payerEmail && !payerMobile) {
+        return NextResponse.json(
+          { error: 'Email or mobile number is required for ToyyibPay payments' },
           { status: 400 }
         );
       }
@@ -114,6 +121,17 @@ export async function POST(request: NextRequest) {
         payerMobile,
         description: description || `Khairat contribution for ${payerName}`,
       });
+    } else if (providerType === 'toyyibpay') {
+      paymentResult = await PaymentService.createToyyibPayPayment({
+        mosqueId,
+        contributionId,
+        amount,
+        payerName,
+        payerEmail,
+        payerMobile,
+        description: description || `Khairat contribution for ${payerName}`,
+      });
+
     } else {
       return NextResponse.json(
         { error: 'Unsupported payment provider' },

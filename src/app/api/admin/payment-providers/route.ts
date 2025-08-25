@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       hasBillplz: false,
       hasChip: false,
       hasStripe: false,
+      hasToyyibpay: false,
     };
 
     providers?.forEach(provider => {
@@ -63,6 +64,9 @@ export async function GET(request: NextRequest) {
       } else if (provider.provider_type === 'stripe') {
         result.stripe = provider;
         result.hasStripe = provider.is_active;
+      } else if (provider.provider_type === 'toyyibpay') {
+        result.toyyibpay = provider;
+        result.hasToyyibpay = provider.is_active;
       }
     });
 
@@ -84,6 +88,8 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
     billplz_api_key,
     billplz_x_signature_key,
     billplz_collection_id,
+    toyyibpay_secret_key,
+    toyyibpay_category_code,
     is_sandbox = true,
     is_active = false,
   } = body;
@@ -104,6 +110,15 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
       );
     }
   }
+  
+  if (is_active && providerType === 'toyyibpay') {
+    if (!toyyibpay_secret_key || !toyyibpay_category_code) {
+      return NextResponse.json(
+        { error: 'Secret Key and Category Code are required for active ToyyibPay provider' },
+        { status: 400 }
+      );
+    }
+  }
 
   // Use the upsert function to save payment provider
   const supabaseAdmin = getSupabaseAdmin();
@@ -115,6 +130,8 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
     p_billplz_api_key: billplz_api_key || null,
     p_billplz_x_signature_key: billplz_x_signature_key || null,
     p_billplz_collection_id: billplz_collection_id || null,
+    p_toyyibpay_secret_key: toyyibpay_secret_key || null,
+    p_toyyibpay_category_code: toyyibpay_category_code || null,
   });
 
   if (error) {

@@ -701,8 +701,24 @@ export interface StripePaymentData extends BasePaymentData {
   brand?: string;
 }
 
+// ToyyibPay specific payment data
+export interface ToyyibPayPaymentData extends BasePaymentData {
+  provider: 'toyyibpay';
+  toyyibpay_bill_code: string;
+  paid_amount?: number;
+  category_code?: string;
+  bill_external_reference_no?: string;
+  bill_name?: string;
+  bill_description?: string;
+  bill_date?: string;
+  bill_url?: string;
+  fpx_transaction_id?: string;
+  fpx_seller_order_no?: string;
+  status_id?: string;
+}
+
 // Union type for all payment providers
-export type PaymentData = BillplzPaymentData | StripePaymentData | BasePaymentData;
+export type PaymentData = BillplzPaymentData | StripePaymentData | ToyyibPayPaymentData | BasePaymentData;
 
 // Claim-related types
 export type ClaimStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'paid' | 'cancelled';

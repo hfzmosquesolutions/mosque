@@ -324,11 +324,17 @@
       "emailFromAccount": "Email (From Account)",
       "emailPlaceholder": "Your account email",
       "usingAccountEmail": "Using email from your account",
-      "mobileOptional": "Mobile Number (Optional)",
+      "mobile": "Mobile Number",
       "mobilePlaceholder": "+60123456789",
       "notesOptional": "Notes (Optional)",
       "notesPlaceholder": "Any additional notes...",
       "submitting": "Submitting..."
+    },
+    "errors": {
+      "mobileRequiredForToyyibpay": "Mobile number is required for ToyyibPay payments",
+      "validMobileRequired": "Please enter a valid mobile number",
+      "mustBeLoggedIn": "You must be logged in to make a contribution",
+      "validAmountRequired": "Please enter a valid amount"
     }
   },
   "mosques": {
@@ -687,7 +693,9 @@
     "failedToLoadMosques": "Failed to load mosques",
     "failedToUpdateProfile": "Failed to update profile",
     "failedToUpdateMosque": "Failed to update mosque",
-    "failedToSaveSettings": "Failed to save settings"
+    "failedToSaveSettings": "Failed to save settings",
+    "validMobileRequired": "Please enter a valid mobile number",
+    "mobileRequiredForToyyibpay": "Mobile number is required for ToyyibPay payments"
   },
   "lookup": {
     "title": "Contribution Lookup",

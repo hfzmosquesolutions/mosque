@@ -1,14 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BillplzProvider } from '@/lib/payments/providers/billplz';
+import { ToyyibPayProvider } from '@/lib/payments/providers/toyyibpay';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { providerType, apiKey, collectionId, isSandbox = true } = body;
+    const { 
+      providerType, 
+      apiKey, 
+      collectionId, 
+      secretKey, 
+      categoryCode, 
+      isSandbox = true 
+    } = body;
 
-    if (!providerType || !apiKey || !collectionId) {
+    if (!providerType) {
       return NextResponse.json(
-        { error: 'Provider type, API key, and collection ID are required' },
+        { error: 'Provider type is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate provider-specific fields
+    if (providerType === 'billplz' && (!apiKey || !collectionId)) {
+      return NextResponse.json(
+        { error: 'API key and collection ID are required for Billplz' },
+        { status: 400 }
+      );
+    }
+
+    if (providerType === 'toyyibpay' && (!secretKey || !categoryCode)) {
+      return NextResponse.json(
+        { error: 'Secret key and category code are required for ToyyibPay' },
         { status: 400 }
       );
     }
@@ -46,6 +69,50 @@ export async function POST(request: NextRequest) {
         console.error('Billplz connection test failed:', error);
         
         // Parse Billplz error response
+        let errorMessage = 'Connection test failed';
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: 400 }
+        );
+      }
+    } else if (providerType === 'toyyibpay') {
+      try {
+        // Create a temporary ToyyibPay provider instance for testing
+        const toyyibpay = new ToyyibPayProvider({
+          secretKey,
+          categoryCode,
+          isSandbox,
+        });
+
+        // Test by trying to get user details
+        const testResult = await toyyibpay.getUserDetails();
+        
+        if (testResult) {
+          return NextResponse.json({
+            success: true,
+            message: 'Connection successful',
+            userInfo: {
+              secretKey: 'Valid',
+              categoryCode: categoryCode,
+              status: 'Connected',
+            },
+          });
+        } else {
+          return NextResponse.json(
+            { error: 'Failed to retrieve category information' },
+            { status: 400 }
+          );
+        }
+      } catch (error: any) {
+        console.error('ToyyibPay connection test failed:', error);
+        
+        // Parse ToyyibPay error response
         let errorMessage = 'Connection test failed';
         if (error.response?.data?.error) {
           errorMessage = error.response.data.error;

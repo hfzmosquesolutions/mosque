@@ -76,6 +76,7 @@ export function ContributionForm({
   const [payerEmail, setPayerEmail] = useState(user?.email || '');
   const [payerMobile, setPayerMobile] = useState('');
   const [hasOnlinePayment, setHasOnlinePayment] = useState(false);
+  const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
 
@@ -90,27 +91,29 @@ export function ContributionForm({
     }
   }, [selectedMosqueId]);
 
-  // Auto-populate email and name from user account
+  // Auto-populate email, name, and mobile from user account
   useEffect(() => {
     if (isOpen && user?.email) {
       setPayerEmail(user.email);
     }
 
-    // Auto-populate name from user metadata or fetch from profile
-    if (isOpen && user?.user_metadata?.full_name) {
-      setPayerName(user.user_metadata.full_name);
-    } else if (isOpen && user?.id) {
-      // Fetch user profile to get full name
+    // Always fetch full_name and phone from user_profiles table
+    if (isOpen && user?.id) {
       const fetchUserProfile = async () => {
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('full_name')
+            .select('full_name, phone')
             .eq('id', user.id)
             .single();
 
           if (data && !error) {
-            setPayerName(data.full_name);
+            if (data.full_name) {
+              setPayerName(data.full_name);
+            }
+            if (data.phone) {
+              setPayerMobile(data.phone);
+            }
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -135,16 +138,27 @@ export function ContributionForm({
       }
 
       const data = await response.json();
-      console.log('data', data);
-      // API returns direct object structure: {hasBillplz: boolean, billplz: {...}, ...}
+
+      const providers: string[] = [];
+
+      // Check for Billplz
       if (data.billplz && data.hasBillplz) {
-        setHasOnlinePayment(true);
-      } else {
+        providers.push('billplz');
+      }
+
+      // Check for ToyyibPay
+      if (data.toyyibpay && data.hasToyyibpay) {
+        providers.push('toyyibpay');
+      }
+
+      setAvailableProviders(providers);
+      setHasOnlinePayment(providers.length > 0);
+
+      if (providers.length === 0) {
         console.warn(
           'No payment providers found or API returned error:',
           data.error
         );
-        setHasOnlinePayment(false);
       }
     } catch (error) {
       console.error('Error checking payment provider:', error);
@@ -155,6 +169,7 @@ export function ContributionForm({
       // Don't show toast for this as it's not critical - just disable online payment
       console.warn('Online payment disabled due to error:', errorMessage);
       setHasOnlinePayment(false);
+      setAvailableProviders([]);
     } finally {
       setCheckingPaymentProvider(false);
     }
@@ -244,8 +259,18 @@ export function ContributionForm({
     }
 
     // Validate online payment fields
-    if (paymentMethod === 'billplz') {
+    if (paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') {
       // Name and email are automatically populated from user account, no need to validate
+
+      // Phone number is required for ToyyibPay
+      if (paymentMethod === 'toyyibpay') {
+        if (!payerMobile || payerMobile.trim() === '') {
+          toast.error(t('errors.mobileRequiredForToyyibpay'));
+          return;
+        }
+      }
+
+      // Validate mobile format if provided
       if (payerMobile && !/^\+?[0-9\s-()]{8,}$/.test(payerMobile)) {
         toast.error(t('errors.validMobileRequired'));
         return;
@@ -270,8 +295,8 @@ export function ContributionForm({
       if (response.success && response.data) {
         const contributionId = response.data.id;
 
-        // Handle online payment (Billplz)
-        if (paymentMethod === 'billplz') {
+        // Handle online payment (Billplz or ToyyibPay)
+        if (paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') {
           try {
             const paymentResponse = await fetch(
               `${window.location.origin}/api/payments/create`,
@@ -291,7 +316,7 @@ export function ContributionForm({
                     khairatPrograms.find((p) => p.id === selectedProgramId)
                       ?.name
                   }`,
-                  providerType: 'billplz',
+                  providerType: paymentMethod,
                 }),
               }
             );
@@ -315,7 +340,7 @@ export function ContributionForm({
 
             if (paymentResult.success && paymentResult.paymentUrl) {
               toast.success(t('payment.redirectingToGateway'));
-              // Redirect to Billplz payment page
+              // Redirect to payment gateway
               window.location.href = paymentResult.paymentUrl;
               return;
             } else {
@@ -366,6 +391,7 @@ export function ContributionForm({
     setPayerEmail('');
     setPayerMobile('');
     setHasOnlinePayment(false);
+    setAvailableProviders([]);
     onClose();
   };
 
@@ -546,7 +572,7 @@ export function ContributionForm({
           </div>
 
           {/* Online Payment Contact Details */}
-          {paymentMethod === 'billplz' && (
+          {(paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="payerEmail">{t('form.emailFromAccount')}</Label>
@@ -564,7 +590,7 @@ export function ContributionForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="payerMobile">{t('form.mobileOptional')}</Label>
+                <Label htmlFor="payerMobile">{t('form.mobile')}</Label>
                 <Input
                   id="payerMobile"
                   type="tel"
@@ -589,51 +615,73 @@ export function ContributionForm({
                   value={paymentMethod}
                   onValueChange={setPaymentMethod}
                 >
-                {/* Online Payment Option */}
-                {hasOnlinePayment && (
+                  {/* Online Payment Options */}
+                  {availableProviders.includes('billplz') && (
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <RadioGroupItem value="billplz" id="billplz" />
+                      <Label
+                        htmlFor="billplz"
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+                          <CreditCard className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            {t('makePaymentDialog.onlinePaymentBillplz')}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t('makePaymentDialog.onlinePaymentDescription')}
+                          </div>
+                        </div>
+                      </Label>
+                    </div>
+                  )}
+
+                  {availableProviders.includes('toyyibpay') && (
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <RadioGroupItem value="toyyibpay" id="toyyibpay" />
+                      <Label
+                        htmlFor="toyyibpay"
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                          <CreditCard className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            Online Payment (ToyyibPay)
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t('makePaymentDialog.onlinePaymentDescription')}
+                          </div>
+                        </div>
+                      </Label>
+                    </div>
+                  )}
+
+                  {/* Manual Payment Options */}
                   <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <RadioGroupItem value="billplz" id="billplz" />
+                    <RadioGroupItem value="cash" id="cash" />
                     <Label
-                      htmlFor="billplz"
+                      htmlFor="cash"
                       className="flex items-center gap-3 cursor-pointer flex-1"
                     >
-                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-                        <CreditCard className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                        <Banknote className="h-4 w-4 text-green-600" />
                       </div>
                       <div>
                         <div className="font-medium">
-                          {t('makePaymentDialog.onlinePaymentBillplz')}
+                          {t('makePaymentDialog.cashPayment')}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {t('makePaymentDialog.onlinePaymentDescription')}
+                          {t('makePaymentDialog.cashPaymentDescription')}
                         </div>
                       </div>
                     </Label>
                   </div>
-                )}
-
-                {/* Manual Payment Options */}
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label
-                    htmlFor="cash"
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-                      <Banknote className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">
-                        {t('makePaymentDialog.cashPayment')}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {t('makePaymentDialog.cashPaymentDescription')}
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            )}
+                </RadioGroup>
+              )}
 
               {!hasOnlinePayment &&
                 selectedMosqueId &&
@@ -649,19 +697,23 @@ export function ContributionForm({
           )}
 
           {/* Payment Reference - Only show for manual payments */}
-          {paymentMethod && paymentMethod !== 'billplz' && (
-            <div className="space-y-2">
-              <Label htmlFor="paymentReference">
-                {t('makePaymentDialog.paymentReferenceOptional')}
-              </Label>
-              <Input
-                id="paymentReference"
-                value={paymentReference}
-                onChange={(e) => setPaymentReference(e.target.value)}
-                placeholder={t('makePaymentDialog.paymentReferencePlaceholder')}
-              />
-            </div>
-          )}
+          {paymentMethod &&
+            paymentMethod !== 'billplz' &&
+            paymentMethod !== 'toyyibpay' && (
+              <div className="space-y-2">
+                <Label htmlFor="paymentReference">
+                  {t('makePaymentDialog.paymentReferenceOptional')}
+                </Label>
+                <Input
+                  id="paymentReference"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder={t(
+                    'makePaymentDialog.paymentReferencePlaceholder'
+                  )}
+                />
+              </div>
+            )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">{t('form.notesOptional')}</Label>
