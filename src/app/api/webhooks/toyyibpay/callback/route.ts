@@ -20,6 +20,10 @@ export async function POST(request: NextRequest) {
     // Log callback data for debugging
     console.log('📥 ToyyibPay callback data:', callbackData);
 
+    // Extract contribution_id from query parameters
+    const url = new URL(request.url);
+    const contributionId = url.searchParams.get('contribution_id');
+    
     // Validate required fields
     if (!callbackData.billcode) {
       console.error('❌ Missing bill code in callback');
@@ -28,8 +32,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    if (!contributionId) {
+      console.error('❌ Missing contribution ID in callback URL');
+      return NextResponse.json(
+        { error: 'Missing contribution ID' },
+        { status: 400 }
+      );
+    }
 
-    console.log('🔄 Processing callback for bill code:', callbackData.billcode);
+    console.log('🔄 Processing callback for bill code:', callbackData.billcode, 'contribution ID:', contributionId);
     
     // Convert to proper ToyyibPayCallbackData structure
     const toyyibPayCallbackData = {
@@ -47,9 +59,10 @@ export async function POST(request: NextRequest) {
       hash: callbackData.hash || '',
     };
 
-    // Process the callback
+    // Process the callback with compound key validation
     const result = await PaymentService.processToyyibPayCallback(
-      toyyibPayCallbackData
+      toyyibPayCallbackData,
+      contributionId
     );
 
     if (!result.success) {
