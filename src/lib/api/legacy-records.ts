@@ -569,11 +569,13 @@ export async function createLegacyKhairatRecords(data: {
 }
 
 /**
- * Match legacy khairat records to users
+ * Match legacy khairat records to users and create contribution records
+ * Uses server-side API route to bypass RLS policies
  */
 export async function matchLegacyKhairatRecords(data: {
-  legacy_record_ids: string[];
+  legacy_record_id: string;
   user_id: string;
+  program_id: string;
 }) {
   const { data: user } = await supabase.auth.getUser();
   
@@ -581,37 +583,145 @@ export async function matchLegacyKhairatRecords(data: {
     throw new Error('User not authenticated');
   }
 
-  const { legacy_record_ids, user_id } = data;
+  const { legacy_record_id, user_id, program_id } = data;
 
-  if (!legacy_record_ids || !Array.isArray(legacy_record_ids) || !user_id) {
-    throw new Error('Legacy record IDs and user ID are required');
+  if (!legacy_record_id || !user_id || !program_id) {
+    throw new Error('Legacy record ID, user ID, and program ID are required');
   }
 
-  // Update the records to link them to the user
-  const { data: updatedRecords, error } = await supabase
-    .from('legacy_khairat_records')
-    .update({ 
-      matched_user_id: user_id,
-      is_matched: true,
-      updated_at: new Date().toISOString()
-    })
-    .in('id', legacy_record_ids)
-    .select();
+  try {
+    // Call the server-side API route to handle matching and contribution creation
+    const response = await fetch('/api/legacy-records/match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        legacy_record_id,
+        user_id,
+        program_id
+      })
+    });
 
-  if (error) {
-    throw new Error(`Failed to match legacy records: ${error.message}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to match legacy record');
+    }
+
+    const result = await response.json();
+    
+    return {
+      message: 'Legacy record matched successfully',
+      record: result.record,
+      contribution: result.contribution
+    };
+  } catch (error) {
+    console.error('Error matching legacy record:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to match legacy record');
+  }
+}
+
+/**
+ * Unmatch legacy khairat records from users and delete corresponding contributions
+ * Uses server-side API route to bypass RLS policies and ensure proper cleanup
+ */
+export async function unmatchLegacyKhairatRecords(data: {
+  legacy_record_id: string;
+}) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
   }
 
+  const { legacy_record_id } = data;
+
+  if (!legacy_record_id) {
+    throw new Error('Legacy record ID is required');
+  }
+
+  // Call the server-side API route to unmatch record and delete contribution
+  const response = await fetch('/api/legacy-records/unmatch', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      legacy_record_id
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to unmatch legacy record');
+  }
+
+  const result = await response.json();
+  
   return {
-    message: 'Legacy records matched successfully',
-    records: updatedRecords
+    message: 'Legacy record unmatched and contribution deleted successfully',
+    deleted_contribution: result.deleted_contribution
   };
 }
 
 /**
- * Unmatch legacy khairat records from users
+ * Bulk match legacy khairat records to users and create corresponding contributions
+ * Uses server-side API route to handle bulk operations efficiently
  */
-export async function unmatchLegacyKhairatRecords(data: {
+export async function bulkMatchLegacyKhairatRecords(data: {
+  legacy_record_ids: string[];
+  user_id: string;
+  program_id: string;
+}) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { legacy_record_ids, user_id, program_id } = data;
+
+  if (!legacy_record_ids || legacy_record_ids.length === 0 || !user_id || !program_id) {
+    throw new Error('Legacy record IDs, user ID, and program ID are required');
+  }
+
+  try {
+    // Call the server-side API route to handle bulk matching and contribution creation
+    const response = await fetch('/api/legacy-records/bulk-match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        legacy_record_ids,
+        user_id,
+        program_id
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to bulk match legacy records');
+    }
+
+    const result = await response.json();
+    
+    return {
+      message: `Successfully matched ${result.matched_count} legacy records`,
+      matched_count: result.matched_count,
+      contributions: result.contributions,
+      failed_records: result.failed_records || []
+    };
+  } catch (error) {
+    console.error('Error bulk matching legacy records:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to bulk match legacy records');
+  }
+}
+
+/**
+ * Bulk unmatch legacy khairat records
+ */
+export async function bulkUnmatchLegacyKhairatRecords(data: {
   legacy_record_ids: string[];
 }) {
   const { data: user } = await supabase.auth.getUser();
@@ -622,29 +732,38 @@ export async function unmatchLegacyKhairatRecords(data: {
 
   const { legacy_record_ids } = data;
 
-  if (!legacy_record_ids || !Array.isArray(legacy_record_ids)) {
+  if (!legacy_record_ids || legacy_record_ids.length === 0) {
     throw new Error('Legacy record IDs are required');
   }
 
-  // Update the records to unlink them from users
-  const { data: updatedRecords, error } = await supabase
-    .from('legacy_khairat_records')
-    .update({ 
-      matched_user_id: null,
-      is_matched: false,
-      updated_at: new Date().toISOString()
-    })
-    .in('id', legacy_record_ids)
-    .select();
+  try {
+    // Call the server-side API route to handle bulk unmatching
+    const response = await fetch('/api/legacy-records/bulk-unmatch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        legacy_record_ids
+      })
+    });
 
-  if (error) {
-    throw new Error(`Failed to unmatch legacy records: ${error.message}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to bulk unmatch legacy records');
+    }
+
+    const result = await response.json();
+    
+    return {
+      message: `Successfully unmatched ${result.unmatched_count} legacy records`,
+      unmatched_count: result.unmatched_count,
+      failed_records: result.failed_records || []
+    };
+  } catch (error) {
+    console.error('Error bulk unmatching legacy records:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to bulk unmatch legacy records');
   }
-
-  return {
-    message: 'Legacy records unmatched successfully',
-    records: updatedRecords
-  };
 }
 
 /**
@@ -808,103 +927,5 @@ export async function getLegacyRecordStats(mosqueId: string) {
     unmatched_records: unmatchedRecords,
     total_amount: totalAmount,
     matched_amount: matchedAmount
-  };
-}
-
-/**
- * Find legacy khairat records by IC/Passport number for a specific mosque
- */
-export async function findLegacyRecordsByIcPassport({
-  mosque_id,
-  ic_passport_number,
-  page = 1,
-  limit = 10
-}: {
-  mosque_id: string;
-  ic_passport_number: string;
-  page?: number;
-  limit?: number;
-}) {
-  const { data: user } = await supabase.auth.getUser();
-
-  if (!user.user) {
-    throw new Error('User not authenticated');
-  }
-
-  if (!mosque_id || !ic_passport_number) {
-    throw new Error('Mosque ID and IC/Passport number are required');
-  }
-
-  // Check if user is admin of the mosque
-  const { data: userProfile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.user.id)
-    .single();
-   
-  const { data: mosqueAdmin } = await supabase
-    .from('mosques')
-    .select('user_id')
-    .eq('id', mosque_id)
-    .single();
-  
-  if (userProfile?.role !== 'admin' && mosqueAdmin?.user_id !== user.user.id) {
-    throw new Error('Forbidden: Not authorized to access mosque records');
-  }
-
-  // Search for legacy records with matching IC/Passport number
-  let query = supabase
-    .from('legacy_khairat_records')
-    .select(`
-      id,
-      full_name,
-      ic_passport_number,
-      amount,
-      payment_date,
-      payment_method,
-      description,
-      invoice_number,
-      is_matched,
-      matched_user_id,
-      created_at,
-      updated_at
-    `, { count: 'exact' })
-    .eq('mosque_id', mosque_id)
-    .ilike('ic_passport_number', `%${ic_passport_number}%`)
-    .order('created_at', { ascending: false });
-
-  // Apply pagination
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-  query = query.range(from, to);
-
-  const { data: records, error, count } = await query;
-
-  if (error) {
-    throw new Error(`Failed to find legacy records: ${error.message}`);
-  }
-
-  // Transform the data to include payment information
-  const transformedRecords = (records || []).map(record => {
-    return {
-      id: record.id,
-      full_name: record.full_name,
-      ic_passport_number: record.ic_passport_number,
-      total_amount: record.amount || 0,
-      latest_payment_date: record.payment_date,
-      status: (record.is_matched || record.matched_user_id ? 'matched' : 'unmatched') as 'matched' | 'unmatched',
-      created_at: record.created_at,
-      updated_at: record.updated_at
-    };
-  });
-
-  return {
-    records: transformedRecords,
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
   };
 }

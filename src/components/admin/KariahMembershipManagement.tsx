@@ -116,7 +116,7 @@ export function KariahMembershipManagement({
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 20;
+  const limit = 10;
 
   // Create membership form
   const [createForm, setCreateForm] = useState<CreateMembershipData>({
@@ -555,7 +555,11 @@ export function KariahMembershipManagement({
         </div>
       ) : (
         <div className="hidden md:block">
-          <DataTable columns={columns} data={memberships} />a
+          <DataTable
+             columns={columns}
+             data={memberships}
+             disablePagination={true}
+           />
         </div>
       )}
 

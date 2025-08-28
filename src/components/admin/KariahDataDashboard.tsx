@@ -17,7 +17,7 @@ export function KariahDataDashboard({
   mosqueId,
   mosqueName,
 }: KariahDataDashboardProps) {
-  const [activeTab, setActiveTab] = useState('memberships');
+  const [activeTab, setActiveTab] = useState('applications');
 
   return (
     <div className="space-y-6">
@@ -36,13 +36,13 @@ export function KariahDataDashboard({
         className="space-y-6"
       >
         <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="memberships" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Memberships
-          </TabsTrigger>
           <TabsTrigger value="applications" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Applications
+          </TabsTrigger>
+          <TabsTrigger value="memberships" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Memberships
           </TabsTrigger>
           <TabsTrigger value="legacy-data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />

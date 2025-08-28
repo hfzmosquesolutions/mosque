@@ -56,7 +56,7 @@ export async function getKariahMemberships(filters: KariahMembershipFilters = {}
     .from('kariah_memberships')
     .select(`
       *,
-      user:user_profiles(id, full_name, phone),
+      user:user_profiles(id, full_name, phone, ic_passport_number),
       mosque:mosques(id, name)
     `)
     .order('joined_date', { ascending: false });

@@ -53,7 +53,6 @@ import {
   getKariahApplications,
   reviewKariahApplication,
 } from '@/lib/api/kariah-applications';
-import { findLegacyRecordsByIcPassport } from '@/lib/api/legacy-records';
 
 interface KariahApplication {
   id: string;
@@ -84,27 +83,6 @@ interface ApplicationStats {
   rejected: number;
 }
 
-interface LegacyRecord {
-  id: string;
-  full_name: string;
-  ic_passport_number: string;
-  total_amount: number;
-  latest_payment_date: string | null;
-  status: 'matched' | 'unmatched';
-  created_at: string;
-  updated_at: string;
-}
-
-interface LegacyRecordsResponse {
-  records: LegacyRecord[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
 interface KariahApplicationsReviewProps {
   mosqueId: string;
 }
@@ -130,13 +108,6 @@ export function KariahApplicationsReview({
   const [totalPages, setTotalPages] = useState(1);
   const limit = 20;
 
-  // Legacy records state
-  const [legacyRecords, setLegacyRecords] = useState<LegacyRecord[]>([]);
-  const [legacyRecordsLoading, setLegacyRecordsLoading] = useState(false);
-  const [legacyRecordsPage, setLegacyRecordsPage] = useState(1);
-  const [legacyRecordsTotalPages, setLegacyRecordsTotalPages] = useState(1);
-  const legacyRecordsLimit = 5;
-
   const loadApplications = async () => {
     setLoading(true);
     try {
@@ -157,7 +128,7 @@ export function KariahApplicationsReview({
       const result = await getKariahApplications({
         mosque_id: mosqueId,
         page,
-        limit,
+        limit: 10,
         search: searchTerm || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
       });
@@ -194,30 +165,6 @@ export function KariahApplicationsReview({
     }
   }, [mosqueId, page, searchTerm, statusFilter]);
 
-  const loadLegacyRecords = async (
-    icPassportNumber: string,
-    page: number = 1
-  ) => {
-    setLegacyRecordsLoading(true);
-    try {
-      const result = await findLegacyRecordsByIcPassport({
-        mosque_id: mosqueId,
-        ic_passport_number: icPassportNumber,
-        page,
-        limit: legacyRecordsLimit,
-      });
-
-      setLegacyRecords(result.records || []);
-      setLegacyRecordsTotalPages(result.pagination?.totalPages || 1);
-    } catch (error) {
-      console.error('Error loading legacy records:', error);
-      setLegacyRecords([]);
-      setLegacyRecordsTotalPages(1);
-    } finally {
-      setLegacyRecordsLoading(false);
-    }
-  };
-
   const handleReview = async () => {
     if (!selectedApplication || !reviewAction) return;
 
@@ -235,8 +182,6 @@ export function KariahApplicationsReview({
       setSelectedApplication(null);
       setReviewAction(null);
       setAdminNotes('');
-      setLegacyRecords([]);
-      setLegacyRecordsPage(1);
       loadApplications();
     } catch (error) {
       console.error('Error reviewing application:', error);
@@ -253,14 +198,7 @@ export function KariahApplicationsReview({
     setSelectedApplication(application);
     setReviewAction(action);
     setAdminNotes('');
-    setLegacyRecords([]);
-    setLegacyRecordsPage(1);
     setReviewDialogOpen(true);
-
-    // Load legacy records for approval action
-    if (action === 'approve') {
-      loadLegacyRecords(application.ic_passport_number);
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -305,7 +243,9 @@ export function KariahApplicationsReview({
         <DataTableColumnHeader column={column} title="Full Name" />
       ),
       cell: ({ row }) => (
-        <div className="font-medium">{row.original.user?.full_name || 'N/A'}</div>
+        <div className="font-medium">
+          {row.original.user?.full_name || 'N/A'}
+        </div>
       ),
     },
     {
@@ -424,7 +364,9 @@ export function KariahApplicationsReview({
         <div className="space-y-3">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-medium">{application.user?.full_name || 'N/A'}</h3>
+              <h3 className="font-medium">
+                {application.user?.full_name || 'N/A'}
+              </h3>
               <p className="text-sm text-muted-foreground font-mono">
                 {application.user?.ic_passport_number || 'N/A'}
               </p>
@@ -440,22 +382,27 @@ export function KariahApplicationsReview({
                     : 'bg-yellow-100 text-yellow-800'
                 }`}
               >
-                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                {application.status.charAt(0).toUpperCase() +
+                  application.status.slice(1)}
               </Badge>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Applied:</span>
-              <p>{formatDistanceToNow(new Date(application.created_at), { addSuffix: true })}</p>
+              <p>
+                {formatDistanceToNow(new Date(application.created_at), {
+                  addSuffix: true,
+                })}
+              </p>
             </div>
             <div>
               <span className="text-muted-foreground">Reviewed by:</span>
               <p>{application.reviewed_by?.full_name || '-'}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 pt-2">
             {application.status === 'pending' && (
               <>
@@ -591,9 +538,9 @@ export function KariahApplicationsReview({
         <>
           {/* Desktop Table */}
           <div className="hidden md:block">
-            <DataTable columns={columns} data={applications} />
+            <DataTable columns={columns} data={applications} disablePagination={true} />
           </div>
-          
+
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4">
             {applications.map((application) => (
@@ -635,13 +582,7 @@ export function KariahApplicationsReview({
 
       {/* Review Dialog */}
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent
-          className={
-            reviewAction === 'approve' && legacyRecords.length > 0
-              ? 'max-w-4xl'
-              : 'max-w-md'
-          }
-        >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {reviewAction === 'approve' ? 'Approve' : 'Reject'} Application
@@ -651,155 +592,11 @@ export function KariahApplicationsReview({
                 <>
                   You are about to {reviewAction} the kariah application from{' '}
                   <strong>{selectedApplication.user.full_name}</strong>.
-                  {reviewAction === 'approve' && (
-                    <Alert className="mt-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Approving this application will create a kariah
-                        membership and automatically match any legacy records
-                        with the same IC/Passport number.
-                      </AlertDescription>
-                    </Alert>
-                  )}
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Legacy Records Section - Only show for approval */}
-            {reviewAction === 'approve' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">
-                    Matching Legacy Records
-                  </h4>
-                  {legacyRecordsLoading && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                </div>
-
-                {legacyRecordsLoading ? (
-                  <div className="flex items-center justify-center py-8 border rounded-lg">
-                    <div className="text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        Loading legacy records...
-                      </p>
-                    </div>
-                  </div>
-                ) : legacyRecords.length > 0 ? (
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Full Name</TableHead>
-                          <TableHead>IC/Passport</TableHead>
-                          <TableHead>Payment Date</TableHead>
-                          <TableHead>Amount (RM)</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {legacyRecords.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell className="font-medium">
-                              {record.full_name}
-                            </TableCell>
-                            <TableCell className="font-mono">
-                              {record.ic_passport_number}
-                            </TableCell>
-                            <TableCell>
-                              {record.latest_payment_date
-                                ? formatDate(record.latest_payment_date)
-                                : '-'}
-                            </TableCell>
-                            <TableCell>
-                              {record.total_amount.toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  record.status === 'matched'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                                className={
-                                  record.status === 'matched'
-                                    ? 'bg-green-100 text-green-800'
-                                    : ''
-                                }
-                              >
-                                {record.status === 'matched'
-                                  ? 'Matched'
-                                  : 'Unmatched'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-
-                    {/* Legacy Records Pagination */}
-                    {legacyRecordsTotalPages > 1 && (
-                      <div className="flex items-center justify-between p-4 border-t">
-                        <div className="text-sm text-muted-foreground">
-                          Page {legacyRecordsPage} of {legacyRecordsTotalPages}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newPage = legacyRecordsPage - 1;
-                              setLegacyRecordsPage(newPage);
-                              if (selectedApplication) {
-                                loadLegacyRecords(
-                                  selectedApplication.ic_passport_number,
-                                  newPage
-                                );
-                              }
-                            }}
-                            disabled={
-                              legacyRecordsPage <= 1 || legacyRecordsLoading
-                            }
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newPage = legacyRecordsPage + 1;
-                              setLegacyRecordsPage(newPage);
-                              if (selectedApplication) {
-                                loadLegacyRecords(
-                                  selectedApplication.ic_passport_number,
-                                  newPage
-                                );
-                              }
-                            }}
-                            disabled={
-                              legacyRecordsPage >= legacyRecordsTotalPages ||
-                              legacyRecordsLoading
-                            }
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 border rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      No matching legacy records found for IC/Passport:{' '}
-                      {selectedApplication?.ic_passport_number}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Admin Notes */}
             <div>
               <label className="text-sm font-medium">

@@ -2,7 +2,6 @@
 // Handles kariah application operations with client-side authentication
 
 import { supabase } from '../supabase';
-import { findLegacyRecordsByIcPassport, matchLegacyKhairatRecords } from './legacy-records';
 
 export interface KariahApplication {
   id: string;
@@ -298,38 +297,7 @@ export async function reviewKariahApplication(reviewData: {
     } else {
       console.log('Membership created successfully:', membershipData);
       
-      // Automatically match legacy khairat records for the approved user
-      try {
-        console.log('Attempting to match legacy records for IC/Passport:', application.ic_passport_number);
-        
-        // Find all unmatched legacy records for this IC/Passport
-        const legacyRecordsResult = await findLegacyRecordsByIcPassport({
-          mosque_id: application.mosque_id,
-          ic_passport_number: application.ic_passport_number,
-          page: 1,
-          limit: 100 // get all records
-        });
-        
-        const unmatchedRecords = legacyRecordsResult.records.filter(record => record.status === 'unmatched');
-        
-        if (unmatchedRecords.length > 0) {
-          console.log(`Found ${unmatchedRecords.length} unmatched legacy records to match`);
-          
-          // Match all unmatched records to the approved user
-          const matchResult = await matchLegacyKhairatRecords({
-            legacy_record_ids: unmatchedRecords.map(record => record.id),
-            user_id: application.user_id
-          });
-          
-          console.log(`Successfully matched ${matchResult.records.length} legacy records to user ${application.user_id}`);
-        } else {
-          console.log('No unmatched legacy records found for this IC/Passport');
-        }
-      } catch (legacyError) {
-        // Don't fail the approval process if legacy matching fails
-        console.error('Error matching legacy records:', legacyError);
-        console.error('Legacy record matching failed for application:', application_id, 'but approval process continues');
-      }
+
     }
   }
 
