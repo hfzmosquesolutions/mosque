@@ -282,24 +282,24 @@ export default function Home() {
               <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900 rounded-lg flex items-center justify-center mb-4">
                 <Clock className="h-6 w-6 text-teal-600" />
               </div>
-              <CardTitle className="text-xl">24/7 Support</CardTitle>
+              <CardTitle className="text-xl">{t('communitySupportTitle')}</CardTitle>
               <CardDescription className="text-base">
-                Comprehensive support and training resources
+                {t('communitySupportDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-teal-600" />
-                  Technical support
+                  {t('communityForums')}
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-teal-600" />
-                  Training & onboarding
+                  {t('gettingStartedGuides')}
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-teal-600" />
-                  Documentation library
+                  {t('openSourceDocumentation')}
                 </li>
               </ul>
             </CardContent>
@@ -321,26 +321,26 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             <div className="text-center">
               <div className="text-4xl font-bold text-emerald-600 mb-2">
-                500+
+                🚀
               </div>
               <div className="text-slate-600 dark:text-slate-400">
-                {t('registeredMosques')}
+                {t('launchingSoon')}
               </div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-emerald-600 mb-2">
-                10K+
+                🔒
               </div>
               <div className="text-slate-600 dark:text-slate-400">
-                {t('communityMembers')}
+                {t('privacyFirst')}
               </div>
             </div>
             <div className="text-center">
               <div className="text-4xl font-bold text-emerald-600 mb-2">
-                99.9%
+                🌟
               </div>
               <div className="text-slate-600 dark:text-slate-400">
-                {t('uptimeGuarantee')}
+                {t('modernDesign')}
               </div>
             </div>
           </div>
