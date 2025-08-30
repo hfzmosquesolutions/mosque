@@ -92,6 +92,7 @@ export function ProgramManagement({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
+  const [fixedPrice, setFixedPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [programType, setProgramType] = useState<ProgramType>(
@@ -173,6 +174,7 @@ export function ProgramManagement({
         name,
         description: description || undefined,
         target_amount: targetAmount ? parseFloat(targetAmount) : undefined,
+        fixed_price: fixedPrice ? parseFloat(fixedPrice) : undefined,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         is_active: true,
@@ -203,6 +205,7 @@ export function ProgramManagement({
     setName('');
     setDescription('');
     setTargetAmount('');
+    setFixedPrice('');
     setStartDate('');
     setEndDate('');
   };
@@ -632,6 +635,22 @@ export function ProgramManagement({
                   <p className="text-xs text-muted-foreground">
                     Optional: Set a target amount for this program. Leave empty
                     for ongoing contributions without a specific goal.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fixedPrice">Fixed Price per Payment (RM)</Label>
+                  <Input
+                    id="fixedPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={fixedPrice}
+                    onChange={(e) => setFixedPrice(e.target.value)}
+                    placeholder="Leave empty to allow any amount"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Set a fixed price that contributors must pay. Leave empty to allow contributors to choose their own amount.
                   </p>
                 </div>
 

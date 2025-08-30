@@ -346,6 +346,7 @@
       "onlinePaymentNotAvailable": "Pembayaran dalam talian tidak tersedia untuk masjid ini. Sila gunakan kaedah pembayaran manual.",
       "paymentReferenceOptional": "Rujukan Pembayaran",
       "paymentReferencePlaceholder": "ID transaksi, nombor resit, dll.",
+      "fixedPriceMessage": "Program ini mempunyai harga tetap RM {amount} setiap pembayaran.",
       "notesOptional": "Nota (Pilihan)",
       "notesPlaceholder": "Sebarang nota tambahan...",
       "cancel": "Batal",

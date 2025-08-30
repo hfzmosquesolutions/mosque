@@ -311,6 +311,7 @@
       "onlinePaymentNotAvailable": "Online payment is not available for this mosque. Please use manual payment methods.",
       "paymentReferenceOptional": "Payment Reference",
       "paymentReferencePlaceholder": "Transaction ID, receipt number, etc.",
+      "fixedPriceMessage": "This program has a fixed price of RM {amount} per payment.",
       "notesOptional": "Notes (Optional)",
       "notesPlaceholder": "Any additional notes...",
       "cancel": "Cancel",

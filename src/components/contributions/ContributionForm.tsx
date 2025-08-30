@@ -91,6 +91,20 @@ export function ContributionForm({
     }
   }, [selectedMosqueId]);
 
+  // Handle fixed price when program is selected
+  useEffect(() => {
+    if (selectedProgramId) {
+      const selectedProgram = khairatPrograms.find(p => p.id === selectedProgramId);
+      if (selectedProgram?.fixed_price && selectedProgram.fixed_price > 0) {
+        setAmount(selectedProgram.fixed_price.toString());
+      } else {
+        setAmount('');
+      }
+    } else {
+      setAmount('');
+    }
+  }, [selectedProgramId, khairatPrograms]);
+
   // Auto-populate email, name, and mobile from user account
   useEffect(() => {
     if (isOpen && user?.email) {
@@ -545,16 +559,32 @@ export function ContributionForm({
             <Label htmlFor="amount">
               {t('makePaymentDialog.amountRequired')}
             </Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="1"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={t('makePaymentDialog.enterAmount')}
-              required
-            />
+{(() => {
+              const selectedProgram = khairatPrograms.find(p => p.id === selectedProgramId);
+              const hasFixedPrice = Boolean(selectedProgram?.fixed_price && selectedProgram.fixed_price > 0);
+              
+              return (
+                <>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    value={amount}
+                    onChange={(e) => !hasFixedPrice && setAmount(e.target.value)}
+                    placeholder={hasFixedPrice ? `RM ${selectedProgram?.fixed_price?.toFixed(2)}` : t('makePaymentDialog.enterAmount')}
+                    readOnly={hasFixedPrice}
+                    className={hasFixedPrice ? "bg-muted cursor-not-allowed" : ""}
+                    required
+                  />
+                  {hasFixedPrice && selectedProgram?.fixed_price && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('makePaymentDialog.fixedPriceMessage', { amount: selectedProgram.fixed_price.toFixed(2) })}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           <div className="space-y-2">
