@@ -193,6 +193,7 @@ export interface ContributionProgram {
   description?: string;
   target_amount?: number;
   current_amount: number;
+  fixed_price?: number;
   start_date?: string;
   end_date?: string;
   is_active: boolean;
