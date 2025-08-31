@@ -279,7 +279,7 @@ export function DependentsTable({ dependents, onEdit, onDelete }: DependentsTabl
             {dependent.date_of_birth && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                <span>{formatDate(dependent.date_of_birth)} ({calculateAge(dependent.date_of_birth)} years old)</span>
+                <span>{formatDate(dependent.date_of_birth)} ({calculateAge(dependent.date_of_birth)} {t('yearsOld')})</span>
               </div>
             )}
             {dependent.gender && (

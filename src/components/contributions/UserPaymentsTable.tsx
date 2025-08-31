@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import {
@@ -44,6 +45,7 @@ interface UserPaymentsTableProps {
 }
 
 export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
+  const t = useTranslations('khairat');
   const [selectedContribution, setSelectedContribution] = useState<
     | (Contribution & { program: ContributionProgram & { mosque: Mosque } })
     | null
@@ -67,10 +69,10 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pending', variant: 'secondary' as const },
-      completed: { label: 'Completed', variant: 'default' as const },
-      cancelled: { label: 'Cancelled', variant: 'destructive' as const },
-      failed: { label: 'Failed', variant: 'destructive' as const },
+      pending: { label: t('pending'), variant: 'secondary' as const },
+      completed: { label: t('completed'), variant: 'default' as const },
+      cancelled: { label: t('cancelled'), variant: 'destructive' as const },
+      failed: { label: t('failed'), variant: 'destructive' as const },
     };
 
     const config =
@@ -107,7 +109,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     {
       accessorKey: 'program.name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Program" />
+        <DataTableColumnHeader column={column} title={t('program')} />
       ),
       cell: ({ row }) => {
         const contribution = row.original;
@@ -126,7 +128,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     {
       accessorKey: 'amount',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Amount" />
+        <DataTableColumnHeader column={column} title={t('amount')} />
       ),
       cell: ({ row }) => {
         return (
@@ -139,7 +141,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('status')} />
       ),
       cell: ({ row }) => {
         const contribution = row.original;
@@ -154,7 +156,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     {
       accessorKey: 'payment_method',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Payment Method" />
+        <DataTableColumnHeader column={column} title={t('paymentMethod')} />
       ),
       cell: ({ row }) => {
         const paymentMethod = row.getValue('payment_method') as string;
@@ -168,7 +170,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     {
       accessorKey: 'contributed_at',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date" />
+        <DataTableColumnHeader column={column} title={t('date')} />
       ),
       cell: ({ row }) => {
         const contributedAt = row.getValue('contributed_at') as string;
@@ -181,7 +183,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('actions'),
       cell: ({ row }) => {
         const contribution = row.original;
         return (
@@ -192,7 +194,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
             className="h-8 px-3"
           >
             <Eye className="h-4 w-4 mr-1" />
-            View
+            {t('view')}
           </Button>
         );
       },
@@ -237,7 +239,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               {getStatusBadge(contribution.status)}
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400 capitalize">
-              {contribution.payment_method || 'Not specified'}
+              {contribution.payment_method || t('notSpecified')}
             </div>
           </div>
 
@@ -254,7 +256,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               className="h-8 px-3 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              {t('view')}
             </Button>
           </div>
         </div>
@@ -284,10 +286,10 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              My Payments
+              {t('myPayments')}
             </h2>
             <p className="text-muted-foreground mt-1">
-              View your payment history and transaction details
+              {t('viewPaymentHistoryDescription')}
             </p>
           </div>
         </div>
@@ -298,7 +300,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <Card className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Payments
+              {t('totalPayments')}
             </CardTitle>
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
               <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -309,7 +311,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               {formatCurrency(totalAmount)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Across {contributions.length} transactions
+              {t('acrossTransactions', { count: contributions.length })}
             </p>
           </CardContent>
         </Card>
@@ -317,7 +319,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <Card className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
+              {t('completed')}
             </CardTitle>
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -329,7 +331,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {contributions.filter((c) => c.status === 'completed').length}{' '}
-              completed
+              {t('completedTransactions')}
             </p>
           </CardContent>
         </Card>
@@ -337,7 +339,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <Card className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending
+              {t('pending')}
             </CardTitle>
             <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
               <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
@@ -349,7 +351,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {contributions.filter((c) => c.status === 'pending').length}{' '}
-              pending
+              {t('pendingTransactions')}
             </p>
           </CardContent>
         </Card>
@@ -357,7 +359,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <Card className="border-0 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Failed
+              {t('failed')}
             </CardTitle>
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
               <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -368,7 +370,8 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               {formatCurrency(failedAmount)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'failed').length} failed
+              {contributions.filter((c) => c.status === 'failed').length}{' '}
+              {t('failedTransactions')}
             </p>
           </CardContent>
         </Card>
@@ -379,22 +382,19 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-emerald-600" />
-            Payment History
+            {t('paymentHistory')}
           </CardTitle>
-          <CardDescription>
-            Complete record of your khairat payments
-          </CardDescription>
+          <CardDescription>{t('completeRecordDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           {contributions.length === 0 ? (
             <div className="text-center py-12">
               <Receipt className="mx-auto h-16 w-16 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No payments yet
+                {t('noPaymentsYet')}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Your payment history will appear here once you make your first
-                contribution.
+                {t('paymentHistoryDescription')}
               </p>
             </div>
           ) : isMobile ? (
@@ -418,10 +418,10 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5 text-emerald-600" />
-              Payment Details
+              {t('paymentDetails')}
             </DialogTitle>
             <DialogDescription>
-              Complete information about this payment
+              {t('completeInformationAboutPayment')}
             </DialogDescription>
           </DialogHeader>
           {selectedContribution && (
@@ -429,7 +429,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Program
+                    {t('program')}
                   </h4>
                   <p className="font-semibold">
                     {selectedContribution.program?.name || 'Unknown Program'}
@@ -437,7 +437,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Mosque
+                    {t('mosque')}
                   </h4>
                   <p className="font-semibold">
                     {selectedContribution.program?.mosque?.name ||
@@ -446,7 +446,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Amount
+                    {t('amount')}
                   </h4>
                   <p className="font-semibold text-emerald-600 text-lg">
                     {formatCurrency(selectedContribution.amount)}
@@ -454,7 +454,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Status
+                    {t('status')}
                   </h4>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(selectedContribution.status)}
@@ -463,15 +463,15 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Payment Method
+                    {t('paymentMethod')}
                   </h4>
                   <p className="font-semibold capitalize">
-                    {selectedContribution.payment_method || 'Not specified'}
+                    {selectedContribution.payment_method || t('notSpecified')}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                    Date
+                    {t('date')}
                   </h4>
                   <p className="font-semibold">
                     {formatDate(selectedContribution.contributed_at)}

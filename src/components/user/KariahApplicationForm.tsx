@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslations } from 'next-intl';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,6 +92,7 @@ interface ApplicationFormData {
 }
 
 export function KariahApplicationForm() {
+  const t = useTranslations('kariahManagement');
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -175,7 +177,7 @@ export function KariahApplicationForm() {
         notes: formData.additional_notes,
       });
 
-      toast.success(result.message || 'Application submitted successfully!');
+      toast.success(result.message || t('applicationSubmittedSuccess'));
       setShowForm(false);
       setFormData({
         mosque_id: '',
@@ -200,7 +202,7 @@ export function KariahApplicationForm() {
         }
       }
 
-      toast.error(errorMessage);
+      toast.error(t('errorSubmittingApplication'));
     } finally {
       setSubmitting(false);
     }
@@ -212,12 +214,12 @@ export function KariahApplicationForm() {
     setIsWithdrawing(membershipToWithdraw.id);
     try {
       await withdrawKariahMembership(membershipToWithdraw.id);
-      toast.success('Membership withdrawn successfully');
+      toast.success(t('membershipWithdrawnSuccess'));
       await loadData();
     } catch (error) {
       console.error('Error withdrawing membership:', error);
       toast.error(
-        error instanceof Error ? error.message : 'Failed to withdraw membership'
+        error instanceof Error ? error.message : t('errorWithdrawingMembership')
       );
     } finally {
       setIsWithdrawing(null);
@@ -232,12 +234,12 @@ export function KariahApplicationForm() {
     setIsDeleting(applicationToDelete);
     try {
       await deleteKariahApplication(applicationToDelete);
-      toast.success('Application deleted successfully');
+      toast.success(t('applicationDeletedSuccess'));
       await loadData();
     } catch (error) {
       console.error('Error deleting application:', error);
       toast.error(
-        error instanceof Error ? error.message : 'Failed to delete application'
+        error instanceof Error ? error.message : t('errorDeletingApplication')
       );
     } finally {
       setIsDeleting(null);
@@ -252,21 +254,21 @@ export function KariahApplicationForm() {
         return (
           <Badge className="bg-green-100 text-green-800">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Approved
+            {t('approved')}
           </Badge>
         );
       case 'rejected':
         return (
           <Badge className="bg-red-100 text-red-800">
             <XCircle className="h-3 w-3 mr-1" />
-            Rejected
+            {t('rejected')}
           </Badge>
         );
       case 'withdrawn':
         return (
           <Badge className="bg-gray-100 text-gray-800">
             <XCircle className="h-3 w-3 mr-1" />
-            Withdrawn
+            {t('withdrawn')}
           </Badge>
         );
       case 'pending':
@@ -274,7 +276,7 @@ export function KariahApplicationForm() {
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            {t('pending')}
           </Badge>
         );
     }
@@ -286,14 +288,14 @@ export function KariahApplicationForm() {
         return (
           <Badge className="bg-green-100 text-green-800">
             <UserCheck className="h-3 w-3 mr-1" />
-            Active
+            {t('active')}
           </Badge>
         );
       case 'suspended':
         return (
           <Badge className="bg-red-100 text-red-800">
             <XCircle className="h-3 w-3 mr-1" />
-            Suspended
+            {t('suspended')}
           </Badge>
         );
       case 'inactive':
@@ -301,7 +303,7 @@ export function KariahApplicationForm() {
         return (
           <Badge className="bg-gray-100 text-gray-800">
             <Clock className="h-3 w-3 mr-1" />
-            Inactive
+            {t('inactive')}
           </Badge>
         );
     }
@@ -327,9 +329,9 @@ export function KariahApplicationForm() {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">Kariah Membership</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('kariahMembership')}</h1>
         <p className="text-muted-foreground">
-          Apply for kariah membership at your local mosque
+          {t('applyForMembershipDescription')}
         </p>
       </div>
 
@@ -339,7 +341,7 @@ export function KariahApplicationForm() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="h-5 w-5" />
-              Your Memberships
+              {t('yourMemberships')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -352,7 +354,7 @@ export function KariahApplicationForm() {
                   <div>
                     <h3 className="font-medium">{membership.mosque.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Member since {formatDate(membership.joined_date)}
+                      {t('memberSince')} {formatDate(membership.joined_date)}
                     </p>
                     <p className="text-sm font-mono text-muted-foreground">
                       #{membership.membership_number}
@@ -378,7 +380,7 @@ export function KariahApplicationForm() {
                       ) : (
                         <XCircle className="h-4 w-4 mr-2" />
                       )}
-                      Withdraw Membership
+                      {t('withdrawMembership')}
                     </Button>
                   </div>
                 </div>
@@ -394,7 +396,7 @@ export function KariahApplicationForm() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Your Applications
+              {t('yourApplications')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -406,20 +408,20 @@ export function KariahApplicationForm() {
                     {getStatusBadge(application.status)}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Applied on {formatDate(application.created_at)}
+                    {t('appliedOn')} {formatDate(application.created_at)}
                   </p>
                   <p className="text-sm font-mono text-muted-foreground mb-2">
                     IC/Passport: {application.ic_passport_number}
                   </p>
                   {application.admin_notes && (
                     <div className="mt-3 p-3 bg-muted rounded-md">
-                      <p className="text-sm font-medium mb-1">Admin Notes:</p>
+                      <p className="text-sm font-medium mb-1">{t('adminNotes')}:</p>
                       <p className="text-sm">{application.admin_notes}</p>
                     </div>
                   )}
                   {application.reviewer && application.reviewed_at && (
                     <div className="mt-2 text-sm text-muted-foreground">
-                      Reviewed by {application.reviewer.full_name} on{' '}
+                      {t('reviewedBy')} {application.reviewer.full_name} on{' '}
                       {formatDate(application.reviewed_at)}
                     </div>
                   )}
@@ -439,7 +441,7 @@ export function KariahApplicationForm() {
                         ) : (
                           <Trash2 className="h-4 w-4 mr-2" />
                         )}
-                        Delete Application
+                        {t('deleteApplication')}
                       </Button>
                     </div>
                   )}
@@ -455,19 +457,18 @@ export function KariahApplicationForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Apply for Membership
+            {t('applyForMembership')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!showForm ? (
             <div className="text-center py-6">
               <p className="text-muted-foreground mb-4">
-                Apply for kariah membership at a mosque to access legacy khairat
-                records and participate in community activities.
+                {t('applyForMembershipAtMosque')}
               </p>
               <Button onClick={() => setShowForm(true)}>
                 <FileText className="h-4 w-4 mr-2" />
-                New Application
+                {t('newApplication')}
               </Button>
             </div>
           ) : (
@@ -475,8 +476,7 @@ export function KariahApplicationForm() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your IC/Passport number from your profile will be used to
-                  match your legacy khairat records.
+                  {t('icPassportMatchInfo')}
                 </AlertDescription>
               </Alert>
 
@@ -485,14 +485,14 @@ export function KariahApplicationForm() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <User className="h-4 w-4" />
-                    Your Profile Information
+                    {t('yourProfileInformation')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Full Name
+                        {t('fullName')}
                       </label>
                       <p className="text-sm font-medium mt-1">
                         {userProfile?.full_name || 'Not provided'}
@@ -500,7 +500,7 @@ export function KariahApplicationForm() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        IC/Passport Number
+                        {t('icPassportNumber')}
                       </label>
                       <p className="text-sm font-mono mt-1">
                         {userProfile?.ic_passport_number || 'Not provided'}
@@ -508,18 +508,18 @@ export function KariahApplicationForm() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Address
+                        {t('address')}
                       </label>
                       <p className="text-sm mt-1">
-                        {userProfile?.address || 'Not provided'}
+                        {userProfile?.address || t('notProvided')}
                       </p>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Phone
+                        {t('phone')}
                       </label>
                       <p className="text-sm mt-1">
-                        {userProfile?.phone || 'Not provided'}
+                        {userProfile?.phone || t('notProvided')}
                       </p>
                     </div>
                   </div>
@@ -530,9 +530,7 @@ export function KariahApplicationForm() {
                     <Alert className="mt-4">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        Some required information is missing from your profile.
-                        Please update your profile before submitting the
-                        application.
+                        {t('missingProfileInfo')}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -541,7 +539,7 @@ export function KariahApplicationForm() {
                     <Link href="/profile">
                       <Button variant="outline" size="sm">
                         <Edit className="h-3 w-3 mr-2" />
-                        Update Profile
+                        {t('updateProfile')}
                       </Button>
                     </Link>
                   </div>
@@ -549,7 +547,7 @@ export function KariahApplicationForm() {
               </Card>
 
               <div>
-                <label className="text-sm font-medium">Mosque *</label>
+                <label className="text-sm font-medium">{t('mosque')} *</label>
                 <Select
                   value={formData.mosque_id}
                   onValueChange={(value) =>
@@ -557,7 +555,7 @@ export function KariahApplicationForm() {
                   }
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a mosque" />
+                    <SelectValue placeholder={t('selectMosque')} />
                   </SelectTrigger>
                   <SelectContent>
                     {mosques.map((mosque) => (
@@ -576,10 +574,10 @@ export function KariahApplicationForm() {
 
               <div>
                 <label className="text-sm font-medium">
-                  Additional Notes (Optional)
+                  {t('additionalNotesOptional')}
                 </label>
                 <Textarea
-                  placeholder="Any additional information you'd like to provide..."
+                  placeholder={t('additionalNotesPlaceholder')}
                   value={formData.additional_notes}
                   onChange={(e) =>
                     setFormData({
@@ -593,7 +591,7 @@ export function KariahApplicationForm() {
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowForm(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   onClick={handleSubmitApplication}
@@ -608,7 +606,7 @@ export function KariahApplicationForm() {
                   {submitting && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Submit Application
+                  {submitting ? t('submitting') : t('submitApplication')}
                 </Button>
               </div>
             </div>
@@ -623,32 +621,32 @@ export function KariahApplicationForm() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Withdraw Membership</AlertDialogTitle>
+            <AlertDialogTitle>{t('withdrawMembershipTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to withdraw your membership from{' '}
+              {t('withdrawMembershipConfirm')}{' '}
               <strong>{membershipToWithdraw?.mosqueName}</strong>?
               <br />
               <br />
-              This action will:
+              {t('withdrawMembershipActions')}
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Permanently delete your membership record</li>
-                <li>Permanently delete your application record</li>
-                <li>Remove your access to membership benefits</li>
+                <li>{t('permanentlyDeleteMembership')}</li>
+                <li>{t('permanentlyDeleteApplication')}</li>
+                <li>{t('removeAccessToBenefits')}</li>
                 <li>
-                  Allow you to reapply for membership in the future if needed
+                  {t('allowReapply')}
                 </li>
               </ul>
               <br />
-              <strong>This action cannot be undone.</strong>
+              <strong>{t('actionCannotBeUndone')}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleWithdrawMembership}
               className="bg-red-600 hover:bg-red-700"
             >
-              Withdraw Membership
+              {t('withdrawMembership')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -658,21 +656,21 @@ export function KariahApplicationForm() {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Application</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteApplicationTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this rejected application?
+              {t('deleteApplicationConfirm')}
               <br />
               <br />
-              <strong>This action cannot be undone.</strong>
+              <strong>{t('actionCannotBeUndone')}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteApplication}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete Application
+              {t('deleteApplication')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
