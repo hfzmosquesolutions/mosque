@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 import {
   getKariahMemberships,
   createKariahMembership,
@@ -102,6 +103,7 @@ export function KariahMembershipManagement({
   mosqueId,
 }: KariahMembershipManagementProps) {
   const { user } = useAuth();
+  const t = useTranslations('kariahManagement');
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
   const [memberships, setMemberships] = useState<KariahMembership[]>([]);
@@ -150,7 +152,7 @@ export function KariahMembershipManagement({
       setStats(statsData);
     } catch (error) {
       console.error('Error loading memberships:', error);
-      toast.error('Failed to load memberships');
+      toast.error(t('failedToLoadMemberships'));
     } finally {
       setLoading(false);
     }
@@ -164,7 +166,7 @@ export function KariahMembershipManagement({
 
   const handleCreateMembership = async () => {
     if (!createForm.user_id) {
-      toast.error('Please select a user');
+      toast.error(t('pleaseSelectUser'));
       return;
     }
 
@@ -175,13 +177,13 @@ export function KariahMembershipManagement({
         mosque_id: mosqueId,
       });
 
-      toast.success('Membership created successfully');
+      toast.success(t('membershipCreatedSuccessfully'));
       setCreateDialogOpen(false);
       setCreateForm({ user_id: '', notes: '' });
       loadMemberships();
     } catch (error) {
       console.error('Error creating membership:', error);
-      toast.error('Failed to create membership');
+      toast.error(t('failedToCreateMembership'));
     } finally {
       setProcessing(false);
     }
@@ -194,13 +196,13 @@ export function KariahMembershipManagement({
     try {
       await updateKariahMembership(selectedMembership.id, editForm);
 
-      toast.success('Membership updated successfully');
+      toast.success(t('membershipUpdatedSuccessfully'));
       setEditDialogOpen(false);
       setSelectedMembership(null);
       loadMemberships();
     } catch (error) {
       console.error('Error updating membership:', error);
-      toast.error('Failed to update membership');
+      toast.error(t('failedToUpdateMembership'));
     } finally {
       setProcessing(false);
     }
@@ -213,13 +215,13 @@ export function KariahMembershipManagement({
     try {
       await deleteKariahMembership(selectedMembership.id);
 
-      toast.success('Membership deleted successfully');
+      toast.success(t('membershipDeletedSuccessfully'));
       setDeleteDialogOpen(false);
       setSelectedMembership(null);
       loadMemberships();
     } catch (error) {
       console.error('Error deleting membership:', error);
-      toast.error('Failed to delete membership');
+      toast.error(t('failedToDeleteMembership'));
     } finally {
       setProcessing(false);
     }
@@ -242,12 +244,12 @@ export function KariahMembershipManagement({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800">{t('active')}</Badge>;
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
+        return <Badge className="bg-red-100 text-red-800">{t('suspended')}</Badge>;
       case 'inactive':
       default:
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800">{t('inactive')}</Badge>;
     }
   };
 
@@ -283,7 +285,7 @@ export function KariahMembershipManagement({
     {
       accessorKey: 'user.full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Member" />
+        <DataTableColumnHeader column={column} title={t('member')} />
       ),
       cell: ({ row }) => {
         const membership = row.original;
@@ -310,7 +312,7 @@ export function KariahMembershipManagement({
     {
       accessorKey: 'membership_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Membership #" />
+        <DataTableColumnHeader column={column} title={t('membershipNumber')} />
       ),
       cell: ({ row }) => {
         return (
@@ -323,7 +325,7 @@ export function KariahMembershipManagement({
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('status')} />
       ),
       cell: ({ row }) => {
         const membership = row.original;
@@ -338,7 +340,7 @@ export function KariahMembershipManagement({
     {
       accessorKey: 'joined_date',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Joined Date" />
+        <DataTableColumnHeader column={column} title={t('joinedDate')} />
       ),
       cell: ({ row }) => {
         const joinedDate = row.getValue('joined_date') as string;
@@ -352,7 +354,7 @@ export function KariahMembershipManagement({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('actions'),
       cell: ({ row }) => {
         const membership = row.original;
         return (
@@ -364,7 +366,7 @@ export function KariahMembershipManagement({
               className="h-8 px-3"
             >
               <Edit className="h-4 w-4 mr-1" />
-              Edit
+              {t('edit')}
             </Button>
             <Button
               variant="ghost"
@@ -373,7 +375,7 @@ export function KariahMembershipManagement({
               className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4 mr-1" />
-              Delete
+              {t('delete')}
             </Button>
           </div>
         );
@@ -436,7 +438,7 @@ export function KariahMembershipManagement({
               className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
             >
               <Edit className="h-4 w-4 mr-1" />
-              Edit
+              {t('edit')}
             </Button>
             <Button
               variant="ghost"
@@ -445,7 +447,7 @@ export function KariahMembershipManagement({
               className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4 mr-1" />
-              Delete
+              {t('delete')}
             </Button>
           </div>
         </div>
@@ -461,7 +463,7 @@ export function KariahMembershipManagement({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Members
+                {t('totalMembers')}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -472,7 +474,7 @@ export function KariahMembershipManagement({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('active')}</CardTitle>
               <UserCheck className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -484,7 +486,7 @@ export function KariahMembershipManagement({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('inactive')}</CardTitle>
               <Users className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
@@ -496,7 +498,7 @@ export function KariahMembershipManagement({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Suspended</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('suspended')}</CardTitle>
               <UserX className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
@@ -514,7 +516,7 @@ export function KariahMembershipManagement({
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or membership number..."
+              placeholder={t('searchByNameOrMembershipNumber')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -522,19 +524,19 @@ export function KariahMembershipManagement({
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Members</SelectItem>
-              <SelectItem value="active">Active Only</SelectItem>
-              <SelectItem value="inactive">Inactive Only</SelectItem>
-              <SelectItem value="suspended">Suspended Only</SelectItem>
+              <SelectItem value="all">{t('allMembers')}</SelectItem>
+              <SelectItem value="active">{t('activeOnly')}</SelectItem>
+              <SelectItem value="inactive">{t('inactiveOnly')}</SelectItem>
+              <SelectItem value="suspended">{t('suspendedOnly')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Member
+          {t('addMember')}
         </Button>
       </div>
 
@@ -545,7 +547,7 @@ export function KariahMembershipManagement({
         </div>
       ) : memberships.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No memberships found
+          {t('noMembershipsFound')}
         </div>
       ) : isMobile ? (
         <div className="space-y-4">
@@ -556,10 +558,10 @@ export function KariahMembershipManagement({
       ) : (
         <div className="hidden md:block">
           <DataTable
-             columns={columns}
-             data={memberships}
-             disablePagination={true}
-           />
+            columns={columns}
+            data={memberships}
+            disablePagination={true}
+          />
         </div>
       )}
 
@@ -567,7 +569,7 @@ export function KariahMembershipManagement({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('pageXOfY', { page, totalPages })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -576,7 +578,7 @@ export function KariahMembershipManagement({
               onClick={() => setPage(page - 1)}
               disabled={page <= 1}
             >
-              Previous
+              {t('previous')}
             </Button>
             <Button
               variant="outline"
@@ -584,7 +586,7 @@ export function KariahMembershipManagement({
               onClick={() => setPage(page + 1)}
               disabled={page >= totalPages}
             >
-              Next
+              {t('next')}
             </Button>
           </div>
         </div>
@@ -594,16 +596,16 @@ export function KariahMembershipManagement({
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Membership</DialogTitle>
+            <DialogTitle>{t('createNewMembership')}</DialogTitle>
             <DialogDescription>
-              Create a new kariah membership for a user.
+              {t('createNewMembershipDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">User ID *</label>
+              <label className="text-sm font-medium">{t('userIdRequired')}</label>
               <Input
-                placeholder="Enter user ID"
+                placeholder={t('enterUserId')}
                 value={createForm.user_id}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, user_id: e.target.value })
@@ -612,9 +614,9 @@ export function KariahMembershipManagement({
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Notes (Optional)</label>
+              <label className="text-sm font-medium">{t('notesOptional')}</label>
               <Textarea
-                placeholder="Add any notes about this membership..."
+                placeholder={t('addNotesAboutMembership')}
                 value={createForm.notes}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, notes: e.target.value })
@@ -627,13 +629,13 @@ export function KariahMembershipManagement({
                 variant="outline"
                 onClick={() => setCreateDialogOpen(false)}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button onClick={handleCreateMembership} disabled={processing}>
                 {processing && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                Create Membership
+                {t('createMembership')}
               </Button>
             </div>
           </div>
@@ -644,11 +646,11 @@ export function KariahMembershipManagement({
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Membership</DialogTitle>
+            <DialogTitle>{t('editMembership')}</DialogTitle>
             <DialogDescription>
               {selectedMembership && (
                 <>
-                  Update membership for{' '}
+                  {t('updateMembershipFor')}{' '}
                   <strong>{selectedMembership.user.full_name}</strong>
                 </>
               )}
@@ -656,7 +658,7 @@ export function KariahMembershipManagement({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Status *</label>
+              <label className="text-sm font-medium">{t('statusRequired')}</label>
               <Select
                 value={editForm.status}
                 onValueChange={(value: 'active' | 'inactive' | 'suspended') =>
@@ -667,16 +669,16 @@ export function KariahMembershipManagement({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="active">{t('active')}</SelectItem>
+                  <SelectItem value="inactive">{t('inactive')}</SelectItem>
+                  <SelectItem value="suspended">{t('suspended')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium">Notes (Optional)</label>
+              <label className="text-sm font-medium">{t('notesOptional')}</label>
               <Textarea
-                placeholder="Add any notes about this membership..."
+                placeholder={t('addNotesAboutMembership')}
                 value={editForm.notes}
                 onChange={(e) =>
                   setEditForm({ ...editForm, notes: e.target.value })
@@ -689,13 +691,13 @@ export function KariahMembershipManagement({
                 variant="outline"
                 onClick={() => setEditDialogOpen(false)}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button onClick={handleUpdateMembership} disabled={processing}>
                 {processing && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                Update Membership
+                {t('updateMembership')}
               </Button>
             </div>
           </div>
@@ -706,11 +708,11 @@ export function KariahMembershipManagement({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Membership</DialogTitle>
+            <DialogTitle>{t('deleteMembership')}</DialogTitle>
             <DialogDescription>
               {selectedMembership && (
                 <>
-                  Are you sure you want to delete the membership for{' '}
+                  {t('confirmDeleteMembershipFor')}{' '}
                   <strong>{selectedMembership.user.full_name}</strong>?
                 </>
               )}
@@ -721,7 +723,7 @@ export function KariahMembershipManagement({
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -729,7 +731,7 @@ export function KariahMembershipManagement({
               disabled={processing}
             >
               {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete Membership
+              {t('deleteMembership')}
             </Button>
           </div>
         </DialogContent>

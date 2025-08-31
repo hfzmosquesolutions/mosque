@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 function KariahContent() {
-  const t = useTranslations('kariah');
+  const t = useTranslations('kariahManagement');
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   const { mosqueId } = useUserMosque();
@@ -47,7 +47,7 @@ function KariahContent() {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading kariah data...</span>
+          <span>{t('loadingKariahData')}</span>
         </div>
       </div>
     );
@@ -58,9 +58,9 @@ function KariahContent() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('accessDenied')}</h2>
           <p className="text-muted-foreground">
-            You need to be a mosque administrator to access this page.
+            {t('needMosqueAdminAccess')}
           </p>
         </div>
       </div>
@@ -71,9 +71,9 @@ function KariahContent() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('accessDenied')}</h2>
           <p className="text-muted-foreground">
-            You need administrator privileges to access this page.
+            {t('needAdminPrivileges')}
           </p>
         </div>
       </div>

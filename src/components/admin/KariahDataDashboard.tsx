@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Database, Users, UserCheck, FileText } from 'lucide-react';
@@ -17,15 +18,16 @@ export function KariahDataDashboard({
   mosqueId,
   mosqueName,
 }: KariahDataDashboardProps) {
+  const t = useTranslations('kariahManagement');
   const [activeTab, setActiveTab] = useState('applications');
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Kariah Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('kariahManagement')}</h1>
         <p className="text-muted-foreground">
-          Manage kariah data, applications, and memberships for {mosqueName}
+          {t('manageKariahDataDescription', { mosqueName })}
         </p>
       </div>
 
@@ -38,15 +40,15 @@ export function KariahDataDashboard({
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="applications" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Applications
+            {t('applications')}
           </TabsTrigger>
           <TabsTrigger value="memberships" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Memberships
+            {t('memberships')}
           </TabsTrigger>
           <TabsTrigger value="legacy-data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            Legacy Data
+            {t('legacyData')}
           </TabsTrigger>
         </TabsList>
 
