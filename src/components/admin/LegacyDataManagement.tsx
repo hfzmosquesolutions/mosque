@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 import {
   getLegacyKhairatRecords,
   createLegacyKhairatRecords,
@@ -130,6 +131,7 @@ interface LegacyDataManagementProps {
 
 export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const { user } = useAuth();
+  const t = useTranslations('legacyDataManagement');
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<LegacyRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<LegacyRecord[]>([]);
@@ -200,7 +202,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Error loading records:', error);
-      toast.error('Failed to load legacy records');
+      toast.error(t('messages.failedToLoadRecords'));
     } finally {
       setLoading(false);
     }
@@ -212,6 +214,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);
+      toast.error(t('messages.failedToLoadStats'));
     }
   };
 
@@ -292,7 +295,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         setSelectedFile(file);
         await parseCSVForPreview(file);
       } else {
-        toast.error('Please select a CSV file');
+        toast.error(t('messages.pleaseSelectCsvFile'));
         event.target.value = '';
       }
     }
@@ -307,9 +310,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         .filter((line) => line.trim());
 
       if (lines.length < 2) {
-        toast.error(
-          'CSV file must have at least a header row and one data row'
-        );
+        toast.error(t('messages.csvMustHaveHeaderAndData'));
         return;
       }
 
@@ -351,13 +352,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setPreviewPage(1);
     } catch (error) {
       console.error('Error parsing CSV:', error);
-      toast.error('Error parsing CSV file');
+      toast.error(t('messages.errorParsingCsv'));
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !previewData.length) {
-      toast.error('Please select a file and review the preview first');
+      toast.error(t('messages.pleaseSelectFileAndReview'));
       return;
     }
 
@@ -383,9 +384,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         }));
 
       if (validRecords.length === 0) {
-        toast.error(
-          'No valid records found. Please ensure IC/Passport and Full Name are provided.'
-        );
+        toast.error(t('messages.noValidRecordsFound'));
         return;
       }
 
@@ -395,7 +394,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       });
 
       toast.success(
-        `Successfully uploaded ${validRecords.length} legacy records`
+        t('messages.successfullyUploaded', { count: validRecords.length })
       );
       setSelectedFile(null);
       setPreviewData([]);
@@ -405,9 +404,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       loadStats();
     } catch (error) {
       console.error('Error uploading legacy records:', error);
-      toast.error(
-        'Invalid CSV format or upload failed. Please check your data format.'
-      );
+      toast.error(t('messages.invalidCsvFormat'));
     } finally {
       setUploading(false);
     }
@@ -429,14 +426,14 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         legacy_record_id: selectedRecordForUnmatch.id,
       });
 
-      toast.success('Legacy record unmatched successfully');
+      toast.success(t('messages.recordUnmatchedSuccessfully'));
       setUnmatchDialogOpen(false);
       setSelectedRecordForUnmatch(null);
       loadRecords();
       loadStats();
     } catch (error) {
       console.error('Error unmatching legacy record:', error);
-      toast.error('Failed to unmatch legacy record');
+      toast.error(t('messages.failedToUnmatchRecord'));
     }
   };
 
@@ -467,7 +464,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
   const handleOpenBulkMatchDialog = () => {
     if (selectedRecords.size === 0) {
-      toast.error('Please select at least one record to match');
+      toast.error(t('messages.pleaseSelectAtLeastOneRecord'));
       return;
     }
 
@@ -478,7 +475,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     });
 
     if (unmatchedRecords.length === 0) {
-      toast.error('Please select at least one unmatched record to match');
+      toast.error(t('messages.pleaseSelectUnmatchedRecord'));
       return;
     }
 
@@ -505,7 +502,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     });
 
     if (matchedRecords.length === 0) {
-      toast.error('Please select at least one matched record to unmatch');
+      toast.error(t('messages.pleaseSelectMatchedRecord'));
       return;
     }
 
@@ -530,7 +527,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setMosqueMembers(data.memberships);
     } catch (error) {
       console.error('Error loading mosque members:', error);
-      toast.error('Failed to load mosque members');
+      toast.error(t('messages.failedToLoadMembers'));
     } finally {
       setLoadingMembers(false);
     }
@@ -543,7 +540,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setPrograms(data.data || []);
     } catch (error) {
       console.error('Error loading contribution programs:', error);
-      toast.error('Failed to load contribution programs');
+      toast.error(t('messages.failedToLoadPrograms'));
     } finally {
       setLoadingPrograms(false);
     }
@@ -561,12 +558,12 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
   const handleConfirmMatch = async () => {
     if (!selectedRecordForMatch || !selectedUserId) {
-      toast.error('Please select a user to match');
+      toast.error(t('messages.pleaseSelectUser'));
       return;
     }
 
     if (!selectedProgramId) {
-      toast.error('Please select a contribution program');
+      toast.error(t('messages.pleaseSelectProgram'));
       return;
     }
 
@@ -579,9 +576,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         program_id: selectedProgramId,
       });
 
-      toast.success(
-        'Legacy record matched and contribution created successfully'
-      );
+      toast.success(t('messages.recordMatchedSuccessfully'));
 
       setMatchDialogOpen(false);
       setSelectedRecordForMatch(null);
@@ -591,7 +586,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       loadStats();
     } catch (error) {
       console.error('Error in match confirmation:', error);
-      toast.error('Failed to complete the matching process');
+      toast.error(t('messages.failedToCompleteMatching'));
     } finally {
       setMatching(false);
     }
@@ -655,7 +650,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     {
       accessorKey: 'ic_passport_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="IC/Passport" />
+        <DataTableColumnHeader column={column} title={t('table.icPassport')} />
       ),
       cell: ({ row }) => (
         <div className="font-mono text-sm">
@@ -666,7 +661,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     {
       accessorKey: 'full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Full Name" />
+        <DataTableColumnHeader column={column} title={t('table.fullName')} />
       ),
       cell: ({ row }) => (
         <div className="font-medium">{row.getValue('full_name')}</div>
@@ -675,7 +670,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     {
       accessorKey: 'amount',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Total Amount" />
+        <DataTableColumnHeader column={column} title={t('table.totalAmount')} />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -686,7 +681,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     {
       accessorKey: 'is_matched',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('table.status')} />
       ),
       cell: ({ row }) => {
         const isMatched = row.getValue('is_matched') as boolean;
@@ -698,7 +693,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 : 'bg-yellow-100 text-yellow-800'
             }`}
           >
-            {isMatched ? 'Matched' : 'Unmatched'}
+            {isMatched ? t('status.matched') : t('status.unmatched')}
           </Badge>
         );
       },
@@ -706,7 +701,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     {
       accessorKey: 'matched_user',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Matched User" />
+        <DataTableColumnHeader column={column} title={t('table.matchedUser')} />
       ),
       cell: ({ row }) => {
         const matchedUser = row.original.matched_user;
@@ -726,7 +721,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('table.actions'),
       cell: ({ row }) => {
         const record = row.original;
         return (
@@ -738,7 +733,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 onClick={() => handleUnmatch(record)}
               >
                 <Unlink className="h-4 w-4 mr-1" />
-                Unmatch
+                {t('buttons.unmatch')}
               </Button>
             ) : (
               <Button
@@ -747,7 +742,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 onClick={() => handleOpenMatchDialog(record)}
               >
                 <Link className="h-4 w-4 mr-1" />
-                Match
+                {t('buttons.match')}
               </Button>
             )}
           </div>
@@ -775,17 +770,21 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   : 'bg-yellow-100 text-yellow-800'
               }`}
             >
-              {record.is_matched ? 'Matched' : 'Unmatched'}
+              {record.is_matched ? t('status.matched') : t('status.unmatched')}
             </Badge>
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Total Amount:</span>
+              <span className="text-muted-foreground">
+                {t('unmatch.totalAmount')}:
+              </span>
               <p className="font-medium">{formatCurrency(record.amount)}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Matched User:</span>
+              <span className="text-muted-foreground">
+                {t('unmatch.matchedUser')}:
+              </span>
               <p>
                 {record.matched_user ? (
                   <>
@@ -814,7 +813,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 className="flex-1"
               >
                 <Unlink className="h-4 w-4 mr-1" />
-                Unmatch
+                {t('buttons.unmatch')}
               </Button>
             ) : (
               <Button
@@ -824,7 +823,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 className="flex-1"
               >
                 <Link className="h-4 w-4 mr-1" />
-                Match
+                {t('buttons.match')}
               </Button>
             )}
           </div>
@@ -849,7 +848,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Records
+                {t('stats.totalRecords')}
               </CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -865,7 +864,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Amount
+                {t('stats.totalAmount')}
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -881,7 +880,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Match Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t('stats.matchRate')}
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -907,7 +908,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or IC/Passport..."
+              placeholder={t('search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -920,12 +921,14 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
             }
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by match status" />
+              <SelectValue placeholder={t('search.placeholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Records</SelectItem>
-              <SelectItem value="matched">Matched Only</SelectItem>
-              <SelectItem value="unmatched">Unmatched Only</SelectItem>
+              <SelectItem value="all">{t('search.allRecords')}</SelectItem>
+              <SelectItem value="matched">{t('search.matchedOnly')}</SelectItem>
+              <SelectItem value="unmatched">
+                {t('search.unmatchedOnly')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -935,12 +938,12 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           {selectedRecords.size > 0 && (
             <div className="flex gap-2 mr-2">
               <Button variant="outline" onClick={handleClearSelection}>
-                Clear
+                {t('buttons.clear')}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="gap-2">
-                    Bulk Actions ({selectedRecords.size})
+                    {t('buttons.bulkActions')} ({selectedRecords.size})
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -951,7 +954,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     className="cursor-pointer"
                   >
                     <Link className="h-4 w-4 mr-2" />
-                    Bulk Match ({selectedRecords.size})
+                    {t('buttons.bulkMatch')} ({selectedRecords.size})
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleOpenBulkUnmatchDialog}
@@ -959,7 +962,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     className="cursor-pointer text-red-600 focus:text-red-600"
                   >
                     <Unlink className="h-4 w-4 mr-2" />
-                    Bulk Unmatch ({selectedRecords.size})
+                    {t('buttons.bulkUnmatch')} ({selectedRecords.size})
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -970,15 +973,14 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
             <DialogTrigger asChild>
               <Button>
                 <Upload className="h-4 w-4 mr-2" />
-                Upload Legacy Data
+                {t('buttons.uploadLegacyData')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Upload Legacy Khairat Records</DialogTitle>
+                <DialogTitle>{t('upload.dialogTitle')}</DialogTitle>
                 <DialogDescription>
-                  Upload your legacy khairat records using a CSV file. Download
-                  the template below to see the required format.
+                  {t('upload.dialogDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -997,7 +999,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     className="w-full"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download CSV Template
+                    {t('buttons.downloadTemplate')}
                   </Button>
                 </div>
 
@@ -1016,12 +1018,12 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       <div className="text-sm font-medium">
                         {selectedFile
                           ? selectedFile.name
-                          : 'Click to select CSV file'}
+                          : t('upload.selectFile')}
                       </div>
                       <div className="text-xs text-gray-500">
                         {selectedFile
-                          ? 'File selected'
-                          : 'or drag and drop your CSV file here'}
+                          ? t('upload.fileSelected')
+                          : t('upload.dragDrop')}
                       </div>
                     </div>
                   </label>
@@ -1031,7 +1033,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 {uploading && (
                   <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Uploading records...</span>
+                    <span>{t('upload.uploading')}</span>
                   </div>
                 )}
 
@@ -1041,10 +1043,10 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     <div className="border rounded-lg">
                       <div className="p-4 border-b bg-gray-50">
                         <h4 className="font-medium">
-                          Data Preview ({previewData.length} records)
+                          {t('upload.dataPreview', { count: previewData.length })}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          Review your data before uploading
+                          {t('upload.reviewData')}
                         </p>
                       </div>
                       <div className="overflow-x-auto">
@@ -1052,14 +1054,20 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                           <thead className="bg-gray-50">
                             <tr>
                               <th className="px-3 py-2 text-left">
-                                IC/Passport
+                                {t('table.icPassport')}
                               </th>
-                              <th className="px-3 py-2 text-left">Full Name</th>
                               <th className="px-3 py-2 text-left">
-                                Payment Date
+                                {t('table.fullName')}
                               </th>
-                              <th className="px-3 py-2 text-left">Amount</th>
-                              <th className="px-3 py-2 text-left">Method</th>
+                              <th className="px-3 py-2 text-left">
+                                {t('table.paymentDate')}
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                {t('table.amount')}
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                {t('table.method')}
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1093,13 +1101,15 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       {previewData.length > previewItemsPerPage && (
                         <div className="p-4 border-t flex justify-between items-center">
                           <div className="text-sm text-gray-600">
-                            Showing{' '}
-                            {(previewPage - 1) * previewItemsPerPage + 1} to{' '}
+                            {t('pagination.showing')}{' '}
+                            {(previewPage - 1) * previewItemsPerPage + 1}{' '}
+                            {t('pagination.to')}{' '}
                             {Math.min(
                               previewPage * previewItemsPerPage,
                               previewData.length
                             )}{' '}
-                            of {previewData.length} records
+                            {t('pagination.of')} {previewData.length}{' '}
+                            {t('pagination.records')}
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -1110,7 +1120,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                               }
                               disabled={previewPage === 1}
                             >
-                              Previous
+                              {t('buttons.previous')}
                             </Button>
                             <Button
                               variant="outline"
@@ -1132,7 +1142,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                 )
                               }
                             >
-                              Next
+                              {t('buttons.next')}
                             </Button>
                           </div>
                         </div>
@@ -1153,7 +1163,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     }}
                     disabled={uploading}
                   >
-                    Cancel
+                    {t('buttons.cancel')}
                   </Button>
                   {showPreview && (
                     <Button
@@ -1163,7 +1173,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       {uploading && (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       )}
-                      Upload {previewData.length} Records
+                      {t('buttons.uploadRecords', { count: previewData.length })}
                     </Button>
                   )}
                 </div>
@@ -1180,14 +1190,18 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
         </div>
       ) : records.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No legacy records found
+          {t('messages.noRecordsFound')}
         </div>
       ) : (
         <>
           {/* Desktop Table */}
           <div className="hidden md:block">
-          <DataTable columns={columns} data={records} disablePagination={true} />
-        </div>
+            <DataTable
+              columns={columns}
+              data={records}
+              disablePagination={true}
+            />
+          </div>
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4">
@@ -1202,10 +1216,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       <Dialog open={matchDialogOpen} onOpenChange={handleCloseMatchDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Match Legacy Record to User</DialogTitle>
+            <DialogTitle>{t('match.dialogTitle')}</DialogTitle>
             <DialogDescription>
-              Select a mosque member to match with this legacy record. Users
-              with matching IC/Passport numbers are highlighted.
+              {t('match.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1213,28 +1226,36 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
             <div className="space-y-6">
               {/* Record Information */}
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Legacy Record Details</h4>
+                <h4 className="font-medium mb-2">{t('match.recordDetails')}</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Name:</span>
+                    <span className="text-muted-foreground">
+                      {t('unmatch.name')}:
+                    </span>
                     <p className="font-medium">
                       {selectedRecordForMatch.full_name}
                     </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">IC/Passport:</span>
+                    <span className="text-muted-foreground">
+                      {t('unmatch.icPassport')}:
+                    </span>
                     <p className="font-mono">
                       {selectedRecordForMatch.ic_passport_number}
                     </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="text-muted-foreground">
+                      {t('unmatch.amount')}:
+                    </span>
                     <p className="font-medium">
                       {formatCurrency(selectedRecordForMatch.amount)}
                     </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Payment Date:</span>
+                    <span className="text-muted-foreground">
+                      {t('unmatch.paymentDate')}:
+                    </span>
                     <p>
                       {new Date(
                         selectedRecordForMatch.payment_date
@@ -1247,7 +1268,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               {/* User Selection */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium">Select Mosque Member</h4>
+                  <h4 className="font-medium">{t('match.selectMember')}</h4>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="show-all-members"
@@ -1257,26 +1278,28 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       }
                     />
                     <Label htmlFor="show-all-members" className="text-sm">
-                      Show all members
+                      {t('match.showAllMembers')}
                     </Label>
                   </div>
                 </div>
                 {!showAllMembers && (
                   <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm text-blue-700">
-                      <span className="font-medium">Filtered view:</span>{' '}
-                      Showing only members with matching IC/Passport numbers
+                      <span className="font-medium">
+                        {t('match.filteredView')}:
+                      </span>{' '}
+                      {t('match.showingMatchingIC')}
                     </p>
                   </div>
                 )}
                 {loadingMembers ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <span className="ml-2">Loading members...</span>
+                    <span className="ml-2">{t('match.loadingMembers')}</span>
                   </div>
                 ) : mosqueMembers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No active mosque members found
+                    {t('match.noActiveMembers')}
                   </div>
                 ) : (
                   <div className="max-h-96 overflow-y-auto border rounded-lg">
@@ -1315,12 +1338,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                         if (sortedMembers.length === 0 && !showAllMembers) {
                           return (
                             <div className="text-center py-8 text-muted-foreground">
-                              <p>
-                                No members found with matching IC/Passport
-                                number.
-                              </p>
+                              <p>{t('match.noMatchingMembers')}</p>
                               <p className="text-sm mt-1">
-                                Enable "Show all members" to see other options.
+                                {t('match.enableShowAll')}
                               </p>
                             </div>
                           );
@@ -1354,7 +1374,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                     </h4>
                                     {isIcMatch && (
                                       <Badge className="bg-green-100 text-green-800 text-xs font-medium">
-                                        ✓ IC Match
+                                        ✓ {t('status.icMatch')}
                                       </Badge>
                                     )}
                                   </div>
@@ -1363,7 +1383,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                   {member.user.ic_passport_number && (
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        IC/Passport:
+                                        {t('table.icPassport')}:
                                       </span>
                                       <span
                                         className={`font-mono text-sm font-semibold ${
@@ -1382,7 +1402,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                     {member.user.phone && (
                                       <div className="flex items-center gap-1">
                                         <span className="text-xs font-medium text-gray-500">
-                                          Phone:
+                                          {t('match.phone')}:
                                         </span>
                                         <span>{member.user.phone}</span>
                                       </div>
@@ -1390,7 +1410,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                     {member.membership_number && (
                                       <div className="flex items-center gap-1">
                                         <span className="text-xs font-medium text-gray-500">
-                                          Member #:
+                                          {t('match.memberNumber')}:
                                         </span>
                                         <span className="font-medium">
                                           {member.membership_number}
@@ -1411,17 +1431,15 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
               {/* Program Selection */}
               <div>
-                <h4 className="font-medium mb-3">
-                  Select Contribution Program
-                </h4>
+                <h4 className="font-medium mb-3">{t('match.selectProgram')}</h4>
                 {loadingPrograms ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Loading programs...</span>
+                    <span className="ml-2">{t('match.loadingPrograms')}</span>
                   </div>
                 ) : programs.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
-                    No active contribution programs found
+                    {t('match.noActivePrograms')}
                   </div>
                 ) : (
                   <Select
@@ -1429,7 +1447,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     onValueChange={setSelectedProgramId}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose a contribution program...">
+                      <SelectValue
+                        placeholder={t('match.chooseProgramPlaceholder')}
+                      >
                         {selectedProgramId && (
                           <span>
                             {
@@ -1465,7 +1485,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   onClick={handleCloseMatchDialog}
                   disabled={matching}
                 >
-                  Cancel
+                  {t('buttons.cancel')}
                 </Button>
                 <Button
                   onClick={handleConfirmMatch}
@@ -1480,7 +1500,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   {matching && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Match Record
+                  {t('buttons.matchRecord')}
                 </Button>
               </div>
             </div>
@@ -1494,43 +1514,48 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
-              Confirm Unmatch Record
+              {t('unmatch.dialogTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              <p>
-                Are you sure you want to unmatch this legacy record? This action
-                will:
-              </p>
+              <p>{t('unmatch.confirmMessage')}</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Permanently delete the associated contribution record</li>
-                <li>Reset the legacy record to unmatched status</li>
-                <li>This action cannot be undone</li>
+                <li>{t('unmatch.deleteContribution')}</li>
+                <li>{t('unmatch.resetStatus')}</li>
+                <li>{t('unmatch.cannotUndo')}</li>
               </ul>
               {selectedRecordForUnmatch && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
                   <h4 className="font-medium text-gray-900 mb-2">
-                    Record Details:
+                    {t('unmatch.recordDetails')}:
                   </h4>
                   <div className="space-y-1 text-sm">
                     <p>
-                      <span className="font-medium">Name:</span>{' '}
+                      <span className="font-medium">{t('unmatch.name')}:</span>{' '}
                       {selectedRecordForUnmatch.full_name}
                     </p>
                     <p>
-                      <span className="font-medium">IC/Passport:</span>{' '}
+                      <span className="font-medium">
+                        {t('unmatch.icPassport')}:
+                      </span>{' '}
                       {selectedRecordForUnmatch.ic_passport_number}
                     </p>
                     <p>
-                      <span className="font-medium">Amount:</span>{' '}
+                      <span className="font-medium">
+                        {t('unmatch.amount')}:
+                      </span>{' '}
                       {formatCurrency(selectedRecordForUnmatch.amount)}
                     </p>
                     <p>
-                      <span className="font-medium">Payment Date:</span>{' '}
+                      <span className="font-medium">
+                        {t('unmatch.paymentDate')}:
+                      </span>{' '}
                       {formatDate(selectedRecordForUnmatch.payment_date)}
                     </p>
                     {selectedRecordForUnmatch.matched_user && (
                       <p>
-                        <span className="font-medium">Matched User:</span>{' '}
+                        <span className="font-medium">
+                          {t('unmatch.matchedUser')}:
+                        </span>{' '}
                         {selectedRecordForUnmatch.matched_user.full_name}
                       </p>
                     )}
@@ -1541,13 +1566,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelUnmatch}>
-              Cancel
+              {t('buttons.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmUnmatch}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Yes, Unmatch Record
+              {t('unmatch.confirmButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1557,10 +1582,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       <Dialog open={bulkMatchDialogOpen} onOpenChange={setBulkMatchDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Bulk Match Records</DialogTitle>
+            <DialogTitle>{t('bulkMatch.dialogTitle')}</DialogTitle>
             <DialogDescription>
-              Match {selectedRecords.size} selected records to a user and
-              contribution program.
+              {t('bulkMatch.dialogDescription', { count: selectedRecords.size })}
             </DialogDescription>
           </DialogHeader>
 
@@ -1569,7 +1593,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               {/* Selected Records Summary */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">
-                  Selected Records ({selectedRecords.size})
+                  {t('bulkMatch.selectedRecords', { count: selectedRecords.size })}
                 </h4>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {records
@@ -1585,15 +1609,17 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
               {/* User Selection */}
               <div>
-                <h4 className="font-medium mb-3">Select User</h4>
+                <h4 className="font-medium mb-3">
+                  {t('bulkMatch.selectUser')}
+                </h4>
                 {loadingMembers ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Loading members...</span>
+                    <span className="ml-2">{t('match.loadingMembers')}</span>
                   </div>
                 ) : mosqueMembers.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
-                    No mosque members found
+                    {t('match.noActiveMembers')}
                   </div>
                 ) : (
                   <Select
@@ -1601,7 +1627,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     onValueChange={setBulkSelectedUserId}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose a user...">
+                      <SelectValue
+                        placeholder={t('bulkMatch.chooseUserPlaceholder')}
+                      >
                         {bulkSelectedUserId && (
                           <span>
                             {
@@ -1635,17 +1663,15 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
               {/* Program Selection */}
               <div>
-                <h4 className="font-medium mb-3">
-                  Select Contribution Program
-                </h4>
+                <h4 className="font-medium mb-3">{t('match.selectProgram')}</h4>
                 {loadingPrograms ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Loading programs...</span>
+                    <span className="ml-2">{t('match.loadingPrograms')}</span>
                   </div>
                 ) : programs.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
-                    No active contribution programs found
+                    {t('match.noActivePrograms')}
                   </div>
                 ) : (
                   <Select
@@ -1653,7 +1679,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                     onValueChange={setBulkSelectedProgramId}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose a contribution program...">
+                      <SelectValue
+                        placeholder={t('match.chooseProgramPlaceholder')}
+                      >
                         {bulkSelectedProgramId && (
                           <span>
                             {
@@ -1690,7 +1718,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   onClick={handleCloseBulkMatchDialog}
                   disabled={bulkMatching}
                 >
-                  Cancel
+                  {t('buttons.cancel')}
                 </Button>
                 <Button
                   onClick={async () => {
@@ -1705,7 +1733,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       });
 
                       toast.success(
-                        `Successfully matched ${selectedRecords.size} records`
+                        t('messages.bulkMatchSuccess', {
+                          count: selectedRecords.size,
+                        })
                       );
                       handleCloseBulkMatchDialog();
                       handleClearSelection();
@@ -1716,7 +1746,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       toast.error(
                         error instanceof Error
                           ? error.message
-                          : 'Failed to bulk match records'
+                          : t('messages.failedToBulkMatch')
                       );
                     } finally {
                       setBulkMatching(false);
@@ -1733,7 +1763,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   {bulkMatching && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Match {selectedRecords.size} Records
+                  {t('bulkMatch.matchRecordsButton', {
+                    count: selectedRecords.size,
+                  })}
                 </Button>
               </div>
             </div>
@@ -1748,25 +1780,26 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Unmatch</AlertDialogTitle>
+            <AlertDialogTitle>{t('bulkUnmatch.dialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to unmatch {selectedRecords.size} selected
-              records?
+              {t('bulkUnmatch.confirmMessage', { count: selectedRecords.size })}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">This action will:</p>
+            <p className="text-sm text-muted-foreground">
+              {t('bulkUnmatch.actionWill')}:
+            </p>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-              <li>Permanently delete the associated contribution records</li>
-              <li>Reset the legacy records to unmatched status</li>
-              <li>This action cannot be undone</li>
+              <li>{t('unmatch.deleteContribution')}</li>
+              <li>{t('unmatch.resetStatus')}</li>
+              <li>{t('unmatch.cannotUndo')}</li>
             </ul>
 
             {/* Selected Records Summary */}
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <h4 className="font-medium text-red-900 mb-2">
-                Records to Unmatch ({selectedRecords.size})
+                {t('bulkUnmatch.recordsToUnmatch', { count: selectedRecords.size })}
               </h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
                 {records
@@ -1789,7 +1822,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               onClick={handleCloseBulkUnmatchDialog}
               disabled={bulkUnmatching}
             >
-              Cancel
+              {t('buttons.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
@@ -1807,7 +1840,9 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   });
 
                   toast.success(
-                    `Successfully unmatched ${matchedRecordIds.length} records`
+                    t('messages.bulkUnmatchSuccess', {
+                      count: matchedRecordIds.length,
+                    })
                   );
                   handleCloseBulkUnmatchDialog();
                   handleClearSelection();
@@ -1818,7 +1853,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   toast.error(
                     error instanceof Error
                       ? error.message
-                      : 'Failed to bulk unmatch records'
+                      : t('messages.failedToBulkUnmatch')
                   );
                 } finally {
                   setBulkUnmatching(false);
@@ -1830,7 +1865,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               {bulkUnmatching && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Yes, Unmatch Records
+              {t('bulkUnmatch.confirmButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1840,7 +1875,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('pagination.pageOf', { page: page, totalPages: totalPages })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1849,7 +1884,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               onClick={() => setPage(page - 1)}
               disabled={page <= 1}
             >
-              Previous
+              {t('buttons.previous')}
             </Button>
             <Button
               variant="outline"
@@ -1857,7 +1892,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
               onClick={() => setPage(page + 1)}
               disabled={page >= totalPages}
             >
-              Next
+              {t('buttons.next')}
             </Button>
           </div>
         </div>

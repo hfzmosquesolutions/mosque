@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +92,7 @@ export function KariahApplicationsReview({
   mosqueId,
 }: KariahApplicationsReviewProps) {
   const { user } = useAuth();
+  const t = useTranslations('kariahManagement');
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState<KariahApplication[]>([]);
   const [stats, setStats] = useState<ApplicationStats | null>(null);
@@ -153,7 +155,7 @@ export function KariahApplicationsReview({
       setStats(stats);
     } catch (error) {
       console.error('Error loading applications:', error);
-      toast.error('Failed to load applications');
+      toast.error(t('failedToLoadApplications'));
     } finally {
       setLoading(false);
     }
@@ -177,7 +179,7 @@ export function KariahApplicationsReview({
         admin_notes: adminNotes.trim() || undefined,
       });
 
-      toast.success(result.message || 'Application reviewed successfully');
+      toast.success(result.message || t('applicationReviewedSuccessfully'));
       setReviewDialogOpen(false);
       setSelectedApplication(null);
       setReviewAction(null);
@@ -185,7 +187,7 @@ export function KariahApplicationsReview({
       loadApplications();
     } catch (error) {
       console.error('Error reviewing application:', error);
-      toast.error('Failed to review application');
+      toast.error(t('failedToReviewApplication'));
     } finally {
       setProcessing(false);
     }
@@ -204,12 +206,12 @@ export function KariahApplicationsReview({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-green-100 text-green-800">{t('approved')}</Badge>;
       case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800">{t('rejected')}</Badge>;
       case 'pending':
       default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">{t('pending')}</Badge>;
     }
   };
 
@@ -240,7 +242,7 @@ export function KariahApplicationsReview({
     {
       accessorKey: 'user.full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Full Name" />
+        <DataTableColumnHeader column={column} title={t('fullName')} />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -251,7 +253,7 @@ export function KariahApplicationsReview({
     {
       accessorKey: 'user.ic_passport_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="IC/Passport" />
+        <DataTableColumnHeader column={column} title={t('icPassport')} />
       ),
       cell: ({ row }) => (
         <div className="font-mono text-sm">
@@ -262,7 +264,7 @@ export function KariahApplicationsReview({
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('status')} />
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
@@ -287,7 +289,7 @@ export function KariahApplicationsReview({
     {
       accessorKey: 'created_at',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Applied" />
+        <DataTableColumnHeader column={column} title={t('applied')} />
       ),
       cell: ({ row }) => (
         <div className="text-sm">
@@ -300,7 +302,7 @@ export function KariahApplicationsReview({
     {
       accessorKey: 'reviewed_by',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Reviewed By" />
+        <DataTableColumnHeader column={column} title={t('reviewedBy')} />
       ),
       cell: ({ row }) => {
         const reviewedBy = row.original.reviewed_by;
@@ -313,7 +315,7 @@ export function KariahApplicationsReview({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('actions'),
       cell: ({ row }) => {
         const application = row.original;
         return (
@@ -327,7 +329,7 @@ export function KariahApplicationsReview({
                   className="text-green-600 hover:text-green-700"
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  Approve
+                  {t('approve')}
                 </Button>
                 <Button
                   variant="outline"
@@ -336,7 +338,7 @@ export function KariahApplicationsReview({
                   className="text-red-600 hover:text-red-700"
                 >
                   <XCircle className="h-4 w-4 mr-1" />
-                  Reject
+                  {t('reject')}
                 </Button>
               </>
             )}
@@ -349,7 +351,7 @@ export function KariahApplicationsReview({
               }}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              {t('view')}
             </Button>
           </div>
         );
@@ -390,7 +392,7 @@ export function KariahApplicationsReview({
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Applied:</span>
+              <span className="text-muted-foreground">{t('applied')}:</span>
               <p>
                 {formatDistanceToNow(new Date(application.created_at), {
                   addSuffix: true,
@@ -398,7 +400,7 @@ export function KariahApplicationsReview({
               </p>
             </div>
             <div>
-              <span className="text-muted-foreground">Reviewed by:</span>
+              <span className="text-muted-foreground">{t('reviewedBy')}:</span>
               <p>{application.reviewed_by?.full_name || '-'}</p>
             </div>
           </div>
@@ -413,7 +415,7 @@ export function KariahApplicationsReview({
                   className="text-green-600 hover:text-green-700 flex-1"
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  Approve
+                  {t('approve')}
                 </Button>
                 <Button
                   variant="outline"
@@ -422,7 +424,7 @@ export function KariahApplicationsReview({
                   className="text-red-600 hover:text-red-700 flex-1"
                 >
                   <XCircle className="h-4 w-4 mr-1" />
-                  Reject
+                  {t('reject')}
                 </Button>
               </>
             )}
@@ -436,7 +438,7 @@ export function KariahApplicationsReview({
               className={application.status === 'pending' ? '' : 'flex-1'}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              {t('view')}
             </Button>
           </div>
         </div>
@@ -452,7 +454,7 @@ export function KariahApplicationsReview({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Applications
+                {t('totalApplications')}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -463,7 +465,7 @@ export function KariahApplicationsReview({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('pending')}</CardTitle>
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
@@ -475,7 +477,7 @@ export function KariahApplicationsReview({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('approved')}</CardTitle>
               <UserCheck className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -487,7 +489,7 @@ export function KariahApplicationsReview({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('rejected')}</CardTitle>
               <UserX className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
@@ -505,7 +507,7 @@ export function KariahApplicationsReview({
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or IC/Passport..."
+              placeholder={t('searchByNameOrIcPassport')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -513,13 +515,13 @@ export function KariahApplicationsReview({
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Applications</SelectItem>
-              <SelectItem value="pending">Pending Only</SelectItem>
-              <SelectItem value="approved">Approved Only</SelectItem>
-              <SelectItem value="rejected">Rejected Only</SelectItem>
+              <SelectItem value="all">{t('allApplications')}</SelectItem>
+              <SelectItem value="pending">{t('pendingOnly')}</SelectItem>
+              <SelectItem value="approved">{t('approvedOnly')}</SelectItem>
+              <SelectItem value="rejected">{t('rejectedOnly')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -532,7 +534,7 @@ export function KariahApplicationsReview({
         </div>
       ) : applications.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No applications found
+          {t('noApplicationsFound')}
         </div>
       ) : (
         <>
@@ -557,7 +559,7 @@ export function KariahApplicationsReview({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('pageXOfY', { page, totalPages })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -566,7 +568,7 @@ export function KariahApplicationsReview({
               onClick={() => setPage(page - 1)}
               disabled={page <= 1}
             >
-              Previous
+              {t('previous')}
             </Button>
             <Button
               variant="outline"
@@ -574,7 +576,7 @@ export function KariahApplicationsReview({
               onClick={() => setPage(page + 1)}
               disabled={page >= totalPages}
             >
-              Next
+              {t('next')}
             </Button>
           </div>
         </div>
@@ -585,12 +587,12 @@ export function KariahApplicationsReview({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {reviewAction === 'approve' ? 'Approve' : 'Reject'} Application
+              {reviewAction === 'approve' ? t('approve') : t('reject')} {t('application')}
             </DialogTitle>
             <DialogDescription>
               {selectedApplication && (
                 <>
-                  You are about to {reviewAction} the kariah application from{' '}
+                  {t('youAreAboutTo')} {reviewAction === 'approve' ? t('approve') : t('reject')} {t('theKariahApplicationFrom')}{' '}
                   <strong>{selectedApplication.user.full_name}</strong>.
                 </>
               )}
@@ -600,10 +602,10 @@ export function KariahApplicationsReview({
             {/* Admin Notes */}
             <div>
               <label className="text-sm font-medium">
-                Admin Notes (Optional)
+                {t('adminNotesOptional')}
               </label>
               <Textarea
-                placeholder="Add any notes about this decision..."
+                placeholder={t('addNotesAboutDecision')}
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 className="mt-1"
@@ -616,7 +618,7 @@ export function KariahApplicationsReview({
                 variant="outline"
                 onClick={() => setReviewDialogOpen(false)}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleReview}
@@ -626,7 +628,7 @@ export function KariahApplicationsReview({
                 {processing && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                {reviewAction === 'approve' ? 'Approve' : 'Reject'} Application
+                {reviewAction === 'approve' ? t('approve') : t('reject')} {t('application')}
               </Button>
             </div>
           </div>
