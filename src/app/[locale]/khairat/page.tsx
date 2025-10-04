@@ -31,6 +31,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { ContributionForm } from '@/components/contributions/ContributionForm';
 import { ContributionsTabContent } from '@/components/contributions/ContributionsTabContent';
 import { UserPaymentsTable } from '@/components/contributions/UserPaymentsTable';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 
 import { ProgramManagement } from '@/components/contributions/ProgramManagement';
 import {
@@ -509,7 +510,14 @@ function KhairatContent() {
 
         <TabsContent value="payments" className="space-y-6">
           {hasAdminAccess ? (
-            <ContributionsTabContent programs={programs} />
+            <FeatureGate
+              mosqueId={mosqueId || ''}
+              featureName="khairat_management"
+              requiredPlan="premium"
+              onUpgrade={() => window.location.href = '/billing'}
+            >
+              <ContributionsTabContent programs={programs} />
+            </FeatureGate>
           ) : (
             <UserPaymentsTable contributions={userContributions} />
           )}
@@ -517,12 +525,19 @@ function KhairatContent() {
       </Tabs>
 
       {hasAdminAccess && (
-        <ProgramManagement
-          filterType="khairat"
-          onProgramsUpdate={fetchData}
-          isCreateDialogOpen={isProgramManagementOpen}
-          onCreateDialogOpenChange={setIsProgramManagementOpen}
-        />
+        <FeatureGate
+          mosqueId={mosqueId || ''}
+          featureName="khairat_management"
+          requiredPlan="premium"
+          onUpgrade={() => window.location.href = '/billing'}
+        >
+          <ProgramManagement
+            filterType="khairat"
+            onProgramsUpdate={fetchData}
+            isCreateDialogOpen={isProgramManagementOpen}
+            onCreateDialogOpenChange={setIsProgramManagementOpen}
+          />
+        </FeatureGate>
       )}
 
       <ContributionForm

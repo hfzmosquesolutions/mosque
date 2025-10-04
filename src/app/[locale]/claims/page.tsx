@@ -271,7 +271,7 @@ export default function ClaimsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="priority">{t('priority')}</Label>
+                  <Label htmlFor="priority">{tc('priority')}</Label>
                   <Select
                     value={formData.priority}
                     onValueChange={(value: ClaimPriority) => setFormData(prev => ({ ...prev, priority: value }))}

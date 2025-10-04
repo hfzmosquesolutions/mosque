@@ -14,6 +14,7 @@ import {
   UserPlus,
   Database,
   FileText,
+  CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -131,6 +132,13 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       icon: User,
     });
   }
+
+  // Add billing link for all users
+  baseNavigation.push({
+    name: t('billing'),
+    href: '/billing',
+    icon: CreditCard,
+  });
 
   return baseNavigation;
 };

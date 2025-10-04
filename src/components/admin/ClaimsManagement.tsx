@@ -318,7 +318,7 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('priority')}</label>
+              <label className="text-sm font-medium">{tc('priority')}</label>
               <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as ClaimPriority | 'all')}>
                 <SelectTrigger>
                   <SelectValue />
@@ -377,7 +377,7 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
                     <TableHead>{t('claimant')}</TableHead>
                     <TableHead>{t('program')}</TableHead>
                     <TableHead>{t('amount')}</TableHead>
-                    <TableHead>{t('priority')}</TableHead>
+                    <TableHead>{tc('priority')}</TableHead>
                     <TableHead>{tc('status')}</TableHead>
                     <TableHead>{t('submitted')}</TableHead>
                     <TableHead className="text-right">{tc('actions')}</TableHead>
@@ -482,7 +482,7 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
                   <p className="text-sm text-muted-foreground">{formatCurrency(selectedClaim.requested_amount)}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{t('priority')}</p>
+                  <p className="text-sm font-medium">{tc('priority')}</p>
                   <Badge className={priorityConfig[selectedClaim.priority].color}>
                     {priorityConfig[selectedClaim.priority].label}
                   </Badge>

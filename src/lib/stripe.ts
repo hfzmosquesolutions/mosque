@@ -1,0 +1,123 @@
+import Stripe from 'stripe';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not set');
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2024-06-20',
+  typescript: true,
+});
+
+export const STRIPE_CONFIG = {
+  currency: 'myr',
+  plans: {
+    free: {
+      name: 'Free',
+      price: 0,
+      features: [
+        'Basic mosque profile',
+        'Prayer times management',
+        'Basic events (5/month)',
+        'Basic announcements',
+        'Community member registration',
+        'Basic donation tracking'
+      ],
+      limits: {
+        events_per_month: 5,
+        announcements_per_month: 10,
+        members: 50
+      }
+    },
+    premium: {
+      name: 'Premium',
+      price: 9900, // RM 99.00 in cents
+      stripe_price_id: process.env.STRIPE_PREMIUM_PRICE_ID,
+      features: [
+        'Everything in Free',
+        'Khairat management',
+        'Advanced kariah management',
+        'Unlimited events',
+        'Advanced financial reports',
+        'Payment processing',
+        'Priority support'
+      ],
+      limits: {
+        events_per_month: -1, // unlimited
+        announcements_per_month: -1,
+        members: -1
+      }
+    },
+    enterprise: {
+      name: 'Enterprise',
+      price: 29900, // RM 299.00 in cents
+      stripe_price_id: process.env.STRIPE_ENTERPRISE_PRICE_ID,
+      features: [
+        'Everything in Premium',
+        'Multi-mosque support',
+        'API access',
+        'Custom integrations',
+        'Advanced analytics',
+        'White-label options',
+        'Dedicated support'
+      ],
+      limits: {
+        events_per_month: -1,
+        announcements_per_month: -1,
+        members: -1,
+        mosques: -1
+      }
+    }
+  }
+};
+
+export type SubscriptionPlan = keyof typeof STRIPE_CONFIG.plans;
+export type SubscriptionStatus = 'active' | 'inactive' | 'past_due' | 'canceled' | 'unpaid' | 'trialing';
+
+export interface SubscriptionFeatures {
+  khairat_management: boolean;
+  advanced_kariah: boolean;
+  unlimited_events: boolean;
+  financial_reports: boolean;
+  multi_mosque: boolean;
+  api_access: boolean;
+  custom_branding: boolean;
+}
+
+export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures {
+  switch (plan) {
+    case 'free':
+      return {
+        khairat_management: false,
+        advanced_kariah: false,
+        unlimited_events: false,
+        financial_reports: false,
+        multi_mosque: false,
+        api_access: false,
+        custom_branding: false
+      };
+    case 'premium':
+      return {
+        khairat_management: true,
+        advanced_kariah: true,
+        unlimited_events: true,
+        financial_reports: true,
+        multi_mosque: false,
+        api_access: false,
+        custom_branding: false
+      };
+    case 'enterprise':
+      return {
+        khairat_management: true,
+        advanced_kariah: true,
+        unlimited_events: true,
+        financial_reports: true,
+        multi_mosque: true,
+        api_access: true,
+        custom_branding: true
+      };
+    default:
+      return getFeaturesForPlan('free');
+  }
+}
+

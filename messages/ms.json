@@ -44,6 +44,7 @@
     "users": "Pengguna",
     "mosques": "Masjid",
     "notifications": "Pemberitahuan",
+    "billing": "Bil",
     "language": "Bahasa",
     "theme": "Tema",
     "light": "Terang",
@@ -1556,6 +1557,7 @@
     "claims": {
       "title": "Tuntutan"
     },
+    "billing": "Bil",
     "settings": "Tetapan",
     "signOut": "Log Keluar",
     "administrator": "Pentadbir",
