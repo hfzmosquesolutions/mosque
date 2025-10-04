@@ -7,6 +7,13 @@ const supabase = createClient();
 
 export async function POST(request: NextRequest) {
   try {
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 500 }
+      );
+    }
+
     const { mosqueId, plan } = await request.json();
 
     if (!mosqueId || !plan) {
@@ -65,7 +72,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    const priceId = STRIPE_CONFIG.plans[plan as keyof typeof STRIPE_CONFIG.plans].stripe_price_id;
+    const planConfig = STRIPE_CONFIG.plans[plan as keyof typeof STRIPE_CONFIG.plans];
+    const priceId = 'stripe_price_id' in planConfig ? planConfig.stripe_price_id : undefined;
     
     if (!priceId) {
       return NextResponse.json(

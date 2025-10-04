@@ -1,13 +1,18 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
+// Only initialize Stripe on server side
+let stripe: Stripe | null = null;
+
+if (typeof window === 'undefined' && process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-09-30.clover',
+    typescript: true,
+  });
+} else if (typeof window === 'undefined' && !process.env.STRIPE_SECRET_KEY) {
+  console.warn('STRIPE_SECRET_KEY is not set. Stripe functionality will be limited.');
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-06-20',
-  typescript: true,
-});
+export { stripe };
 
 export const STRIPE_CONFIG = {
   currency: 'myr',

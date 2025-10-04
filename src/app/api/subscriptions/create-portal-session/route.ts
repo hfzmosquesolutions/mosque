@@ -6,6 +6,13 @@ const supabase = createClient();
 
 export async function POST(request: NextRequest) {
   try {
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe is not configured' },
+        { status: 500 }
+      );
+    }
+
     const { mosqueId } = await request.json();
 
     if (!mosqueId) {

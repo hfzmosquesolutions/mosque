@@ -7,6 +7,13 @@ const supabase = createClient();
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
+  if (!stripe) {
+    return NextResponse.json(
+      { error: 'Stripe is not configured' },
+      { status: 500 }
+    );
+  }
+
   const body = await request.text();
   const signature = request.headers.get('stripe-signature')!;
 
@@ -107,8 +114,8 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       stripe_subscription_id: subscription.id,
       plan: plan as any,
       status: subscription.status as any,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
       trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
       trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null
@@ -128,8 +135,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .from('mosque_subscriptions')
     .update({
       status: subscription.status as any,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
       canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null
     })
@@ -147,7 +154,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
   
   if (!subscriptionId) {
     return;
@@ -185,7 +192,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
   
   if (!subscriptionId) {
     return;

@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase';
+import { supabase, createClient } from '@/lib/supabase';
 import { STRIPE_CONFIG, SubscriptionPlan, SubscriptionStatus, SubscriptionFeatures } from '@/lib/stripe';
 
-const supabase = createClient();
+// Use the regular supabase client for client-side operations
+// The createClient() function is only used in API routes
 
 export interface MosqueSubscription {
   id: string;
