@@ -6,7 +6,7 @@ export type Locale = (typeof locales)[number];
 
 export default getRequestConfig(async ({ locale }) => {
   // Validate locale and fallback to default if undefined or invalid
-  const validatedLocale = locale && locales.includes(locale as Locale) ? locale : 'en';
+  const validatedLocale = locale && locales.includes(locale as Locale) ? locale : 'ms';
   
   return {
     locale: validatedLocale,

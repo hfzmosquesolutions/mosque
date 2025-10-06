@@ -1562,5 +1562,107 @@
     "signOut": "Log Keluar",
     "administrator": "Pentadbir",
     "member": "Ahli"
+  },
+  "billing": {
+    "pageTitle": "Bil & Langganan",
+    "pageSubtitle": "Urus langganan dan pilihan bil anda",
+    "tabs": {
+      "overview": "Gambaran",
+      "plans": "Pelan",
+      "invoices": "Invois"
+    },
+    "alerts": {
+      "checkoutCanceled": {
+        "title": "Daftar keluar dibatalkan",
+        "description": "Anda telah membatalkan proses bil. Tiada perubahan dibuat pada langganan anda."
+      },
+      "checkoutSuccess": {
+        "title": "Daftar keluar berjaya",
+        "description": "Bil anda berjaya. Jika status langganan tidak dikemas kini segera, ia akan disegarkan sebentar lagi."
+      }
+    },
+    "choosePlanTitle": "Pilih Pelan Anda",
+    "choosePlanSubtitle": "Pilih pelan yang paling sesuai dengan keperluan masjid anda",
+    "subscription": {
+      "currentTitle": "Langganan Semasa",
+      "currentDescription": "Urus langganan dan bil anda",
+      "status": {
+        "active": "Aktif",
+        "trialing": "Percubaan",
+        "past_due": "Tertunggak",
+        "unpaid": "Tidak dibayar",
+        "canceled": "Dibatalkan"
+      },
+      "planLabel": "Pelan",
+      "nextBillingDate": "Tarikh Bil Seterusnya",
+      "manageBilling": "Urus Bil",
+      "cancelsAtPeriodEnd": "Akan dibatalkan pada akhir tempoh",
+      "na": "Tiada"
+    },
+    "planPrice": {
+      "free": "Percuma",
+      "premium": "RM 99/bulan",
+      "enterprise": "RM 299/bulan"
+    },
+    "unknown": "Tidak diketahui",
+    "invoices": {
+      "title": "Invois Terkini",
+      "description": "Sejarah bil anda yang terkini",
+      "invoiceShort": "Invois #{{id}}",
+      "status": {
+        "paid": "dibayar",
+        "open": "terbuka",
+        "void": "batal",
+        "uncollectible": "tidak dapat dikutip"
+      }
+    },
+    "mostPopular": "Paling Popular",
+    "perMonth": "/bulan",
+    "processing": "Memproses...",
+    "cta": {
+      "currentPlan": "Pelan Semasa",
+      "getStarted": "Mula Sekarang",
+      "upgrade": "Naik Taraf"
+    },
+    "plans": {
+      "free": {
+        "name": "Percuma",
+        "tagline": "Sesuai untuk bermula",
+        "features": [
+          "Profil masjid asas",
+          "Pengurusan waktu solat",
+          "Acara asas (5/bulan)",
+          "Pengumuman asas",
+          "Pendaftaran ahli kariah",
+          "Penjejakan derma asas"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "tagline": "Terbaik untuk masjid yang berkembang",
+        "features": [
+          "Semua dalam Percuma",
+          "Pengurusan khairat",
+          "Pengurusan kariah lanjutan",
+          "Acara tanpa had",
+          "Laporan kewangan lanjutan",
+          "Pemprosesan pembayaran",
+          "Sokongan keutamaan"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "Untuk organisasi besar",
+        "features": [
+          "Semua dalam Premium",
+          "Sokongan pelbagai masjid",
+          "Akses API",
+          "Integrasi tersuai",
+          "Analitik lanjutan",
+          "Pilihan label putih",
+          "Sokongan khusus"
+        ]
+      }
+    }
   }
 }

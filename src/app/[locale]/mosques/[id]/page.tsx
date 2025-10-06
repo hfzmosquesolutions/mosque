@@ -275,10 +275,14 @@ export default function MosqueProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.12] blur-3xl">
+          <div className="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-emerald-300/40" />
+          <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-teal-300/40" />
+        </div>
         {/* Hero Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
+        <div className="relative bg-white/90 dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8 backdrop-blur">
           {/* Cover Image */}
           <div
             className="h-48 relative"
@@ -363,10 +367,10 @@ export default function MosqueProfilePage() {
           </div>
 
           {/* Stats Bar */}
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+          <div className="px-6 py-4 bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-6">
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                   <Users className="h-4 w-4 mr-2" />
                   <span className="font-medium">{followerCount}</span>
                   <span className="ml-1">
@@ -374,7 +378,7 @@ export default function MosqueProfilePage() {
                   </span>
                 </div>
                 {mosque.settings?.established_year != null && (
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                     <Calendar className="h-4 w-4 mr-2" />
                     <span>
                       {t('established')}{' '}
@@ -383,7 +387,7 @@ export default function MosqueProfilePage() {
                   </div>
                 )}
                 {mosque.settings?.capacity != null && (
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                     <Building className="h-4 w-4 mr-2" />
                     <span>
                       {t('capacity')}: {String(mosque.settings.capacity)}
@@ -400,7 +404,7 @@ export default function MosqueProfilePage() {
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2">
             {/* About Section */}
-            <Card className="border-0 shadow-sm mb-8">
+            <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm mb-8 backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
                   <Building className="h-5 w-5 mr-2 text-emerald-600" />
@@ -410,17 +414,17 @@ export default function MosqueProfilePage() {
               <CardContent className="space-y-4">
                 {mosque.description && (
                   <div>
-                    <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-4">
+                    <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed mb-4">
                       {mosque.description}
                     </p>
                   </div>
                 )}
                 {mosque.settings?.imam_name != null && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
                       {t('imam')}
                     </h4>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-slate-600 dark:text-slate-400">
                       {String(mosque.settings.imam_name)}
                     </p>
                   </div>
@@ -429,7 +433,7 @@ export default function MosqueProfilePage() {
                   Array.isArray(mosque.settings.services) &&
                   mosque.settings.services.length > 0 && (
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                      <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
                         {t('servicesPrograms')}
                       </h4>
                       <div className="flex flex-wrap gap-2">
@@ -463,7 +467,7 @@ export default function MosqueProfilePage() {
               <TabsContent value="overview" className="space-y-6 mt-6">
                 {/* Prayer Times */}
                 {mosque.prayer_times && (
-                  <Card className="border-0 shadow-sm">
+                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
                     <CardHeader>
                       <CardTitle className="flex items-center text-xl">
                         <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
@@ -476,12 +480,12 @@ export default function MosqueProfilePage() {
                           ([prayer, time]) => (
                             <div
                               key={prayer}
-                              className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                              className="text-center p-3 bg-slate-50 dark:bg-slate-700/70 rounded-lg"
                             >
-                              <div className="font-semibold text-gray-900 dark:text-white capitalize mb-1">
+                              <div className="font-semibold text-slate-900 dark:text-white capitalize mb-1">
                                 {prayer}
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                              <div className="text-sm text-slate-600 dark:text-slate-400">
                                 {String(time)}
                               </div>
                             </div>
@@ -493,7 +497,7 @@ export default function MosqueProfilePage() {
                 )}
 
                 {/* Active Programs Section */}
-                <Card className="border-0 shadow-sm">
+                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-xl">
                       <div className="flex items-center">
@@ -516,7 +520,7 @@ export default function MosqueProfilePage() {
                     {contributionPrograms.length === 0 ? (
                       <div className="text-center py-8">
                         <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-slate-500 dark:text-slate-400">
                           {t('noActivePrograms')}
                         </p>
                       </div>
@@ -535,12 +539,12 @@ export default function MosqueProfilePage() {
                           return (
                             <div
                               key={program.id}
-                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
                             >
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">
                                       {program.name}
                                     </h4>
                                     <Badge
@@ -551,7 +555,7 @@ export default function MosqueProfilePage() {
                                     </Badge>
                                   </div>
                                   {program.description && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                                       {program.description}
                                     </p>
                                   )}
@@ -572,10 +576,10 @@ export default function MosqueProfilePage() {
                               {program.target_amount && (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-slate-600 dark:text-slate-400">
                                       {t('progress')}
                                     </span>
-                                    <span className="font-medium text-gray-900 dark:text-white">
+                                    <span className="font-medium text-slate-900 dark:text-white">
                                       RM{' '}
                                       {(
                                         program.current_amount || 0
@@ -584,7 +588,7 @@ export default function MosqueProfilePage() {
                                       {program.target_amount.toLocaleString()}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                                     <div
                                       className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                                       style={{
@@ -592,7 +596,7 @@ export default function MosqueProfilePage() {
                                       }}
                                     ></div>
                                   </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
                                     {t('completed', {
                                       percentage: progressPercentage.toFixed(1),
                                     })}
@@ -603,7 +607,7 @@ export default function MosqueProfilePage() {
                               {/* Ongoing program without target */}
                               {!program.target_amount && (
                                 <div className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600 dark:text-gray-400">
+                                  <span className="text-slate-600 dark:text-slate-400">
                                     {t('totalRaised')}
                                   </span>
                                   <span className="font-medium text-emerald-600">
@@ -624,7 +628,7 @@ export default function MosqueProfilePage() {
 
                 {/* Events Section */}
                 {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                  <Card className="border-0 shadow-sm">
+                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between text-xl">
                         <div className="flex items-center">
@@ -642,7 +646,7 @@ export default function MosqueProfilePage() {
                       {events.length === 0 ? (
                         <div className="text-center py-8">
                           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500 dark:text-gray-400">
+                          <p className="text-slate-500 dark:text-slate-400">
                             {t('noUpcomingEvents')}
                           </p>
                         </div>
@@ -651,18 +655,18 @@ export default function MosqueProfilePage() {
                           {events.slice(0, 3).map((event) => (
                             <div
                               key={event.id}
-                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                  <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
                                     {event.title}
                                   </h4>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                                     {formatDateTime(event.event_date)}
                                   </p>
                                   {event.location && (
-                                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-500">
+                                    <div className="flex items-center text-xs text-slate-500 dark:text-slate-500">
                                       <MapPin className="h-3 w-3 mr-1" />
                                       {event.location}
                                     </div>
@@ -692,7 +696,7 @@ export default function MosqueProfilePage() {
               </TabsContent>
 
               <TabsContent value="programs" className="space-y-6 mt-6">
-                <Card className="border-0 shadow-sm">
+                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
                   <CardHeader>
                     <CardTitle className="flex items-center text-xl">
                       <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
@@ -704,7 +708,7 @@ export default function MosqueProfilePage() {
                     {contributionPrograms.length === 0 ? (
                       <div className="text-center py-8">
                         <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">
+                        <p className="text-slate-500 dark:text-slate-400">
                           {t('noActivePrograms')}
                         </p>
                       </div>
@@ -723,12 +727,12 @@ export default function MosqueProfilePage() {
                           return (
                             <div
                               key={program.id}
-                              className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
                             >
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                    <h4 className="font-semibold text-slate-900 dark:text-white">
                                       {program.name}
                                     </h4>
                                     <Badge
@@ -739,7 +743,7 @@ export default function MosqueProfilePage() {
                                     </Badge>
                                   </div>
                                   {program.description && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                                       {program.description}
                                     </p>
                                   )}
@@ -760,10 +764,10 @@ export default function MosqueProfilePage() {
                               {program.target_amount && (
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">
+                                    <span className="text-slate-600 dark:text-slate-400">
                                       {t('progress')}
                                     </span>
-                                    <span className="font-medium text-gray-900 dark:text-white">
+                                    <span className="font-medium text-slate-900 dark:text-white">
                                       RM{' '}
                                       {(
                                         program.current_amount || 0
@@ -772,7 +776,7 @@ export default function MosqueProfilePage() {
                                       {program.target_amount.toLocaleString()}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                                     <div
                                       className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                                       style={{
@@ -780,7 +784,7 @@ export default function MosqueProfilePage() {
                                       }}
                                     ></div>
                                   </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">
                                     {t('completed', {
                                       percentage: progressPercentage.toFixed(1),
                                     })}
@@ -791,7 +795,7 @@ export default function MosqueProfilePage() {
                               {/* Ongoing program without target */}
                               {!program.target_amount && (
                                 <div className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600 dark:text-gray-400">
+                                  <span className="text-slate-600 dark:text-slate-400">
                                     {t('totalRaised')}
                                   </span>
                                   <span className="font-medium text-emerald-600">
@@ -816,7 +820,7 @@ export default function MosqueProfilePage() {
           {/* Right Column - Contact & Info */}
           <div className="space-y-6">
             {/* Contact Information */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Phone className="h-5 w-5 mr-2 text-emerald-600" />
@@ -830,10 +834,10 @@ export default function MosqueProfilePage() {
                       <Phone className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {t('phone')}
                       </p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-slate-900 dark:text-white">
                         {mosque.phone}
                       </p>
                     </div>
@@ -845,10 +849,10 @@ export default function MosqueProfilePage() {
                       <Mail className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {t('email')}
                       </p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-slate-900 dark:text-white">
                         {mosque.email}
                       </p>
                     </div>
@@ -860,7 +864,7 @@ export default function MosqueProfilePage() {
                       <Globe className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {t('website')}
                       </p>
                       <a
@@ -880,10 +884,10 @@ export default function MosqueProfilePage() {
                       <MapPin className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {t('address')}
                       </p>
-                      <p className="font-medium text-gray-900 dark:text-white leading-relaxed">
+                      <p className="font-medium text-slate-900 dark:text-white leading-relaxed">
                         {mosque.address}
                       </p>
                     </div>
@@ -893,7 +897,7 @@ export default function MosqueProfilePage() {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Users className="h-5 w-5 mr-2 text-emerald-600" />
@@ -905,13 +909,13 @@ export default function MosqueProfilePage() {
                   <div className="text-2xl font-bold text-emerald-600">
                     {followerCount}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
                     {followerCount === 1 ? t('follower') : t('followers')}
                   </div>
                 </div>
                 {!user && (
-                  <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  <div className="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                       {t('joinCommunity')}
                     </p>
                     <Button

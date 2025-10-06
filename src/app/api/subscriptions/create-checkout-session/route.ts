@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mosqueId, plan } = await request.json();
+    const { mosqueId, plan, adminEmail: providedAdminEmail, adminName: providedAdminName } = await request.json();
 
     if (!mosqueId || !plan) {
       return NextResponse.json(
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Get mosque details
     const { data: mosque, error: mosqueError } = await supabase
       .from('mosques')
-      .select('id, name, email')
+      .select('id, name, email, user_id')
       .eq('id', mosqueId)
       .single();
 
@@ -42,6 +42,31 @@ export async function POST(request: NextRequest) {
         { error: 'Mosque not found' },
         { status: 404 }
       );
+    }
+
+    // Resolve admin user's email and name from request (required)
+    let adminEmail: string | undefined = providedAdminEmail;
+    let adminName: string | undefined = providedAdminName;
+
+    if (!adminEmail) {
+      return NextResponse.json(
+        { error: 'Admin user email is required for billing' },
+        { status: 400 }
+      );
+    }
+
+    // If name not provided, try to derive from profile, otherwise fallback to email prefix
+    if (!adminName && mosque && (mosque as any).user_id) {
+      const ownerUserId = (mosque as any).user_id as string;
+      const { data: ownerProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', ownerUserId)
+        .single();
+      adminName = (ownerProfile as any)?.full_name || adminEmail.split('@')[0];
+    }
+    if (!adminName) {
+      adminName = adminEmail.split('@')[0];
     }
 
     // Get or create Stripe customer
@@ -56,8 +81,8 @@ export async function POST(request: NextRequest) {
       customerId = subscription.stripe_customer_id;
     } else {
       const customer = await stripe.customers.create({
-        email: mosque.email,
-        name: mosque.name,
+        email: adminEmail,
+        name: adminName,
         metadata: {
           mosque_id: mosqueId
         }
@@ -106,7 +131,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return NextResponse.json(

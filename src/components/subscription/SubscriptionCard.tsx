@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, Loader2 } from 'lucide-react';
 import { STRIPE_CONFIG, SubscriptionPlan, SubscriptionFeatures } from '@/lib/stripe';
 import { formatPrice } from '@/lib/subscription';
+import { useTranslations } from 'next-intl';
 
 interface SubscriptionCardProps {
   plan: SubscriptionPlan;
@@ -25,6 +26,7 @@ export function SubscriptionCard({
   loading = false,
   isCurrentPlan = false
 }: SubscriptionCardProps) {
+  const t = useTranslations('billing');
   const planConfig = STRIPE_CONFIG.plans[plan];
   const isPopular = plan === 'premium';
 
@@ -33,35 +35,33 @@ export function SubscriptionCard({
       {isPopular && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <Badge className="bg-emerald-500 text-white px-3 py-1">
-            Most Popular
+            {t('mostPopular')}
           </Badge>
         </div>
       )}
       
       <CardHeader className="text-center pb-4">
-        <CardTitle className="text-2xl font-bold">{planConfig.name}</CardTitle>
+        <CardTitle className="text-2xl font-bold">{t(`plans.${plan}.name` as any)}</CardTitle>
         <div className="mt-4">
           <span className="text-4xl font-bold">
-            {plan === 'free' ? 'Free' : formatPrice(planConfig.price)}
+            {plan === 'free' ? t('planPrice.free') : formatPrice(planConfig.price)}
           </span>
           {plan !== 'free' && (
-            <span className="text-gray-500 dark:text-gray-400">/month</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('perMonth')}</span>
           )}
         </div>
         <CardDescription className="mt-2">
-          {plan === 'free' && 'Perfect for getting started'}
-          {plan === 'premium' && 'Best for growing mosques'}
-          {plan === 'enterprise' && 'For large organizations'}
+          {t(`plans.${plan}.tagline` as any)}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <ul className="space-y-3">
-          {planConfig.features.map((feature, index) => (
+          {planConfig.features.map((_, index) => (
             <li key={index} className="flex items-start gap-3">
               <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
               <span className="text-sm text-gray-700 dark:text-gray-300">
-                {feature}
+                {t(`plans.${plan}.features.${index}` as any)}
               </span>
             </li>
           ))}
@@ -70,7 +70,7 @@ export function SubscriptionCard({
         <div className="pt-4">
           {isCurrentPlan ? (
             <Button disabled className="w-full">
-              Current Plan
+              {t('cta.currentPlan')}
             </Button>
           ) : (
             <Button
@@ -81,11 +81,11 @@ export function SubscriptionCard({
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  {t('processing')}
                 </>
               ) : (
                 <>
-                  {plan === 'free' ? 'Get Started' : 'Upgrade'}
+                  {plan === 'free' ? t('cta.getStarted') : t('cta.upgrade')}
                 </>
               )}
             </Button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,18 +18,24 @@ import { useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '@/lib/supabase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 function BillingContent() {
   const t = useTranslations('billing');
+  const tNav = useTranslations();
   const { user } = useAuth();
   const { mosqueId } = useUserMosque();
-  const { isCompleted, onboardingLoading } = useOnboardingRedirect();
+  const { isCompleted, isLoading } = useOnboardingRedirect();
   
   const [subscription, setSubscription] = useState<MosqueSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
+  const searchParams = useSearchParams();
+  const isSuccess = searchParams?.get('success') === 'true';
+  const isCanceled = searchParams?.get('canceled') === 'true';
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -44,10 +51,10 @@ function BillingContent() {
       }
     };
 
-    if (isCompleted && !onboardingLoading) {
+    if (isCompleted && !isLoading) {
       fetchSubscription();
     }
-  }, [mosqueId, isCompleted, onboardingLoading]);
+  }, [mosqueId, isCompleted, isLoading]);
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
     if (!mosqueId || plan === 'free') return;
@@ -55,6 +62,33 @@ function BillingContent() {
     setUpgrading(plan);
     
     try {
+      const adminEmail = user?.email || '';
+      let adminName = '';
+
+      if (!adminEmail) {
+        throw new Error('Missing admin email');
+      }
+
+      // Prefer full_name from user_profiles
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        if ((profile as any)?.full_name) {
+          adminName = (profile as any).full_name as string;
+        }
+      }
+
+      // Fallbacks if profile full_name is not found
+      if (!adminName) {
+        adminName =
+          (user as any)?.user_metadata?.full_name ||
+          (user as any)?.user_metadata?.name ||
+          (adminEmail ? adminEmail.split('@')[0] : '');
+      }
+     
       const response = await fetch('/api/subscriptions/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -62,17 +96,24 @@ function BillingContent() {
         },
         body: JSON.stringify({
           mosqueId,
-          plan
+          plan,
+          adminEmail,
+          adminName
         }),
       });
 
-      const { sessionId } = await response.json();
+      const { url, sessionId } = await response.json();
       
+      if (url) {
+        window.location.href = url as string;
+        return;
+      }
+      
+      // Fallback for older sessions: construct client-side redirect if url missing
       if (sessionId) {
-        const stripe = await stripePromise;
-        if (stripe) {
-          await stripe.redirectToCheckout({ sessionId });
-        }
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+        const fallback = `${appUrl}/billing?success=true&session_id=${encodeURIComponent(sessionId)}`;
+        window.location.href = fallback;
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -103,7 +144,7 @@ function BillingContent() {
     }
   };
 
-  if (onboardingLoading || !isCompleted) {
+  if (isLoading || !isCompleted) {
     return null;
   }
 
@@ -120,28 +161,42 @@ function BillingContent() {
 
   return (
     <div className="space-y-6">
+      {(isSuccess || isCanceled) && (
+        <Alert variant={isCanceled ? 'destructive' : 'default'}>
+          <AlertTitle>
+            {isCanceled
+              ? t('alerts.checkoutCanceled.title')
+              : t('alerts.checkoutSuccess.title')}
+          </AlertTitle>
+          <AlertDescription>
+            {isCanceled
+              ? t('alerts.checkoutCanceled.description')
+              : t('alerts.checkoutSuccess.description')}
+          </AlertDescription>
+        </Alert>
+      )}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Billing & Subscription
+          {t('pageTitle')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Manage your subscription and billing preferences
+          {t('pageSubtitle')}
         </p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            Overview
+            {t('tabs.overview')}
           </TabsTrigger>
           <TabsTrigger value="plans" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Plans
+            {t('tabs.plans')}
           </TabsTrigger>
           <TabsTrigger value="invoices" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Invoices
+            {t('tabs.invoices')}
           </TabsTrigger>
         </TabsList>
 
@@ -155,10 +210,10 @@ function BillingContent() {
         <TabsContent value="plans" className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Choose Your Plan
+              {t('choosePlanTitle')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Select the plan that best fits your mosque's needs
+              {t('choosePlanSubtitle')}
             </p>
           </div>
 
@@ -202,9 +257,10 @@ function BillingContent() {
 }
 
 export default function BillingPage() {
+  const tNav = useTranslations();
   return (
     <ProtectedRoute>
-      <DashboardLayout>
+      <DashboardLayout title={tNav('sidebar.billing')}>
         <BillingContent />
       </DashboardLayout>
     </ProtectedRoute>

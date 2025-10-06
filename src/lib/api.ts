@@ -271,7 +271,6 @@ export async function getMosque(mosqueId: string): Promise<ApiResponse<Mosque>> 
       return { success: false, error: error.message };
     }
 
-    console.log('[API] getMosque - Success:', data);
     return { success: true, data };
   } catch (error) {
     console.error('[API] getMosque - Catch error:', error);

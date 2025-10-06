@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, CreditCard, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { getMosqueSubscription, getSubscriptionInvoices, formatPrice } from '@/lib/subscription';
 import { MosqueSubscription, SubscriptionInvoice } from '@/lib/subscription';
-import { SubscriptionPlan, SubscriptionStatus } from '@/lib/stripe';
+import { SubscriptionPlan, type SubscriptionStatus as StripeSubscriptionStatus } from '@/lib/stripe';
+import { useTranslations } from 'next-intl';
 
 interface SubscriptionStatusProps {
   mosqueId: string;
@@ -15,6 +16,7 @@ interface SubscriptionStatusProps {
 }
 
 export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionStatusProps) {
+  const t = useTranslations('billing');
   const [subscription, setSubscription] = useState<MosqueSubscription | null>(null);
   const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
     );
   }
 
-  const getStatusIcon = (status: SubscriptionStatus) => {
+  const getStatusIcon = (status: StripeSubscriptionStatus) => {
     switch (status) {
       case 'active':
         return <CheckCircle className="h-5 w-5 text-emerald-500" />;
@@ -75,7 +77,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
     }
   };
 
-  const getStatusColor = (status: SubscriptionStatus) => {
+  const getStatusColor = (status: StripeSubscriptionStatus) => {
     switch (status) {
       case 'active':
         return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
@@ -102,13 +104,13 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
   const getPlanPrice = (plan: SubscriptionPlan) => {
     switch (plan) {
       case 'free':
-        return 'Free';
+        return t('planPrice.free');
       case 'premium':
-        return 'RM 99/month';
+        return t('planPrice.premium');
       case 'enterprise':
-        return 'RM 299/month';
+        return t('planPrice.enterprise');
       default:
-        return 'Unknown';
+        return t('unknown');
     }
   };
 
@@ -118,15 +120,15 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">Current Subscription</CardTitle>
+              <CardTitle className="text-xl">{t('subscription.currentTitle')}</CardTitle>
               <CardDescription>
-                Manage your subscription and billing
+                {t('subscription.currentDescription')}
               </CardDescription>
             </div>
             <Badge className={getStatusColor(subscription.status)}>
               <div className="flex items-center gap-2">
                 {getStatusIcon(subscription.status)}
-                {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                {t(`subscription.status.${subscription.status}` as any)}
               </div>
             </Badge>
           </div>
@@ -135,7 +137,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Plan
+                {t('subscription.planLabel')}
               </h4>
               <p className="text-lg font-semibold capitalize">{subscription.plan}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -144,17 +146,17 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
             </div>
             <div>
               <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Next Billing Date
+                {t('subscription.nextBillingDate')}
               </h4>
               <p className="text-lg font-semibold">
                 {subscription.current_period_end 
                   ? formatDate(subscription.current_period_end)
-                  : 'N/A'
+                  : t('subscription.na')
                 }
               </p>
               {subscription.cancel_at_period_end && (
                 <p className="text-sm text-orange-600 dark:text-orange-400">
-                  Cancels at period end
+                  {t('subscription.cancelsAtPeriodEnd')}
                 </p>
               )}
             </div>
@@ -164,7 +166,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
             <div className="pt-4 border-t">
               <Button onClick={onManageBilling} className="w-full md:w-auto">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Manage Billing
+                {t('subscription.manageBilling')}
               </Button>
             </div>
           )}
@@ -174,9 +176,9 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
       {invoices.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Recent Invoices</CardTitle>
+            <CardTitle className="text-xl">{t('invoices.title')}</CardTitle>
             <CardDescription>
-              Your recent billing history
+              {t('invoices.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -190,7 +192,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
                         {formatDate(invoice.created_at)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Invoice #{invoice.stripe_invoice_id.slice(-8)}
+                        {t('invoices.invoiceShort', { id: invoice.stripe_invoice_id.slice(-8) })}
                       </p>
                     </div>
                   </div>
@@ -202,7 +204,7 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
                       variant={invoice.status === 'paid' ? 'default' : 'destructive'}
                       className="text-xs"
                     >
-                      {invoice.status}
+                      {t(`invoices.status.${invoice.status}` as any)}
                     </Badge>
                   </div>
                 </div>

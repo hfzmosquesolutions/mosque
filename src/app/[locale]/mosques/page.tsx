@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -27,19 +28,35 @@ import {
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
 import { useTranslations } from 'next-intl';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export default function MosquesPage() {
   const [mosques, setMosques] = useState<Mosque[]>([]);
   const [filteredMosques, setFilteredMosques] = useState<Mosque[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasPhone, setHasPhone] = useState(false);
+  const [hasEmail, setHasEmail] = useState(false);
+  const [hasWebsite, setHasWebsite] = useState(false);
+  const [sortBy, setSortBy] = useState<'relevance' | 'nameAsc' | 'nameDesc'>('relevance');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetchMosques();
   }, []);
+
+  // Initialize search query from URL (?q=...)
+  useEffect(() => {
+    const q = (searchParams.get('q') || '').trim();
+    if (q && q !== searchQuery) {
+      setSearchQuery(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const fetchMosques = async () => {
     try {
@@ -72,36 +89,56 @@ export default function MosquesPage() {
   };
 
   const filterMosques = useCallback(() => {
-    if (!searchQuery.trim()) {
-      setFilteredMosques(mosques);
-      return;
+    let results = [...mosques];
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      results = results.filter((mosque) =>
+        mosque.name.toLowerCase().includes(query) ||
+        mosque.address?.toLowerCase().includes(query) ||
+        mosque.description?.toLowerCase().includes(query)
+      );
     }
 
-    const filtered = mosques.filter(
-      (mosque) =>
-        mosque.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    if (hasPhone) {
+      results = results.filter((m) => !!m.phone);
+    }
+    if (hasEmail) {
+      results = results.filter((m) => !!m.email);
+    }
+    if (hasWebsite) {
+      results = results.filter((m) => !!m.website);
+    }
 
-    setFilteredMosques(filtered);
-  }, [searchQuery, mosques]);
+    if (sortBy === 'nameAsc') {
+      results.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'nameDesc') {
+      results.sort((a, b) => b.name.localeCompare(a.name));
+    }
+
+    setFilteredMosques(results);
+  }, [searchQuery, mosques, hasPhone, hasEmail, hasWebsite, sortBy]);
 
   useEffect(() => {
     filterMosques();
   }, [filterMosques]);
 
   const handleMosqueClick = (mosqueId: string) => {
-    router.push(`/mosques/${mosqueId}`);
+    const path = `/mosques/${mosqueId}`;
+    if (typeof window !== 'undefined') {
+      window.open(path, '_blank', 'noopener,noreferrer');
+    } else {
+      router.push(path);
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+            <p className="mt-4 text-slate-600 dark:text-slate-400">
               {t('mosques.loading')}
             </p>
           </div>
@@ -112,14 +149,14 @@ export default function MosquesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="text-red-500 text-xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
               {t('mosques.errorLoading')}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
             <Button onClick={fetchMosques} variant="outline">
               {t('common.tryAgain')}
             </Button>
@@ -130,52 +167,49 @@ export default function MosquesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mr-4">
-              <Building className="h-8 w-8 text-emerald-600" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
-                {t('mosques.discoverMosques')}
-              </h1>
-              <p className="text-emerald-600 font-medium">
-                {t('mosques.findCommunity')}
-              </p>
-            </div>
-          </div>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-            {t('mosques.description')}
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header removed per request */}
 
-        {/* Search and Filter Section */}
-        <div className="max-w-4xl mx-auto mb-12">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-                <Input
-                  type="text"
-                  placeholder={t('mosques.searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-3 text-base border-slate-300 dark:border-slate-600"
-                />
-              </div>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                {t('common.filters')}
+        {/* Top Search (standardized like homepage) */}
+        <div className="sticky top-16 z-30 mb-8 bg-white/80 dark:bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:backdrop-blur border-b border-emerald-100/40 dark:border-slate-800/40">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = (searchQuery || '').trim();
+              const url = q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname;
+              router.replace(url);
+            }}
+            role="search"
+            aria-label={t('mosques.searchPlaceholder')}
+          >
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder={t('mosques.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                id="mosques-search-top"
+                name="q"
+                autoComplete="off"
+                className="pl-12 pr-32 h-14 text-lg bg-white dark:bg-slate-800/90 backdrop-blur border-slate-200 dark:border-slate-700"
+              />
+              <Button
+                type="submit"
+                variant="default"
+                aria-label={t('common.search')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-4 rounded-md flex items-center gap-2"
+              >
+                <Search className="h-4 w-4" />
+                <span>{t('common.search')}</span>
               </Button>
             </div>
-          </div>
+          </form>
         </div>
 
         {/* Results Summary */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-3">
           <div>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
               {t('mosques.mosquesFound', { count: filteredMosques.length })}
@@ -192,124 +226,298 @@ export default function MosquesPage() {
           </div>
         </div>
 
-        {/* Mosques Grid */}
-        {filteredMosques.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Building className="h-12 w-12 text-slate-400" />
-            </div>
-            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
-              {t('mosques.noMosquesFound')}
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-              {searchQuery
-                ? t('mosques.adjustSearch')
-                : t('mosques.noMosquesRegistered')}
-            </p>
-            {!searchQuery && (
-              <Button className="mt-6" variant="outline">
-                {t('mosques.registerMosque')}
+        {/* Mobile Filters Toggle */}
+        <div className="lg:hidden mb-6">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                <Filter className="h-4 w-4" />
+                {t('common.filters') || 'Filters'}
               </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMosques.map((mosque) => (
-              <Card
-                key={mosque.id}
-                className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden"
-                onClick={() => handleMosqueClick(mosque.id)}
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-1">
-                        {mosque.name}
-                      </CardTitle>
-                      {mosque.address && (
-                        <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mb-2">
-                          <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-emerald-600" />
-                          <span className="line-clamp-1">{mosque.address}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                    >
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full mr-1"></div>
-                      {t('mosques.active')}
-                    </Badge>
-                  </div>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle>{t('mosques.refineSearch') || 'Refine search'}</SheetTitle>
+              </SheetHeader>
+              <div className="p-4 space-y-6">
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('common.sortBy') || 'Sort by'}</div>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
+                  >
+                    <option value="relevance">{t('common.relevance') || 'Relevance'}</option>
+                    <option value="nameAsc">{t('common.nameAsc') || 'Name (A-Z)'}</option>
+                    <option value="nameDesc">{t('common.nameDesc') || 'Name (Z-A)'}</option>
+                  </select>
+                </div>
 
-                  {mosque.description && (
-                    <CardDescription className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
-                      {mosque.description}
-                    </CardDescription>
-                  )}
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Filters</div>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={hasPhone}
+                        onChange={(e) => setHasPhone(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span>{t('mosques.hasPhone') || 'Has phone'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={hasEmail}
+                        onChange={(e) => setHasEmail(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span>{t('mosques.hasEmail') || 'Has email'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={hasWebsite}
+                        onChange={(e) => setHasWebsite(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span>{t('mosques.hasWebsite') || 'Has website'}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('mosques.quickFilters') || 'Quick filters'}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {['khairat', 'events', 'class', 'nikah', 'donation'].map((kw) => (
+                      <button
+                        key={kw}
+                        type="button"
+                        onClick={() => setSearchQuery((prev) => (prev ? `${prev} ${kw}` : kw))}
+                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        {kw}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Button className="w-full" variant="default" onClick={() => filterMosques()}>
+                    {t('common.apply') || 'Apply'}
+                  </Button>
+                  <Button
+                    className="w-full mt-2"
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setHasPhone(false);
+                      setHasEmail(false);
+                      setHasWebsite(false);
+                      setSortBy('relevance');
+                    }}
+                  >
+                    {t('common.reset') || 'Reset'}
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left: Sticky Search & Filters */}
+          <aside className="hidden lg:block lg:col-span-4 xl:col-span-3">
+            <div className="lg:sticky lg:top-24">
+              <Card className="border-slate-200 dark:border-slate-700">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
+                    <Filter className="h-4 w-4" />
+                    <span>{t('common.filters') || 'Filters'}</span>
+                  </div>
+                  <CardTitle className="text-lg">{t('mosques.refineSearch') || 'Refine search'}</CardTitle>
                 </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Search moved to top; sidebar now only filters */}
 
-                <CardContent className="pt-0">
-                  <div className="space-y-3 mb-4">
-                    {mosque.phone && (
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
-                          <Phone className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <span className="font-medium">{mosque.phone}</span>
-                      </div>
-                    )}
-
-                    {mosque.email && (
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <div className="w-8 h-8 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
-                          <Mail className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <span className="truncate font-medium">
-                          {mosque.email}
-                        </span>
-                      </div>
-                    )}
-
-                    {mosque.website && (
-                      <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
-                          <Globe className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span className="truncate font-medium">
-                          {mosque.website}
-                        </span>
-                      </div>
-                    )}
+                  <div className="pt-2">
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Filters</div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={hasPhone}
+                          onChange={(e) => setHasPhone(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <span>{t('mosques.hasPhone') || 'Has phone'}</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={hasEmail}
+                          onChange={(e) => setHasEmail(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <span>{t('mosques.hasEmail') || 'Has email'}</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={hasWebsite}
+                          onChange={(e) => setHasWebsite(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        <span>{t('mosques.hasWebsite') || 'Has website'}</span>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{t('mosques.prayerTimes')}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>{t('mosques.community')}</span>
-                      </div>
+                  <div className="pt-2">
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('common.sortBy') || 'Sort by'}</div>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
+                    >
+                      <option value="relevance">{t('common.relevance') || 'Relevance'}</option>
+                      <option value="nameAsc">{t('common.nameAsc') || 'Name (A-Z)'}</option>
+                      <option value="nameDesc">{t('common.nameDesc') || 'Name (Z-A)'}</option>
+                    </select>
+                  </div>
+
+                  {/* Quick keyword chips */}
+                  <div className="pt-2">
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('mosques.quickFilters') || 'Quick filters'}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {['khairat', 'events', 'class', 'nikah', 'donation'].map((kw) => (
+                        <button
+                          key={kw}
+                          type="button"
+                          onClick={() => setSearchQuery((prev) => (prev ? `${prev} ${kw}` : kw))}
+                          className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          {kw}
+                        </button>
+                      ))}
                     </div>
+                  </div>
+
+                  <div className="pt-2">
                     <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMosqueClick(mosque.id);
+                      className="w-full"
+                      variant="default"
+                      onClick={() => filterMosques()}
+                    >
+                      {t('common.apply') || 'Apply'}
+                    </Button>
+                    <Button
+                      className="w-full mt-2"
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setHasPhone(false);
+                        setHasEmail(false);
+                        setHasWebsite(false);
+                        setSortBy('relevance');
                       }}
                     >
-                      {t('mosques.viewDetails')}
+                      {t('common.reset') || 'Reset'}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            </div>
+          </aside>
+
+          {/* Right: Vertical Listing */}
+          <div className="lg:col-span-8 xl:col-span-9">
+            {filteredMosques.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Building className="h-12 w-12 text-slate-400" />
+                </div>
+                <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
+                  {t('mosques.noMosquesFound')}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                  {searchQuery
+                    ? t('mosques.adjustSearch')
+                    : t('mosques.noMosquesRegistered')}
+                </p>
+                {!searchQuery && (
+                  <Button className="mt-6" variant="outline">
+                    {t('mosques.registerMosque')}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {filteredMosques.map((mosque) => (
+                  <Card
+                    key={mosque.id}
+                    className="cursor-pointer transition-all duration-300 hover:shadow-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden p-0"
+                    onClick={() => handleMosqueClick(mosque.id)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="sm:flex items-stretch justify-between gap-0 sm:gap-4">
+                        <div className="relative w-full h-40 sm:h-44 md:h-56 lg:h-64 sm:w-44 md:w-56 lg:w-64 shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-700 block">
+                          <Image
+                            src={(mosque.banner_url || mosque.logo_url || '/window.svg') as string}
+                            alt={mosque.name}
+                            fill
+                            sizes="(min-width: 1024px) 256px, (min-width: 768px) 224px, (min-width: 640px) 176px, 100vw"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 px-4 md:px-5 py-4">
+                            <div className="flex items-center justify-start gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="h-10 w-10 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                                  <Image
+                                    src={(mosque.logo_url || '/icon-kariah-masjid.png') as string}
+                                    alt={`${mosque.name} logo`}
+                                    width={40}
+                                    height={40}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                                <CardTitle className="text-xl font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">
+                                  {mosque.name}
+                                </CardTitle>
+                              </div>
+                            </div>
+                            {mosque.address && (
+                              <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-emerald-600" />
+                                <span className="line-clamp-1">{mosque.address}</span>
+                              </div>
+                            )}
+                            {mosque.description && (
+                              <CardDescription className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                                {mosque.description}
+                              </CardDescription>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{t('mosques.prayerTimes')}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                <span>{t('mosques.community')}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Action button removed; entire card is clickable */}
+                        </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+
+        </div>
       </div>
     </div>
   );

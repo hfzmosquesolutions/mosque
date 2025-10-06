@@ -1519,5 +1519,107 @@
     "signOut": "Sign Out",
     "administrator": "Administrator",
     "member": "Member"
+  },
+  "billing": {
+    "pageTitle": "Billing & Subscription",
+    "pageSubtitle": "Manage your subscription and billing preferences",
+    "tabs": {
+      "overview": "Overview",
+      "plans": "Plans",
+      "invoices": "Invoices"
+    },
+    "alerts": {
+      "checkoutCanceled": {
+        "title": "Checkout canceled",
+        "description": "You canceled the billing process. No changes were made to your subscription."
+      },
+      "checkoutSuccess": {
+        "title": "Checkout successful",
+        "description": "Your billing was successful. If your subscription status does not update immediately, it will refresh shortly."
+      }
+    },
+    "choosePlanTitle": "Choose Your Plan",
+    "choosePlanSubtitle": "Select the plan that best fits your mosque's needs",
+    "subscription": {
+      "currentTitle": "Current Subscription",
+      "currentDescription": "Manage your subscription and billing",
+      "status": {
+        "active": "Active",
+        "trialing": "Trialing",
+        "past_due": "Past due",
+        "unpaid": "Unpaid",
+        "canceled": "Canceled"
+      },
+      "planLabel": "Plan",
+      "nextBillingDate": "Next Billing Date",
+      "manageBilling": "Manage Billing",
+      "cancelsAtPeriodEnd": "Cancels at period end",
+      "na": "N/A"
+    },
+    "planPrice": {
+      "free": "Free",
+      "premium": "RM 99/month",
+      "enterprise": "RM 299/month"
+    },
+    "unknown": "Unknown",
+    "invoices": {
+      "title": "Recent Invoices",
+      "description": "Your recent billing history",
+      "invoiceShort": "Invoice #{{id}}",
+      "status": {
+        "paid": "paid",
+        "open": "open",
+        "void": "void",
+        "uncollectible": "uncollectible"
+      }
+    },
+    "mostPopular": "Most Popular",
+    "perMonth": "/month",
+    "processing": "Processing...",
+    "cta": {
+      "currentPlan": "Current Plan",
+      "getStarted": "Get Started",
+      "upgrade": "Upgrade"
+    },
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "Perfect for getting started",
+        "features": [
+          "Basic mosque profile",
+          "Prayer times management",
+          "Basic events (5/month)",
+          "Basic announcements",
+          "Community member registration",
+          "Basic donation tracking"
+        ]
+      },
+      "premium": {
+        "name": "Premium",
+        "tagline": "Best for growing mosques",
+        "features": [
+          "Everything in Free",
+          "Khairat management",
+          "Advanced kariah management",
+          "Unlimited events",
+          "Advanced financial reports",
+          "Payment processing",
+          "Priority support"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For large organizations",
+        "features": [
+          "Everything in Premium",
+          "Multi-mosque support",
+          "API access",
+          "Custom integrations",
+          "Advanced analytics",
+          "White-label options",
+          "Dedicated support"
+        ]
+      }
+    }
   }
 }

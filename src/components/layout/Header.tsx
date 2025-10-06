@@ -43,6 +43,7 @@ export default function Header() {
     '/kariah',
     '/claims',
     '/mosque-profile',
+    '/billing',
     '/settings',
     '/events',
     '/contributions',
