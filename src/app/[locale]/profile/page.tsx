@@ -224,11 +224,31 @@ function ProfileContent() {
         </div>
 
         <Tabs defaultValue="personal" className="space-y-6">
-          <TabsList className="grid grid-cols-4">
-            <TabsTrigger value="personal">{t('personalInfo')}</TabsTrigger>
-            <TabsTrigger value="contact">{t('contactEmergencyTab')}</TabsTrigger>
-            <TabsTrigger value="following">{t('followingTab')}</TabsTrigger>
-            <TabsTrigger value="public">{t('publicProfile')}</TabsTrigger>
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+            <TabsTrigger 
+              value="personal" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('personalInfo')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contact" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('contactEmergencyTab')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="following" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('followingTab')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="public" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('publicProfile')}
+            </TabsTrigger>
           </TabsList>
 
           {/* Personal Information Tab */}

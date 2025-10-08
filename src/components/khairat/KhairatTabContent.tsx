@@ -13,8 +13,6 @@ import {
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import {
-  Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -33,7 +31,7 @@ import {
   Eye,
   Calendar,
   User,
-  Building,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,28 +48,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { getContributions, updateContributionStatus } from '@/lib/api';
-import type { ContributionProgram, Contribution } from '@/types/database';
+import { getKhairatContributions, updateKhairatContributionStatus } from '@/lib/api';
+import type { KhairatProgram, KhairatContribution } from '@/types/database';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslations } from 'next-intl';
 
-interface ContributionsTabContentProps {
-  programs: ContributionProgram[];
+interface KhairatTabContentProps {
+  programs: KhairatProgram[];
 }
 
 type ContributionStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
 
-interface ContributionWithProgram extends Contribution {
-  program?: ContributionProgram;
+interface ContributionWithProgram extends KhairatContribution {
+  program?: KhairatProgram;
 }
 
-export function ContributionsTabContent({
+export function KhairatTabContent({
   programs,
-}: ContributionsTabContentProps) {
+}: KhairatTabContentProps) {
   const { user } = useAuth();
   const t = useTranslations('khairat');
-  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [contributions, setContributions] = useState<ContributionWithProgram[]>(
     []
@@ -94,7 +90,7 @@ export function ContributionsTabContent({
 
       // Load contributions from all programs
       for (const program of programs) {
-        const response = await getContributions(program.id, 100, 0);
+        const response = await getKhairatContributions(program.id, 100, 0);
         if (response.data) {
           const contributionsWithProgram = response.data.map(
             (contribution) => ({
@@ -194,7 +190,7 @@ export function ContributionsTabContent({
 
     setUpdating(contributionId);
     try {
-      const response = await updateContributionStatus(
+      const response = await updateKhairatContributionStatus(
         contributionId,
         newStatus
       );
@@ -322,100 +318,20 @@ export function ContributionsTabContent({
     }
   };
 
-  // Mobile Card Component
-  const MobileContributionCard = ({
-    contribution,
-  }: {
-    contribution: ContributionWithProgram;
-  }) => (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* Header with Contributor and Amount */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                {contribution.contributor_name || 'Anonymous'}
-              </h3>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <Building className="h-3 w-3" />
-                <span className="truncate">
-                  {contribution.program?.name || 'Unknown Program'}
-                </span>
-              </div>
-            </div>
-            <div className="text-right ml-3">
-              <div className="font-bold text-lg text-emerald-600">
-                {formatCurrency(contribution.amount)}
-              </div>
-            </div>
-          </div>
+  const getPaymentMethodBadge = (paymentMethod: string) => {
+    const methodConfig = {
+      cash: { label: t('cash'), variant: 'secondary' as const },
+      billplz: { label: 'Billplz', variant: 'outline' as const },
+      toyyibpay: { label: 'ToyyibPay', variant: 'outline' as const },
+    };
 
-          {/* Status and Date */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getStatusIcon(contribution.status)}
-              {getStatusBadge(contribution.status)}
-            </div>
-            <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(contribution.contributed_at)}</span>
-            </div>
-          </div>
+    const config =
+      methodConfig[paymentMethod as keyof typeof methodConfig] || 
+      { label: paymentMethod || t('notSpecified'), variant: 'secondary' as const };
+    
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleViewDetails(contribution)}
-              className="h-8 px-3"
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              {t('view')}
-            </Button>
-            {contribution.status === 'pending' &&
-              contribution.payment_method === 'cash' && (
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      handleStatusUpdate(contribution.id, 'completed')
-                    }
-                    disabled={updating === contribution.id}
-                    className="h-8 px-3 text-green-600 border-green-200 hover:bg-green-50"
-                  >
-                    {updating === contribution.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                    )}
-                    {updating === contribution.id ? t('updating') : t('approve')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      handleStatusUpdate(contribution.id, 'cancelled')
-                    }
-                    disabled={updating === contribution.id}
-                    className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    {updating === contribution.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <XCircle className="h-3 w-3 mr-1" />
-                    )}
-                    {updating === contribution.id ? t('updating') : t('reject')}
-                  </Button>
-                </div>
-              )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   const handleViewDetails = (contribution: ContributionWithProgram) => {
     setSelectedContribution(contribution);
@@ -451,6 +367,20 @@ export function ContributionsTabContent({
         return (
           <div className="font-semibold text-emerald-600 text-lg">
             {formatCurrency(row.getValue('amount'))}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'payment_method',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('paymentMethod')} />
+      ),
+      cell: ({ row }) => {
+        const paymentMethod = row.getValue('payment_method') as string;
+        return (
+          <div className="flex items-center gap-2">
+            {getPaymentMethodBadge(paymentMethod)}
           </div>
         );
       },
@@ -563,12 +493,17 @@ export function ContributionsTabContent({
   const failedAmount = filteredContributions
     .filter((c) => c.status === 'failed')
     .reduce((sum, contribution) => sum + contribution.amount, 0);
+  
+  // Calculate pending cash payments that need admin action
+  const pendingCashPayments = filteredContributions.filter(
+    (c) => c.status === 'pending' && c.payment_method === 'cash'
+  );
 
   return (
     <div className="space-y-8">
       {/* Enhanced Header */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-6">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {t('paymentsManagement')}
@@ -593,90 +528,37 @@ export function ContributionsTabContent({
           </div>
         </div>
 
-        {/* Enhanced Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {t('totalPayments')}
-                  </p>
-                  <div className="text-2xl font-bold text-emerald-600">
-                    {formatCurrency(totalAmount)}
-                  </div>
-                </div>
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                  <TrendingUp className="h-6 w-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {t('completed')}
-                  </p>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(completedAmount)}
-                  </div>
-                </div>
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {t('pending')}
-                  </p>
-                  <div className="text-2xl font-bold text-amber-600">
-                    {formatCurrency(pendingAmount)}
-                  </div>
-                </div>
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                  <Clock className="h-6 w-6 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {t('failed')}
-                  </p>
-                  <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(failedAmount)}
-                  </div>
-                </div>
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  <XCircle className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Summary cards removed to standardize with overview-only display */}
       </div>
 
-      {/* Enhanced Contributions Table */}
-      <Card className="border-0 shadow-md">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {t('paymentsList')}
-          </CardTitle>
-          <CardDescription>
-            {filteredContributions.length} of {contributions.length} {t('payments')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+      {/* Pending Cash Payments Notice */}
+      {pendingCashPayments.length > 0 && (
+        <div className="px-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-amber-800 mb-1">
+                  {t('pendingCashPaymentsNotice', { 
+                    count: pendingCashPayments.length,
+                    fallback: `${pendingCashPayments.length} pending cash payment${pendingCashPayments.length > 1 ? 's' : ''} require${pendingCashPayments.length > 1 ? '' : 's'} your action`
+                  })}
+                </h3>
+                <p className="text-sm text-amber-700">
+                  {t('pendingCashPaymentsDescription', { 
+                    fallback: 'These cash payments are waiting for you to mark them as completed or cancelled. Please review and take action on these payments.'
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Contributions Table (no extra Card wrapper) */}
+      <div className="px-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-4" />
@@ -709,107 +591,55 @@ export function ContributionsTabContent({
                 )}
             </div>
           ) : (
-            <>
-              {isMobile ? (
-                <div className="space-y-4">
-                  {/* Mobile Filters */}
-                  <div className="flex flex-col gap-3">
-                    <Select
-                      value={programFilter}
-                      onValueChange={setProgramFilter}
-                    >
-                      <SelectTrigger className="w-full border-slate-200">
-                        <SelectValue placeholder="Filter by program" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Programs</SelectItem>
-                        {programs.map((program) => (
-                          <SelectItem key={program.id} value={program.id}>
-                            {program.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger className="w-full border-slate-200">
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Mobile Cards */}
-                  <div className="space-y-3">
-                    {filteredContributions.map((contribution) => (
-                      <MobileContributionCard
-                        key={contribution.id}
-                        contribution={contribution}
-                      />
-                    ))}
-                  </div>
+            <DataTable
+              columns={columns}
+              data={filteredContributions}
+              searchKey="contributor_name"
+              searchPlaceholder={t('searchPayments')}
+              onResetFilters={handleResetFilters}
+              customFilters={
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select
+                    value={programFilter}
+                    onValueChange={setProgramFilter}
+                  >
+                    <SelectTrigger className="w-full sm:w-48 border-slate-200">
+                      <SelectValue placeholder={t('filterByProgram')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('allPrograms')}</SelectItem>
+                      {programs.map((program) => (
+                        <SelectItem key={program.id} value={program.id}>
+                          {program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="w-full sm:w-48 border-slate-200">
+                      <SelectValue placeholder={t('filterByStatus')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('allStatus')}</SelectItem>
+                      <SelectItem value="pending">{t('pending')}</SelectItem>
+                      <SelectItem value="completed">{t('completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
+                      <SelectItem value="failed">{t('failed')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <DataTable
-                  columns={columns}
-                  data={filteredContributions}
-                  searchKey="contributor_name"
-                  searchPlaceholder={t('searchPayments')}
-                  onResetFilters={handleResetFilters}
-                  customFilters={
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Select
-                        value={programFilter}
-                        onValueChange={setProgramFilter}
-                      >
-                        <SelectTrigger className="w-full sm:w-48 border-slate-200">
-                          <SelectValue placeholder={t('filterByProgram')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('allPrograms')}</SelectItem>
-                          {programs.map((program) => (
-                            <SelectItem key={program.id} value={program.id}>
-                              {program.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
-                      >
-                        <SelectTrigger className="w-full sm:w-48 border-slate-200">
-                          <SelectValue placeholder={t('filterByStatus')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('allStatus')}</SelectItem>
-                          <SelectItem value="pending">{t('pending')}</SelectItem>
-                          <SelectItem value="completed">{t('completed')}</SelectItem>
-                          <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
-                          <SelectItem value="failed">{t('failed')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  }
-                />
-              )}
-            </>
+              }
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Contribution Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] min-h-[60vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               {t('contributionDetails')}
@@ -820,7 +650,7 @@ export function ContributionsTabContent({
           </DialogHeader>
 
           {selectedContribution && (
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -950,7 +780,7 @@ export function ContributionsTabContent({
                 selectedContribution.payment_method === 'cash' && (
                   <div className="border-t pt-6">
                     <h3 className="text-lg font-semibold mb-4">{t('actions')}</h3>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-3">
                       <Button
                         onClick={() => {
                           handleStatusUpdate(

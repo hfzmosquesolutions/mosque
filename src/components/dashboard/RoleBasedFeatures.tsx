@@ -66,7 +66,7 @@ const memberFeatures: FeatureCard[] = [
     title: 'Contributions',
     description: 'Participate in community welfare programs',
     icon: <Heart className="h-5 w-5" />,
-    href: '/contributions',
+    href: '/khairat',
   },
   {
     title: 'Resources',

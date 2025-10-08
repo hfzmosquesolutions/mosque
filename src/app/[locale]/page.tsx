@@ -93,13 +93,13 @@ export default function Home() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-18">
           <div className="max-w-3xl text-left">
-            <Link
+            {/* <Link
               href="/onboarding"
               className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full border border-emerald-200/50 dark:border-emerald-800 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/20 transition cursor-pointer"
             >
               <span>Add your mosque</span>
               <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            </Link> */}
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Mosque services made simple
             </h1>
@@ -141,7 +141,7 @@ export default function Home() {
                   id="hero-search"
                   name="q"
                   autoComplete="off"
-                  className="pl-12 pr-32 h-14 text-lg bg-white shadow-sm dark:bg-slate-800/90 backdrop-blur border-slate-200 dark:border-slate-700"
+                  className="pr-32 h-14 text-lg bg-white shadow-sm dark:bg-slate-800/90 backdrop-blur border-slate-200 dark:border-slate-700"
                 />
                 <Button
                   type="submit"

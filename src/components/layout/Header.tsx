@@ -46,7 +46,7 @@ export default function Header() {
     '/billing',
     '/settings',
     '/events',
-    '/contributions',
+    '/khairat',
     '/profile',
     '/dependents',
   ];

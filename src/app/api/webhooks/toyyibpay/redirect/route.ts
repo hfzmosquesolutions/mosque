@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Looking up contribution by compound key:', { contributionId, billCode });
     const { data: contribution, error } = await supabaseAdmin
-      .from('contributions')
+      .from('khairat_contributions')
       .select(`
         id, 
         status, 

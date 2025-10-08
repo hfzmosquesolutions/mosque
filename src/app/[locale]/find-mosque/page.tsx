@@ -96,19 +96,21 @@ function FindMosqueContent() {
   };
 
   const filterMosques = useCallback(() => {
-    if (!searchQuery.trim()) {
-      setFilteredMosques(mosques);
-      return;
+    let results = [...mosques];
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      results = results.filter((mosque) =>
+        mosque.name.toLowerCase().includes(query) ||
+        mosque.address?.toLowerCase().includes(query) ||
+        mosque.description?.toLowerCase().includes(query) ||
+        mosque.city?.toLowerCase().includes(query) ||
+        mosque.state?.toLowerCase().includes(query) ||
+        mosque.postcode?.toLowerCase().includes(query)
+      );
     }
 
-    const filtered = mosques.filter(
-      (mosque) =>
-        mosque.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    setFilteredMosques(filtered);
+    setFilteredMosques(results);
   }, [searchQuery, mosques]);
 
   useEffect(() => {
@@ -232,9 +234,19 @@ function FindMosqueContent() {
         {/* Tabs Section with Search */}
         <Tabs defaultValue="all" className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TabsList className="grid grid-cols-2 w-fit">
-              <TabsTrigger value="all">{t('allMosques')}</TabsTrigger>
-              <TabsTrigger value="following">{t('following')}</TabsTrigger>
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+              <TabsTrigger 
+                value="all" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+              >
+                {t('allMosques')}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="following" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+              >
+                {t('following')}
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:w-auto w-full">

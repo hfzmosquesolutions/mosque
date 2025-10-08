@@ -157,7 +157,7 @@ export class PaymentService {
       };
       
       const updateResult = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .update({
           payment_method: 'billplz',
           bill_id: bill.id,
@@ -263,7 +263,7 @@ export class PaymentService {
       };
             
       const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .update({
           payment_method: 'toyyibpay',
           bill_id: bill.BillCode,
@@ -316,7 +316,7 @@ export class PaymentService {
       
       // Compound key lookup using both contribution_id and bill_id for enhanced security
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .select('*')
         .eq('id', contributionId)
         .eq('bill_id', billId)
@@ -348,7 +348,7 @@ export class PaymentService {
       };
 
       const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .update({
           status,
           payment_data: paymentData,
@@ -397,7 +397,7 @@ export class PaymentService {
       // Compound key lookup using both contribution_id and bill_id for enhanced security
       console.log('🔍 Looking up contribution by compound key - ID:', contributionId, 'Bill Code:', billCode);
       const { data: contribution, error: contributionError } = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .select('*')
         .eq('id', contributionId)
         .eq('bill_id', billCode)
@@ -442,7 +442,7 @@ export class PaymentService {
       };
 
      const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
-        .from('contributions')
+        .from('khairat_contributions')
         .update({
           status,
           payment_data: paymentData,

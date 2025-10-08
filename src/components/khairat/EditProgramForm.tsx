@@ -13,12 +13,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DialogFooter } from '@/components/ui/dialog';
-import { updateContributionProgram } from '@/lib/api';
+import { updateKhairatProgram, deleteKhairatProgram } from '@/lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter as AlertFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import type { ContributionProgram, ProgramType } from '@/types/database';
+import type { KhairatProgram } from '@/types/database';
 
 interface EditProgramFormProps {
-  program: ContributionProgram;
+  program: KhairatProgram;
   onCancel: () => void;
   onSuccess: () => void;
 }
@@ -33,7 +44,6 @@ export function EditProgramForm({
     name: program.name,
     description: program.description || '',
     target_amount: program.target_amount?.toString() || '',
-    program_type: program.program_type,
     start_date: program.start_date
       ? new Date(program.start_date).toISOString().split('T')[0]
       : '',
@@ -59,18 +69,17 @@ export function EditProgramForm({
         target_amount: formData.target_amount
           ? parseFloat(formData.target_amount)
           : undefined,
-        program_type: formData.program_type,
         start_date: formData.start_date || undefined,
         end_date: formData.end_date || undefined,
         is_active: formData.is_active,
       };
 
-      const result = await updateContributionProgram(program.id, updateData);
+      const result = await updateKhairatProgram(program.id, updateData);
       toast.success('Program updated successfully');
       onSuccess();
     } catch (error) {
-      console.error('Error updating program:', error);
-      toast.error('Failed to update program');
+      console.error('Error updating khairat program:', error);
+      toast.error('Failed to update khairat program');
     } finally {
       setLoading(false);
     }
@@ -82,28 +91,7 @@ export function EditProgramForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="program_type">Program Type</Label>
-        <Select
-          value={formData.program_type}
-          onValueChange={(value) =>
-            updateFormData('program_type', value as ProgramType)
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select program type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="khairat">Khairat</SelectItem>
-            {/* <SelectItem value="zakat">Zakat</SelectItem>
-            <SelectItem value="infaq">Infaq</SelectItem>
-            <SelectItem value="sadaqah">Sadaqah</SelectItem>
-            <SelectItem value="general">General</SelectItem>
-            <SelectItem value="education">Education</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem> */}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Program type removed for dedicated khairat programs */}
 
       <div className="space-y-2">
         <Label htmlFor="name">Program Name</Label>
@@ -173,17 +161,59 @@ export function EditProgramForm({
       </div>
 
       <DialogFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Updating...' : 'Update Program'}
-        </Button>
+        <div className="flex items-center justify-between w-full">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="destructive" disabled={loading}>
+                Delete Program
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete program?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the program "{program.name}".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={async () => {
+                    try {
+                      const res = await deleteKhairatProgram(program.id);
+                      if (res.success) {
+                        toast.success('Program deleted');
+                        onSuccess();
+                      } else {
+                        toast.error(res.error || 'Failed to delete program');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                      toast.error('Failed to delete program');
+                    }
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Program'}
+            </Button>
+          </div>
+        </div>
       </DialogFooter>
     </form>
   );

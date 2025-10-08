@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
     if (contributionId) {
       // Get contribution details
       const { data: contribution, error: contributionError } = await supabaseAdmin
-        .from('contributions')
+        .from('khairat_contributions')
         .select(`
           id, 
           status, 
           payment_reference, 
           payment_method,
-          contribution_programs!inner(
+          khairat_programs!inner(
             mosque_id
           )
         `)
@@ -69,12 +69,12 @@ export async function GET(request: NextRequest) {
     } else {
       // If only payment ID provided, try to find contribution
       const { data: contribution, error: contributionError } = await supabaseAdmin
-        .from('contributions')
+        .from('khairat_contributions')
         .select(`
           id, 
           status, 
           payment_method,
-          contribution_programs!inner(
+          khairat_programs!inner(
             mosque_id
           )
         `)
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     // Also get current contribution status from database
     const { data: currentContribution } = await supabaseAdmin
-      .from('contributions')
+      .from('khairat_contributions')
       .select('status, amount, updated_at')
       .eq('payment_reference', actualPaymentId)
       .single();

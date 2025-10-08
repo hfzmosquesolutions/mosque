@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -33,12 +33,23 @@ import {
   unfollowMosque,
   isUserFollowingMosque,
   getMosqueFollowerCount,
-  getContributionPrograms,
+  getKhairatPrograms,
 } from '@/lib/api';
 import { EventCard } from '@/components/events/EventCard';
-import { ContributionForm } from '@/components/contributions/ContributionForm';
+import { KhairatContributionForm } from '@/components/khairat/KhairatContributionForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X } from 'lucide-react';
+import { createClaim, uploadClaimDocument } from '@/lib/api';
+import { submitKariahApplication, getKariahApplications, deleteKariahApplication, withdrawKariahApplication } from '@/lib/api/kariah-applications';
+import { getUserProfile, updateUserProfile } from '@/lib/api';
+import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
+import type { UserProfile, ClaimDocument } from '@/types/database';
+import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
-import { Mosque, Event, ContributionProgram } from '@/types/database';
+import { Mosque, Event, KhairatProgram } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -46,6 +57,7 @@ import { useTranslations } from 'next-intl';
 export default function MosqueProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const mosqueId = params.id as string;
   const { user } = useAuth();
   const t = useTranslations('mosqueProfile');
@@ -53,7 +65,7 @@ export default function MosqueProfilePage() {
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [contributionPrograms, setContributionPrograms] = useState<
-    ContributionProgram[]
+    KhairatProgram[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +74,28 @@ export default function MosqueProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
   const [userRegistrations, setUserRegistrations] = useState<string[]>([]);
-  const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
+  const [isKhairatModalOpen, setIsKhairatModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isKariahSuccessModalOpen, setIsKariahSuccessModalOpen] = useState(false);
+  const [isKariahApplicationModalOpen, setIsKariahApplicationModalOpen] = useState(false);
+  const [currentApplicationStatus, setCurrentApplicationStatus] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState<string | null>(null);
+  const [currentApplicationId, setCurrentApplicationId] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isWithdrawConfirmOpen, setIsWithdrawConfirmOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
   const [selectedProgramId, setSelectedProgramId] = useState<string>('');
+  const [isKhairatClaimDialogOpen, setIsKhairatClaimDialogOpen] = useState(false);
+  const [isApplyingKariah, setIsApplyingKariah] = useState(false);
+  const [khairatClaimSubmitting, setKhairatClaimSubmitting] = useState(false);
+  const [khairatClaimTitle, setKhairatClaimTitle] = useState('');
+  const [khairatClaimAmount, setKhairatClaimAmount] = useState('');
+  const [khairatClaimDescription, setKhairatClaimDescription] = useState('');
+  const [khairatClaimDocuments, setKhairatClaimDocuments] = useState<File[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const fetchMosqueData = useCallback(async () => {
     try {
@@ -130,7 +162,7 @@ export default function MosqueProfilePage() {
 
       // Fetch contribution programs
       console.log('[PAGE] MosqueProfilePage - Fetching contribution programs');
-      const programsResponse = await getContributionPrograms(mosqueId);
+      const programsResponse = await getKhairatPrograms(mosqueId);
       if (programsResponse.success && programsResponse.data) {
         // Filter only active programs
         const activePrograms = programsResponse.data.filter(
@@ -161,6 +193,39 @@ export default function MosqueProfilePage() {
       fetchMosqueData();
     }
   }, [mosqueId, fetchMosqueData]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user?.id) return;
+      const profile = await getUserProfile(user.id);
+      if (profile.success) setUserProfile(profile.data || null);
+    };
+    loadProfile();
+  }, [user]);
+
+  // Check for URL parameter to auto-open khairat contribution modal
+  useEffect(() => {
+    const openKhairat = searchParams.get('openKhairat');
+    if (openKhairat === 'true' && user?.id && !loading) {
+      setIsKhairatModalOpen(true);
+      // Clear URL parameter immediately when modal opens
+      const url = new URL(window.location.href);
+      url.searchParams.delete('openKhairat');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams, user?.id, loading]);
+
+  // Check for URL parameter to auto-open khairat claim modal
+  useEffect(() => {
+    const openClaim = searchParams.get('openClaim');
+    if (openClaim === 'true' && user?.id && !loading) {
+      setIsKhairatClaimDialogOpen(true);
+      // Clear URL parameter immediately when modal opens
+      const url = new URL(window.location.href);
+      url.searchParams.delete('openClaim');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams, user?.id, loading]);
 
   const handleFollow = async () => {
     if (!user?.id) {
@@ -219,13 +284,238 @@ export default function MosqueProfilePage() {
       return;
     }
     setSelectedProgramId(programId);
-    setIsContributionModalOpen(true);
+    setIsKhairatModalOpen(true);
   };
 
-  const handleContributionSuccess = () => {
-    setIsContributionModalOpen(false);
+  const handleOpenKhairatClaim = () => {
+    if (!user?.id) {
+      router.push('/login');
+      return;
+    }
+    setIsKhairatClaimDialogOpen(true);
+  };
+
+  const handleCloseKhairatClaim = () => {
+    setIsKhairatClaimDialogOpen(false);
+    setKhairatClaimTitle('');
+    setKhairatClaimAmount('');
+    setKhairatClaimDescription('');
+    setKhairatClaimDocuments([]);
+  };
+
+  const handleSubmitKhairatClaim = async () => {
+    if (!user || !mosque) return;
+    if (!khairatClaimTitle || !khairatClaimAmount) {
+      toast.error(t('pleaseFillRequired'));
+      return;
+    }
+    const amountNum = parseFloat(khairatClaimAmount);
+    if (!(amountNum > 0)) {
+      toast.error(t('invalidAmount'));
+      return;
+    }
+    setKhairatClaimSubmitting(true);
+    try {
+      const payload = {
+        claimant_id: user.id,
+        mosque_id: mosque.id,
+        title: khairatClaimTitle,
+        description: khairatClaimDescription || undefined,
+        requested_amount: amountNum,
+        priority: 'medium' as const,
+      };
+      const res = await createClaim(payload as any);
+      if ((res as any)?.success) {
+        const claimId = (res as any).data?.id;
+        toast.success(t('khairatClaimSubmitted'));
+        
+        // If there are documents to upload, upload them now
+        if (khairatClaimDocuments.length > 0) {
+          toast.info('Claim created. Uploading supporting documents...');
+          
+          // Upload each document
+          for (const file of khairatClaimDocuments) {
+            try {
+              const uploadResponse = await uploadClaimDocument(claimId, file, user.id);
+              if (!uploadResponse.success) {
+                console.error('Failed to upload document:', uploadResponse.error);
+                toast.error(`Failed to upload ${file.name}`);
+              }
+            } catch (error) {
+              console.error('Error uploading document:', error);
+              toast.error(`Failed to upload ${file.name}`);
+            }
+          }
+          
+          toast.success('Claim and documents submitted successfully!');
+        } else {
+          toast.success('Claim submitted successfully!');
+        }
+        
+        // Close dialog and reset form
+        setIsKhairatClaimDialogOpen(false);
+        setKhairatClaimTitle('');
+        setKhairatClaimAmount('');
+        setKhairatClaimDescription('');
+        setKhairatClaimDocuments([]);
+      } else {
+        toast.error((res as any)?.error || t('errorSubmittingKhairatClaim'));
+      }
+    } catch (e) {
+      toast.error(t('errorSubmittingKhairatClaim'));
+    } finally {
+      setKhairatClaimSubmitting(false);
+    }
+  };
+
+  const fetchCurrentApplicationStatus = async () => {
+    if (!user?.id || !mosque?.id) return;
+    
+    try {
+      const response = await getKariahApplications({
+        user_id: user.id,
+        mosque_id: mosque.id,
+        limit: 1
+      });
+      
+      if (response.applications && response.applications.length > 0) {
+        const application = response.applications[0];
+        setCurrentApplicationStatus(application.status);
+        setAdminNotes(application.admin_notes || null);
+        setCurrentApplicationId(application.id);
+      } else {
+        setCurrentApplicationStatus(null);
+        setAdminNotes(null);
+        setCurrentApplicationId(null);
+      }
+    } catch (error) {
+      console.error('Error fetching application status:', error);
+      setCurrentApplicationStatus(null);
+    }
+  };
+
+  const handleApplyKariah = async () => {
+    if (!user?.id) {
+      router.push('/login');
+      return;
+    }
+    if (!mosque) return;
+    if (!userProfile?.ic_passport_number) {
+      toast.error(t('completeProfileFirst'));
+      router.push('/profile');
+      return;
+    }
+    
+    // Fetch current application status before showing modal
+    await fetchCurrentApplicationStatus();
+    // Initialize editing profile with current user profile
+    setEditingProfile(userProfile);
+    setIsKariahApplicationModalOpen(true);
+  };
+
+  const handleEditProfile = () => {
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editingProfile || !user?.id) return;
+    
+    try {
+      const response = await updateUserProfile(user.id, editingProfile);
+      if (response.success) {
+        setUserProfile(editingProfile);
+        setIsEditingProfile(false);
+        toast.success(t('profileUpdatedSuccessfully'));
+      } else {
+        toast.error(response.error || t('errorUpdatingProfile'));
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(t('errorUpdatingProfile'));
+    }
+  };
+
+  const handleCancelEditProfile = () => {
+    setEditingProfile(userProfile);
+    setIsEditingProfile(false);
+  };
+
+  const handleDeleteApplication = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!currentApplicationId) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteKariahApplication(currentApplicationId);
+      toast.success(t('applicationDeletedSuccessfully'));
+      setIsDeleteConfirmOpen(false);
+      setIsKariahApplicationModalOpen(false);
+      // Reset application status
+      setCurrentApplicationStatus(null);
+      setAdminNotes(null);
+      setCurrentApplicationId(null);
+    } catch (error: any) {
+      console.error('Error deleting application:', error);
+      toast.error(error?.message || t('errorDeletingApplication'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleWithdrawApplication = () => {
+    setIsWithdrawConfirmOpen(true);
+  };
+
+  const handleConfirmWithdraw = async () => {
+    if (!currentApplicationId) return;
+    
+    setIsWithdrawing(true);
+    try {
+      await withdrawKariahApplication(currentApplicationId);
+      toast.success(t('applicationWithdrawnSuccessfully'));
+      setIsWithdrawConfirmOpen(false);
+      setIsKariahApplicationModalOpen(false);
+      // Reset application status
+      setCurrentApplicationStatus(null);
+      setAdminNotes(null);
+      setCurrentApplicationId(null);
+    } catch (error: any) {
+      console.error('Error withdrawing application:', error);
+      toast.error(error?.message || t('errorWithdrawingApplication'));
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleConfirmKariahApplication = async () => {
+    if (!user?.id || !mosque || !userProfile?.ic_passport_number) return;
+    
+    setIsApplyingKariah(true);
+    try {
+      const result = await submitKariahApplication({
+        mosque_id: mosque.id,
+        ic_passport_number: userProfile.ic_passport_number,
+        notes: '',
+      });
+      toast.success(result.message || t('applicationSubmitted'));
+      setIsKariahApplicationModalOpen(false);
+      setIsKariahSuccessModalOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message || t('errorSubmittingApplication'));
+    } finally {
+      setIsApplyingKariah(false);
+    }
+  };
+
+  const handleKhairatSuccess = () => {
+    setIsKhairatModalOpen(false);
     setSelectedProgramId('');
-    // Refresh contribution programs to get updated amounts
+    // Show success modal instead of just toast
+    setIsSuccessModalOpen(true);
+    // Refresh khairat programs to get updated amounts
     fetchMosqueData();
   };
 
@@ -459,9 +749,19 @@ export default function MosqueProfilePage() {
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
-                <TabsTrigger value="programs">{t('programs')}</TabsTrigger>
+              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+                <TabsTrigger 
+                  value="overview" 
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                >
+                  {t('overview')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="programs" 
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                >
+                  {t('programs')}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
@@ -551,7 +851,7 @@ export default function MosqueProfilePage() {
                                       variant="secondary"
                                       className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
                                     >
-                                      {program.program_type}
+                                      Khairat
                                     </Badge>
                                   </div>
                                   {program.description && (
@@ -739,7 +1039,7 @@ export default function MosqueProfilePage() {
                                       variant="secondary"
                                       className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
                                     >
-                                      {program.program_type}
+                                      Khairat
                                     </Badge>
                                   </div>
                                   {program.description && (
@@ -819,6 +1119,41 @@ export default function MosqueProfilePage() {
 
           {/* Right Column - Contact & Info */}
           <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Target className="h-5 w-5 mr-2 text-emerald-600" />
+                  {t('quickActions', { fallback: 'Quick Actions' })}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-3">
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => setIsKhairatModalOpen(true)}
+                >
+                  <HandCoins className="h-4 w-4 mr-2" />
+                  {t('payKhairat')}
+                </Button>
+                <Button variant="outline" className="w-full" onClick={handleOpenKhairatClaim}>
+                  <HeartHandshake className="h-4 w-4 mr-2" />
+                  {t('submitKhairatClaim')}
+                </Button>
+                <Button variant="outline" className="w-full" onClick={handleApplyKariah} disabled={isApplyingKariah}>
+                  {isApplyingKariah ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('submitting')}
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {t('applyKariah')}
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
             {/* Contact Information */}
             <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
               <CardHeader>
@@ -932,14 +1267,538 @@ export default function MosqueProfilePage() {
         </div>
       </div>
 
-      {/* Contribution Modal */}
-      <ContributionForm
-        isOpen={isContributionModalOpen}
-        onClose={() => setIsContributionModalOpen(false)}
-        onSuccess={handleContributionSuccess}
+      {/* Khairat Contribution Modal */}
+      <KhairatContributionForm
+        isOpen={isKhairatModalOpen}
+        onClose={() => setIsKhairatModalOpen(false)}
+        onSuccess={handleKhairatSuccess}
         preselectedMosqueId={mosque?.id}
         preselectedProgramId={selectedProgramId}
+        defaultProgramType={'khairat' as any}
       />
+
+      {/* Success Modal */}
+      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              {t('paymentSuccess', { fallback: 'Payment Successful!' })}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('paymentSuccessMessage', { fallback: 'Your khairat payment has been recorded successfully!' })}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => {
+                  setIsSuccessModalOpen(false);
+                  router.push('/my-khairat');
+                }}
+                className="w-full"
+              >
+                {t('viewMyPayments', { fallback: 'View My Payments' })}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsSuccessModalOpen(false)}
+                className="w-full"
+              >
+                {t('close', { fallback: 'Close' })}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit Khairat Claim Dialog */}
+      <Dialog open={isKhairatClaimDialogOpen} onOpenChange={handleCloseKhairatClaim}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('submitKhairatClaim', { fallback: 'Submit Khairat Claim' })}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {!user && (
+              <Alert>
+                <AlertDescription>{t('loginRequired', { fallback: 'Please log in to continue.' })}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('khairatClaimTitle', { fallback: 'Claim Title' })}</label>
+              <Input value={khairatClaimTitle} onChange={(e) => setKhairatClaimTitle(e.target.value)} placeholder={t('khairatClaimTitlePlaceholder', { fallback: 'E.g. Funeral assistance, Medical expenses' })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('amount', { fallback: 'Amount (RM)' })}</label>
+              <Input type="number" step="0.01" min="1" value={khairatClaimAmount} onChange={(e) => setKhairatClaimAmount(e.target.value)} placeholder={t('amountPlaceholder', { fallback: 'Enter amount' })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('description', { fallback: 'Description (optional)' })}</label>
+              <Textarea rows={3} value={khairatClaimDescription} onChange={(e) => setKhairatClaimDescription(e.target.value)} placeholder={t('khairatClaimDescriptionPlaceholder', { fallback: 'Describe your situation and need for financial assistance' })} />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Supporting Documents (Optional)</label>
+              <p className="text-xs text-slate-500">
+                Upload documents like medical bills, death certificates, or other supporting evidence
+              </p>
+              <ClaimDocumentUpload
+                onDocumentsChange={(docs) => {
+                  if (Array.isArray(docs) && docs.length > 0 && docs[0] instanceof File) {
+                    setKhairatClaimDocuments(docs as File[]);
+                  }
+                }}
+                maxFiles={5}
+                disabled={false}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCloseKhairatClaim}>
+                {t('cancel', { fallback: 'Cancel' })}
+              </Button>
+              <Button onClick={handleSubmitKhairatClaim} disabled={khairatClaimSubmitting || !khairatClaimTitle || !khairatClaimAmount}>
+                {khairatClaimSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t('submitting', { fallback: 'Submitting...' })}
+                  </>
+                ) : (
+                  t('submit', { fallback: 'Submit' })
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Kariah Application Confirmation Modal */}
+      <Dialog open={isKariahApplicationModalOpen} onOpenChange={setIsKariahApplicationModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              {t('applyKariah')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                currentApplicationStatus === 'approved' ? 'bg-green-100' :
+                currentApplicationStatus === 'pending' ? 'bg-yellow-100' :
+                currentApplicationStatus === 'rejected' ? 'bg-red-100' :
+                'bg-emerald-100'
+              }`}>
+                {currentApplicationStatus === 'approved' ? (
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                ) : currentApplicationStatus === 'pending' ? (
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                ) : currentApplicationStatus === 'rejected' ? (
+                  <FileText className="h-8 w-8 text-red-600" />
+                ) : (
+                  <FileText className="h-8 w-8 text-emerald-600" />
+                )}
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                {t('confirmKariahApplication')}
+              </h3>
+              
+              {/* Current Application Status */}
+              {currentApplicationStatus && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-xl border border-slate-200 dark:border-slate-600">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      {t('currentApplicationStatus')}
+                    </span>
+                    <Badge 
+                      variant={
+                        currentApplicationStatus === 'approved' ? 'default' :
+                        currentApplicationStatus === 'pending' ? 'secondary' :
+                        'destructive'
+                      }
+                      className={
+                        currentApplicationStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-200 font-medium' :
+                        currentApplicationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200 font-medium' :
+                        'bg-red-100 text-red-800 border-red-200 font-medium'
+                      }
+                    >
+                      {currentApplicationStatus === 'approved' ? t('approved') :
+                       currentApplicationStatus === 'pending' ? t('pendingReview') :
+                       t('rejected')}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    {currentApplicationStatus === 'approved' && (
+                      <p className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        {t('alreadyKariahMember')}
+                      </p>
+                    )}
+                    {currentApplicationStatus === 'pending' && (
+                      <p className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-yellow-600" />
+                        {t('applicationUnderReview')}
+                      </p>
+                    )}
+                    {currentApplicationStatus === 'rejected' && (
+                      <div className="space-y-2">
+                        <p className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-red-600" />
+                          {t('applicationRejected')}
+                        </p>
+                        {adminNotes && (
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mt-2">
+                            <h5 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                              {t('adminNotes')}:
+                            </h5>
+                            <p className="text-sm text-red-700 dark:text-red-300">
+                              {adminNotes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {!currentApplicationStatus && (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t('kariahApplicationConfirmationMessage', { mosqueName: mosque?.name })}
+                </p>
+              )}
+            </div>
+
+            {/* User Profile Review Section */}
+            {editingProfile && (
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {t('reviewYourInformation')}
+                  </h4>
+                  {!isEditingProfile && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleEditProfile}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-3 w-3" />
+                      {t('edit')}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {t('fullName')}
+                      </label>
+                      {isEditingProfile ? (
+                        <Input
+                          value={editingProfile.full_name || ''}
+                          onChange={(e) => setEditingProfile({...editingProfile, full_name: e.target.value})}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-900 dark:text-white mt-1">
+                          {editingProfile.full_name || t('notProvided')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {t('icPassportNumber')}
+                      </label>
+                      {isEditingProfile ? (
+                        <Input
+                          value={editingProfile.ic_passport_number || ''}
+                          onChange={(e) => setEditingProfile({...editingProfile, ic_passport_number: e.target.value})}
+                          className="mt-1"
+                          placeholder="e.g., 123456789012"
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-900 dark:text-white mt-1">
+                          {editingProfile.ic_passport_number || t('notProvided')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {t('phone')}
+                      </label>
+                      {isEditingProfile ? (
+                        <Input
+                          value={editingProfile.phone || ''}
+                          onChange={(e) => setEditingProfile({...editingProfile, phone: e.target.value})}
+                          className="mt-1"
+                          placeholder="e.g., +60123456789"
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-900 dark:text-white mt-1">
+                          {editingProfile.phone || t('notProvided')}
+                        </p>
+                      )}
+                    </div>
+
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t('address')}
+                    </label>
+                    {isEditingProfile ? (
+                      <Textarea
+                        value={editingProfile.address || ''}
+                        onChange={(e) => setEditingProfile({...editingProfile, address: e.target.value})}
+                        className="mt-1"
+                        rows={2}
+                        placeholder={t('enterYourAddress')}
+                      />
+                    ) : (
+                      <p className="text-sm text-slate-900 dark:text-white mt-1">
+                        {editingProfile.address || t('notProvided')}
+                      </p>
+                    )}
+                  </div>
+
+                  {isEditingProfile && (
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={handleSaveProfile}
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        {t('save')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEditProfile}
+                        size="sm"
+                      >
+                        {t('cancel')}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              {currentApplicationStatus === 'approved' ? (
+                <Button 
+                  disabled={true}
+                  className="w-full bg-green-400 cursor-not-allowed"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {t('applicationApproved')}
+                </Button>
+              ) : currentApplicationStatus === 'pending' ? (
+                <div className="flex gap-2">
+                  <Button 
+                    disabled={true}
+                    className="flex-1 bg-slate-400 cursor-not-allowed"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    {t('applicationUnderReview')}
+                  </Button>
+                  <Button 
+                    onClick={handleWithdrawApplication}
+                    variant="outline"
+                    className="flex-1 border-orange-300 text-orange-600 hover:bg-orange-50"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {t('withdrawApplication')}
+                  </Button>
+                </div>
+              ) : currentApplicationStatus === 'rejected' ? (
+                <Button 
+                  onClick={handleDeleteApplication}
+                  variant="destructive"
+                  className="w-full bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('deleteApplication')}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleConfirmKariahApplication}
+                  disabled={isApplyingKariah}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {isApplyingKariah ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('submitting')}
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {t('applyKariah')}
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={() => setIsKariahApplicationModalOpen(false)}
+                disabled={isApplyingKariah}
+                className="w-full"
+              >
+{t('cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Kariah Application Success Modal */}
+      <Dialog open={isKariahSuccessModalOpen} onOpenChange={setIsKariahSuccessModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              {t('applicationSubmitted')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                {t('applicationSubmitted')}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('kariahApplicationSuccessMessage')}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsKariahSuccessModalOpen(false)}
+                className="w-full"
+              >
+                {t('close')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Application Confirmation Modal */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              {t('deleteApplication')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                {t('confirmDeleteApplication')}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('deleteApplicationWarning')}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                variant="destructive"
+                className="w-full bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t('deleting')}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('deleteApplication')}
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                disabled={isDeleting}
+                className="w-full"
+              >
+                {t('cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Application Confirmation Modal */}
+      <Dialog open={isWithdrawConfirmOpen} onOpenChange={setIsWithdrawConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <X className="h-5 w-5" />
+              {t('withdrawApplication')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X className="h-8 w-8 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                {t('confirmWithdrawApplication')}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('withdrawApplicationWarning')}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={handleConfirmWithdraw}
+                disabled={isWithdrawing}
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                {isWithdrawing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t('withdrawing')}
+                  </>
+                ) : (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    {t('withdrawApplication')}
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsWithdrawConfirmOpen(false)}
+                disabled={isWithdrawing}
+                className="w-full"
+              >
+                {t('cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

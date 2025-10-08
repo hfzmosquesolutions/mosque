@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     let deletedContribution = false;
     if (legacyRecord?.contribution_id) {
       const { error: deleteError } = await supabaseAdmin
-        .from('contributions')
+        .from('khairat_contributions')
         .delete()
         .eq('id', legacyRecord.contribution_id);
 

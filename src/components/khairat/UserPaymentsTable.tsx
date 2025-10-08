@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import {
-  Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -20,10 +18,12 @@ import {
   Receipt,
   TrendingUp,
   Banknote,
-  Building,
   Calendar,
+  Search,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -31,31 +31,70 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 import type {
-  Contribution,
-  ContributionProgram,
+  KhairatContribution,
+  KhairatProgram,
   Mosque,
 } from '@/types/database';
 
 interface UserPaymentsTableProps {
-  contributions: (Contribution & {
-    program: ContributionProgram & { mosque: Mosque };
+  contributions: (KhairatContribution & {
+    program: KhairatProgram & { mosque: Mosque };
   })[];
+  showHeader?: boolean;
 }
 
-export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
+export function UserPaymentsTable({ contributions, showHeader = true }: UserPaymentsTableProps) {
   const t = useTranslations('khairat');
   const [selectedContribution, setSelectedContribution] = useState<
-    | (Contribution & { program: ContributionProgram & { mosque: Mosque } })
+    | (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })
     | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredContributions, setFilteredContributions] = useState<
+    (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })[]
+  >([]);
 
   const formatCurrency = (amount: number) => {
     return `RM ${amount.toLocaleString()}`;
   };
+
+  const filterContributions = () => {
+    let filtered = contributions;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (contribution) =>
+          contribution.contributor_name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.payment_reference
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.notes
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.program?.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.program?.mosque?.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredContributions(filtered);
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+  };
+
+  useEffect(() => {
+    filterContributions();
+  }, [contributions, searchTerm]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -94,9 +133,23 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     }
   };
 
+  const getPaymentMethodBadge = (paymentMethod: string) => {
+    const methodConfig = {
+      cash: { label: t('cash'), variant: 'secondary' as const },
+      billplz: { label: 'Billplz', variant: 'outline' as const },
+      toyyibpay: { label: 'ToyyibPay', variant: 'outline' as const },
+    };
+
+    const config =
+      methodConfig[paymentMethod as keyof typeof methodConfig] || 
+      { label: paymentMethod || t('notSpecified'), variant: 'secondary' as const };
+    
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
   const handleViewDetails = (
-    contribution: Contribution & {
-      program: ContributionProgram & { mosque: Mosque };
+    contribution: KhairatContribution & {
+      program: KhairatProgram & { mosque: Mosque };
     }
   ) => {
     setSelectedContribution(contribution);
@@ -104,7 +157,7 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
   };
 
   const columns: ColumnDef<
-    Contribution & { program: ContributionProgram & { mosque: Mosque } }
+    KhairatContribution & { program: KhairatProgram & { mosque: Mosque } }
   >[] = [
     {
       accessorKey: 'program.name',
@@ -161,9 +214,9 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
       cell: ({ row }) => {
         const paymentMethod = row.getValue('payment_method') as string;
         return (
-          <span className="text-sm text-slate-600 dark:text-slate-400 capitalize">
-            {paymentMethod || 'Not specified'}
-          </span>
+          <div className="flex items-center gap-2">
+            {getPaymentMethodBadge(paymentMethod)}
+          </div>
         );
       },
     },
@@ -201,68 +254,6 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
     },
   ];
 
-  // Mobile Card Component
-  const MobilePaymentCard = ({
-    contribution,
-  }: {
-    contribution: Contribution & {
-      program: ContributionProgram & { mosque: Mosque };
-    };
-  }) => (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* Header with Program and Amount */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                {contribution.program?.name || 'Unknown Program'}
-              </h3>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <Building className="h-3 w-3" />
-                <span className="truncate">
-                  {contribution.program?.mosque?.name || 'Unknown Mosque'}
-                </span>
-              </div>
-            </div>
-            <div className="text-right ml-3">
-              <div className="font-bold text-lg text-emerald-600">
-                {formatCurrency(contribution.amount)}
-              </div>
-            </div>
-          </div>
-
-          {/* Status and Payment Method */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getStatusIcon(contribution.status)}
-              {getStatusBadge(contribution.status)}
-            </div>
-            <div className="text-sm text-slate-600 dark:text-slate-400 capitalize">
-              {contribution.payment_method || t('notSpecified')}
-            </div>
-          </div>
-
-          {/* Date and Action */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(contribution.contributed_at)}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleViewDetails(contribution)}
-              className="h-8 px-3 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              {t('view')}
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   // Calculate summary stats
   const totalAmount = contributions.reduce(
@@ -282,111 +273,25 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {t('myPayments')}
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              {t('viewPaymentHistoryDescription')}
-            </p>
+      {showHeader && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {t('myPayments')}
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                {t('viewPaymentHistoryDescription')}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-0 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('totalPayments')}
-            </CardTitle>
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-              <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(totalAmount)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('acrossTransactions', { count: contributions.length })}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Summary cards removed to standardize with overview-only display */}
 
-        <Card className="border-0 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('completed')}
-            </CardTitle>
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(completedAmount)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'completed').length}{' '}
-              {t('completedTransactions')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('pending')}
-            </CardTitle>
-            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-              <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-              {formatCurrency(pendingAmount)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'pending').length}{' '}
-              {t('pendingTransactions')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('failed')}
-            </CardTitle>
-            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-              {formatCurrency(failedAmount)}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {contributions.filter((c) => c.status === 'failed').length}{' '}
-              {t('failedTransactions')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Payments Table */}
-      <Card className="border-0 shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-emerald-600" />
-            {t('paymentHistory')}
-          </CardTitle>
-          <CardDescription>{t('completeRecordDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Payments Table (no extra Card wrapper) */}
+      <div className={showHeader ? "px-6" : ""}>
           {contributions.length === 0 ? (
             <div className="text-center py-12">
               <Receipt className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -397,20 +302,36 @@ export function UserPaymentsTable({ contributions }: UserPaymentsTableProps) {
                 {t('paymentHistoryDescription')}
               </p>
             </div>
-          ) : isMobile ? (
-            <div className="space-y-3">
-              {contributions.map((contribution) => (
-                <MobilePaymentCard
-                  key={contribution.id}
-                  contribution={contribution}
-                />
-              ))}
-            </div>
           ) : (
-            <DataTable columns={columns} data={contributions} />
+            <DataTable 
+              columns={columns} 
+              data={filteredContributions}
+              onResetFilters={handleResetFilters}
+              customFilters={
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative w-full sm:w-48">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={t('searchPayments')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 w-full"
+                    />
+                  </div>
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      onClick={handleResetFilters}
+                      className="h-9 px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              }
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Payment Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

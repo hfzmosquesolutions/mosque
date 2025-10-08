@@ -185,16 +185,25 @@ function BillingContent() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+          <TabsTrigger 
+            value="overview" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <CreditCard className="h-4 w-4" />
             {t('tabs.overview')}
           </TabsTrigger>
-          <TabsTrigger value="plans" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="plans" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <Settings className="h-4 w-4" />
             {t('tabs.plans')}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="invoices" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <FileText className="h-4 w-4" />
             {t('tabs.invoices')}
           </TabsTrigger>

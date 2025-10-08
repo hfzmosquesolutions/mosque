@@ -35,7 +35,13 @@ export type NotificationCategory =
 export interface Mosque {
   id: string;
   name: string;
-  address?: string;
+  address?: string; // Legacy field for backward compatibility
+  address_line1?: string; // Primary address line
+  address_line2?: string; // Secondary address line
+  city?: string; // City name
+  state?: string; // State or federal territory
+  postcode?: string; // Postal code
+  country?: string; // Country (defaults to Malaysia)
   phone?: string;
   email?: string;
   website?: string;
@@ -183,10 +189,9 @@ export interface Donation {
 }
 
 // =============================================
-// CONTRIBUTION (WELFARE) MODULE
+// KHAIRAT (WELFARE) MODULE - Dedicated Tables
 // =============================================
-
-export interface ContributionProgram {
+export interface KhairatProgram {
   id: string;
   mosque_id: string;
   name: string;
@@ -200,10 +205,9 @@ export interface ContributionProgram {
   created_by: string;
   created_at: string;
   updated_at: string;
-  program_type: ProgramType;
 }
 
-export interface Contribution {
+export interface KhairatContribution {
   id: string;
   program_id: string;
   contributor_id?: string;
@@ -215,11 +219,10 @@ export interface Contribution {
   notes?: string;
   contributed_at: string;
   payment_data?: PaymentData;
+  created_at?: string;
+  updated_at?: string;
+  bill_id?: string | null;
 }
-
-// Legacy alias for backward compatibility
-export type KhairatProgram = ContributionProgram;
-export type KhairatContribution = Contribution;
 
 
 
@@ -328,14 +331,18 @@ export interface DonationWithDetails extends Donation {
 }
 
 // Contribution program with contributions
-export interface ContributionProgramWithContributions extends ContributionProgram {
-  contributions?: Contribution[];
+export interface KhairatProgramWithContributions extends KhairatProgram {
+  contributions?: KhairatContribution[];
   contribution_count?: number;
   progress_percentage?: number;
 }
 
 // Legacy alias for backward compatibility
-export type KhairatProgramWithContributions = ContributionProgramWithContributions;
+export interface KhairatProgramWithContributions extends KhairatProgram {
+  contributions?: KhairatContribution[];
+  contribution_count?: number;
+  progress_percentage?: number;
+}
 
 // Resource with category info
 export interface ResourceWithCategory extends Resource {
@@ -370,6 +377,17 @@ export interface PaginatedResponse<T> {
 // FORM DATA TYPES
 // =============================================
 
+// Import AddressData from address form component
+export interface AddressData {
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+  full_address?: string; // For backward compatibility
+}
+
 // Onboarding form data (matches existing interface)
 export interface OnboardingData {
   fullName: string;
@@ -380,6 +398,7 @@ export interface OnboardingData {
   mosqueAction?: 'join' | 'create';
   mosqueName?: string;
   mosqueAddress?: string;
+  mosqueAddressData?: AddressData;
   existingMosqueId?: string;
 }
 
@@ -411,8 +430,8 @@ export interface DonationFormData {
   notes?: string;
 }
 
-// Contribution form data
-export interface ContributionFormData {
+// Khairat contribution form data
+export interface KhairatContributionFormData {
   program_id: string;
   amount: number;
   contributor_name?: string;
@@ -422,7 +441,7 @@ export interface ContributionFormData {
 }
 
 // Legacy alias for backward compatibility
-export type KhairatContributionFormData = ContributionFormData;
+export type ContributionFormData = KhairatContributionFormData;
 
 
 
@@ -547,12 +566,10 @@ export type TableName =
   | 'event_registrations'
   | 'donation_categories'
   | 'donations'
-  | 'contribution_programs'
-  | 'contributions'
   | 'khairat_programs'
+  | 'khairat_contributions'
   | 'khairat_claims'
-  | 'claim_documents'
-  | 'claim_history'
+  | 'khairat_claim_documents'
   | 'resource_categories'
   | 'resources'
   | 'audit_logs'
@@ -599,6 +616,18 @@ export interface Database {
         Update: UpdateDonation;
       };
 
+      khairat_programs: {
+        Row: KhairatProgram;
+        Insert: Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>;
+        Update: Partial<Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at'>>;
+      };
+
+      khairat_contributions: {
+        Row: KhairatContribution;
+        Insert: Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at' | 'bill_id'> & { bill_id?: string | null };
+        Update: Partial<Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at'>>;
+      };
+
       resources: {
         Row: Resource;
         Insert: CreateResource;
@@ -629,15 +658,10 @@ export interface Database {
         Insert: CreateKhairatClaim;
         Update: UpdateKhairatClaim;
       };
-      claim_documents: {
+      khairat_claim_documents: {
         Row: ClaimDocument;
         Insert: Omit<ClaimDocument, 'id' | 'created_at'>;
         Update: never; // Documents are insert/delete only
-      };
-      claim_history: {
-        Row: ClaimHistory;
-        Insert: Omit<ClaimHistory, 'id' | 'created_at'>;
-        Update: never; // History is insert only
       };
     };
     Views: Record<string, never>;
@@ -730,20 +754,14 @@ export interface KhairatClaim {
   id: string;
   claimant_id: string;
   mosque_id: string;
-  program_id?: string;
   title: string;
   description: string;
   requested_amount: number;
   approved_amount?: number;
   status: ClaimStatus;
   priority: ClaimPriority;
-  reason_category?: string;
-  supporting_documents?: any;
   admin_notes?: string;
   rejection_reason?: string;
-  disbursement_method?: string;
-  disbursement_reference?: string;
-  disbursed_at?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   approved_by?: string;
@@ -763,24 +781,13 @@ export interface ClaimDocument {
   created_at: string;
 }
 
-export interface ClaimHistory {
-  id: string;
-  claim_id: string;
-  action: string;
-  old_status?: ClaimStatus;
-  new_status?: ClaimStatus;
-  performed_by: string;
-  notes?: string;
-  created_at: string;
-}
 
 // Extended interfaces with relations
 export interface KhairatClaimWithDetails extends KhairatClaim {
   claimant?: UserProfile;
   mosque?: Mosque;
-  program?: ContributionProgram;
+  program?: KhairatProgram;
   documents?: ClaimDocument[];
-  history?: ClaimHistory[];
   reviewer?: UserProfile;
   approver?: UserProfile;
 }
@@ -804,7 +811,6 @@ export interface ClaimFilters extends SearchFilters {
   mosque_id?: string;
   status?: ClaimStatus;
   priority?: ClaimPriority;
-  program_id?: string;
   claimant_id?: string;
   amount_min?: number;
   amount_max?: number;

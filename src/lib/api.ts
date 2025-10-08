@@ -14,8 +14,6 @@ import {
   MosqueFollower,
   Donation,
   CreateDonation,
-  ContributionProgram,
-  Contribution,
   KhairatProgram,
   KhairatContribution,
   UserDependent,
@@ -130,6 +128,12 @@ export async function completeOnboarding(
           .insert({
             name: onboardingData.mosqueName,
             address: onboardingData.mosqueAddress,
+            address_line1: onboardingData.mosqueAddressData?.address_line1,
+            address_line2: onboardingData.mosqueAddressData?.address_line2,
+            city: onboardingData.mosqueAddressData?.city,
+            state: onboardingData.mosqueAddressData?.state,
+            postcode: onboardingData.mosqueAddressData?.postcode,
+            country: onboardingData.mosqueAddressData?.country,
             user_id: userId, // Set the creator as the mosque owner
             is_private: false, // Default to public profile
           })
@@ -757,49 +761,18 @@ export async function getUserDonations(
 }
 
 // =============================================
-// CONTRIBUTION OPERATIONS
+// KHAIRAT OPERATIONS (Dedicated tables)
 // =============================================
 
 /**
- * Get contribution programs for a mosque
- */
-export async function getContributionPrograms(
-  mosqueId: string,
-  programType?: 'khairat' | 'zakat' | 'infaq' | 'sadaqah' | 'general' | 'education' | 'maintenance'
-): Promise<ApiResponse<ContributionProgram[]>> {
-  try {
-    let query = supabase
-      .from('contribution_programs')
-      .select('*')
-      .eq('mosque_id', mosqueId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (programType) {
-      query = query.eq('program_type', programType);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch contribution programs' };
-  }
-}
-
-/**
- * Get khairat programs for a mosque (legacy function)
+ * Get khairat programs for a mosque
  */
 export async function getKhairatPrograms(
   mosqueId: string
 ): Promise<ApiResponse<KhairatProgram[]>> {
   try {
     const { data, error } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .select('*')
       .eq('mosque_id', mosqueId)
       .eq('is_active', true)
@@ -815,38 +788,16 @@ export async function getKhairatPrograms(
   }
 }
 
-/**
- * Create contribution
- */
-export async function createContribution(
-  contributionData: Omit<Contribution, 'id' | 'contributed_at'>
-): Promise<ApiResponse<Contribution>> {
-  try {
-    const { data, error } = await supabase
-      .from('contributions')
-      .insert(contributionData)
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to create contribution' };
-  }
-}
 
 /**
- * Create khairat contribution (legacy function)
+ * Create khairat contribution
  */
 export async function createKhairatContribution(
   contributionData: Omit<KhairatContribution, 'id' | 'contributed_at'>
 ): Promise<ApiResponse<KhairatContribution>> {
   try {
     const { data, error } = await supabase
-      .from('contributions')
+      .from('khairat_contributions')
       .insert(contributionData)
       .select()
       .single();
@@ -861,55 +812,9 @@ export async function createKhairatContribution(
   }
 }
 
-/**
- * Get user's contributions across all mosques
- */
-export async function getUserContributions(
-  userId: string,
-  limit = 20,
-  offset = 0
-): Promise<PaginatedResponse<Contribution & { program: ContributionProgram & { mosque: Mosque } }>> {
-  try {
-    const { data, error, count } = await supabase
-      .from('contributions')
-      .select(`
-        *,
-        program:contribution_programs(
-          *,
-          mosque:mosques(
-            id,
-            name,
-            address
-          )
-        )
-      `, { count: 'exact' })
-      .eq('contributor_id', userId)
-      .order('contributed_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const totalPages = Math.ceil((count || 0) / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    return {
-      data: data || [],
-      count: count || 0,
-      page: currentPage,
-      limit,
-      total_pages: totalPages,
-      has_next: currentPage < totalPages,
-      has_prev: currentPage > 1,
-    };
-  } catch (error) {
-    throw new Error('Failed to fetch user contributions');
-  }
-}
 
 /**
- * Get user's khairat contributions across all mosques (legacy function)
+ * Get user's khairat contributions across all mosques
  */
 export async function getUserKhairatContributions(
   userId: string,
@@ -918,10 +823,10 @@ export async function getUserKhairatContributions(
 ): Promise<PaginatedResponse<KhairatContribution & { program: KhairatProgram & { mosque: Mosque } }>> {
   try {
     const { data, error, count } = await supabase
-      .from('contributions')
+      .from('khairat_contributions')
       .select(`
         *,
-        program:contribution_programs(
+        program:khairat_programs(
           *,
           mosque:mosques(
             id,
@@ -955,52 +860,9 @@ export async function getUserKhairatContributions(
   }
 }
 
-/**
- * Get contributions for a specific program (admin view)
- */
-export async function getContributions(
-  programId: string,
-  limit = 20,
-  offset = 0
-): Promise<PaginatedResponse<Contribution & { contributor?: UserProfile }>> {
-  try {
-    const { data, error, count } = await supabase
-      .from('contributions')
-      .select(`
-        *,
-        contributor:user_profiles(
-          id,
-          full_name,
-          phone
-        )
-      `, { count: 'exact' })
-      .eq('program_id', programId)
-      .order('contributed_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const totalPages = Math.ceil((count || 0) / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    return {
-      data: data || [],
-      count: count || 0,
-      page: currentPage,
-      limit,
-      total_pages: totalPages,
-      has_next: currentPage < totalPages,
-      has_prev: currentPage > 1,
-    };
-  } catch (error) {
-    throw new Error('Failed to fetch contributions');
-  }
-}
 
 /**
- * Get khairat contributions for a specific program (admin view) (legacy function)
+ * Get khairat contributions for a specific program (admin view)
  */
 export async function getKhairatContributions(
   programId: string,
@@ -1009,7 +871,7 @@ export async function getKhairatContributions(
 ): Promise<PaginatedResponse<KhairatContribution & { contributor?: UserProfile }>> {
   try {
     const { data, error, count } = await supabase
-      .from('contributions')
+      .from('khairat_contributions')
       .select(`
         *,
         contributor:user_profiles(
@@ -1043,43 +905,17 @@ export async function getKhairatContributions(
   }
 }
 
-/**
- * Create contribution program
- */
-export async function createContributionProgram(
-  programData: Omit<ContributionProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>
-): Promise<ApiResponse<ContributionProgram>> {
-  try {
-    const { data, error } = await supabase
-      .from('contribution_programs')
-      .insert({
-        ...programData,
-        current_amount: 0,
-        program_type: (programData as any).program_type || 'khairat',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to create contribution program' };
-  }
-}
 
 /**
- * Update contribution program
+ * Update khairat program (dedicated table)
  */
-export async function updateContributionProgram(
+export async function updateKhairatProgram(
   programId: string,
-  updateData: Partial<Omit<ContributionProgram, 'id' | 'created_at' | 'updated_at'>>
-): Promise<ApiResponse<ContributionProgram>> {
+  updateData: Partial<Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>>
+): Promise<ApiResponse<KhairatProgram>> {
   try {
     const { data, error } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .update(updateData)
       .eq('id', programId)
       .select()
@@ -1091,7 +927,29 @@ export async function updateContributionProgram(
 
     return { success: true, data };
   } catch (error) {
-    return { success: false, error: 'Failed to update contribution program' };
+    return { success: false, error: 'Failed to update khairat program' };
+  }
+}
+
+/**
+ * Delete khairat program (dedicated table)
+ */
+export async function deleteKhairatProgram(
+  programId: string
+): Promise<ApiResponse<{ success: true }>> {
+  try {
+    const { error } = await supabase
+      .from('khairat_programs')
+      .delete()
+      .eq('id', programId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete khairat program' };
   }
 }
 
@@ -1105,10 +963,10 @@ export async function getMosqueKhairatContributions(
 ): Promise<PaginatedResponse<KhairatContribution & { program: KhairatProgram; contributor?: UserProfile }>> {
   try {
     const { data, error, count } = await supabase
-      .from('contributions')
+      .from('khairat_contributions')
       .select(`
         *,
-        program:contribution_programs!inner(
+        program:khairat_programs!inner(
           id,
           name,
           mosque_id
@@ -1152,7 +1010,7 @@ export async function createKhairatProgram(
 ): Promise<ApiResponse<KhairatProgram>> {
   try {
     const { data, error } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .insert({
         ...programData,
         current_amount: 0
@@ -1170,33 +1028,9 @@ export async function createKhairatProgram(
   }
 }
 
-/**
- * Update contribution status
- */
-export async function updateContributionStatus(
-  contributionId: string,
-  status: 'pending' | 'completed' | 'cancelled' | 'failed'
-): Promise<ApiResponse<Contribution>> {
-  try {
-    const { data, error } = await supabase
-      .from('contributions')
-      .update({ status })
-      .eq('id', contributionId)
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to update contribution status' };
-  }
-}
 
 /**
- * Update khairat contribution status (legacy function)
+ * Update khairat contribution status
  */
 export async function updateKhairatContributionStatus(
   contributionId: string,
@@ -1204,7 +1038,7 @@ export async function updateKhairatContributionStatus(
 ): Promise<ApiResponse<KhairatContribution>> {
   try {
     const { data, error } = await supabase
-      .from('contributions')
+      .from('khairat_contributions')
       .update({ status })
       .eq('id', contributionId)
       .select()
@@ -1216,7 +1050,7 @@ export async function updateKhairatContributionStatus(
 
     return { success: true, data };
   } catch (error) {
-    return { success: false, error: 'Failed to update contribution status' };
+    return { success: false, error: 'Failed to update khairat contribution status' };
   }
 }
 
@@ -1385,19 +1219,19 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
 
     // Get contribution program counts and progress
     const { count: totalKhairatPrograms } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .select('*', { count: 'exact', head: true })
       .eq('mosque_id', mosqueId);
 
     const { count: activeKhairatPrograms } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .select('*', { count: 'exact', head: true })
       .eq('mosque_id', mosqueId)
       .eq('is_active', true);
 
     // Get detailed contribution program progress
     const { data: contributionPrograms } = await supabase
-      .from('contribution_programs')
+      .from('khairat_programs')
       .select('id, name, current_amount, target_amount')
       .eq('mosque_id', mosqueId)
       .eq('is_active', true)
@@ -1416,12 +1250,11 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
     // Calculate total khairat amount and monthly contributions
     const totalKhairatAmount = contributionPrograms?.reduce((sum, program) => sum + program.current_amount, 0) || 0;
     
-    // Get monthly khairat contributions by joining with contribution_programs
+    // Get monthly khairat contributions by joining with khairat_programs
     const { data: monthlyKhairatData } = await supabase
-      .from('contributions')
-      .select('amount, contribution_programs!inner(mosque_id, program_type)')
-      .eq('contribution_programs.mosque_id', mosqueId)
-      .eq('contribution_programs.program_type', 'khairat')
+      .from('khairat_contributions')
+      .select('amount, khairat_programs!inner(mosque_id)')
+      .eq('khairat_programs.mosque_id', mosqueId)
       .gte('contributed_at', startOfMonth.toISOString());
     
     const monthlyKhairatContributions = monthlyKhairatData?.reduce((sum, contribution) => sum + contribution.amount, 0) || 0;
@@ -1876,55 +1709,31 @@ export async function getClaims(
   offset = 0
 ): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
   try {
-    let query = supabase
-      .from('khairat_claims')
-      .select(`
-        *,
-        claimant:user_profiles!khairat_claims_claimant_id_fkey(
-          id,
-          full_name,
-          email,
-          phone
-        ),
-        mosque:mosques!khairat_claims_mosque_id_fkey(
-          id,
-          name
-        ),
-        program:contribution_programs!khairat_claims_program_id_fkey(
-          id,
-          name,
-          program_type
-        )
-      `);
-
-    // Apply filters
+    // Build query parameters
+    const params = new URLSearchParams();
+    
     if (filters?.mosque_id) {
-      query = query.eq('mosque_id', filters.mosque_id);
+      params.append('mosqueId', filters.mosque_id);
     }
     if (filters?.claimant_id) {
-      query = query.eq('claimant_id', filters.claimant_id);
+      params.append('claimantId', filters.claimant_id);
     }
     if (filters?.status) {
-      query = query.eq('status', filters.status);
+      params.append('status', filters.status);
     }
     if (filters?.priority) {
-      query = query.eq('priority', filters.priority);
+      params.append('priority', filters.priority);
     }
-    if (filters?.program_id) {
-      query = query.eq('program_id', filters.program_id);
-    }
+    
+    // Calculate page from offset
+    const page = Math.floor(offset / limit) + 1;
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
 
-    // Apply sorting
-    const sortBy = filters?.sort_by || 'created_at';
-    const sortOrder = filters?.sort_order || 'desc';
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    const response = await fetch(`/api/khairat-claims?${params.toString()}`);
+    const result = await response.json();
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
-
-    if (error) {
+    if (!response.ok) {
       return { 
         data: [], 
         count: 0, 
@@ -1936,17 +1745,17 @@ export async function getClaims(
       };
     }
 
-    const totalPages = Math.ceil((count || 0) / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
+    const totalPages = result.pagination?.totalPages || 0;
+    const currentPage = result.pagination?.page || 1;
 
     return {
-      data: data || [],
-      count: count || 0,
+      data: result.data || [],
+      count: result.pagination?.total || 0,
       page: currentPage,
       limit,
       total_pages: totalPages,
-      has_next: currentPage < totalPages,
-      has_prev: currentPage > 1
+      has_next: result.pagination?.hasNext || false,
+      has_prev: result.pagination?.hasPrev || false
     };
   } catch {
     return { 
@@ -1966,7 +1775,6 @@ export async function getClaims(
  */
 export async function getClaimById(
   claimId: string,
-  includeHistory = false,
   includeDocuments = false
 ): Promise<ApiResponse<KhairatClaimWithDetails>> {
   try {
@@ -1982,32 +1790,12 @@ export async function getClaimById(
         id,
         name
       ),
-      program:contribution_programs!khairat_claims_program_id_fkey(
-        id,
-        name,
-        program_type
-      )
     `;
 
-    if (includeHistory) {
-      selectQuery += `,
-        history:claim_history(
-          id,
-          action,
-          old_status,
-          new_status,
-          notes,
-          created_at,
-          created_by:user_profiles!claim_history_created_by_fkey(
-            id,
-            full_name
-          )
-        )`;
-    }
 
     if (includeDocuments) {
       selectQuery += `,
-        documents:claim_documents(
+        documents:khairat_claim_documents(
           id,
           file_name,
           file_url,
@@ -2044,18 +1832,31 @@ export async function createClaim(
   claimData: CreateKhairatClaim
 ): Promise<ApiResponse<KhairatClaim>> {
   try {
-    const { data, error } = await supabase
-      .from('khairat_claims')
-      .insert(claimData)
-      .select()
-      .single();
+    // Use the API route instead of direct database access to avoid RLS issues
+    const response = await fetch('/api/khairat-claims', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        claimantId: claimData.claimant_id,
+        mosqueId: claimData.mosque_id,
+        claimAmount: claimData.requested_amount,
+        reason: claimData.title,
+        description: claimData.description,
+        priority: claimData.priority,
+      }),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to create claim' };
     }
 
-    return { success: true, data };
-  } catch {
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error creating claim:', error);
     return { success: false, error: 'Failed to create claim' };
   }
 }
@@ -2154,25 +1955,19 @@ export async function getUserClaims(
   offset = 0
 ): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
   try {
-    const { data, error, count } = await supabase
-      .from('khairat_claims')
-      .select(`
-        *,
-        mosque:mosques!khairat_claims_mosque_id_fkey(
-          id,
-          name
-        ),
-        program:contribution_programs!khairat_claims_program_id_fkey(
-          id,
-          name,
-          program_type
-        )
-      `, { count: 'exact' })
-      .eq('claimant_id', userId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('claimantId', userId);
+    
+    // Calculate page from offset
+    const page = Math.floor(offset / limit) + 1;
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
 
-    if (error) {
+    const response = await fetch(`/api/khairat-claims?${params.toString()}`);
+    const result = await response.json();
+
+    if (!response.ok) {
       return { 
         data: [], 
         count: 0, 
@@ -2184,17 +1979,17 @@ export async function getUserClaims(
       };
     }
 
-    const totalPages = Math.ceil((count || 0) / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
+    const totalPages = result.pagination?.totalPages || 0;
+    const currentPage = result.pagination?.page || 1;
 
     return {
-      data: data || [],
-      count: count || 0,
+      data: result.data || [],
+      count: result.pagination?.total || 0,
       page: currentPage,
       limit,
       total_pages: totalPages,
-      has_next: currentPage < totalPages,
-      has_prev: currentPage > 1
+      has_next: result.pagination?.hasNext || false,
+      has_prev: result.pagination?.hasPrev || false
     };
   } catch {
     return { 
@@ -2224,4 +2019,86 @@ export async function getMosqueClaims(
   };
   
   return getClaims(claimFilters, limit, offset);
+}
+
+// =============================================
+// CLAIM DOCUMENTS OPERATIONS
+// =============================================
+
+/**
+ * Get documents for a specific claim
+ */
+export async function getClaimDocuments(
+  claimId: string
+): Promise<ApiResponse<any[]>> {
+  try {
+    const response = await fetch(`/api/khairat-claims/${claimId}/documents`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to fetch documents' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error fetching claim documents:', error);
+    return { success: false, error: 'Failed to fetch documents' };
+  }
+}
+
+/**
+ * Upload a document for a claim
+ */
+export async function uploadClaimDocument(
+  claimId: string,
+  file: File,
+  uploadedBy: string
+): Promise<ApiResponse<any>> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('uploadedBy', uploadedBy);
+
+    const response = await fetch(`/api/khairat-claims/${claimId}/documents`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to upload document' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error uploading claim document:', error);
+    return { success: false, error: 'Failed to upload document' };
+  }
+}
+
+/**
+ * Delete a claim document
+ */
+export async function deleteClaimDocument(
+  claimId: string,
+  documentId: string,
+  userId: string
+): Promise<ApiResponse<{ success: true }>> {
+  try {
+    const response = await fetch(`/api/khairat-claims/${claimId}/documents/${documentId}?userId=${userId}`, {
+      method: 'DELETE',
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to delete document' };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    console.error('Error deleting claim document:', error);
+    return { success: false, error: 'Failed to delete document' };
+  }
 }

@@ -86,11 +86,11 @@ function DashboardContent() {
       // Fetch user's contributions
       const { data: contributionsData, error: contributionsError } =
         await supabase
-          .from('contributions')
+          .from('khairat_contributions')
           .select(
             `
             *,
-            program:contribution_programs(
+            program:khairat_programs(
               *,
               mosque:mosques(
                 id,

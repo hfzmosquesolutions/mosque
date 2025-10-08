@@ -14,6 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   MapPin,
   Phone,
   Mail,
@@ -24,11 +31,32 @@ import {
   Users,
   Star,
   Filter,
+  X,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
 import { useTranslations } from 'next-intl';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+
+// Malaysian states for filtering
+const MALAYSIAN_STATES = [
+  { value: 'johor', label: 'Johor' },
+  { value: 'kedah', label: 'Kedah' },
+  { value: 'kelantan', label: 'Kelantan' },
+  { value: 'kl', label: 'Kuala Lumpur' },
+  { value: 'labuan', label: 'Labuan' },
+  { value: 'malacca', label: 'Malacca' },
+  { value: 'negeri-sembilan', label: 'Negeri Sembilan' },
+  { value: 'pahang', label: 'Pahang' },
+  { value: 'penang', label: 'Penang' },
+  { value: 'perak', label: 'Perak' },
+  { value: 'perlis', label: 'Perlis' },
+  { value: 'putrajaya', label: 'Putrajaya' },
+  { value: 'sabah', label: 'Sabah' },
+  { value: 'sarawak', label: 'Sarawak' },
+  { value: 'selangor', label: 'Selangor' },
+  { value: 'terengganu', label: 'Terengganu' },
+];
 
 export default function MosquesPage() {
   const [mosques, setMosques] = useState<Mosque[]>([]);
@@ -37,6 +65,8 @@ export default function MosquesPage() {
   const [hasPhone, setHasPhone] = useState(false);
   const [hasEmail, setHasEmail] = useState(false);
   const [hasWebsite, setHasWebsite] = useState(false);
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'nameAsc' | 'nameDesc'>('relevance');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +126,22 @@ export default function MosquesPage() {
       results = results.filter((mosque) =>
         mosque.name.toLowerCase().includes(query) ||
         mosque.address?.toLowerCase().includes(query) ||
-        mosque.description?.toLowerCase().includes(query)
+        mosque.description?.toLowerCase().includes(query) ||
+        mosque.city?.toLowerCase().includes(query) ||
+        mosque.state?.toLowerCase().includes(query) ||
+        mosque.postcode?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by state
+    if (selectedState) {
+      results = results.filter((mosque) => mosque.state === selectedState);
+    }
+
+    // Filter by city
+    if (selectedCity) {
+      results = results.filter((mosque) => 
+        mosque.city?.toLowerCase().includes(selectedCity.toLowerCase())
       );
     }
 
@@ -117,7 +162,7 @@ export default function MosquesPage() {
     }
 
     setFilteredMosques(results);
-  }, [searchQuery, mosques, hasPhone, hasEmail, hasWebsite, sortBy]);
+  }, [searchQuery, mosques, hasPhone, hasEmail, hasWebsite, selectedState, selectedCity, sortBy]);
 
   useEffect(() => {
     filterMosques();
@@ -130,6 +175,30 @@ export default function MosquesPage() {
     } else {
       router.push(path);
     }
+  };
+
+  // Get unique cities from mosques for the current state
+  const getAvailableCities = () => {
+    const stateFilteredMosques = selectedState 
+      ? mosques.filter(mosque => mosque.state === selectedState)
+      : mosques;
+    
+    const cities = stateFilteredMosques
+      .map(mosque => mosque.city)
+      .filter(Boolean)
+      .filter((city, index, arr) => arr.indexOf(city) === index)
+      .sort();
+    
+    return cities;
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedState('');
+    setSelectedCity('');
+    setHasPhone(false);
+    setHasEmail(false);
+    setHasWebsite(false);
   };
 
   if (loading) {
@@ -286,6 +355,48 @@ export default function MosquesPage() {
                   </div>
                 </div>
 
+                {/* Mobile Location Filters */}
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Location</div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">State</label>
+                      <select
+                        value={selectedState}
+                        onChange={(e) => setSelectedState(e.target.value)}
+                        className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
+                      >
+                        <option value="">All States</option>
+                        {MALAYSIAN_STATES.map((state) => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">City</label>
+                      <input
+                        type="text"
+                        value={selectedCity}
+                        onChange={(e) => setSelectedCity(e.target.value)}
+                        placeholder="Search city..."
+                        className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
+                      />
+                    </div>
+                    {(selectedState || selectedCity) && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('mosques.quickFilters') || 'Quick filters'}</div>
                   <div className="flex flex-wrap gap-2">
@@ -369,6 +480,48 @@ export default function MosquesPage() {
                         />
                         <span>{t('mosques.hasWebsite') || 'Has website'}</span>
                       </label>
+                    </div>
+                  </div>
+
+                  {/* Location Filters */}
+                  <div className="pt-2">
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Location</div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">State</label>
+                        <Select value={selectedState || undefined} onValueChange={(value) => setSelectedState(value || '')}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="All States" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MALAYSIAN_STATES.map((state) => (
+                              <SelectItem key={state.value} value={state.value}>
+                                {state.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">City</label>
+                        <Input
+                          value={selectedCity}
+                          onChange={(e) => setSelectedCity(e.target.value)}
+                          placeholder="Search city..."
+                          className="w-full"
+                        />
+                      </div>
+                      {(selectedState || selectedCity) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearFilters}
+                          className="w-full"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Clear Filters
+                        </Button>
+                      )}
                     </div>
                   </div>
 

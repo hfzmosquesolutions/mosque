@@ -21,7 +21,6 @@ export async function GET(
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const includeHistory = searchParams.get('includeHistory') === 'true';
     const includeDocuments = searchParams.get('includeDocuments') === 'true';
 
     const supabaseAdmin = getSupabaseAdmin();
@@ -56,7 +55,7 @@ export async function GET(
 
     if (includeDocuments) {
       selectQuery += `,
-      documents:claim_documents(
+      documents:khairat_claim_documents(
         id,
         file_name,
         file_url,
@@ -66,21 +65,6 @@ export async function GET(
       )`;
     }
 
-    if (includeHistory) {
-      selectQuery += `,
-      history:claim_history(
-        id,
-        action,
-        old_status,
-        new_status,
-        notes,
-        created_at,
-        performer:user_profiles!performed_by(
-          id,
-          full_name
-        )
-      )`;
-    }
 
     const { data: claim, error } = await supabaseAdmin
       .from('khairat_claims')

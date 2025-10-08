@@ -168,10 +168,25 @@ export default function PublicEventsPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto">
-            <TabsTrigger value="upcoming">{t('upcoming')}</TabsTrigger>
-            <TabsTrigger value="past">{t('pastEvents')}</TabsTrigger>
-            <TabsTrigger value="all">{t('allEvents')}</TabsTrigger>
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600 max-w-md mx-auto">
+            <TabsTrigger 
+              value="upcoming" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('upcoming')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="past" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('pastEvents')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="all" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('allEvents')}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">

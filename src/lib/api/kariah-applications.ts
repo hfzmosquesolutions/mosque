@@ -427,3 +427,76 @@ export async function deleteKariahApplication(applicationId: string) {
     message: 'Application deleted successfully'
   };
 }
+
+/**
+ * Withdraw a kariah application (change status to withdrawn)
+ */
+export async function withdrawKariahApplication(applicationId: string) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  if (!applicationId) {
+    throw new Error('Application ID is required');
+  }
+
+  // Get the application first to check ownership and status
+  const { data: application, error: fetchError } = await supabase
+    .from('kariah_applications')
+    .select('user_id, mosque_id, status')
+    .eq('id', applicationId)
+    .single();
+
+  if (fetchError || !application) {
+    throw new Error('Application not found');
+  }
+
+  // Check if user can withdraw this application
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.user.id)
+    .single();
+
+  const { data: mosqueAdmin } = await supabase
+    .from('mosques')
+    .select('user_id')
+    .eq('id', application.mosque_id)
+    .single();
+
+  const isOwner = application.user_id === user.user.id;
+  const isAdmin = userProfile?.role === 'admin';
+  const isMosqueAdmin = mosqueAdmin?.user_id === user.user.id;
+
+  if (!isOwner && !isAdmin && !isMosqueAdmin) {
+    throw new Error('Forbidden: Cannot withdraw this application');
+  }
+
+  // Only allow withdrawal of pending applications
+  if (application.status !== 'pending') {
+    throw new Error('Only pending applications can be withdrawn');
+  }
+
+  // Additional check: users can only withdraw their own applications
+  if (!isOwner) {
+    throw new Error('Only the applicant can withdraw their own application');
+  }
+
+  const { error } = await supabase
+    .from('kariah_applications')
+    .update({ 
+      status: 'withdrawn',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', applicationId);
+
+  if (error) {
+    throw new Error(`Failed to withdraw application: ${error.message}`);
+  }
+
+  return {
+    message: 'Application withdrawn successfully'
+  };
+}

@@ -68,11 +68,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       href: '/kariah',
       icon: Users,
     });
-    baseNavigation.push({
-      name: t('claims.title'),
-      href: '/claims',
-      icon: FileText,
-    });
+    // Claims are now managed inside Khairat page tabs
     baseNavigation.push({
       name: t('mosqueProfile'),
       href: '/mosque-profile',
@@ -88,21 +84,23 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       });
     }
 
+    // Show Khairat (user version)
+    baseNavigation.push({
+      name: t('khairat'),
+      href: '/my-khairat',
+      icon: HandHeart,
+    });
+
     // Only include Contributions if enabled for regular users
     if (FEATURES.CONTRIBUTIONS_ENABLED) {
       baseNavigation.push({
         name: t('contributions'),
-        href: '/contributions',
+        href: '/khairat',
         icon: HandHeart,
       });
     }
 
-    // Dedicated Khairat page for regular users
-    baseNavigation.push({
-      name: t('khairat'),
-      href: '/khairat',
-      icon: HandHeart,
-    });
+    // Khairat page is not available to regular users
 
     // Kariah application for regular users only
     baseNavigation.push({
@@ -111,12 +109,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       icon: UserPlus,
     });
 
-    // Claims page for regular users
-    baseNavigation.push({
-      name: t('claims.title'),
-      href: '/claims',
-      icon: FileText,
-    });
+    // Claims are now managed inside Khairat page tabs
 
     // Dependents management for regular users only
     baseNavigation.push({

@@ -36,11 +36,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  getContributionPrograms,
-  createContributionProgram,
+  getKhairatPrograms,
+  createKhairatProgram,
   getUserMosqueId,
 } from '@/lib/api';
-import type { ContributionProgram, ProgramType } from '@/types/database';
+import type { KhairatProgram } from '@/types/database';
 import {
   Select,
   SelectContent,
@@ -52,9 +52,10 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 
 interface ProgramManagementProps {
-  onProgramSelect?: (program: ContributionProgram) => void;
+  onProgramSelect?: (program: KhairatProgram) => void;
   onProgramsUpdate?: () => void;
-  filterType?: ProgramType;
+  // filterType kept for API compatibility but ignored (always khairat)
+  filterType?: any;
   isCreateDialogOpen?: boolean;
   onCreateDialogOpenChange?: (open: boolean) => void;
 }
@@ -68,7 +69,7 @@ export function ProgramManagement({
 }: ProgramManagementProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
+  const [programs, setPrograms] = useState<KhairatProgram[]>([]);
   const [internalIsCreateDialogOpen, setInternalIsCreateDialogOpen] =
     useState(false);
 
@@ -85,7 +86,7 @@ export function ProgramManagement({
   const [submitting, setSubmitting] = useState(false);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [selectedProgram, setSelectedProgram] =
-    useState<ContributionProgram | null>(null);
+    useState<KhairatProgram | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form state
@@ -95,24 +96,7 @@ export function ProgramManagement({
   const [fixedPrice, setFixedPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [programType, setProgramType] = useState<ProgramType>(
-    filterType ?? 'khairat'
-  );
-
-  // Keep local programType in sync if parent constrains filterType
-  useEffect(() => {
-    setProgramType(filterType ?? 'khairat');
-  }, [filterType]);
-
-  const PROGRAM_TYPES: ProgramType[] = [
-    'khairat',
-    'zakat',
-    'infaq',
-    'sadaqah',
-    'general',
-    'education',
-    'maintenance',
-  ];
+  // Program type selection removed; this modal creates Khairat programs only
   const loadUserMosque = async () => {
     if (!user) return;
 
@@ -135,7 +119,7 @@ export function ProgramManagement({
 
     setLoading(true);
     try {
-      const response = await getContributionPrograms(mosqueId, filterType);
+      const response = await getKhairatPrograms(mosqueId);
       if (response.success && response.data) {
         setPrograms(response.data);
       }
@@ -179,13 +163,12 @@ export function ProgramManagement({
         end_date: endDate || undefined,
         is_active: true,
         created_by: user.id,
-        program_type: programType,
       };
 
-      const response = await createContributionProgram(programData);
+      const response = await createKhairatProgram(programData as any);
 
       if (response.success) {
-        toast.success('Contribution program created successfully!');
+        toast.success('Khairat program created successfully!');
         setIsCreateDialogOpen(false);
         resetForm();
         loadPrograms();
@@ -194,8 +177,8 @@ export function ProgramManagement({
         toast.error(response.error || 'Failed to create program');
       }
     } catch (error) {
-      console.error('Error creating program:', error);
-      toast.error('Failed to create program');
+      console.error('Error creating khairat program:', error);
+      toast.error('Failed to create khairat program');
     } finally {
       setSubmitting(false);
     }
@@ -222,7 +205,7 @@ export function ProgramManagement({
     }).format(amount);
   };
 
-  const columns: ColumnDef<ContributionProgram>[] = [
+  const columns: ColumnDef<KhairatProgram>[] = [
     {
       accessorKey: 'name',
       header: ({ column }) => (
@@ -567,38 +550,14 @@ export function ProgramManagement({
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Create Contribution Program</DialogTitle>
+                <DialogTitle>Create Khairat Program</DialogTitle>
                 <DialogDescription>
-                  Create a new contribution program for your mosque community
+                  Create a new khairat program for your mosque community
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleCreateProgram} className="space-y-4">
-                {!filterType && (
-                  <div className="space-y-2">
-                    <Label htmlFor="programType">Program Type</Label>
-                    <Select
-                      value={programType}
-                      onValueChange={(val) =>
-                        setProgramType(val as ProgramType)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select program type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PROGRAM_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Choose the program type for this new contribution program.
-                    </p>
-                  </div>
-                )}
+                {/* Program type removed: this modal always creates Khairat programs */}
                 <div className="space-y-2">
                   <Label htmlFor="name">Program Name *</Label>
                   <Input

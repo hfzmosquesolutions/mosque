@@ -37,28 +37,28 @@ import {
   Clock,
   Loader2,
 } from 'lucide-react';
-import { getContributions, updateContributionStatus } from '@/lib/api';
-import type { ContributionProgram, Contribution } from '@/types/database';
+import { getKhairatContributions, updateKhairatContributionStatus } from '@/lib/api';
+import type { KhairatProgram, KhairatContribution } from '@/types/database';
 import { toast } from 'sonner';
 
-interface ContributionsListProps {
-  program: ContributionProgram;
+interface KhairatListProps {
+  program: KhairatProgram;
   isOpen: boolean;
   onClose: () => void;
 }
 
 type ContributionStatus = 'pending' | 'completed' | 'cancelled';
 
-export function ContributionsList({
+export function KhairatList({
   program,
   isOpen,
   onClose,
-}: ContributionsListProps) {
+}: KhairatListProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [contributions, setContributions] = useState<KhairatContribution[]>([]);
   const [filteredContributions, setFilteredContributions] = useState<
-    Contribution[]
+    KhairatContribution[]
   >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -67,7 +67,7 @@ export function ContributionsList({
   const loadContributions = async () => {
     setLoading(true);
     try {
-      const response = await getContributions(program.id, 50, 0);
+      const response = await getKhairatContributions(program.id, 50, 0);
       if (response.data) {
         setContributions(response.data);
       }
@@ -124,7 +124,7 @@ export function ContributionsList({
 
     setUpdating(contributionId);
     try {
-      const response = await updateContributionStatus(
+      const response = await updateKhairatContributionStatus(
         contributionId,
         newStatus
       );

@@ -21,18 +21,13 @@ export async function GET(request: NextRequest) {
     const claimantId = searchParams.get('claimantId');
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
-    const programId = searchParams.get('programId');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    if (!mosqueId) {
-      return NextResponse.json(
-        { error: 'Mosque ID is required' },
-        { status: 400 }
-      );
-    }
+    // Mosque ID is optional - if not provided, we'll return all claims (admin only)
+    // This allows for more flexible querying
 
     const supabaseAdmin = getSupabaseAdmin();
     let query = supabaseAdmin
@@ -45,11 +40,6 @@ export async function GET(request: NextRequest) {
           phone,
           ic_passport_number
         ),
-        program:contribution_programs(
-          id,
-          name,
-          description
-        ),
         reviewer:user_profiles!reviewed_by(
           id,
           full_name
@@ -58,8 +48,12 @@ export async function GET(request: NextRequest) {
           id,
           full_name
         )
-      `, { count: 'exact' })
-      .eq('mosque_id', mosqueId);
+      `, { count: 'exact' });
+    
+    // Apply mosque filter if provided
+    if (mosqueId) {
+      query = query.eq('mosque_id', mosqueId);
+    }
 
     // Apply filters
     if (claimantId) {
@@ -70,9 +64,6 @@ export async function GET(request: NextRequest) {
     }
     if (priority) {
       query = query.eq('priority', priority);
-    }
-    if (programId) {
-      query = query.eq('program_id', programId);
     }
 
     // Apply sorting
@@ -124,7 +115,6 @@ export async function POST(request: NextRequest) {
     const {
       claimantId,
       mosqueId,
-      programId,
       claimAmount,
       reason,
       description,
@@ -163,28 +153,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify program exists if provided
-    if (programId) {
-      const { data: program, error: programError } = await supabaseAdmin
-        .from('contribution_programs')
-        .select('id, mosque_id')
-        .eq('id', programId)
-        .eq('mosque_id', mosqueId)
-        .single();
-
-      if (programError || !program) {
-        return NextResponse.json(
-          { error: 'Program not found or does not belong to mosque' },
-          { status: 404 }
-        );
-      }
-    }
+    // No program validation needed - khairat claims are general assistance requests
 
     // Create the claim
     const claimData: CreateKhairatClaim = {
       claimant_id: claimantId,
       mosque_id: mosqueId,
-      program_id: programId || null,
       requested_amount: claimAmount,
       title: reason,
       description: description || null,
@@ -201,11 +175,6 @@ export async function POST(request: NextRequest) {
           full_name,
           phone,
           ic_passport_number
-        ),
-        program:contribution_programs(
-          id,
-          name,
-          description
         )
       `)
       .single();

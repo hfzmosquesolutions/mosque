@@ -36,13 +36,13 @@ import {
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  getContributionPrograms,
+  getKhairatPrograms,
   getUserMosqueId,
   getMosque,
   updateMosque,
 } from '@/lib/api';
 import type {
-  ContributionProgram,
+  KhairatProgram,
   Mosque,
   UpdateMosque,
 } from '@/types/database';
@@ -52,6 +52,7 @@ import { FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { AddressForm, AddressData, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -60,6 +61,8 @@ interface MosqueProfileData extends Mosque {
   capacity?: string;
   imam_name?: string;
   services?: string[];
+  // Address data for the form
+  addressData?: AddressData;
 }
 
 // Type for mosque settings
@@ -100,6 +103,15 @@ const getDefaultMosqueProfile = (): MosqueProfileData => ({
   is_private: false,
   created_at: '',
   updated_at: '',
+  addressData: {
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country: 'Malaysia',
+    full_address: '',
+  },
 });
 
 function MosqueProfileContent() {
@@ -117,7 +129,7 @@ function MosqueProfileContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
+  const [programs, setPrograms] = useState<KhairatProgram[]>([]);
   const [programsLoading, setProgramsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
 
@@ -126,6 +138,10 @@ function MosqueProfileContent() {
     value: string | boolean | Record<string, unknown>
   ) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateAddressData = (addressData: AddressData) => {
+    setProfile((prev) => ({ ...prev, addressData }));
   };
 
   const updatePrayerTime = (prayer: string, time: string) => {
@@ -163,6 +179,27 @@ function MosqueProfileContent() {
     try {
       const response = await getMosque(mosqueId);
       if (response.success && response.data) {
+        // Parse existing address or use structured address fields
+        const addressData = response.data.address_line1 
+          ? {
+              address_line1: response.data.address_line1 || '',
+              address_line2: response.data.address_line2 || '',
+              city: response.data.city || '',
+              state: response.data.state || '',
+              postcode: response.data.postcode || '',
+              country: response.data.country || 'Malaysia',
+              full_address: formatAddressForDisplay({
+                address_line1: response.data.address_line1 || '',
+                address_line2: response.data.address_line2 || '',
+                city: response.data.city || '',
+                state: response.data.state || '',
+                postcode: response.data.postcode || '',
+                country: response.data.country || 'Malaysia',
+                full_address: '',
+              }),
+            }
+          : parseAddressString(response.data.address || '');
+
         const mosqueData: MosqueProfileData = {
           ...response.data,
           // Extract additional fields from settings if they exist
@@ -177,6 +214,7 @@ function MosqueProfileContent() {
             'Islamic Education',
             'Community Events',
           ],
+          addressData,
         };
         setProfile(mosqueData);
         setOriginalProfile(mosqueData);
@@ -193,7 +231,7 @@ function MosqueProfileContent() {
 
     setProgramsLoading(true);
     try {
-      const response = await getContributionPrograms(mosqueId);
+      const response = await getKhairatPrograms(mosqueId);
       if (response.success && response.data) {
         setPrograms(response.data);
       }
@@ -220,7 +258,13 @@ function MosqueProfileContent() {
       const updateData: UpdateMosque = {
         name: profile.name,
         description: profile.description || undefined,
-        address: profile.address || undefined,
+        address: profile.addressData?.full_address || profile.address || undefined,
+        address_line1: profile.addressData?.address_line1 || undefined,
+        address_line2: profile.addressData?.address_line2 || undefined,
+        city: profile.addressData?.city || undefined,
+        state: profile.addressData?.state || undefined,
+        postcode: profile.addressData?.postcode || undefined,
+        country: profile.addressData?.country || undefined,
         phone: profile.phone || undefined,
         email: profile.email || undefined,
         website: profile.website || undefined,
@@ -547,18 +591,20 @@ function MosqueProfileContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="address">
-                    {t('mosqueProfile.addressRequired')}
-                  </Label>
-                  <Textarea
-                    id="address"
-                    value={profile.address}
-                    onChange={(e) => updateProfile('address', e.target.value)}
-                    disabled={!isEditing}
-                    rows={2}
-                  />
-                </div>
+                <AddressForm
+                  value={profile.addressData || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    postcode: '',
+                    country: 'Malaysia',
+                    full_address: '',
+                  }}
+                  onChange={updateAddressData}
+                  disabled={!isEditing}
+                  showFullAddress={true}
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">
@@ -738,7 +784,7 @@ function MosqueProfileContent() {
                       <div className="pt-4 border-t">
                         <Button variant="outline" className="w-full" asChild>
                           <a
-                            href="/contributions"
+                            href="/khairat"
                             className="flex items-center gap-2"
                           >
                             <TrendingUp className="h-4 w-4" />
@@ -758,7 +804,7 @@ function MosqueProfileContent() {
                       </p>
                       <Button variant="outline" asChild>
                         <a
-                          href="/contributions"
+                          href="/khairat"
                           className="flex items-center gap-2"
                         >
                           <Plus className="h-4 w-4" />

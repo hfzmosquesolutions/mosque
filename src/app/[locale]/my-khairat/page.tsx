@@ -1,0 +1,508 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HandHeart, Search, MapPin, Building, Users, CreditCard, FileText, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
+import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
+import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { KhairatContribution, KhairatProgram, Mosque, CreateKhairatClaim } from '@/types/database';
+import { getUserKhairatContributions, getUserFollowedMosques, createClaim } from '@/lib/api';
+import { toast } from 'sonner';
+
+function MyKhairatContent() {
+  const t = useTranslations('khairat');
+  const router = useRouter();
+  const { user } = useAuth();
+  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
+  const { mosqueId } = useUserMosque();
+  const [loading, setLoading] = useState(true);
+  const [userContributions, setUserContributions] = useState<
+    (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })[]
+  >([]);
+  const [isFollowedMosquesOpen, setIsFollowedMosquesOpen] = useState(false);
+  const [followedMosques, setFollowedMosques] = useState<Mosque[]>([]);
+  const [loadingFollowed, setLoadingFollowed] = useState(false);
+  const [activeTab, setActiveTab] = useState('payments');
+  const [showCreateClaimDialog, setShowCreateClaimDialog] = useState(false);
+  const [isClaimMosquesOpen, setIsClaimMosquesOpen] = useState(false);
+  const [submittingClaim, setSubmittingClaim] = useState(false);
+  const [claimForm, setClaimForm] = useState({
+    title: '',
+    requested_amount: 0,
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
+  });
+
+  // If admin, redirect them to the admin Khairat page
+  useEffect(() => {
+    if (!adminLoading && hasAdminAccess) {
+      router.replace('/khairat');
+    }
+  }, [adminLoading, hasAdminAccess, router]);
+
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const contributionsResult = await getUserKhairatContributions(user.id);
+      setUserContributions(contributionsResult.data || []);
+    } catch (e) {
+      console.error('Error fetching user khairat contributions', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) fetchData();
+  }, [user, fetchData]);
+
+  const handleSubmitClaim = async () => {
+    if (!user || !mosqueId) {
+      toast.error('User or mosque information not available');
+      return;
+    }
+
+    if (!claimForm.title.trim() || claimForm.requested_amount <= 0) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setSubmittingClaim(true);
+    try {
+      const claimData: CreateKhairatClaim = {
+        claimant_id: user.id,
+        mosque_id: mosqueId,
+        requested_amount: claimForm.requested_amount,
+        title: claimForm.title.trim(),
+        description: claimForm.description.trim() || null,
+        priority: claimForm.priority
+      };
+
+      const response = await createClaim(claimData);
+      
+      if (response.success) {
+        toast.success('Claim submitted successfully');
+        setShowCreateClaimDialog(false);
+        setClaimForm({
+          title: '',
+          requested_amount: 0,
+          description: '',
+          priority: 'medium'
+        });
+        // Refresh the claims data
+        window.location.reload();
+      } else {
+        toast.error(response.error || 'Failed to submit claim');
+      }
+    } catch (error) {
+      console.error('Error submitting claim:', error);
+      toast.error('Failed to submit claim');
+    } finally {
+      setSubmittingClaim(false);
+    }
+  };
+
+  // Load followed mosques when opening the modal
+  useEffect(() => {
+    if ((!isFollowedMosquesOpen && !isClaimMosquesOpen) || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingFollowed(true);
+        const res = await getUserFollowedMosques(user.id, 50, 0);
+        if (!cancelled) setFollowedMosques(res.data || []);
+      } catch (e) {
+        console.error('Failed to load followed mosques', e);
+        if (!cancelled) setFollowedMosques([]);
+      } finally {
+        if (!cancelled) setLoadingFollowed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFollowedMosquesOpen, isClaimMosquesOpen, user]);
+
+  if (adminLoading || hasAdminAccess) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="relative">
+        <div className="relative p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold">
+                My Khairat
+              </h1>
+              <p className="text-muted-foreground">
+                Manage your khairat payments and claims
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {mosqueId && (
+                <Button variant="outline" onClick={() => router.push(`/mosques/${mosqueId}`)}>
+                  <MapPin className="mr-2 h-4 w-4" /> {t('goToMyMosque') || 'My Mosque'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="px-6">
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+            <TabsTrigger 
+              value="payments" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              <CreditCard className="h-4 w-4" />
+              Payments
+            </TabsTrigger>
+            <TabsTrigger 
+              value="claims" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              <FileText className="h-4 w-4" />
+              Claims
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="payments" className="space-y-6">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <h3 className="text-lg font-semibold">Payment History</h3>
+              <p className="text-sm text-muted-foreground">View and manage your khairat payments</p>
+            </div>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsFollowedMosquesOpen(true)}>
+              <HandHeart className="mr-2 h-4 w-4" /> Make Payment
+            </Button>
+          </div>
+          
+          {loading ? (
+            <Card className="border-0 shadow-md">
+              <CardContent>
+                <div className="flex items-center justify-center h-40 text-muted-foreground">{t('loadingKhairatData')}</div>
+              </CardContent>
+            </Card>
+          ) : userContributions.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <HandHeart className="h-12 w-12 text-emerald-600" />
+              </div>
+              <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
+                Start Your Khairat Journey
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
+                Make your first Khairat payment to support your mosque community. Choose from your followed mosques to get started.
+              </p>
+              <Button 
+                size="lg" 
+                className="bg-emerald-600 hover:bg-emerald-700 text-lg px-8 py-3" 
+                onClick={() => setIsFollowedMosquesOpen(true)}
+              >
+                <HandHeart className="mr-2 h-5 w-5" /> Make Payment
+              </Button>
+            </div>
+          ) : (
+            <Card className="border-0 shadow-md">
+              <CardContent>
+                <UserPaymentsTable contributions={userContributions as any} showHeader={false} />
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="claims" className="space-y-6">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <h3 className="text-lg font-semibold">My Claims</h3>
+              <p className="text-sm text-muted-foreground">View and manage your khairat claims</p>
+            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsClaimMosquesOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Submit Claim
+            </Button>
+          </div>
+          <UserClaimsTable showHeader={false} />
+        </TabsContent>
+      </Tabs>
+      
+      {/* Followed Mosques Modal */}
+      <Dialog open={isFollowedMosquesOpen} onOpenChange={setIsFollowedMosquesOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select Mosque to Make Payment</DialogTitle>
+            <p className="text-sm text-muted-foreground">Choose a mosque from your followed list to make a khairat payment</p>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {loadingFollowed ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                <div className="text-sm text-muted-foreground">Loading your followed mosques...</div>
+              </div>
+            ) : followedMosques.length === 0 ? (
+              <div className="text-center py-8">
+                <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <div className="text-sm text-muted-foreground mb-2">You are not following any mosques yet.</div>
+                <div className="text-xs text-muted-foreground">Follow mosques to see them here.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {followedMosques.map((mosque) => (
+                  <Card
+                    key={mosque.id}
+                    className="cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700"
+                    onClick={() => {
+                      setIsFollowedMosquesOpen(false);
+                      window.open(`/mosques/${mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          <img
+                            src={mosque.logo_url || '/icon-kariah-masjid.png'}
+                            alt={`${mosque.name} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                            {mosque.name}
+                          </h3>
+                          {mosque.address && (
+                            <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              <MapPin className="h-3 w-3 mr-1 flex-shrink-0 text-emerald-600" />
+                              <span className="truncate">{mosque.address}</span>
+                            </div>
+                          )}
+                          {mosque.description && (
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-1">
+                              {mosque.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span>Following</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Can't find your mosque?</div>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" asChild>
+                <Link href="/mosques" target="_blank" rel="noopener noreferrer">Find more mosques</Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Claim Mosque Selection Modal */}
+      <Dialog open={isClaimMosquesOpen} onOpenChange={setIsClaimMosquesOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select Mosque to Submit Claim</DialogTitle>
+            <p className="text-sm text-muted-foreground">Choose a mosque from your followed list to submit a khairat claim</p>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {loadingFollowed ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <div className="text-sm text-muted-foreground">Loading your followed mosques...</div>
+              </div>
+            ) : followedMosques.length === 0 ? (
+              <div className="text-center py-8">
+                <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <div className="text-sm text-muted-foreground mb-2">You are not following any mosques yet.</div>
+                <div className="text-xs text-muted-foreground">Follow mosques to see them here.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {followedMosques.map((mosque) => (
+                  <Card
+                    key={mosque.id}
+                    className="cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700"
+                    onClick={() => {
+                      setIsClaimMosquesOpen(false);
+                      window.open(`/mosques/${mosque.id}?openClaim=true`, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          <img
+                            src={mosque.logo_url || '/icon-kariah-masjid.png'}
+                            alt={`${mosque.name} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                            {mosque.name}
+                          </h3>
+                          {mosque.address && (
+                            <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              <MapPin className="h-3 w-3 mr-1 flex-shrink-0 text-blue-600" />
+                              <span className="truncate">{mosque.address}</span>
+                            </div>
+                          )}
+                          {mosque.description && (
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-1">
+                              {mosque.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span>Following</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Can't find your mosque?</div>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700" asChild>
+                <Link href="/mosques" target="_blank" rel="noopener noreferrer">Find more mosques</Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit Claim Dialog */}
+      <Dialog open={showCreateClaimDialog} onOpenChange={setShowCreateClaimDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Submit New Claim</DialogTitle>
+            <DialogDescription>
+              Fill in details for your khairat claim
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                type="text"
+                value={claimForm.title}
+                onChange={(e) => setClaimForm((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter claim title..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Claim Amount (RM) *</Label>
+              <Input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={claimForm.requested_amount || ''}
+                onChange={(e) =>
+                  setClaimForm((prev) => ({
+                    ...prev,
+                    requested_amount: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={claimForm.priority}
+                onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') =>
+                  setClaimForm((prev) => ({ ...prev, priority: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                rows={3}
+                value={claimForm.description}
+                onChange={(e) => setClaimForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe your situation and need for financial assistance..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateClaimDialog(false)}
+                disabled={submittingClaim}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitClaim}
+                disabled={submittingClaim}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {submittingClaim ? 'Submitting...' : 'Submit Claim'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+    </div>
+  );
+}
+
+export default function MyKhairatPage() {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout title="Khairat">
+        <MyKhairatContent />
+      </DashboardLayout>
+    </ProtectedRoute>
+  );
+}
+
+

@@ -32,12 +32,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
-import { getContributionPrograms, createContribution } from '@/lib/api';
-import type { Mosque, ContributionProgram } from '@/types/database';
+import { getKhairatPrograms, createKhairatContribution } from '@/lib/api';
+import type { Mosque, KhairatProgram } from '@/types/database';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
-interface ContributionFormProps {
+interface KhairatContributionFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
@@ -46,20 +46,20 @@ interface ContributionFormProps {
   defaultProgramType?: import('@/types/database').ProgramType;
 }
 
-export function ContributionForm({
+export function KhairatContributionForm({
   isOpen,
   onClose,
   onSuccess,
   preselectedMosqueId,
   preselectedProgramId,
   defaultProgramType,
-}: ContributionFormProps) {
+}: KhairatContributionFormProps) {
   const { user } = useAuth();
   const t = useTranslations('contributions');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
-  const [khairatPrograms, setKhairatPrograms] = useState<ContributionProgram[]>(
+  const [khairatPrograms, setKhairatPrograms] = useState<KhairatProgram[]>(
     []
   );
   const [selectedMosqueId, setSelectedMosqueId] = useState(
@@ -79,6 +79,7 @@ export function ContributionForm({
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const isMosqueFixed = Boolean(preselectedMosqueId);
 
   useEffect(() => {
     if (selectedMosqueId) {
@@ -222,10 +223,7 @@ export function ContributionForm({
   const loadKhairatPrograms = async (mosqueId: string) => {
     setLoadingPrograms(true);
     try {
-      const response = await getContributionPrograms(
-        mosqueId,
-        defaultProgramType
-      );
+      const response = await getKhairatPrograms(mosqueId);
       if (response.success && response.data) {
         setKhairatPrograms(response.data);
       } else {
@@ -304,7 +302,7 @@ export function ContributionForm({
         notes: notes || undefined,
       };
 
-      const response = await createContribution(paymentData);
+      const response = await createKhairatContribution(paymentData);
 
       if (response.success && response.data) {
         const contributionId = response.data.id;
@@ -375,7 +373,6 @@ export function ContributionForm({
           // Handle manual payment methods
           toast.success(t('payment.contributionSubmitted'));
           onSuccess?.();
-          handleClose();
         }
       } else {
         const errorMessage = response.error || 'Failed to submit contribution';
@@ -425,64 +422,77 @@ export function ContributionForm({
         <form onSubmit={handleSubmit} className="space-y-4 pb-4">
           <div className="space-y-2">
             <Label htmlFor="mosque">
-              {t('makePaymentDialog.selectMosqueRequired')}
+              {isMosqueFixed
+                ? t('makePaymentDialog.mosqueSelected', { fallback: 'Mosque' })
+                : t('makePaymentDialog.selectMosqueRequired')}
             </Label>
-            <Select
-              value={selectedMosqueId}
-              onValueChange={setSelectedMosqueId}
-              disabled={loading}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={
-                    loading
-                      ? t('makePaymentDialog.loadingMosques')
-                      : t('makePaymentDialog.chooseMosque')
-                  }
-                >
-                  {selectedMosqueId && (
-                    <span>
-                      {
-                        availableMosques.find((m) => m.id === selectedMosqueId)
-                          ?.name
-                      }
-                    </span>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {loading ? (
-                  <SelectItem value="loading" disabled>
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                      {t('makePaymentDialog.loadingMosques')}
-                    </div>
-                  </SelectItem>
-                ) : availableMosques.length === 0 ? (
-                  <SelectItem value="no-mosques" disabled>
-                    {t('makePaymentDialog.noMosquesAvailable')}
-                  </SelectItem>
-                ) : (
-                  availableMosques.map((mosque) => (
-                    <SelectItem key={mosque.id} value={mosque.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{mosque.name}</span>
-                        {mosque.address && (
-                          <span className="text-xs text-muted-foreground">
-                            {mosque.address}
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {loading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('makePaymentDialog.loadingMosques')}
+            {isMosqueFixed ? (
+              <div className="w-full p-3 rounded-md border bg-muted/50 text-sm">
+                {
+                  availableMosques.find((m) => m.id === selectedMosqueId)?.name ||
+                  t('makePaymentDialog.thisMosque', { fallback: 'This mosque' })
+                }
               </div>
+            ) : (
+              <>
+                <Select
+                  value={selectedMosqueId}
+                  onValueChange={setSelectedMosqueId}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={
+                        loading
+                          ? t('makePaymentDialog.loadingMosques')
+                          : t('makePaymentDialog.chooseMosque')
+                      }
+                    >
+                      {selectedMosqueId && (
+                        <span>
+                          {
+                            availableMosques.find((m) => m.id === selectedMosqueId)
+                              ?.name
+                          }
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                          {t('makePaymentDialog.loadingMosques')}
+                        </div>
+                      </SelectItem>
+                    ) : availableMosques.length === 0 ? (
+                      <SelectItem value="no-mosques" disabled>
+                        {t('makePaymentDialog.noMosquesAvailable')}
+                      </SelectItem>
+                    ) : (
+                      availableMosques.map((mosque) => (
+                        <SelectItem key={mosque.id} value={mosque.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{mosque.name}</span>
+                            {mosque.address && (
+                              <span className="text-xs text-muted-foreground">
+                                {mosque.address}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {loading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('makePaymentDialog.loadingMosques')}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

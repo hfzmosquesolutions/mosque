@@ -13,7 +13,7 @@ import {
   getLegacyRecordStats,
 } from '@/lib/api/legacy-records';
 import { getKariahMemberships } from '@/lib/api/kariah-memberships';
-import { getContributionPrograms, createContribution } from '@/lib/api';
+import { getKhairatPrograms, createKhairatContribution } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -536,7 +536,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const loadContributionPrograms = async () => {
     setLoadingPrograms(true);
     try {
-      const data = await getContributionPrograms(mosqueId);
+      const data = await getKhairatPrograms(mosqueId);
       setPrograms(data.data || []);
     } catch (error) {
       console.error('Error loading contribution programs:', error);
