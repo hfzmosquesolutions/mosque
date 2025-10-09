@@ -39,6 +39,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import {
   Search,
@@ -460,53 +461,33 @@ export function KariahMembershipManagement({
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('totalMembers')}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('totalMembers')}
+            value={stats.total}
+            icon={Users}
+            {...StatsCardColors.slate}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('active')}</CardTitle>
-              <UserCheck className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.active}
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('active')}
+            value={stats.active}
+            icon={UserCheck}
+            {...StatsCardColors.emerald}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('inactive')}</CardTitle>
-              <Users className="h-4 w-4 text-gray-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600">
-                {stats.inactive}
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('inactive')}
+            value={stats.inactive}
+            icon={Users}
+            {...StatsCardColors.slate}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t('suspended')}</CardTitle>
-              <UserX className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {stats.suspended}
-              </div>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('suspended')}
+            value={stats.suspended}
+            icon={UserX}
+            {...StatsCardColors.red}
+          />
         </div>
       )}
 

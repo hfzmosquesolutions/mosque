@@ -383,7 +383,7 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
     <div className="space-y-6">
       {/* Standardized header (match payments tab) */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between px-6">
+        <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {t('title')}
@@ -413,23 +413,19 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
       {/* Filters removed to standardize with payments table */}
 
       {/* Claims Table */}
-      <Card className="border-0 shadow-md">
-        <CardContent>
-          {filteredClaims.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-muted-foreground">{t('noClaimsFound')}</p>
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredClaims as any}
-              searchKey="title"
-              searchPlaceholder={t('searchPlaceholder')}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {filteredClaims.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-muted-foreground">{t('noClaimsFound')}</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredClaims as any}
+          searchKey="title"
+          searchPlaceholder={t('searchPlaceholder')}
+        />
+      )}
 
       {/* Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>

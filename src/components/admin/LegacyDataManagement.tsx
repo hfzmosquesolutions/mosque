@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import {
   Search,
@@ -845,60 +846,33 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('stats.totalRecords')}
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_records}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.matched_records} matched, {stats.unmatched_records}{' '}
-                unmatched
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('stats.totalRecords')}
+            value={stats.total_records}
+            subtitle={`${stats.matched_records} matched, ${stats.unmatched_records} unmatched`}
+            icon={FileText}
+            {...StatsCardColors.slate}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('stats.totalAmount')}
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(stats.total_amount)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {formatCurrency(stats.matched_amount)} matched
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('stats.totalAmount')}
+            value={formatCurrency(stats.total_amount)}
+            subtitle={`${formatCurrency(stats.matched_amount)} matched`}
+            icon={DollarSign}
+            {...StatsCardColors.emerald}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('stats.matchRate')}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.total_records > 0
-                  ? Math.round(
-                      (stats.matched_records / stats.total_records) * 100
-                    )
-                  : 0}
-                %
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.matched_records} of {stats.total_records} records
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('stats.matchRate')}
+            value={`${stats.total_records > 0
+              ? Math.round(
+                  (stats.matched_records / stats.total_records) * 100
+                )
+              : 0}%`}
+            subtitle={`${stats.matched_records} of ${stats.total_records} records`}
+            icon={Users}
+            {...StatsCardColors.blue}
+          />
         </div>
       )}
 

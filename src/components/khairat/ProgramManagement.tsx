@@ -27,6 +27,10 @@ import {
   Eye,
   MoreHorizontal,
   FileText,
+  CreditCard,
+  AlertCircle,
+  CheckCircle,
+  ExternalLink,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,6 +54,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { checkMosquePaymentGateway, getPaymentGatewaySetupMessage, type PaymentGatewayStatus } from '@/lib/payments/payment-gateway-check';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ProgramManagementProps {
   onProgramSelect?: (program: KhairatProgram) => void;
@@ -89,6 +95,11 @@ export function ProgramManagement({
     useState<KhairatProgram | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Payment gateway state
+  const [paymentGatewayStatus, setPaymentGatewayStatus] = useState<PaymentGatewayStatus | null>(null);
+  const [checkingPaymentGateway, setCheckingPaymentGateway] = useState(false);
+  const [showPaymentGatewayDialog, setShowPaymentGatewayDialog] = useState(false);
+
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -97,6 +108,23 @@ export function ProgramManagement({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   // Program type selection removed; this modal creates Khairat programs only
+  const checkPaymentGateway = async (mosqueId: string) => {
+    setCheckingPaymentGateway(true);
+    try {
+      const status = await checkMosquePaymentGateway(mosqueId);
+      setPaymentGatewayStatus(status);
+    } catch (error) {
+      console.error('Error checking payment gateway:', error);
+      setPaymentGatewayStatus({
+        hasActiveProvider: false,
+        providers: [],
+        needsSetup: true,
+      });
+    } finally {
+      setCheckingPaymentGateway(false);
+    }
+  };
+
   const loadUserMosque = async () => {
     if (!user) return;
 
@@ -106,6 +134,9 @@ export function ProgramManagement({
       // If user has no mosque, stop loading to avoid infinite spinner
       if (!userMosqueId) {
         setLoading(false);
+      } else {
+        // Check payment gateway status when mosque is loaded
+        await checkPaymentGateway(userMosqueId);
       }
     } catch (error) {
       console.error('Error loading user mosque:', error);
@@ -148,6 +179,12 @@ export function ProgramManagement({
 
     if (!user || !mosqueId || !name) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Check payment gateway status before creating program
+    if (paymentGatewayStatus?.needsSetup) {
+      setShowPaymentGatewayDialog(true);
       return;
     }
 
@@ -556,6 +593,40 @@ export function ProgramManagement({
                 </DialogDescription>
               </DialogHeader>
 
+              {/* Payment Gateway Status */}
+              {checkingPaymentGateway ? (
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Checking payment gateway...</span>
+                </div>
+              ) : paymentGatewayStatus && (
+                <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                  paymentGatewayStatus.hasActiveProvider 
+                    ? 'bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800' 
+                    : 'bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800'
+                }`}>
+                  {paymentGatewayStatus.hasActiveProvider ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {paymentGatewayStatus.hasActiveProvider 
+                        ? 'Payment Gateway Ready' 
+                        : 'Payment Gateway Required'
+                      }
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {paymentGatewayStatus.hasActiveProvider 
+                        ? `Online payments enabled with ${paymentGatewayStatus.providers.join(', ')}`
+                        : 'Set up payment gateway to accept online contributions'
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleCreateProgram} className="space-y-4">
                 {/* Program type removed: this modal always creates Khairat programs */}
                 <div className="space-y-2">
@@ -693,6 +764,77 @@ export function ProgramManagement({
             </CardContent>
           </Card>
         )} */}
+
+        {/* Payment Gateway Setup Dialog */}
+        <Dialog open={showPaymentGatewayDialog} onOpenChange={setShowPaymentGatewayDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment Gateway Required
+              </DialogTitle>
+              <DialogDescription>
+                To create khairat programs that accept online payments, you need to set up a payment gateway first.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Why do I need a payment gateway?</strong><br />
+                  Payment gateways allow your mosque members to contribute to khairat programs securely online. 
+                  Without one, members can only make offline payments.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-3">
+                <h4 className="font-medium">Supported Payment Providers:</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 p-3 border rounded-lg">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Billplz</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 border rounded-lg">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium">ToyyibPay</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Setup Steps:</h4>
+                <ol className="text-sm space-y-1 text-muted-foreground">
+                  <li>1. Go to Settings → Payment Gateway</li>
+                  <li>2. Choose your preferred payment provider</li>
+                  <li>3. Enter your API credentials</li>
+                  <li>4. Test the connection</li>
+                  <li>5. Activate the provider</li>
+                </ol>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowPaymentGatewayDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowPaymentGatewayDialog(false);
+                  // Navigate to settings page
+                  window.location.href = '/settings?tab=payment-settings';
+                }}
+                className="gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Go to Payment Settings
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
