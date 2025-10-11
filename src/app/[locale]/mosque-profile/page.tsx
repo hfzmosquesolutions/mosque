@@ -22,7 +22,6 @@ import {
   Eye,
   EyeOff,
   Phone,
-  Clock,
   Users,
   Calendar,
   CheckCircle,
@@ -32,6 +31,7 @@ import {
   TrendingUp,
   ExternalLink,
   Image as ImageIcon,
+  Settings,
 } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -51,8 +51,12 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { AddressForm, AddressData, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OrganizationPeopleManagement } from '@/components/admin/OrganizationPeopleManagement';
+import { ServiceManagement } from '@/components/dashboard/ServiceManagement';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -82,13 +86,6 @@ const getDefaultMosqueProfile = (): MosqueProfileData => ({
   email: '',
   website: '',
   user_id: '',
-  prayer_times: {
-    fajr: '5:30 AM',
-    dhuhr: '12:30 PM',
-    asr: '3:45 PM',
-    maghrib: '6:15 PM',
-    isha: '7:30 PM',
-  },
   settings: {
     established_year: '',
     capacity: '',
@@ -119,6 +116,7 @@ function MosqueProfileContent() {
   const { hasAdminAccess } = useAdminAccess();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<MosqueProfileData>(
     getDefaultMosqueProfile()
   );
@@ -132,6 +130,7 @@ function MosqueProfileContent() {
   const [programs, setPrograms] = useState<KhairatProgram[]>([]);
   const [programsLoading, setProgramsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
 
   const updateProfile = (
     field: keyof MosqueProfileData,
@@ -144,15 +143,6 @@ function MosqueProfileContent() {
     setProfile((prev) => ({ ...prev, addressData }));
   };
 
-  const updatePrayerTime = (prayer: string, time: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      prayer_times: {
-        ...prev.prayer_times,
-        [prayer]: time,
-      },
-    }));
-  };
 
   const loadUserMosque = useCallback(async () => {
     if (!user) return;
@@ -270,7 +260,6 @@ function MosqueProfileContent() {
         website: profile.website || undefined,
         logo_url: profile.logo_url || undefined,
         banner_url: profile.banner_url || undefined,
-        prayer_times: profile.prayer_times,
         settings: {
           ...profile.settings,
           established_year: profile.established_year,
@@ -428,9 +417,27 @@ function MosqueProfileContent() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Basic Information */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              {t('mosqueProfile.profile')}
+            </TabsTrigger>
+            <TabsTrigger value="services" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Services
+            </TabsTrigger>
+            <TabsTrigger value="organization" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              {t('mosqueProfile.organizationPeople')}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Basic Information */}
+              <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -644,40 +651,6 @@ function MosqueProfileContent() {
               </CardContent>
             </Card>
 
-            {/* Prayer Times */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  {t('mosqueProfile.prayerTimes')}
-                </CardTitle>
-                <CardDescription>
-                  {t('mosqueProfile.dailyPrayerSchedule')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(profile.prayer_times || {}).map(
-                    ([prayer, time]) => (
-                      <div key={prayer} className="space-y-2">
-                        <Label htmlFor={prayer} className="capitalize">
-                          {prayer}
-                        </Label>
-                        <Input
-                          id={prayer}
-                          value={time as string}
-                          onChange={(e) =>
-                            updatePrayerTime(prayer, e.target.value)
-                          }
-                          disabled={!isEditing}
-                          placeholder={t('mosqueProfile.prayerTimePlaceholder')}
-                        />
-                      </div>
-                    )
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Programs */}
             {FEATURES.CONTRIBUTIONS_ENABLED && (
@@ -914,8 +887,32 @@ function MosqueProfileContent() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="services" className="space-y-6">
+            {mosqueId && (
+              <ServiceManagement 
+                mosqueId={mosqueId}
+                currentServices={profile.settings?.enabled_services || []}
+                onServicesUpdate={(services) => {
+                  setProfile(prev => ({
+                    ...prev,
+                    settings: {
+                      ...prev.settings,
+                      enabled_services: services
+                    }
+                  }));
+                }}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="organization" className="space-y-6">
+            {mosqueId && <OrganizationPeopleManagement mosqueId={mosqueId} />}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -406,6 +406,9 @@ export function KhairatContributionForm({
     onClose();
   };
 
+  // Check if there are no programs available for the selected mosque
+  const hasNoPrograms = selectedMosqueId && !loadingPrograms && khairatPrograms.length === 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -419,7 +422,29 @@ export function KhairatContributionForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+        {hasNoPrograms ? (
+          <div className="space-y-4 pb-4">
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {t('makePaymentDialog.noProgramsTitle', { fallback: 'No Programs Available' })}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('makePaymentDialog.noProgramsMessage', { 
+                  fallback: 'This mosque currently has no active khairat programs. Please check back later or contact the mosque for more information.' 
+                })}
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} className="w-full">
+                {t('makePaymentDialog.close', { fallback: 'Close' })}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 pb-4">
           <div className="space-y-2">
             <Label htmlFor="mosque">
               {isMosqueFixed
@@ -785,6 +810,7 @@ export function KhairatContributionForm({
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -27,7 +27,6 @@ import {
   Globe,
   Search,
   Building,
-  Clock,
   Users,
   Star,
   Filter,
@@ -651,10 +650,6 @@ export default function MosquesPage() {
                               </CardDescription>
                             )}
                             <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{t('mosques.prayerTimes')}</span>
-                              </div>
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />
                                 <span>{t('mosques.community')}</span>

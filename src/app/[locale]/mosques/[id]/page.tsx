@@ -34,6 +34,7 @@ import {
   isUserFollowingMosque,
   getMosqueFollowerCount,
   getKhairatPrograms,
+  getOrganizationPeople,
 } from '@/lib/api';
 import { EventCard } from '@/components/events/EventCard';
 import { KhairatContributionForm } from '@/components/khairat/KhairatContributionForm';
@@ -49,6 +50,7 @@ import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
 import type { UserProfile, ClaimDocument } from '@/types/database';
 import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
+import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
 import { Mosque, Event, KhairatProgram } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
@@ -96,6 +98,8 @@ export default function MosqueProfilePage() {
   const [khairatClaimDescription, setKhairatClaimDescription] = useState('');
   const [khairatClaimDocuments, setKhairatClaimDocuments] = useState<File[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [organizationPeople, setOrganizationPeople] = useState<any[]>([]);
+  const [organizationPeopleLoading, setOrganizationPeopleLoading] = useState(false);
 
   const fetchMosqueData = useCallback(async () => {
     try {
@@ -174,6 +178,19 @@ export default function MosqueProfilePage() {
           activePrograms.length
         );
       }
+
+      // Fetch organization people (public only)
+      console.log('[PAGE] MosqueProfilePage - Fetching organization people');
+      setOrganizationPeopleLoading(true);
+      const organizationResponse = await getOrganizationPeople(mosqueId, true);
+      if (organizationResponse.success && organizationResponse.data) {
+        setOrganizationPeople(organizationResponse.data);
+        console.log(
+          '[PAGE] MosqueProfilePage - Organization people count:',
+          organizationResponse.data.length
+        );
+      }
+      setOrganizationPeopleLoading(false);
 
       // Check if user is following this mosque (only if user is logged in)
       if (user?.id) {
@@ -719,22 +736,22 @@ export default function MosqueProfilePage() {
                     </p>
                   </div>
                 )}
-                {mosque.settings?.services != null &&
-                  Array.isArray(mosque.settings.services) &&
-                  mosque.settings.services.length > 0 && (
+                {mosque.settings?.enabled_services != null &&
+                  Array.isArray(mosque.settings.enabled_services) &&
+                  mosque.settings.enabled_services.length > 0 && (
                     <div>
                       <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
                         {t('servicesPrograms')}
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {(mosque.settings.services as string[]).map(
+                        {(mosque.settings.enabled_services as string[]).map(
                           (service, index) => (
                             <Badge
                               key={index}
                               variant="secondary"
                               className="bg-emerald-50 text-emerald-700 border-emerald-200"
                             >
-                              {service}
+                              {service.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </Badge>
                           )
                         )}
@@ -762,39 +779,16 @@ export default function MosqueProfilePage() {
                 >
                   {t('programs')}
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="organization" 
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                >
+                  <Users className="h-4 w-4" />
+                  {t('organizationPeople')}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
-                {/* Prayer Times */}
-                {mosque.prayer_times && (
-                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-xl">
-                        <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
-                        {t('prayerTimes')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {Object.entries(mosque.prayer_times).map(
-                          ([prayer, time]) => (
-                            <div
-                              key={prayer}
-                              className="text-center p-3 bg-slate-50 dark:bg-slate-700/70 rounded-lg"
-                            >
-                              <div className="font-semibold text-slate-900 dark:text-white capitalize mb-1">
-                                {prayer}
-                              </div>
-                              <div className="text-sm text-slate-600 dark:text-slate-400">
-                                {String(time)}
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Active Programs Section */}
                 <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
@@ -860,16 +854,19 @@ export default function MosqueProfilePage() {
                                     </p>
                                   )}
                                 </div>
-                                <Button
+                                <ServiceAwareButton
                                   size="sm"
                                   onClick={() =>
                                     handleContributeToProgram(program.id)
                                   }
                                   className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+                                  serviceId="khairat_management"
+                                  enabledServices={mosque.settings?.enabled_services || []}
+                                  disabledMessage="Khairat contributions are not currently available for this mosque."
                                 >
                                   <CreditCard className="h-4 w-4 mr-1" />
                                   {t('contribute')}
-                                </Button>
+                                </ServiceAwareButton>
                               </div>
 
                               {/* Progress Bar */}
@@ -974,16 +971,19 @@ export default function MosqueProfilePage() {
                                 </div>
                                 {user &&
                                   !userRegistrations.includes(event.id) && (
-                                    <Button
+                                    <ServiceAwareButton
                                       size="sm"
                                       variant="outline"
                                       onClick={() =>
                                         handleRegisterForEvent(event.id)
                                       }
                                       className="ml-4"
+                                      serviceId="events_management"
+                                      enabledServices={mosque.settings?.enabled_services || []}
+                                      disabledMessage="Event registration is not currently available for this mosque."
                                     >
                                       {t('register')}
-                                    </Button>
+                                    </ServiceAwareButton>
                                   )}
                               </div>
                             </div>
@@ -1048,16 +1048,19 @@ export default function MosqueProfilePage() {
                                     </p>
                                   )}
                                 </div>
-                                <Button
+                                <ServiceAwareButton
                                   size="sm"
                                   onClick={() =>
                                     handleContributeToProgram(program.id)
                                   }
                                   className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+                                  serviceId="khairat_management"
+                                  enabledServices={mosque.settings?.enabled_services || []}
+                                  disabledMessage="Khairat contributions are not currently available for this mosque."
                                 >
                                   <CreditCard className="h-4 w-4 mr-1" />
                                   {t('contribute')}
-                                </Button>
+                                </ServiceAwareButton>
                               </div>
 
                               {/* Progress Bar */}
@@ -1114,6 +1117,89 @@ export default function MosqueProfilePage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="organization" className="space-y-6 mt-6">
+                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-xl">
+                      <Users className="h-5 w-5 mr-2 text-emerald-600" />
+                      {t('organizationPeople')}
+                    </CardTitle>
+                    <CardDescription>{t('meetOurTeam')}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {organizationPeopleLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                      </div>
+                    ) : organizationPeople.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-slate-500 dark:text-slate-400">
+                          {t('noOrganizationPeople')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {organizationPeople.map((person) => (
+                          <div
+                            key={person.id}
+                            className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
+                          >
+                            <div className="flex items-start space-x-3">
+                              {person.profile_picture_url ? (
+                                <img
+                                  src={person.profile_picture_url}
+                                  alt={person.full_name}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                  <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
+                                  {person.full_name}
+                                </h4>
+                                <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                                  {person.position}
+                                </p>
+                                {person.department && (
+                                  <p className="text-slate-500 dark:text-slate-400 text-xs">
+                                    {person.department}
+                                  </p>
+                                )}
+                                {person.bio && (
+                                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-2 line-clamp-2">
+                                    {person.bio}
+                                  </p>
+                                )}
+                                {(person.email || person.phone) && (
+                                  <div className="mt-2 space-y-1">
+                                    {person.email && (
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                        <Mail className="h-3 w-3 mr-1" />
+                                        {person.email}
+                                      </p>
+                                    )}
+                                    {person.phone && (
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                        <Phone className="h-3 w-3 mr-1" />
+                                        {person.phone}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -1127,31 +1213,124 @@ export default function MosqueProfilePage() {
                   {t('quickActions', { fallback: 'Quick Actions' })}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-3">
-                <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  onClick={() => setIsKhairatModalOpen(true)}
-                >
-                  <HandCoins className="h-4 w-4 mr-2" />
-                  {t('payKhairat')}
-                </Button>
-                <Button variant="outline" className="w-full" onClick={handleOpenKhairatClaim}>
-                  <HeartHandshake className="h-4 w-4 mr-2" />
-                  {t('submitKhairatClaim')}
-                </Button>
-                <Button variant="outline" className="w-full" onClick={handleApplyKariah} disabled={isApplyingKariah}>
-                  {isApplyingKariah ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t('submitting')}
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      {t('applyKariah')}
-                    </>
-                  )}
-                </Button>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Pay Khairat */}
+                  <div
+                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      !user?.id
+                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
+                        : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20'
+                    }`}
+                    onClick={() => {
+                      if (!user?.id) {
+                        router.push('/login');
+                        return;
+                      }
+                      setIsKhairatModalOpen(true);
+                    }}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
+                      !user?.id 
+                        ? 'bg-gray-200 dark:bg-gray-700' 
+                        : 'bg-emerald-100 dark:bg-emerald-800'
+                    }`}>
+                      <HandCoins className={`h-5 w-5 ${
+                        !user?.id 
+                          ? 'text-gray-400 dark:text-gray-500' 
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-slate-900 dark:text-white text-sm">
+                        {t('payKhairat')}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Submit Khairat Claim */}
+                  <div
+                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      !user?.id
+                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
+                        : 'border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-rose-600 dark:hover:bg-rose-900/20'
+                    }`}
+                    onClick={() => {
+                      if (!user?.id) {
+                        router.push('/login');
+                        return;
+                      }
+                      handleOpenKhairatClaim();
+                    }}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
+                      !user?.id 
+                        ? 'bg-gray-200 dark:bg-gray-700' 
+                        : 'bg-rose-100 dark:bg-rose-800'
+                    }`}>
+                      <HeartHandshake className={`h-5 w-5 ${
+                        !user?.id 
+                          ? 'text-gray-400 dark:text-gray-500' 
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-slate-900 dark:text-white text-sm">
+                        {t('submitKhairatClaim')}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Apply Kariah */}
+                  <div
+                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      !user?.id || isApplyingKariah
+                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
+                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-blue-900/20'
+                    }`}
+                    onClick={() => {
+                      if (!user?.id) {
+                        router.push('/login');
+                        return;
+                      }
+                      handleApplyKariah();
+                    }}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
+                      !user?.id || isApplyingKariah
+                        ? 'bg-gray-200 dark:bg-gray-700' 
+                        : 'bg-blue-100 dark:bg-blue-800'
+                    }`}>
+                      {isApplyingKariah ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <FileText className={`h-5 w-5 ${
+                          !user?.id 
+                            ? 'text-gray-400 dark:text-gray-500' 
+                            : 'text-blue-600 dark:text-blue-400'
+                        }`} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-slate-900 dark:text-white text-sm">
+                        {isApplyingKariah ? t('submitting') : t('applyKariah')}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+                {!user && (
+                  <div className="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                      {t('loginRequiredForActions', { fallback: 'Please log in to access these actions' })}
+                    </p>
+                    <Button
+                      onClick={() => router.push('/login')}
+                      className="w-full"
+                    >
+                      {t('signInToContinue', { fallback: 'Sign In to Continue' })}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
             {/* Contact Information */}

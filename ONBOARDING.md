@@ -9,7 +9,6 @@ The mosque management system now includes a comprehensive onboarding process tha
 ### 1. Community Member
 - **Purpose**: Regular mosque attendees and community members
 - **Access**: 
-  - Prayer times and Islamic calendar
   - Event browsing and registration
   - Donation system
   - Khairat (welfare) programs

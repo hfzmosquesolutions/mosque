@@ -15,6 +15,7 @@ import {
   Database,
   FileText,
   CreditCard,
+  UserCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -126,12 +127,14 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     });
   }
 
-  // Add billing link for all users
-  baseNavigation.push({
-    name: t('billing'),
-    href: '/billing',
-    icon: CreditCard,
-  });
+  // Add billing link only for admin users
+  if (hasAdminAccess) {
+    baseNavigation.push({
+      name: t('billing'),
+      href: '/billing',
+      icon: CreditCard,
+    });
+  }
 
   return baseNavigation;
 };

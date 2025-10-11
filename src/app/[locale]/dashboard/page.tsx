@@ -43,6 +43,8 @@ import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCoun
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
+import { AdminGettingStarted } from '@/components/dashboard/AdminGettingStarted';
 
 
 interface Contribution {
@@ -372,6 +374,15 @@ function DashboardContent() {
     );
   }
 
+  // Render different dashboards based on user role
+  if (!isAdmin) {
+    return (
+      <DashboardLayout>
+        <MemberDashboard user={user} userProfile={userProfile} />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -411,11 +422,9 @@ function DashboardContent() {
                     {t('welcome')}, {userProfile?.full_name || user?.email}
                   </h1>
                   <p className="text-white/90 text-sm sm:text-base">
-                    {userProfile?.role === 'admin' 
-                      ? mosqueName 
-                        ? `Administrator for ${mosqueName}`
-                        : t('adminRole')
-                      : t('memberRole')
+                    {mosqueName 
+                      ? `Administrator for ${mosqueName}`
+                      : t('adminRole')
                     }
                   </p>
                 </div>
@@ -481,7 +490,7 @@ function DashboardContent() {
                 </DropdownMenu>
 
                 {/* View Public Profile Button */}
-                {isAdmin && mosqueId && (
+                {mosqueId && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -504,7 +513,7 @@ function DashboardContent() {
           <StatsCard
             title={t('totalContributed')}
             value={`RM ${totalContributed.toLocaleString()}`}
-            subtitle={isAdmin ? 'Total khairat received' : 'Total khairat received'}
+            subtitle="Total khairat received"
             icon={DollarSign}
             {...StatsCardColors.emerald}
           />
@@ -512,42 +521,41 @@ function DashboardContent() {
           <StatsCard
             title={t('followers')}
             value={followerCount}
-            subtitle={isAdmin ? t('mosqueFollowers') : t('peopleFollowingYou')}
+            subtitle={t('mosqueFollowers')}
             icon={Users}
             {...StatsCardColors.blue}
           />
 
-          {!isAdmin && (
-            <StatsCard
-              title={t('myDependents')}
-              value={0} // This would need to be fetched from dependents
-              subtitle={t('familyMembersAdded')}
-              icon={Users}
-              {...StatsCardColors.orange}
-            />
-          )}
-
-          {isAdmin && (
-            <StatsCard
-              title="Kariah Members"
-              value={membershipStats?.total || 0}
-              subtitle="Registered kariah members"
-              icon={Building2}
-              {...StatsCardColors.purple}
-            />
-          )}
+          <StatsCard
+            title="Kariah Members"
+            value={membershipStats?.total || 0}
+            subtitle="Registered kariah members"
+            icon={Building2}
+            {...StatsCardColors.purple}
+          />
 
           <StatsCard
-            title={isAdmin ? t('successfulClaims') : t('recentPayments')}
-            value={isAdmin ? successfulClaimsCount : recentContributions.length}
-            subtitle={isAdmin ? 'Successful khairat claims' : t('yourLatestKhairatPayments')}
+            title={t('successfulClaims')}
+            value={successfulClaimsCount}
+            subtitle="Successful khairat claims"
             icon={TrendingUp}
             {...StatsCardColors.orange}
           />
         </div>
 
-        {/* Quick Actions */}
-        <QuickActions />
+        {/* Admin Getting Started and Quick Actions - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AdminGettingStarted 
+            mosqueId={mosqueId}
+            totalMembers={membershipStats?.total || 0}
+            totalContributions={totalContributed}
+            totalClaims={successfulClaimsCount}
+            hasMosqueProfile={!!mosqueData}
+            hasCreatedProgram={allContributions.length > 0}
+            hasPendingApplications={false} // TODO: Implement pending applications tracking
+          />
+          <QuickActions />
+        </div>
 
       </div>
     </DashboardLayout>

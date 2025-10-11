@@ -305,7 +305,6 @@ CREATE TABLE public.mosques (
   email character varying,
   website character varying,
   description text,
-  prayer_times jsonb,
   settings jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
@@ -337,6 +336,28 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT notifications_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+);
+CREATE TABLE public.organization_people (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  mosque_id uuid NOT NULL,
+  full_name character varying NOT NULL,
+  position character varying NOT NULL,
+  department character varying,
+  email character varying,
+  phone character varying,
+  address text,
+  bio text,
+  profile_picture_url text,
+  is_public boolean DEFAULT true,
+  is_active boolean DEFAULT true,
+  start_date date,
+  end_date date,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_people_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_people_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT organization_people_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.resource_categories (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

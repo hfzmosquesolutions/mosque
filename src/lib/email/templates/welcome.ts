@@ -158,7 +158,7 @@ export function generateWelcomeEmailTemplate({
           <li>Stay updated with mosque events and announcements</li>
           <li>Make secure donations and contributions</li>
           <li>Connect with other community members</li>
-          <li>Access prayer times and Islamic resources</li>
+          <li>Access Islamic resources and educational materials</li>
           <li>Manage your family and dependents</li>
           <li>Receive important notifications</li>
         </ul>

@@ -22,7 +22,6 @@ export const STRIPE_CONFIG = {
       price: 0,
       features: [
         'Basic mosque profile',
-        'Prayer times management',
         'Basic events (5/month)',
         'Basic announcements',
         'Community member registration',

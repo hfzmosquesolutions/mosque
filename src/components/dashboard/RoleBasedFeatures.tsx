@@ -41,12 +41,6 @@ interface FeatureCard {
 }
 
 const memberFeatures: FeatureCard[] = [
-  {
-    title: 'Prayer Times',
-    description: 'View daily prayer times and Islamic calendar',
-    icon: <BookOpen className="h-5 w-5" />,
-    href: '/prayer-times',
-  },
   // Events is hidden via feature flag
   ...(FEATURES.EVENTS_ENABLED
     ? [{

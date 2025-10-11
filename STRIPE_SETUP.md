@@ -91,7 +91,6 @@ psql -h your-db-host -U your-username -d your-database -f supabase/migrations/20
 
 ### Free Tier
 - Basic mosque profile
-- Prayer times management
 - Basic events (5/month)
 - Basic announcements
 - Community member registration

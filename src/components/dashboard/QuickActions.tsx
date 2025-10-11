@@ -87,6 +87,17 @@ export function QuickActions() {
       iconColor: 'text-purple-600 dark:text-purple-400',
     },
     {
+      id: 'organization-people',
+      title: 'Manage Organization People',
+      description: 'Add and manage mosque staff, board members, and volunteers',
+      icon: Users,
+      href: '/mosque-profile?tab=organization',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      isNew: true,
+    },
+    {
       id: 'analytics',
       title: 'View Analytics',
       description: 'Track performance and insights',
@@ -98,7 +109,7 @@ export function QuickActions() {
     },
     {
       id: 'settings',
-      title: 'Mosque Settings',
+      title: 'Account Settings',
       description: 'Configure payment and notification settings',
       icon: Settings,
       href: '/settings',
@@ -176,9 +187,9 @@ export function QuickActions() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Clock className="h-4 w-4 text-blue-600" />
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Clock className="h-5 w-5 text-blue-600" />
           Quick Actions
         </CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -189,69 +200,47 @@ export function QuickActions() {
         </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {actions.map((action) => {
             const IconComponent = action.icon;
             return (
               <Link key={action.id} href={action.href}>
                 <div
-                  className={`group relative p-4 rounded-lg border transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${action.bgColor} border-transparent hover:border-current/20`}
+                  className={`group relative p-4 rounded-xl border transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${action.bgColor} border-transparent hover:border-current/30 text-center cursor-pointer`}
                 >
                   {/* New badge */}
                   {action.isNew && (
                     <Badge 
                       variant="secondary" 
-                      className="absolute -top-2 -right-2 text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      className="absolute -top-2 -right-2 text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 shadow-sm"
                     >
                       New
                     </Badge>
                   )}
                   
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${action.bgColor}`}>
-                      <IconComponent className={`h-5 w-5 ${action.iconColor}`} />
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={`p-3 rounded-xl ${action.bgColor} shadow-sm`}>
+                      <IconComponent className={`h-6 w-6 ${action.iconColor}`} />
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-gray-700 dark:group-hover:text-gray-300">
-                          {action.title}
-                        </h4>
-                        {action.badge && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs px-2 py-0 ${action.badgeColor}`}
-                          >
-                            {action.badge}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                        {action.description}
-                      </p>
-                      <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
-                        <span>Take action</span>
-                        <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
+                      <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-gray-700 dark:group-hover:text-gray-300 leading-tight mb-1">
+                        {action.title}
+                      </h4>
+                      {action.badge && (
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs px-2 py-1 ${action.badgeColor} shadow-sm`}
+                        >
+                          {action.badge}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
               </Link>
             );
           })}
-        </div>
-        
-        {/* Additional quick stats or tips */}
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span>
-              {isAdmin 
-                ? 'Keep your mosque profile updated to help community members find you'
-                : 'Complete your profile to get the most out of the platform'
-              }
-            </span>
-          </div>
         </div>
       </CardContent>
     </Card>

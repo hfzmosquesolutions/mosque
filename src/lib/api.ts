@@ -32,6 +32,57 @@ import {
   ClaimStatus
 } from '@/types/database';
 
+// Organization People types
+export interface OrganizationPerson {
+  id: string;
+  mosque_id: string;
+  full_name: string;
+  position: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  profile_picture_url?: string;
+  is_public: boolean;
+  is_active: boolean;
+  start_date?: string;
+  end_date?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateOrganizationPerson {
+  mosque_id: string;
+  full_name: string;
+  position: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  profile_picture_url?: string;
+  is_public?: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface UpdateOrganizationPerson {
+  full_name?: string;
+  position?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  profile_picture_url?: string;
+  is_public?: boolean;
+  is_active?: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+
 // =============================================
 // USER PROFILE OPERATIONS
 // =============================================
@@ -332,6 +383,52 @@ export async function updateMosque(
   } catch (error) {
     console.error('[API] updateMosque - Catch error:', error);
     return { success: false, error: 'Failed to update mosque' };
+  }
+}
+
+/**
+ * Update mosque settings (including enabled services)
+ */
+export async function updateMosqueSettings(
+  mosqueId: string,
+  settings: Record<string, any>
+): Promise<ApiResponse<Mosque>> {
+  try {
+    console.log('[API] updateMosqueSettings - Starting request for mosqueId:', mosqueId);
+    
+    // First get the current mosque to merge settings
+    const { data: currentMosque, error: fetchError } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (fetchError) {
+      console.error('[API] updateMosqueSettings - Error fetching current mosque:', fetchError);
+      return { success: false, error: fetchError.message };
+    }
+
+    // Merge new settings with existing settings
+    const currentSettings = currentMosque?.settings || {};
+    const updatedSettings = { ...currentSettings, ...settings };
+
+    const { data, error } = await supabase
+      .from('mosques')
+      .update({ settings: updatedSettings })
+      .eq('id', mosqueId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[API] updateMosqueSettings - Supabase error:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('[API] updateMosqueSettings - Success:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('[API] updateMosqueSettings - Catch error:', error);
+    return { success: false, error: 'Failed to update mosque settings' };
   }
 }
 
@@ -2100,5 +2197,156 @@ export async function deleteClaimDocument(
   } catch (error) {
     console.error('Error deleting claim document:', error);
     return { success: false, error: 'Failed to delete document' };
+  }
+}
+
+// =============================================
+// ORGANIZATION PEOPLE OPERATIONS
+// =============================================
+
+/**
+ * Get organization people for a mosque
+ */
+export async function getOrganizationPeople(
+  mosqueId: string,
+  isPublic = false
+): Promise<ApiResponse<OrganizationPerson[]>> {
+  try {
+    const response = await fetch(`/api/organization-people?mosque_id=${mosqueId}&public=${isPublic}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to fetch organization people' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error fetching organization people:', error);
+    return { success: false, error: 'Failed to fetch organization people' };
+  }
+}
+
+/**
+ * Get a specific organization person
+ */
+export async function getOrganizationPerson(
+  id: string
+): Promise<ApiResponse<OrganizationPerson>> {
+  try {
+    const response = await fetch(`/api/organization-people/${id}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to fetch organization person' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error fetching organization person:', error);
+    return { success: false, error: 'Failed to fetch organization person' };
+  }
+}
+
+/**
+ * Create a new organization person
+ */
+export async function createOrganizationPerson(
+  data: CreateOrganizationPerson
+): Promise<ApiResponse<OrganizationPerson>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const response = await fetch('/api/organization-people', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to create organization person' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error creating organization person:', error);
+    return { success: false, error: 'Failed to create organization person' };
+  }
+}
+
+/**
+ * Update an organization person
+ */
+export async function updateOrganizationPerson(
+  id: string,
+  data: UpdateOrganizationPerson
+): Promise<ApiResponse<OrganizationPerson>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const response = await fetch(`/api/organization-people/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to update organization person' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error updating organization person:', error);
+    return { success: false, error: 'Failed to update organization person' };
+  }
+}
+
+/**
+ * Delete an organization person
+ */
+export async function deleteOrganizationPerson(
+  id: string
+): Promise<ApiResponse<{ success: true }>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const response = await fetch(`/api/organization-people/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to delete organization person' };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    console.error('Error deleting organization person:', error);
+    return { success: false, error: 'Failed to delete organization person' };
   }
 }
