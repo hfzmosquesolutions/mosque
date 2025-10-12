@@ -55,6 +55,7 @@ import { useTranslations } from 'next-intl';
 
 interface KhairatTabContentProps {
   programs: KhairatProgram[];
+  showHeader?: boolean;
 }
 
 type ContributionStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
@@ -65,6 +66,7 @@ interface ContributionWithProgram extends KhairatContribution {
 
 export function KhairatTabContent({
   programs,
+  showHeader = true,
 }: KhairatTabContentProps) {
   const { user } = useAuth();
   const t = useTranslations('khairat');
@@ -502,34 +504,36 @@ export function KhairatTabContent({
   return (
     <div className="space-y-8">
       {/* Enhanced Header */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {t('paymentsManagement')}
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              {t('viewAndManageAllPayments')}
-            </p>
+      {showHeader && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {t('paymentsManagement')}
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                {t('viewAndManageAllPayments')}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-sm">
+                {filteredContributions.length} records
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="hover:bg-emerald-50 hover:border-emerald-200"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-sm">
-              {filteredContributions.length} records
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportCSV}
-              className="hover:bg-emerald-50 hover:border-emerald-200"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
-            </Button>
-          </div>
-        </div>
 
-        {/* Summary cards removed to standardize with overview-only display */}
-      </div>
+          {/* Summary cards removed to standardize with overview-only display */}
+        </div>
+      )}
 
       {/* Pending Cash Payments Notice */}
       {pendingCashPayments.length > 0 && (

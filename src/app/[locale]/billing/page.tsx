@@ -31,22 +31,7 @@ function BillingContent() {
   const { isAdmin } = useUserRole();
   const { isCompleted, isLoading } = useOnboardingRedirect();
   
-  // Redirect non-admin users
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            This page is only available to mosque administrators.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  
+  // All hooks must be called before any conditional returns
   const [subscription, setSubscription] = useState<MosqueSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
@@ -72,6 +57,22 @@ function BillingContent() {
       fetchSubscription();
     }
   }, [mosqueId, isCompleted, isLoading]);
+  
+  // Redirect non-admin users
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Access Denied
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            This page is only available to mosque administrators.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
     if (!mosqueId || plan === 'free') return;
@@ -192,13 +193,12 @@ function BillingContent() {
           </AlertDescription>
         </Alert>
       )}
+      
+      {/* Header with Title */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-3xl font-bold tracking-tight">
           {t('pageTitle')}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          {t('pageSubtitle')}
-        </p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -226,21 +226,33 @@ function BillingContent() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('tabs.overview')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                View your current subscription status and billing information
+              </p>
+            </div>
+          </div>
           <SubscriptionStatus 
             mosqueId={mosqueId || ''} 
             onManageBilling={handleManageBilling}
           />
         </TabsContent>
 
-        <TabsContent value="plans" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {t('choosePlanTitle')}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              {t('choosePlanSubtitle')}
-            </p>
+        <TabsContent value="plans" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('tabs.plans')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('choosePlanSubtitle')}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -271,7 +283,17 @@ function BillingContent() {
           </div>
         </TabsContent>
 
-        <TabsContent value="invoices" className="space-y-6">
+        <TabsContent value="invoices" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('tabs.invoices')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                View and manage your billing history and invoices
+              </p>
+            </div>
+          </div>
           <SubscriptionStatus 
             mosqueId={mosqueId || ''} 
             onManageBilling={handleManageBilling}

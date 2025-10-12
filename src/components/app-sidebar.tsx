@@ -225,7 +225,7 @@ export function AppSidebar() {
                   ))
                 : navigation.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const isActive = pathname.includes(item.href);
 
                     return (
                       <SidebarMenuItem key={item.name}>
@@ -233,6 +233,7 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive}
                           tooltip={item.name}
+                          className={isActive ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
                         >
                           <Link href={item.href}>
                             <span className="flex items-center gap-2">
@@ -267,8 +268,9 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === '/settings'}
+                    isActive={pathname.includes('/settings')}
                     tooltip="Settings"
+                    className={pathname.includes('/settings') ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
                   >
                     <Link href="/settings">
                       <span className="flex items-center gap-2">

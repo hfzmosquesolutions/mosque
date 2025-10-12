@@ -773,12 +773,14 @@ export default function MosqueProfilePage() {
                 >
                   {t('overview')}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="programs" 
-                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                >
-                  {t('programs')}
-                </TabsTrigger>
+                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
+                  <TabsTrigger 
+                    value="programs" 
+                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                  >
+                    {t('programs')}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger 
                   value="organization" 
                   className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
@@ -791,137 +793,139 @@ export default function MosqueProfilePage() {
               <TabsContent value="overview" className="space-y-6 mt-6">
 
                 {/* Active Programs Section */}
-                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-xl">
-                      <div className="flex items-center">
-                        <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                        {t('activePrograms')}
-                      </div>
-                      {contributionPrograms.length > 3 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setActiveTab('programs')}
-                        >
-                          {t('viewAllPrograms')}
-                        </Button>
-                      )}
-                    </CardTitle>
-                    <CardDescription>{t('supportPrograms')}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {contributionPrograms.length === 0 ? (
-                      <div className="text-center py-8">
-                        <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                          {t('noActivePrograms')}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {contributionPrograms.slice(0, 3).map((program) => {
-                          const progressPercentage = program.target_amount
-                            ? Math.min(
-                                ((program.current_amount || 0) /
-                                  program.target_amount) *
-                                  100,
-                                100
-                              )
-                            : 0;
+                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
+                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between text-xl">
+                        <div className="flex items-center">
+                          <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
+                          {t('activePrograms')}
+                        </div>
+                        {contributionPrograms.length > 3 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setActiveTab('programs')}
+                          >
+                            {t('viewAllPrograms')}
+                          </Button>
+                        )}
+                      </CardTitle>
+                      <CardDescription>{t('supportPrograms')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {contributionPrograms.length === 0 ? (
+                        <div className="text-center py-8">
+                          <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-slate-500 dark:text-slate-400">
+                            {t('noActivePrograms')}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {contributionPrograms.slice(0, 3).map((program) => {
+                            const progressPercentage = program.target_amount
+                              ? Math.min(
+                                  ((program.current_amount || 0) /
+                                    program.target_amount) *
+                                    100,
+                                  100
+                                )
+                              : 0;
 
-                          return (
-                            <div
-                              key={program.id}
-                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                            >
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-slate-900 dark:text-white">
-                                      {program.name}
-                                    </h4>
-                                    <Badge
-                                      variant="secondary"
-                                      className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
-                                    >
-                                      Khairat
-                                    </Badge>
+                            return (
+                              <div
+                                key={program.id}
+                                className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
+                              >
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-semibold text-slate-900 dark:text-white">
+                                        {program.name}
+                                      </h4>
+                                      <Badge
+                                        variant="secondary"
+                                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                                      >
+                                        Khairat
+                                      </Badge>
+                                    </div>
+                                    {program.description && (
+                                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                        {program.description}
+                                      </p>
+                                    )}
                                   </div>
-                                  {program.description && (
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                      {program.description}
-                                    </p>
-                                  )}
+                                  <ServiceAwareButton
+                                    size="sm"
+                                    onClick={() =>
+                                      handleContributeToProgram(program.id)
+                                    }
+                                    className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+                                    serviceId="khairat_management"
+                                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                                    disabledMessage="Khairat contributions are not currently available for this mosque."
+                                  >
+                                    <CreditCard className="h-4 w-4 mr-1" />
+                                    {t('contribute')}
+                                  </ServiceAwareButton>
                                 </div>
-                                <ServiceAwareButton
-                                  size="sm"
-                                  onClick={() =>
-                                    handleContributeToProgram(program.id)
-                                  }
-                                  className="ml-4 bg-emerald-600 hover:bg-emerald-700"
-                                  serviceId="khairat_management"
-                                  enabledServices={mosque.settings?.enabled_services || []}
-                                  disabledMessage="Khairat contributions are not currently available for this mosque."
-                                >
-                                  <CreditCard className="h-4 w-4 mr-1" />
-                                  {t('contribute')}
-                                </ServiceAwareButton>
-                              </div>
 
-                              {/* Progress Bar */}
-                              {program.target_amount && (
-                                <div className="space-y-2">
+                                {/* Progress Bar */}
+                                {program.target_amount && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-slate-600 dark:text-slate-400">
+                                        {t('progress')}
+                                      </span>
+                                      <span className="font-medium text-slate-900 dark:text-white">
+                                        RM{' '}
+                                        {(
+                                          program.current_amount || 0
+                                        ).toLocaleString()}{' '}
+                                        / RM{' '}
+                                        {program.target_amount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                      <div
+                                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${progressPercentage}%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                      {t('completed', {
+                                        percentage: progressPercentage.toFixed(1),
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Ongoing program without target */}
+                                {!program.target_amount && (
                                   <div className="flex items-center justify-between text-sm">
                                     <span className="text-slate-600 dark:text-slate-400">
-                                      {t('progress')}
+                                      {t('totalRaised')}
                                     </span>
-                                    <span className="font-medium text-slate-900 dark:text-white">
+                                    <span className="font-medium text-emerald-600">
                                       RM{' '}
                                       {(
                                         program.current_amount || 0
-                                      ).toLocaleString()}{' '}
-                                      / RM{' '}
-                                      {program.target_amount.toLocaleString()}
+                                      ).toLocaleString()}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                    <div
-                                      className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                      style={{
-                                        width: `${progressPercentage}%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    {t('completed', {
-                                      percentage: progressPercentage.toFixed(1),
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Ongoing program without target */}
-                              {!program.target_amount && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-slate-600 dark:text-slate-400">
-                                    {t('totalRaised')}
-                                  </span>
-                                  <span className="font-medium text-emerald-600">
-                                    RM{' '}
-                                    {(
-                                      program.current_amount || 0
-                                    ).toLocaleString()}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Events Section */}
                 {RUNTIME_FEATURES.EVENTS_VISIBLE && (
@@ -979,7 +983,7 @@ export default function MosqueProfilePage() {
                                       }
                                       className="ml-4"
                                       serviceId="events_management"
-                                      enabledServices={mosque.settings?.enabled_services || []}
+                                      enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
                                       disabledMessage="Event registration is not currently available for this mosque."
                                     >
                                       {t('register')}
@@ -995,128 +999,130 @@ export default function MosqueProfilePage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="programs" className="space-y-6 mt-6">
-                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-xl">
-                      <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                      {t('allPrograms')}
-                    </CardTitle>
-                    <CardDescription>{t('supportPrograms')}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {contributionPrograms.length === 0 ? (
-                      <div className="text-center py-8">
-                        <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                          {t('noActivePrograms')}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {contributionPrograms.map((program) => {
-                          const progressPercentage = program.target_amount
-                            ? Math.min(
-                                ((program.current_amount || 0) /
-                                  program.target_amount) *
-                                  100,
-                                100
-                              )
-                            : 0;
+              {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
+                <TabsContent value="programs" className="space-y-6 mt-6">
+                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-xl">
+                        <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
+                        {t('allPrograms')}
+                      </CardTitle>
+                      <CardDescription>{t('supportPrograms')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {contributionPrograms.length === 0 ? (
+                        <div className="text-center py-8">
+                          <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-slate-500 dark:text-slate-400">
+                            {t('noActivePrograms')}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {contributionPrograms.map((program) => {
+                            const progressPercentage = program.target_amount
+                              ? Math.min(
+                                  ((program.current_amount || 0) /
+                                    program.target_amount) *
+                                    100,
+                                  100
+                                )
+                              : 0;
 
-                          return (
-                            <div
-                              key={program.id}
-                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                            >
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="font-semibold text-slate-900 dark:text-white">
-                                      {program.name}
-                                    </h4>
-                                    <Badge
-                                      variant="secondary"
-                                      className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
-                                    >
-                                      Khairat
-                                    </Badge>
+                            return (
+                              <div
+                                key={program.id}
+                                className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
+                              >
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-semibold text-slate-900 dark:text-white">
+                                        {program.name}
+                                      </h4>
+                                      <Badge
+                                        variant="secondary"
+                                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                                      >
+                                        Khairat
+                                      </Badge>
+                                    </div>
+                                    {program.description && (
+                                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                        {program.description}
+                                      </p>
+                                    )}
                                   </div>
-                                  {program.description && (
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                      {program.description}
-                                    </p>
-                                  )}
+                                  <ServiceAwareButton
+                                    size="sm"
+                                    onClick={() =>
+                                      handleContributeToProgram(program.id)
+                                    }
+                                    className="ml-4 bg-emerald-600 hover:bg-emerald-700"
+                                    serviceId="khairat_management"
+                                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                                    disabledMessage="Khairat contributions are not currently available for this mosque."
+                                  >
+                                    <CreditCard className="h-4 w-4 mr-1" />
+                                    {t('contribute')}
+                                  </ServiceAwareButton>
                                 </div>
-                                <ServiceAwareButton
-                                  size="sm"
-                                  onClick={() =>
-                                    handleContributeToProgram(program.id)
-                                  }
-                                  className="ml-4 bg-emerald-600 hover:bg-emerald-700"
-                                  serviceId="khairat_management"
-                                  enabledServices={mosque.settings?.enabled_services || []}
-                                  disabledMessage="Khairat contributions are not currently available for this mosque."
-                                >
-                                  <CreditCard className="h-4 w-4 mr-1" />
-                                  {t('contribute')}
-                                </ServiceAwareButton>
-                              </div>
 
-                              {/* Progress Bar */}
-                              {program.target_amount && (
-                                <div className="space-y-2">
+                                {/* Progress Bar */}
+                                {program.target_amount && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-slate-600 dark:text-slate-400">
+                                        {t('progress')}
+                                      </span>
+                                      <span className="font-medium text-slate-900 dark:text-white">
+                                        RM{' '}
+                                        {(
+                                          program.current_amount || 0
+                                        ).toLocaleString()}{' '}
+                                        / RM{' '}
+                                        {program.target_amount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                      <div
+                                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${progressPercentage}%`,
+                                        }}
+                                      ></div>
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                      {t('completed', {
+                                        percentage: progressPercentage.toFixed(1),
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Ongoing program without target */}
+                                {!program.target_amount && (
                                   <div className="flex items-center justify-between text-sm">
                                     <span className="text-slate-600 dark:text-slate-400">
-                                      {t('progress')}
+                                      {t('totalRaised')}
                                     </span>
-                                    <span className="font-medium text-slate-900 dark:text-white">
+                                    <span className="font-medium text-emerald-600">
                                       RM{' '}
                                       {(
                                         program.current_amount || 0
-                                      ).toLocaleString()}{' '}
-                                      / RM{' '}
-                                      {program.target_amount.toLocaleString()}
+                                      ).toLocaleString()}
                                     </span>
                                   </div>
-                                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                    <div
-                                      className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                      style={{
-                                        width: `${progressPercentage}%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    {t('completed', {
-                                      percentage: progressPercentage.toFixed(1),
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Ongoing program without target */}
-                              {!program.target_amount && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-slate-600 dark:text-slate-400">
-                                    {t('totalRaised')}
-                                  </span>
-                                  <span className="font-medium text-emerald-600">
-                                    RM{' '}
-                                    {(
-                                      program.current_amount || 0
-                                    ).toLocaleString()}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
 
               <TabsContent value="organization" className="space-y-6 mt-6">
                 <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
@@ -1216,12 +1222,12 @@ export default function MosqueProfilePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-2">
                   {/* Pay Khairat */}
-                  <div
-                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      !user?.id
-                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
-                        : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20'
-                    }`}
+                  <ServiceAwareButton
+                    serviceId="khairat_management"
+                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                    disabledMessage="Khairat payments are not currently available for this mosque."
+                    className="w-full justify-start p-3 h-auto"
+                    variant="ghost"
                     onClick={() => {
                       if (!user?.id) {
                         router.push('/login');
@@ -1241,20 +1247,20 @@ export default function MosqueProfilePage() {
                           : 'text-emerald-600 dark:text-emerald-400'
                       }`} />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <h3 className="font-medium text-slate-900 dark:text-white text-sm">
                         {t('payKhairat')}
                       </h3>
                     </div>
-                  </div>
+                  </ServiceAwareButton>
 
                   {/* Submit Khairat Claim */}
-                  <div
-                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      !user?.id
-                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
-                        : 'border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-rose-600 dark:hover:bg-rose-900/20'
-                    }`}
+                  <ServiceAwareButton
+                    serviceId="khairat_management"
+                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                    disabledMessage="Khairat claims are not currently available for this mosque."
+                    className="w-full justify-start p-3 h-auto"
+                    variant="ghost"
                     onClick={() => {
                       if (!user?.id) {
                         router.push('/login');
@@ -1274,20 +1280,20 @@ export default function MosqueProfilePage() {
                           : 'text-rose-600 dark:text-rose-400'
                       }`} />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <h3 className="font-medium text-slate-900 dark:text-white text-sm">
                         {t('submitKhairatClaim')}
                       </h3>
                     </div>
-                  </div>
+                  </ServiceAwareButton>
 
                   {/* Apply Kariah */}
-                  <div
-                    className={`flex items-center p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      !user?.id || isApplyingKariah
-                        ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 cursor-not-allowed opacity-60'
-                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-blue-900/20'
-                    }`}
+                  <ServiceAwareButton
+                    serviceId="kariah_management"
+                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                    disabledMessage="Kariah applications are not currently available for this mosque."
+                    className="w-full justify-start p-3 h-auto"
+                    variant="ghost"
                     onClick={() => {
                       if (!user?.id) {
                         router.push('/login');
@@ -1311,12 +1317,12 @@ export default function MosqueProfilePage() {
                         }`} />
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <h3 className="font-medium text-slate-900 dark:text-white text-sm">
                         {isApplyingKariah ? t('submitting') : t('applyKariah')}
                       </h3>
                     </div>
-                  </div>
+                  </ServiceAwareButton>
                 </div>
                 {!user && (
                   <div className="text-center pt-4 border-t border-slate-200 dark:border-slate-700">

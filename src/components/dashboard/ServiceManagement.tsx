@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +9,7 @@ import {
   Settings, 
   HandHeart, 
   Users, 
-  Calendar, 
-  Banknote, 
-  Building2, 
-  FileText,
+  Banknote,
   CheckCircle,
   XCircle,
   Info
@@ -39,22 +35,6 @@ interface ServiceManagementProps {
 
 const AVAILABLE_SERVICES: Service[] = [
   {
-    id: 'daily_prayers',
-    name: 'Daily Prayers',
-    description: 'Enable daily prayer times and announcements',
-    icon: Calendar,
-    enabled: true,
-    category: 'core'
-  },
-  {
-    id: 'friday_prayers',
-    name: 'Friday Prayers (Jumuah)',
-    description: 'Enable Friday prayer services and announcements',
-    icon: Calendar,
-    enabled: true,
-    category: 'core'
-  },
-  {
     id: 'khairat_management',
     name: 'Khairat Management',
     description: 'Enable welfare assistance programs and contributions',
@@ -69,51 +49,15 @@ const AVAILABLE_SERVICES: Service[] = [
     icon: Users,
     enabled: false,
     category: 'management'
-  },
-  {
-    id: 'events_management',
-    name: 'Events Management',
-    description: 'Enable community events and programs',
-    icon: Calendar,
-    enabled: false,
-    category: 'community'
-  },
-  {
-    id: 'donations',
-    name: 'Donations & Infaq',
-    description: 'Enable donation collection and tracking',
-    icon: Banknote,
-    enabled: false,
-    category: 'financial'
-  },
-  {
-    id: 'announcements',
-    name: 'Announcements',
-    description: 'Enable community announcements and notifications',
-    icon: FileText,
-    enabled: false,
-    category: 'community'
-  },
-  {
-    id: 'mosque_profile',
-    name: 'Public Profile',
-    description: 'Enable public mosque profile visibility',
-    icon: Building2,
-    enabled: true,
-    category: 'core'
   }
 ];
 
 const CATEGORY_LABELS = {
-  core: 'Core Services',
-  community: 'Community Services',
   financial: 'Financial Services',
   management: 'Management Services'
 };
 
 const CATEGORY_ICONS = {
-  core: CheckCircle,
-  community: Users,
   financial: Banknote,
   management: Settings
 };
@@ -205,24 +149,20 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Service Management
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Enable or disable services for your mosque. Disabled services will not be visible on your public profile.
-            </p>
-          </div>
-          <Badge variant="outline" className="text-sm">
-            {getTotalEnabledCount()} of {services.length} enabled
-          </Badge>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            Service Management
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enable or disable services for your mosque. Disabled services will not be visible on your public profile.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        <Badge variant="outline" className="text-sm">
+          {getTotalEnabledCount()} of {services.length} enabled
+        </Badge>
+      </div>
         {Object.entries(CATEGORY_LABELS).map(([categoryKey, categoryLabel]) => {
           const categoryIcon = CATEGORY_ICONS[categoryKey as keyof typeof CATEGORY_ICONS];
           const categoryServices = getCategoryServices(categoryKey as keyof typeof CATEGORY_LABELS);
@@ -295,7 +235,6 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

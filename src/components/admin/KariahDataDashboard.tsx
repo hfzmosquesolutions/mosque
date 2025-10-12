@@ -23,12 +23,9 @@ export function KariahDataDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
+      {/* Header with Title */}
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('kariahManagement')}</h1>
-        <p className="text-muted-foreground">
-          {t('manageKariahDataDescription', { mosqueName })}
-        </p>
       </div>
 
       {/* Main Content */}
@@ -37,30 +34,69 @@ export function KariahDataDashboard({
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="applications" className="flex items-center gap-2">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+          <TabsTrigger 
+            value="applications" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <FileText className="h-4 w-4" />
             {t('applications')}
           </TabsTrigger>
-          <TabsTrigger value="memberships" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="memberships" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <Users className="h-4 w-4" />
             {t('memberships')}
           </TabsTrigger>
-          <TabsTrigger value="legacy-data" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="legacy-data" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
             <Database className="h-4 w-4" />
             {t('legacyData')}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="memberships" className="space-y-6">
+        <TabsContent value="memberships" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('memberships')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Manage kariah memberships and member information
+              </p>
+            </div>
+          </div>
           <KariahMembershipManagement mosqueId={mosqueId} />
         </TabsContent>
 
-        <TabsContent value="applications" className="space-y-6">
+        <TabsContent value="applications" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('applications')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Review and manage kariah membership applications
+              </p>
+            </div>
+          </div>
           <KariahApplicationsReview mosqueId={mosqueId} />
         </TabsContent>
 
-        <TabsContent value="legacy-data" className="space-y-6">
+        <TabsContent value="legacy-data" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('legacyData')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Import and manage legacy kariah data from external sources
+              </p>
+            </div>
+          </div>
           <LegacyDataManagement mosqueId={mosqueId} />
         </TabsContent>
       </Tabs>

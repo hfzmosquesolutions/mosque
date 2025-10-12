@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -307,28 +306,31 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             Organization People
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">Loading...</div>
-        </CardContent>
-      </Card>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage mosque staff, volunteers, and organizational structure
+          </p>
+        </div>
+        <div className="text-center py-8">Loading...</div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             Organization People
-          </CardTitle>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage mosque staff, volunteers, and organizational structure
+          </p>
+        </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogClose}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
@@ -485,8 +487,6 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
             </DialogContent>
           </Dialog>
         </div>
-      </CardHeader>
-      <CardContent>
         {people.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -815,7 +815,6 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

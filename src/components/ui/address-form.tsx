@@ -11,8 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin } from 'lucide-react';
 
 // Malaysian states
 const MALAYSIAN_STATES = [
@@ -105,17 +103,7 @@ export function AddressForm({
   };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Address Information
-        </CardTitle>
-        <CardDescription>
-          Provide detailed address information for better search and filtering
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className={`space-y-4 ${className}`}>
         <div className="space-y-2">
           <Label htmlFor="address_line1">Address Line 1 *</Label>
           <Input
@@ -207,8 +195,7 @@ export function AddressForm({
             />
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 

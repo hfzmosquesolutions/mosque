@@ -144,53 +144,40 @@ function MyKhairatContent() {
 
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <div className="relative p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold">
-                My Khairat
-              </h1>
-              <p className="text-muted-foreground">
-                Manage your khairat payments and claims
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {mosqueId && (
-                <Button variant="outline" onClick={() => router.push(`/mosques/${mosqueId}`)}>
-                  <MapPin className="mr-2 h-4 w-4" /> {t('goToMyMosque') || 'My Mosque'}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Header with Title */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          My Khairat
+        </h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="px-6">
-          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
-            <TabsTrigger 
-              value="payments" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-            >
-              <CreditCard className="h-4 w-4" />
-              Payments
-            </TabsTrigger>
-            <TabsTrigger 
-              value="claims" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-            >
-              <FileText className="h-4 w-4" />
-              Claims
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+          <TabsTrigger 
+            value="payments" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            <CreditCard className="h-4 w-4" />
+            Payments
+          </TabsTrigger>
+          <TabsTrigger 
+            value="claims" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            <FileText className="h-4 w-4" />
+            Claims
+          </TabsTrigger>
+        </TabsList>
 
-        <TabsContent value="payments" className="space-y-6">
-          <div className="flex items-center justify-between px-6 py-4">
+        <TabsContent value="payments" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold">Payment History</h3>
-              <p className="text-sm text-muted-foreground">View and manage your khairat payments</p>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Payments
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                View and manage your khairat payment history
+              </p>
             </div>
             <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsFollowedMosquesOpen(true)}>
               <HandHeart className="mr-2 h-4 w-4" /> Make Payment
@@ -223,19 +210,19 @@ function MyKhairatContent() {
               </Button>
             </div>
           ) : (
-            <Card className="border-0 shadow-md">
-              <CardContent>
-                <UserPaymentsTable contributions={userContributions as any} showHeader={false} />
-              </CardContent>
-            </Card>
+            <UserPaymentsTable contributions={userContributions as any} showHeader={false} />
           )}
         </TabsContent>
 
-        <TabsContent value="claims" className="space-y-6">
-          <div className="flex items-center justify-between px-6 py-4">
+        <TabsContent value="claims" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold">My Claims</h3>
-              <p className="text-sm text-muted-foreground">View and manage your khairat claims</p>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Claims
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                View and manage your khairat claims
+              </p>
             </div>
             <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsClaimMosquesOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Submit Claim

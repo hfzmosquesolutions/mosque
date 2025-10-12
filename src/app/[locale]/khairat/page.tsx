@@ -410,18 +410,11 @@ function KhairatContent() {
   return (
     <div className="space-y-6">
       {/* Header with Title */}
-      <div className="space-y-2">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">
           {hasAdminAccess ? t('khairatManagement') : t('khairat')}
         </h1>
-        <p className="text-muted-foreground">
-          {hasAdminAccess 
-            ? t('manageKhairatProgramsDescription', { mosqueName: mosque?.name || 'Mosque' })
-            : t('contributeToKhairatDescription')
-          }
-        </p>
       </div>
-
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
@@ -451,19 +444,22 @@ function KhairatContent() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" forceMount className="space-y-8">
-          {/* Enhanced Header */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {t('khairatOverview')}
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  {t('paymentSummaryDescription')}
-                </p>
-              </div>
+        <TabsContent value="overview" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('overview')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'View khairat statistics, programs, and recent activities'
+                  : t('paymentSummaryDescription')
+                }
+              </p>
             </div>
+          </div>
+
+          <div className="space-y-6">
 
             {/* Payment Gateway Status Alert */}
             {hasAdminAccess && paymentGatewayStatus && (
@@ -541,7 +537,11 @@ function KhairatContent() {
 
             <StatsCard
               title="Top Paid Program"
-              value={hasAdminAccess ? (
+              value=""
+              icon={Trophy}
+              {...StatsCardColors.yellow}
+            >
+              {hasAdminAccess ? (
                 topProgramOverall ? (
                   <div>
                     <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
@@ -568,9 +568,7 @@ function KhairatContent() {
               ) : (
                 <p className="text-sm text-muted-foreground">No payments yet</p>
               )}
-              icon={Trophy}
-              {...StatsCardColors.yellow}
-            />
+            </StatsCard>
           </div>
 
           {/* Programs overview */}
@@ -782,18 +780,17 @@ function KhairatContent() {
           </div>
         </TabsContent>
 
-        <TabsContent value="programs" forceMount className="space-y-6">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  Programs
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  {t('supportWelfareInitiatives')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
+        <TabsContent value="programs" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Programs
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t('supportWelfareInitiatives')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
                 {programs.filter((p) => p.is_active).length > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {programs.filter((p) => p.is_active).length} {t('active')}
@@ -812,8 +809,7 @@ function KhairatContent() {
               </div>
             </div>
 
-            <div>
-              {programs.length === 0 ? (
+          {programs.length === 0 ? (
                 hasAdminAccess ? (
                   <Card className="border-0 shadow-md">
                     <CardHeader>
@@ -870,22 +866,46 @@ function KhairatContent() {
                   searchPlaceholder={t('searchPrograms') || 'Search programs...'}
                 />
               )}
-            </div>
-          </div>
         </TabsContent>
 
-        <TabsContent value="payments" forceMount className="space-y-6">
+        <TabsContent value="payments" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('payments')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'View and manage all khairat payment transactions'
+                  : 'View your khairat payment history'
+                }
+              </p>
+            </div>
+          </div>
           {hasAdminAccess ? (
-            <KhairatTabContent programs={programs as any} />
+            <KhairatTabContent programs={programs as any} showHeader={false} />
           ) : (
             <UserPaymentsTable contributions={userContributions as any} />
           )}
         </TabsContent>
 
-        <TabsContent value="claims" forceMount className="space-y-6">
+        <TabsContent value="claims" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Claims
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'Review and manage khairat claim requests'
+                  : 'View and submit your khairat claims'
+                }
+              </p>
+            </div>
+          </div>
           {hasAdminAccess ? (
             mosqueId ? (
-              <ClaimsManagement mosqueId={mosqueId} />
+              <ClaimsManagement mosqueId={mosqueId} showHeader={false} />
             ) : null
           ) : (
             <div className="space-y-4">

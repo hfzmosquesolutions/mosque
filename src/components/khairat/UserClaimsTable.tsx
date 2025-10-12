@@ -276,16 +276,12 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
           </p>
         </div>
       ) : (
-        <Card className="border-0 shadow-md">
-          <CardContent>
-            <DataTable
-              columns={columns}
-              data={claims}
-              searchKey="title"
-              searchPlaceholder={t('searchClaims') || 'Search claims...'}
-            />
-          </CardContent>
-        </Card>
+        <DataTable
+          columns={columns}
+          data={claims}
+          searchKey="title"
+          searchPlaceholder={t('searchClaims') || 'Search claims...'}
+        />
       )}
 
       {/* Claim Details Modal */}

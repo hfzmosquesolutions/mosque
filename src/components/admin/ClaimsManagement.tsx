@@ -80,6 +80,7 @@ interface ClaimStats {
 
 interface ClaimsManagementProps {
   mosqueId: string;
+  showHeader?: boolean;
 }
 
 const getStatusConfig = (t: any) => ({
@@ -98,7 +99,7 @@ const getPriorityConfig = (t: any) => ({
   urgent: { color: 'bg-purple-100 text-purple-800', label: t('priority.urgent') }
 });
 
-export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
+export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManagementProps) {
   const { user } = useAuth();
   const t = useTranslations('claims');
   const tc = useTranslations('common');
@@ -382,32 +383,34 @@ export function ClaimsManagement({ mosqueId }: ClaimsManagementProps) {
   return (
     <div className="space-y-6">
       {/* Standardized header (match payments tab) */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {t('title')}
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              {t('manageDescription', { fallback: 'View and manage khairat claims' })}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-sm">
-              {filteredClaims.length} records
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportCSV}
-              className="hover:bg-emerald-50 hover:border-emerald-200"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
-            </Button>
+      {showHeader && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {t('title')}
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                {t('manageDescription', { fallback: 'View and manage khairat claims' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-sm">
+                {filteredClaims.length} records
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="hover:bg-emerald-50 hover:border-emerald-200"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       {/* Summary cards removed to standardize with Payments tab visibility (overview only) */}
 
       {/* Filters removed to standardize with payments table */}

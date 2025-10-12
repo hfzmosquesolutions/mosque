@@ -414,28 +414,15 @@ export function PaymentProviderSettings() {
   }
 
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              <CardTitle>Payment Gateway</CardTitle>
-            </div>
-            <CardDescription>
-              Configure how your mosque accepts online donations and
-              contributions from members
-            </CardDescription>
-          </div>
-          {paymentProviders[selectedProvider]?.is_active && (
-            <Badge variant="default" className="bg-green-100 text-green-800">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Active
-            </Badge>
-          )}
+    <div className="space-y-6">
+      {paymentProviders[selectedProvider]?.is_active && (
+        <div className="flex justify-end">
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      )}
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -772,7 +759,6 @@ export function PaymentProviderSettings() {
             )}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
