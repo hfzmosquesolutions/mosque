@@ -5,28 +5,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, CreditCard, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { getMosqueSubscription, getSubscriptionInvoices, formatPrice } from '@/lib/subscription';
-import { MosqueSubscription, SubscriptionInvoice } from '@/lib/subscription';
+import { getUserSubscription, getUserSubscriptionInvoices, formatPrice } from '@/lib/subscription';
+import { UserSubscription, UserSubscriptionInvoice } from '@/lib/subscription';
 import { SubscriptionPlan, type SubscriptionStatus as StripeSubscriptionStatus } from '@/lib/stripe';
 import { useTranslations } from 'next-intl';
 
 interface SubscriptionStatusProps {
-  mosqueId: string;
+  userId: string;
   onManageBilling?: () => void;
 }
 
-export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionStatusProps) {
+export function SubscriptionStatus({ userId, onManageBilling }: SubscriptionStatusProps) {
   const t = useTranslations('billing');
-  const [subscription, setSubscription] = useState<MosqueSubscription | null>(null);
-  const [invoices, setInvoices] = useState<SubscriptionInvoice[]>([]);
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  const [invoices, setInvoices] = useState<UserSubscriptionInvoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [subData, invoiceData] = await Promise.all([
-          getMosqueSubscription(mosqueId),
-          getSubscriptionInvoices(mosqueId)
+          getUserSubscription(userId),
+          getUserSubscriptionInvoices(userId)
         ]);
         setSubscription(subData);
         setInvoices(invoiceData);
@@ -37,10 +37,10 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
       }
     };
 
-    if (mosqueId) {
+    if (userId) {
       fetchData();
     }
-  }, [mosqueId]);
+  }, [userId]);
 
   if (loading) {
     return (
@@ -191,9 +191,11 @@ export function SubscriptionStatus({ mosqueId, onManageBilling }: SubscriptionSt
                       <p className="font-medium">
                         {formatDate(invoice.created_at)}
                       </p>
-                      <p className="text-sm text-gray-500">
-                        {t('invoices.invoiceShort', { id: invoice.stripe_invoice_id.slice(-8) })}
-                      </p>
+                      {invoice.stripe_invoice_id && (
+                        <p className="text-sm text-gray-500">
+                          {t('invoices.invoiceShort', { id: invoice.stripe_invoice_id.slice(-8) })}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">

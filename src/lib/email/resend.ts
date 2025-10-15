@@ -75,37 +75,7 @@ export class EmailService {
     });
   }
 
-  async sendEventNotificationEmail({
-    to,
-    userName,
-    eventTitle,
-    eventDate,
-    eventLocation,
-    mosqueName,
-  }: {
-    to: string;
-    userName: string;
-    eventTitle: string;
-    eventDate: string;
-    eventLocation: string;
-    mosqueName: string;
-  }) {
-    const { generateEventNotificationTemplate } = await import('./templates/event-notification');
-    
-    const html = generateEventNotificationTemplate({
-      userName,
-      eventTitle,
-      eventDate,
-      eventLocation,
-      mosqueName,
-    });
-
-    return this.sendEmail({
-      to,
-      subject: `New Event: ${eventTitle}`,
-      html,
-    });
-  }
+  // events removed: sendEventNotificationEmail removed
 
   async sendPasswordResetEmail({
     to,

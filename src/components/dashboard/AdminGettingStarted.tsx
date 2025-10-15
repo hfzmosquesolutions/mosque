@@ -97,15 +97,7 @@ export function AdminGettingStarted({
       completed: false, // This would need to be tracked
       priority: 'medium',
     },
-    {
-      id: 'create-events',
-      title: 'Create Community Events',
-      description: 'Organize events and activities for your community',
-      icon: Calendar,
-      href: '/events',
-      completed: false, // This would need to be tracked
-      priority: 'low',
-    },
+    // events removed
   ];
 
   const completedSteps = steps.filter(step => step.completed).length;

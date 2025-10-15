@@ -26,9 +26,6 @@ import {
 } from 'lucide-react';
 import {
   getMosque,
-  getEvents,
-  registerForEvent,
-  getUserEventRegistrations,
   followMosque,
   unfollowMosque,
   isUserFollowingMosque,
@@ -36,7 +33,6 @@ import {
   getKhairatPrograms,
   getOrganizationPeople,
 } from '@/lib/api';
-import { EventCard } from '@/components/events/EventCard';
 import { KhairatContributionForm } from '@/components/khairat/KhairatContributionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -51,7 +47,7 @@ import type { UserProfile, ClaimDocument } from '@/types/database';
 import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
 import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
-import { Mosque, Event, KhairatProgram } from '@/types/database';
+import { Mosque, KhairatProgram } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -65,7 +61,6 @@ export default function MosqueProfilePage() {
   const t = useTranslations('mosqueProfile');
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
   const [contributionPrograms, setContributionPrograms] = useState<
     KhairatProgram[]
   >([]);
@@ -75,7 +70,6 @@ export default function MosqueProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
-  const [userRegistrations, setUserRegistrations] = useState<string[]>([]);
   const [isKhairatModalOpen, setIsKhairatModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isKariahSuccessModalOpen, setIsKariahSuccessModalOpen] = useState(false);
@@ -131,35 +125,6 @@ export default function MosqueProfilePage() {
       );
       setMosque(mosqueResponse.data);
 
-      // Fetch events
-      if (RUNTIME_FEATURES.EVENTS_VISIBLE) {
-        console.log('[PAGE] MosqueProfilePage - Fetching events');
-        const eventsResponse = await getEvents(mosqueId, 5);
-
-        console.log(
-          '[PAGE] MosqueProfilePage - getEvents response:',
-          eventsResponse
-        );
-
-        if (eventsResponse.data) {
-          console.log(
-            '[PAGE] MosqueProfilePage - Successfully set events, count:',
-            eventsResponse.data.length
-          );
-          setEvents(eventsResponse.data);
-
-          // Fetch user registrations for these events (only if user is logged in)
-          if (user?.id && eventsResponse.data.length > 0) {
-            const eventIds = eventsResponse.data.map((event) => event.id);
-            const registrations = await getUserEventRegistrations(
-              user.id,
-              eventIds
-            );
-            setUserRegistrations(registrations);
-          }
-        }
-      }
-
       // Fetch follower count
       const followerCount = await getMosqueFollowerCount(mosqueId);
       setFollowerCount(followerCount);
@@ -179,18 +144,23 @@ export default function MosqueProfilePage() {
         );
       }
 
-      // Fetch organization people (public only)
-      console.log('[PAGE] MosqueProfilePage - Fetching organization people');
-      setOrganizationPeopleLoading(true);
-      const organizationResponse = await getOrganizationPeople(mosqueId, true);
-      if (organizationResponse.success && organizationResponse.data) {
-        setOrganizationPeople(organizationResponse.data);
-        console.log(
-          '[PAGE] MosqueProfilePage - Organization people count:',
-          organizationResponse.data.length
-        );
+      // Fetch organization people only if service enabled (public only)
+      const enabledServices = Array.isArray(mosqueResponse.data.settings?.enabled_services)
+        ? (mosqueResponse.data.settings.enabled_services as string[])
+        : [];
+      if (enabledServices.includes('organization_people')) {
+        console.log('[PAGE] MosqueProfilePage - Fetching organization people');
+        setOrganizationPeopleLoading(true);
+        const organizationResponse = await getOrganizationPeople(mosqueId, true);
+        if (organizationResponse.success && organizationResponse.data) {
+          setOrganizationPeople(organizationResponse.data);
+          console.log(
+            '[PAGE] MosqueProfilePage - Organization people count:',
+            organizationResponse.data.length
+          );
+        }
+        setOrganizationPeopleLoading(false);
       }
-      setOrganizationPeopleLoading(false);
 
       // Check if user is following this mosque (only if user is logged in)
       if (user?.id) {
@@ -276,24 +246,7 @@ export default function MosqueProfilePage() {
     }
   };
 
-  const handleRegisterForEvent = async (eventId: string) => {
-    if (!user?.id) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const response = await registerForEvent(eventId, user.id);
-      if (response.success) {
-        // Update user registrations
-        setUserRegistrations((prev) => [...prev, eventId]);
-      } else {
-        console.error('Failed to register for event:', response.error);
-      }
-    } catch (error) {
-      console.error('Failed to register for event:', error);
-    }
-  };
+  // events functionality removed
 
   const handleContributeToProgram = (programId: string) => {
     if (!user?.id) {
@@ -781,13 +734,15 @@ export default function MosqueProfilePage() {
                     {t('programs')}
                   </TabsTrigger>
                 )}
-                <TabsTrigger 
-                  value="organization" 
-                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                >
-                  <Users className="h-4 w-4" />
-                  {t('organizationPeople')}
-                </TabsTrigger>
+                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
+                  <TabsTrigger 
+                    value="organization" 
+                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+                  >
+                    <Users className="h-4 w-4" />
+                    {t('organizationPeople')}
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6 mt-6">
@@ -927,76 +882,10 @@ export default function MosqueProfilePage() {
                   </Card>
                 )}
 
-                {/* Events Section */}
-                {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between text-xl">
-                        <div className="flex items-center">
-                          <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
-                          {t('upcomingEvents')}
-                        </div>
-                        {events.length > 3 && (
-                          <Button variant="outline" size="sm">
-                            {t('viewAllEvents')}
-                          </Button>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {events.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-slate-500 dark:text-slate-400">
-                            {t('noUpcomingEvents')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {events.slice(0, 3).map((event) => (
-                            <div
-                              key={event.id}
-                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
-                                    {event.title}
-                                  </h4>
-                                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                    {formatDateTime(event.event_date)}
-                                  </p>
-                                  {event.location && (
-                                    <div className="flex items-center text-xs text-slate-500 dark:text-slate-500">
-                                      <MapPin className="h-3 w-3 mr-1" />
-                                      {event.location}
-                                    </div>
-                                  )}
-                                </div>
-                                {user &&
-                                  !userRegistrations.includes(event.id) && (
-                                    <ServiceAwareButton
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        handleRegisterForEvent(event.id)
-                                      }
-                                      className="ml-4"
-                                      serviceId="events_management"
-                                      enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                                      disabledMessage="Event registration is not currently available for this mosque."
-                                    >
-                                      {t('register')}
-                                    </ServiceAwareButton>
-                                  )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Activities Section */}
+                {/* activities removed */}
+
+                {/* events removed */}
               </TabsContent>
 
               {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
@@ -1124,6 +1013,7 @@ export default function MosqueProfilePage() {
                 </TabsContent>
               )}
 
+              {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
               <TabsContent value="organization" className="space-y-6 mt-6">
                 <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
                   <CardHeader>
@@ -1206,6 +1096,7 @@ export default function MosqueProfilePage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              )}
             </Tabs>
           </div>
 

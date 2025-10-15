@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mosqueId, plan, adminEmail: providedAdminEmail, adminName: providedAdminName } = await request.json();
+    const { mosqueId, userId, plan, adminEmail: providedAdminEmail, adminName: providedAdminName } = await request.json();
 
-    if (!mosqueId || !plan) {
+    if ((!mosqueId && !userId) || !plan) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -30,18 +30,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get mosque details
-    const { data: mosque, error: mosqueError } = await supabase
-      .from('mosques')
-      .select('id, name, email, user_id')
-      .eq('id', mosqueId)
-      .single();
-
-    if (mosqueError || !mosque) {
-      return NextResponse.json(
-        { error: 'Mosque not found' },
-        { status: 404 }
-      );
+    // Determine billing user id from input or mosque ownership
+    let billingUserId: string | undefined = userId;
+    if (!billingUserId && mosqueId) {
+      const { data: mosque, error: mosqueError } = await supabase
+        .from('mosques')
+        .select('user_id')
+        .eq('id', mosqueId)
+        .single();
+      if (mosqueError || !mosque?.user_id) {
+        return NextResponse.json(
+          { error: 'Unable to resolve billing user' },
+          { status: 404 }
+        );
+      }
+      billingUserId = (mosque as any).user_id as string;
     }
 
     // Resolve admin user's email and name from request (required)
@@ -55,13 +58,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If name not provided, try to derive from profile, otherwise fallback to email prefix
-    if (!adminName && mosque && (mosque as any).user_id) {
-      const ownerUserId = (mosque as any).user_id as string;
+    // If name not provided, try to derive from user profile, otherwise fallback to email prefix
+    if (!adminName && billingUserId) {
       const { data: ownerProfile } = await supabase
         .from('user_profiles')
         .select('full_name')
-        .eq('id', ownerUserId)
+        .eq('id', billingUserId)
         .single();
       adminName = (ownerProfile as any)?.full_name || adminEmail.split('@')[0];
     }
@@ -69,31 +71,68 @@ export async function POST(request: NextRequest) {
       adminName = adminEmail.split('@')[0];
     }
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer (prefer user_subscriptions first, fallback to mosque_subscriptions)
     let customerId: string;
-    const { data: subscription } = await supabase
-      .from('mosque_subscriptions')
-      .select('stripe_customer_id')
-      .eq('mosque_id', mosqueId)
-      .single();
+    let existingCustomerId: string | null = null;
+    if (billingUserId) {
+      const { data: userSub } = await supabase
+        .from('user_subscriptions')
+        .select('stripe_customer_id')
+        .eq('user_id', billingUserId)
+        .single();
+      if (userSub?.stripe_customer_id) existingCustomerId = userSub.stripe_customer_id;
+    }
+    if (!existingCustomerId && mosqueId) {
+      const { data: mosqueSub } = await supabase
+        .from('mosque_subscriptions')
+        .select('stripe_customer_id')
+        .eq('mosque_id', mosqueId)
+        .single();
+      if (mosqueSub?.stripe_customer_id) existingCustomerId = mosqueSub.stripe_customer_id;
+    }
 
-    if (subscription?.stripe_customer_id) {
-      customerId = subscription.stripe_customer_id;
+    if (existingCustomerId) {
+      customerId = existingCustomerId;
     } else {
       const customer = await stripe.customers.create({
         email: adminEmail,
         name: adminName,
         metadata: {
-          mosque_id: mosqueId
+          user_id: billingUserId || '',
+          mosque_id: mosqueId || ''
         }
       });
       customerId = customer.id;
 
-      // Update subscription with customer ID
-      await supabase
-        .from('mosque_subscriptions')
-        .update({ stripe_customer_id: customerId })
-        .eq('mosque_id', mosqueId);
+      // Upsert user_subscriptions with customer ID for billing user
+      if (billingUserId) {
+        const { data: existingUserSub } = await supabase
+          .from('user_subscriptions')
+          .select('user_id')
+          .eq('user_id', billingUserId)
+          .single();
+        if (existingUserSub) {
+          await supabase
+            .from('user_subscriptions')
+            .update({
+              provider: 'stripe',
+              external_customer_id: customerId,
+              stripe_customer_id: customerId
+            })
+            .eq('user_id', billingUserId);
+        } else {
+          await supabase
+            .from('user_subscriptions')
+            .insert({
+              user_id: billingUserId,
+              provider: 'stripe',
+              external_customer_id: customerId,
+              stripe_customer_id: customerId,
+              plan: 'free',
+              status: 'active'
+            });
+        }
+      }
     }
 
     // Create checkout session
@@ -120,12 +159,14 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
       metadata: {
-        mosque_id: mosqueId,
+        user_id: billingUserId || '',
+        mosque_id: mosqueId || '',
         plan: plan
       },
       subscription_data: {
         metadata: {
-          mosque_id: mosqueId,
+          user_id: billingUserId || '',
+          mosque_id: mosqueId || '',
           plan: plan
         }
       }

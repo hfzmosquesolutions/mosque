@@ -79,78 +79,91 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const mosqueId = session.metadata?.mosque_id;
+  const userId = (session.metadata as any)?.user_id || undefined;
   const plan = session.metadata?.plan;
 
-  if (!mosqueId || !plan) {
-    console.error('Missing metadata in checkout session');
+  if (!plan) {
+    console.error('Missing plan in checkout session');
     return;
   }
 
-  // Update subscription status to active
-  await supabase
-    .from('mosque_subscriptions')
-    .update({
-      status: 'active',
-      stripe_subscription_id: session.subscription as string,
-      current_period_start: new Date().toISOString(),
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-    })
-    .eq('mosque_id', mosqueId);
+  if (userId) {
+    await supabase
+      .from('user_subscriptions')
+      .update({
+        status: 'active',
+        external_subscription_id: session.subscription as string,
+        stripe_subscription_id: session.subscription as string,
+        current_period_start: new Date().toISOString(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .eq('user_id', userId);
+    return;
+  }
+
+  // No mosque fallback; mosque tables are deprecated
 }
 
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  const mosqueId = subscription.metadata?.mosque_id;
+  const userId = (subscription.metadata as any)?.user_id || undefined;
   const plan = subscription.metadata?.plan;
 
-  if (!mosqueId || !plan) {
-    console.error('Missing metadata in subscription');
+  if (!plan) {
+    console.error('Missing plan in subscription');
     return;
   }
 
-  await supabase
-    .from('mosque_subscriptions')
-    .update({
-      stripe_subscription_id: subscription.id,
-      plan: plan as any,
-      status: subscription.status as any,
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
-      trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null
-    })
-    .eq('mosque_id', mosqueId);
+  const updatePayload = {
+    external_subscription_id: subscription.id,
+    stripe_subscription_id: subscription.id,
+    plan: plan as any,
+    status: subscription.status as any,
+    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
+    trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null
+  } as any;
+
+  if (userId) {
+    await supabase
+      .from('user_subscriptions')
+      .update(updatePayload)
+      .eq('user_id', userId);
+    return;
+  }
+
+  // No mosque fallback; mosque tables are deprecated
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const mosqueId = subscription.metadata?.mosque_id;
+  const userId = (subscription.metadata as any)?.user_id || undefined;
 
-  if (!mosqueId) {
-    console.error('Missing mosque_id in subscription metadata');
-    return;
+  const updatePayload = {
+    status: subscription.status as any,
+    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null
+  } as any;
+
+  if (userId) {
+    await supabase
+      .from('user_subscriptions')
+      .update(updatePayload)
+      .eq('user_id', userId);
   }
-
-  await supabase
-    .from('mosque_subscriptions')
-    .update({
-      status: subscription.status as any,
-      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null
-    })
-    .eq('stripe_subscription_id', subscription.id);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  await supabase
-    .from('mosque_subscriptions')
-    .update({
-      status: 'canceled',
-      canceled_at: new Date().toISOString()
-    })
-    .eq('stripe_subscription_id', subscription.id);
+  const userId = (subscription.metadata as any)?.user_id || undefined;
+  const updatePayload = { status: 'canceled', canceled_at: new Date().toISOString() } as any;
+  if (userId) {
+    await supabase
+      .from('user_subscriptions')
+      .update(updatePayload)
+      .eq('user_id', userId);
+  }
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
@@ -160,35 +173,35 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     return;
   }
 
-  // Get mosque ID from subscription
-  const { data: subscription } = await supabase
-    .from('mosque_subscriptions')
-    .select('mosque_id')
+  // Resolve owner of subscription for invoices; try user_subscriptions first
+  const { data: userSub } = await supabase
+    .from('user_subscriptions')
+    .select('user_id')
     .eq('stripe_subscription_id', subscriptionId)
     .single();
 
-  if (!subscription) {
+  if (userSub?.user_id) {
+    await supabase
+      .from('user_subscription_invoices')
+      .insert({
+        user_id: userSub.user_id,
+        provider: 'stripe',
+        external_invoice_id: invoice.id,
+        stripe_invoice_id: invoice.id,
+        amount_paid: invoice.amount_paid || 0,
+        currency: invoice.currency || 'myr',
+        status: invoice.status || 'paid',
+        invoice_url: invoice.invoice_pdf || undefined,
+        hosted_invoice_url: invoice.hosted_invoice_url || undefined
+      });
+    await supabase
+      .from('user_subscriptions')
+      .update({ status: 'active' })
+      .eq('user_id', userSub.user_id);
     return;
   }
 
-  // Store invoice
-  await supabase
-    .from('subscription_invoices')
-    .insert({
-      mosque_id: subscription.mosque_id,
-      stripe_invoice_id: invoice.id,
-      amount_paid: invoice.amount_paid,
-      currency: invoice.currency,
-      status: invoice.status || 'paid',
-      invoice_url: invoice.invoice_pdf || undefined,
-      hosted_invoice_url: invoice.hosted_invoice_url || undefined
-    });
-
-  // Update subscription status
-  await supabase
-    .from('mosque_subscriptions')
-    .update({ status: 'active' })
-    .eq('stripe_subscription_id', subscriptionId);
+  // If not tied to user subscription, ignore (deprecated mosque flow removed)
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {

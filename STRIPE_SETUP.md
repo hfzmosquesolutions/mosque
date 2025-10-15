@@ -91,16 +91,13 @@ psql -h your-db-host -U your-username -d your-database -f supabase/migrations/20
 
 ### Free Tier
 - Basic mosque profile
-- Basic events (5/month)
-- Basic announcements
 - Community member registration
-- Basic donation tracking
+- Basic khairat overview
 
 ### Premium Tier (RM 99/month)
 - Everything in Free
 - Khairat management
 - Advanced kariah management
-- Unlimited events
 - Advanced financial reports
 - Payment processing
 - Priority support

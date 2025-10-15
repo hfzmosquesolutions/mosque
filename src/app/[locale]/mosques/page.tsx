@@ -32,6 +32,7 @@ import {
   Filter,
   X,
 } from 'lucide-react';
+import { HandCoins, Heart, Megaphone, Globe2 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
 import { useTranslations } from 'next-intl';
@@ -61,11 +62,10 @@ export default function MosquesPage() {
   const [mosques, setMosques] = useState<Mosque[]>([]);
   const [filteredMosques, setFilteredMosques] = useState<Mosque[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [hasPhone, setHasPhone] = useState(false);
-  const [hasEmail, setHasEmail] = useState(false);
-  const [hasWebsite, setHasWebsite] = useState(false);
+  // Removed contact detail filters for simplicity
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'relevance' | 'nameAsc' | 'nameDesc'>('relevance');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +83,19 @@ export default function MosquesPage() {
     const q = (searchParams.get('q') || '').trim();
     if (q && q !== searchQuery) {
       setSearchQuery(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Initialize selected services from URL (?services=svc1,svc2)
+  useEffect(() => {
+    const servicesParam = (searchParams.get('services') || '').trim();
+    if (servicesParam) {
+      const parsed = servicesParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      setSelectedServices(parsed);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -144,14 +157,16 @@ export default function MosquesPage() {
       );
     }
 
-    if (hasPhone) {
-      results = results.filter((m) => !!m.phone);
-    }
-    if (hasEmail) {
-      results = results.filter((m) => !!m.email);
-    }
-    if (hasWebsite) {
-      results = results.filter((m) => !!m.website);
+    // Contact detail filters removed
+
+    // Filter by enabled services (all selected must be enabled)
+    if (selectedServices.length > 0) {
+      results = results.filter((m) => {
+        const enabled = Array.isArray((m as any).settings?.enabled_services)
+          ? ((m as any).settings!.enabled_services as string[])
+          : [];
+        return selectedServices.every((svc) => enabled.includes(svc));
+      });
     }
 
     if (sortBy === 'nameAsc') {
@@ -161,7 +176,7 @@ export default function MosquesPage() {
     }
 
     setFilteredMosques(results);
-  }, [searchQuery, mosques, hasPhone, hasEmail, hasWebsite, selectedState, selectedCity, sortBy]);
+  }, [searchQuery, mosques, selectedState, selectedCity, sortBy, selectedServices]);
 
   useEffect(() => {
     filterMosques();
@@ -195,9 +210,8 @@ export default function MosquesPage() {
     setSearchQuery('');
     setSelectedState('');
     setSelectedCity('');
-    setHasPhone(false);
-    setHasEmail(false);
-    setHasWebsite(false);
+    // Contact detail filters removed
+    setSelectedServices([]);
   };
 
   if (loading) {
@@ -261,8 +275,22 @@ export default function MosquesPage() {
                 id="mosques-search-top"
                 name="q"
                 autoComplete="off"
-                className="pl-12 pr-32 h-14 text-lg bg-white dark:bg-slate-800/90 backdrop-blur border-slate-200 dark:border-slate-700"
+                className="pl-12 pr-44 h-14 text-lg bg-white dark:bg-slate-800/90 backdrop-blur border-slate-200 dark:border-slate-700"
               />
+              {searchQuery && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label={t('common.clear') || 'Clear'}
+                  onClick={() => {
+                    setSearchQuery('');
+                    router.replace(pathname);
+                  }}
+                  className="absolute right-28 top-1/2 -translate-y-1/2 h-8 px-2 rounded-md"
+                >
+                  <X className="h-4 w-4 text-slate-500" />
+                </Button>
+              )}
               <Button
                 type="submit"
                 variant="default"
@@ -308,51 +336,9 @@ export default function MosquesPage() {
                 <SheetTitle>{t('mosques.refineSearch') || 'Refine search'}</SheetTitle>
               </SheetHeader>
               <div className="p-4 space-y-6">
-                <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('common.sortBy') || 'Sort by'}</div>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
-                  >
-                    <option value="relevance">{t('common.relevance') || 'Relevance'}</option>
-                    <option value="nameAsc">{t('common.nameAsc') || 'Name (A-Z)'}</option>
-                    <option value="nameDesc">{t('common.nameDesc') || 'Name (Z-A)'}</option>
-                  </select>
-                </div>
+                
 
-                <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Filters</div>
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={hasPhone}
-                        onChange={(e) => setHasPhone(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      <span>{t('mosques.hasPhone') || 'Has phone'}</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={hasEmail}
-                        onChange={(e) => setHasEmail(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      <span>{t('mosques.hasEmail') || 'Has email'}</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={hasWebsite}
-                        onChange={(e) => setHasWebsite(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      <span>{t('mosques.hasWebsite') || 'Has website'}</span>
-                    </label>
-                  </div>
-                </div>
+                
 
                 {/* Mobile Location Filters */}
                 <div>
@@ -396,21 +382,35 @@ export default function MosquesPage() {
                   </div>
                 </div>
 
+                {/* Mobile Service Filters */}
                 <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('mosques.quickFilters') || 'Quick filters'}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {['khairat', 'events', 'class', 'nikah', 'donation'].map((kw) => (
-                      <button
-                        key={kw}
-                        type="button"
-                        onClick={() => setSearchQuery((prev) => (prev ? `${prev} ${kw}` : kw))}
-                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        {kw}
-                      </button>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Services</div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      { id: 'khairat_management', label: 'Khairat' },
+                      { id: 'kariah_management', label: 'Kariah' },
+                      { id: 'organization_people', label: 'Organization' },
+                    ].map((svc) => (
+                      <label key={svc.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedServices.includes(svc.id)}
+                          onChange={(e) =>
+                            setSelectedServices((prev) =>
+                              e.target.checked
+                                ? [...prev, svc.id]
+                                : prev.filter((s) => s !== svc.id)
+                            )
+                          }
+                          className="h-4 w-4"
+                        />
+                        <span>{svc.label}</span>
+                      </label>
                     ))}
                   </div>
                 </div>
+
+                
 
                 <div>
                   <Button className="w-full" variant="default" onClick={() => filterMosques()}>
@@ -421,9 +421,6 @@ export default function MosquesPage() {
                     variant="outline"
                     onClick={() => {
                       setSearchQuery('');
-                      setHasPhone(false);
-                      setHasEmail(false);
-                      setHasWebsite(false);
                       setSortBy('relevance');
                     }}
                   >
@@ -449,38 +446,7 @@ export default function MosquesPage() {
                 <CardContent className="space-y-4">
                   {/* Search moved to top; sidebar now only filters */}
 
-                  <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Filters</div>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={hasPhone}
-                          onChange={(e) => setHasPhone(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <span>{t('mosques.hasPhone') || 'Has phone'}</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={hasEmail}
-                          onChange={(e) => setHasEmail(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <span>{t('mosques.hasEmail') || 'Has email'}</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={hasWebsite}
-                          onChange={(e) => setHasWebsite(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <span>{t('mosques.hasWebsite') || 'Has website'}</span>
-                      </label>
-                    </div>
-                  </div>
+                  
 
                   {/* Location Filters */}
                   <div className="pt-2">
@@ -524,35 +490,37 @@ export default function MosquesPage() {
                     </div>
                   </div>
 
+                  {/* Services Filters */}
                   <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('common.sortBy') || 'Sort by'}</div>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
-                    >
-                      <option value="relevance">{t('common.relevance') || 'Relevance'}</option>
-                      <option value="nameAsc">{t('common.nameAsc') || 'Name (A-Z)'}</option>
-                      <option value="nameDesc">{t('common.nameDesc') || 'Name (Z-A)'}</option>
-                    </select>
-                  </div>
-
-                  {/* Quick keyword chips */}
-                  <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('mosques.quickFilters') || 'Quick filters'}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {['khairat', 'events', 'class', 'nikah', 'donation'].map((kw) => (
-                        <button
-                          key={kw}
-                          type="button"
-                          onClick={() => setSearchQuery((prev) => (prev ? `${prev} ${kw}` : kw))}
-                          className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800"
-                        >
-                          {kw}
-                        </button>
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Services</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'khairat_management', label: 'Khairat' },
+                        { id: 'kariah_management', label: 'Kariah' },
+                        { id: 'organization_people', label: 'Organization' },
+                      ].map((svc) => (
+                        <label key={svc.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={selectedServices.includes(svc.id)}
+                            onChange={(e) =>
+                              setSelectedServices((prev) =>
+                                e.target.checked
+                                  ? [...prev, svc.id]
+                                  : prev.filter((s) => s !== svc.id)
+                              )
+                            }
+                            className="h-4 w-4"
+                          />
+                          <span>{svc.label}</span>
+                        </label>
                       ))}
                     </div>
                   </div>
+
+                  
+
+                  
 
                   <div className="pt-2">
                     <Button
@@ -567,10 +535,8 @@ export default function MosquesPage() {
                       variant="outline"
                       onClick={() => {
                         setSearchQuery('');
-                        setHasPhone(false);
-                        setHasEmail(false);
-                        setHasWebsite(false);
                         setSortBy('relevance');
+                      setSelectedServices([]);
                       }}
                     >
                       {t('common.reset') || 'Reset'}
@@ -649,6 +615,44 @@ export default function MosquesPage() {
                                 {mosque.description}
                               </CardDescription>
                             )}
+                            {/* Available services (from mosque public profile settings) */}
+                            {(() => {
+                              let enabledServices = Array.isArray((mosque as any).settings?.enabled_services)
+                                ? ((mosque as any).settings.enabled_services as string[])
+                                : [];
+                              // Exclude removed features
+                              enabledServices = enabledServices.filter((sid) => sid !== 'announcements');
+
+                              if (enabledServices.length === 0) return null;
+
+                              const SERVICE_INFO: Record<string, { label: string; Icon: any; cls?: string }> = {
+                                khairat_management: { label: 'Khairat', Icon: HandCoins, cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+                                kariah_management: { label: 'Kariah', Icon: Users, cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                                organization_people: { label: 'Organization', Icon: Users, cls: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
+                                friday_prayers: { label: 'Friday', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
+                                daily_prayers: { label: 'Daily', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
+                                mosque_profile: { label: 'Profile', Icon: Globe2, cls: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+                              };
+
+                              return (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {enabledServices.slice(0, 6).map((sid) => {
+                                    const info = SERVICE_INFO[sid] || { label: sid, Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' };
+                                    const IconComp = info.Icon;
+                                    return (
+                                      <span
+                                        key={`${mosque.id}-${sid}`}
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${info.cls}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <IconComp className="h-3.5 w-3.5" />
+                                        {info.label}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                             <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />

@@ -77,13 +77,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     });
   } else {
     // For regular users, show community features
-    if (RUNTIME_FEATURES.EVENTS_VISIBLE) {
-      baseNavigation.push({
-        name: t('events'),
-        href: '/events',
-        icon: Calendar,
-      });
-    }
+    // Events removed
 
     // Show Khairat (user version)
     baseNavigation.push({

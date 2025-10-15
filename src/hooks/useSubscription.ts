@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMosqueSubscription, isFeatureAvailable } from '@/lib/subscription';
-import { MosqueSubscription } from '@/lib/subscription';
+import { getMosqueSubscription, getUserSubscription, isFeatureAvailable } from '@/lib/subscription';
+import { MosqueSubscription, UserSubscription } from '@/lib/subscription';
 import { SubscriptionPlan } from '@/lib/stripe';
 
 export function useSubscription(mosqueId: string) {

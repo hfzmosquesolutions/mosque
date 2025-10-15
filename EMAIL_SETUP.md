@@ -7,7 +7,7 @@ This guide will help you set up email functionality using Resend for your mosque
 The email system provides:
 
 - Welcome emails for new users
-- Event notification emails
+- (Optional) Program/payment notification emails
 - Password reset emails
 - Reusable email templates
 - Email tracking and logging
@@ -125,14 +125,11 @@ await emailService.sendWelcomeEmail({
   mosqueName: 'Al-Noor Mosque',
 });
 
-// Send event notification
-await emailService.sendEventNotificationEmail({
+// Example: Send custom program update email (implement your own template)
+await emailService.sendEmail({
   to: 'user@example.com',
-  userName: 'John Doe',
-  eventTitle: 'Friday Prayer',
-  eventDate: 'Friday, January 15, 2024 at 1:00 PM',
-  eventLocation: 'Main Prayer Hall',
-  mosqueName: 'Al-Noor Mosque',
+  subject: 'Program update',
+  html: '<p>Your khairat program has an update.</p>'
 });
 
 // Send custom email
@@ -153,11 +150,9 @@ The system includes pre-built templates:
 - **Purpose**: Welcome new users to the platform
 - **Features**: Mosque branding, feature highlights, call-to-action
 
-### 2. Event Notification Template
+### 2. Program/Payment Notification Template (optional)
 
-- **File**: `src/lib/email/templates/event-notification.ts`
-- **Purpose**: Notify users about new events
-- **Features**: Event details, date/time formatting, location info
+- You may add your own template to notify users about khairat program updates or payment receipts.
 
 ### 3. Password Reset Template
 

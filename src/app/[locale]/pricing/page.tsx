@@ -81,7 +81,6 @@ export default function PricingPage() {
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Public mosque profile</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Events and classes</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Community directory</li>
               </ul>
               <div className="mt-6">
@@ -109,7 +108,6 @@ export default function PricingPage() {
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Everything in Free</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Khairat program management</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Donations & payments</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> Priority email support</li>
               </ul>
               <div className="mt-6">
@@ -158,11 +156,10 @@ export default function PricingPage() {
             <div className="text-center">Standard</div>
             <div className="text-center">Pro</div>
           </div>
-          {[
+            {[
             { label: "Mosque profile", f: true, s: true, p: true },
-            { label: "Events & classes", f: true, s: true, p: true },
             { label: "Khairat management", f: false, s: true, p: true },
-            { label: "Donations & payments", f: false, s: true, p: true },
+              
             { label: "Advanced analytics", f: false, s: false, p: true },
             { label: "Priority support", f: false, s: true, p: true },
           ].map((row) => (
@@ -188,9 +185,6 @@ export default function PricingPage() {
           }, {
             q: "Is there a free trial?",
             a: "Standard and Pro include a 14‑day free trial. No credit card required to start.",
-          }, {
-            q: "How does payments work?",
-            a: "We use trusted providers to process donations and fees securely.",
           }].map((f) => (
             <Card key={f.q} className="border-emerald-100 dark:border-slate-700">
               <CardHeader>

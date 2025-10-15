@@ -22,14 +22,10 @@ export const STRIPE_CONFIG = {
       price: 0,
       features: [
         'Basic mosque profile',
-        'Basic events (5/month)',
-        'Basic announcements',
-        'Community member registration',
-        'Basic donation tracking'
+        'Community member registration'
       ],
       limits: {
-        events_per_month: 5,
-        announcements_per_month: 10,
+        events_per_month: 0,
         members: 50
       }
     },
@@ -41,14 +37,12 @@ export const STRIPE_CONFIG = {
         'Everything in Free',
         'Khairat management',
         'Advanced kariah management',
-        'Unlimited events',
         'Advanced financial reports',
         'Payment processing',
         'Priority support'
       ],
       limits: {
-        events_per_month: -1, // unlimited
-        announcements_per_month: -1,
+        events_per_month: 0,
         members: -1
       }
     },
@@ -66,8 +60,7 @@ export const STRIPE_CONFIG = {
         'Dedicated support'
       ],
       limits: {
-        events_per_month: -1,
-        announcements_per_month: -1,
+        events_per_month: 0,
         members: -1,
         mosques: -1
       }

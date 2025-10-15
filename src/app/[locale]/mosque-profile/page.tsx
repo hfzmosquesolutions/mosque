@@ -92,9 +92,8 @@ const getDefaultMosqueProfile = (): MosqueProfileData => ({
     imam_name: '',
     services: [
       'Daily Prayers',
-      'Friday Prayers',
       'Islamic Education',
-      'Community Events',
+      'Community Activities',
     ],
   },
   is_private: false,
@@ -199,9 +198,8 @@ function MosqueProfileContent() {
             (response.data.settings as MosqueSettings)?.imam_name || '',
           services: (response.data.settings as MosqueSettings)?.services || [
             'Daily Prayers',
-            'Friday Prayers',
             'Islamic Education',
-            'Community Events',
+            'Community Activities',
           ],
           addressData,
         };

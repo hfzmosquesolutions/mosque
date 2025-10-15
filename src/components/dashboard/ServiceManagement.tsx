@@ -49,6 +49,14 @@ const AVAILABLE_SERVICES: Service[] = [
     icon: Users,
     enabled: false,
     category: 'management'
+  },
+  {
+    id: 'organization_people',
+    name: 'Organization People',
+    description: 'Show mosque organization people on public profile and enable management',
+    icon: Users,
+    enabled: false,
+    category: 'management'
   }
 ];
 

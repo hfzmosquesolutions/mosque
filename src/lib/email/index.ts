@@ -3,14 +3,12 @@ export { EmailService, emailService, resend, DEFAULT_FROM_EMAIL } from './resend
 
 // Export email templates
 export { generateWelcomeEmailTemplate } from './templates/welcome';
-export { generateEventNotificationTemplate } from './templates/event-notification';
 export { generatePasswordResetTemplate } from './templates/password-reset';
 export { generateSignupConfirmationTemplate } from './templates/signup-confirmation';
 export { generateResetPasswordEmail, type ResetPasswordEmailData } from './templates/reset-password';
 
 // Export template types
 export type { WelcomeEmailProps } from './templates/welcome';
-export type { EventNotificationProps } from './templates/event-notification';
 export type { PasswordResetProps } from './templates/password-reset';
 export type { SignupConfirmationProps } from './templates/signup-confirmation';
 

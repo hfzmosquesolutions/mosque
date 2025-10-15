@@ -13,23 +13,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mosqueId } = await request.json();
+    const { mosqueId, userId } = await request.json();
 
-    if (!mosqueId) {
+    if (!mosqueId && !userId) {
       return NextResponse.json(
-        { error: 'Missing mosque ID' },
+        { error: 'Missing identifier' },
         { status: 400 }
       );
     }
 
-    // Get subscription with customer ID
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from('mosque_subscriptions')
-      .select('stripe_customer_id')
-      .eq('mosque_id', mosqueId)
-      .single();
+    // Resolve stripe customer id (prefer user_subscriptions)
+    let customerId: string | null = null;
+    if (userId) {
+      const { data: userSub } = await supabase
+        .from('user_subscriptions')
+        .select('stripe_customer_id')
+        .eq('user_id', userId)
+        .single();
+      if (userSub?.stripe_customer_id) customerId = userSub.stripe_customer_id;
+    }
+    if (!customerId && mosqueId) {
+      const { data: mosqueSub } = await supabase
+        .from('mosque_subscriptions')
+        .select('stripe_customer_id')
+        .eq('mosque_id', mosqueId)
+        .single();
+      if (mosqueSub?.stripe_customer_id) customerId = mosqueSub.stripe_customer_id;
+    }
 
-    if (subscriptionError || !subscription?.stripe_customer_id) {
+    if (!customerId) {
       return NextResponse.json(
         { error: 'No active subscription found' },
         { status: 404 }
@@ -38,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
+      customer: customerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
     });
 

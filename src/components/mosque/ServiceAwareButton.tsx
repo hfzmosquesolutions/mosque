@@ -25,12 +25,8 @@ interface ServiceAwareButtonProps {
 
 const SERVICE_LABELS: Record<string, string> = {
   daily_prayers: 'Daily Prayers',
-  friday_prayers: 'Friday Prayers',
   khairat_management: 'Khairat Management',
   kariah_management: 'Kariah Management',
-  events_management: 'Events Management',
-  donations: 'Donations',
-  announcements: 'Announcements',
   mosque_profile: 'Public Profile'
 };
 

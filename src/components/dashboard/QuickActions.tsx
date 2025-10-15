@@ -162,16 +162,6 @@ export function QuickActions() {
       iconColor: 'text-purple-600 dark:text-purple-400',
     },
     {
-      id: 'events',
-      title: 'View Events',
-      description: 'See upcoming mosque events and activities',
-      icon: Calendar,
-      href: '/events',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50 dark:bg-orange-950/20',
-      iconColor: 'text-orange-600 dark:text-orange-400',
-    },
-    {
       id: 'find-mosque',
       title: 'Find Mosques',
       description: 'Discover other mosques in your area',

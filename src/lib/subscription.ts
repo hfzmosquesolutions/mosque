@@ -45,6 +45,88 @@ export interface SubscriptionInvoice {
   created_at: string;
 }
 
+// User-linked subscription types and helpers (new)
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  provider?: string;
+  external_customer_id?: string;
+  stripe_customer_id?: string;
+  external_subscription_id?: string;
+  stripe_subscription_id?: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end: boolean;
+  canceled_at?: string;
+  trial_start?: string;
+  trial_end?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSubscriptionInvoice {
+  id: string;
+  user_id: string;
+  provider?: string;
+  external_invoice_id?: string;
+  stripe_invoice_id: string;
+  amount_paid: number;
+  currency: string;
+  status: string;
+  invoice_url?: string;
+  hosted_invoice_url?: string;
+  created_at: string;
+}
+
+export async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
+  const { data, error } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching user subscription:', error);
+    return null;
+  }
+
+  return data as unknown as UserSubscription;
+}
+
+export async function updateUserSubscription(
+  userId: string,
+  updates: Partial<UserSubscription>
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('user_subscriptions')
+    .update(updates)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating user subscription:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function getUserSubscriptionInvoices(userId: string): Promise<UserSubscriptionInvoice[]> {
+  const { data, error } = await supabase
+    .from('user_subscription_invoices')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching user subscription invoices:', error);
+    return [];
+  }
+
+  return (data || []) as unknown as UserSubscriptionInvoice[];
+}
+
 export async function getMosqueSubscription(mosqueId: string): Promise<MosqueSubscription | null> {
   const { data, error } = await supabase
     .from('mosque_subscriptions')
@@ -159,7 +241,7 @@ export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures
   return STRIPE_CONFIG.plans[plan] ? {
     khairat_management: plan !== 'free',
     advanced_kariah: plan !== 'free',
-    unlimited_events: plan !== 'free',
+    unlimited_events: false,
     financial_reports: plan !== 'free',
     multi_mosque: plan === 'enterprise',
     api_access: plan === 'enterprise',
@@ -177,8 +259,8 @@ export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures
 
 export function getPlanLimits(plan: SubscriptionPlan) {
   return STRIPE_CONFIG.plans[plan]?.limits || {
-    events_per_month: 5,
-    announcements_per_month: 10,
+    events_per_month: 0,
+    announcements_per_month: 0,
     members: 50
   };
 }

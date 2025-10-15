@@ -113,8 +113,8 @@ If you plan to store files (images, documents):
 2. **Create buckets**:
 
    - `avatars` - for user profile pictures
-   - `events` - for event images
-   - `announcements` - for announcement images
+   - (optional) `programs` - for khairat program images
+   
    - `resources` - for resource files
 
 3. **Set up policies** for each bucket
@@ -129,10 +129,8 @@ If you plan to store files (images, documents):
 
 ### Feature Modules
 
-- **Events**: `events`, `event_registrations`
-- **Donations**: `donations`, `donation_categories`
 - **Khairat**: `khairat_programs`, `khairat_contributions`
-- **Announcements**: `announcements`
+ 
 - **Resources**: `resources`, `resource_categories`
 
 ### System Tables
@@ -146,7 +144,6 @@ If you plan to store files (images, documents):
 The migration includes sample data for:
 
 - One mosque (Islamic Center of Excellence)
-- Donation categories
 - Khairat program
 - Resource categories
 
@@ -207,21 +204,25 @@ export async function getUserProfile(
 }
 ```
 
-### Example: Creating an Event
+### Example: Creating a Khairat Program
 
 ```typescript
 import { supabase } from '@/lib/supabase';
-import { CreateEvent } from '@/types/database';
 
-export async function createEvent(eventData: CreateEvent) {
+export async function createKhairatProgram(program: { mosque_id: string; name: string; target_amount?: number }) {
   const { data, error } = await supabase
-    .from('events')
-    .insert(eventData)
+    .from('khairat_programs')
+    .insert({
+      mosque_id: program.mosque_id,
+      name: program.name,
+      target_amount: program.target_amount ?? null,
+      is_active: true
+    })
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Failed to create event: ${error.message}`);
+    throw new Error(`Failed to create khairat program: ${error.message}`);
   }
 
   return data;

@@ -41,21 +41,8 @@ interface FeatureCard {
 }
 
 const memberFeatures: FeatureCard[] = [
-  // Events is hidden via feature flag
-  ...(FEATURES.EVENTS_ENABLED
-    ? [{
-        title: 'Events',
-        description: 'Browse and register for mosque events',
-        icon: <Calendar className="h-5 w-5" />,
-        href: '/events',
-      } as FeatureCard]
-    : []),
-  {
-    title: 'Donations',
-    description: 'Make donations and view your contribution history',
-    icon: <Banknote className="h-5 w-5" />,
-    href: '/donations',
-  },
+  // events removed
+  
   {
     title: 'Contributions',
     description: 'Participate in community welfare programs',
@@ -71,26 +58,9 @@ const memberFeatures: FeatureCard[] = [
 ];
 
 const adminFeatures: FeatureCard[] = [
-  // Event Management hidden via feature flag
-  ...(FEATURES.EVENTS_ENABLED
-    ? [{
-        title: 'Event Management',
-        description: 'Create and manage mosque events',
-        icon: <Calendar className="h-5 w-5" />,
-        href: '/events',
-        badge: 'Admin',
-        adminOnly: true,
-      } as FeatureCard]
-    : []),
+  // events removed
 
-  {
-    title: 'Financial Reports',
-    description: 'View donation reports and financial analytics',
-    icon: <Banknote className="h-5 w-5" />,
-    href: '/financial-reports',
-    badge: 'Admin',
-    adminOnly: true,
-  },
+  
   {
     title: 'Payment Settings',
     description: 'Configure payment providers and mosque settings',

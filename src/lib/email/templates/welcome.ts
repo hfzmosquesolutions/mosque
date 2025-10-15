@@ -155,7 +155,7 @@ export function generateWelcomeEmailTemplate({
       <div class="features">
         <h3>What you can do with your account:</h3>
         <ul class="feature-list">
-          <li>Stay updated with mosque events and announcements</li>
+          <li>Stay updated with mosque programs and activities</li>
           <li>Make secure donations and contributions</li>
           <li>Connect with other community members</li>
           <li>Access Islamic resources and educational materials</li>

@@ -11,8 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, Settings, FileText } from 'lucide-react';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { SubscriptionStatus } from '@/components/subscription/SubscriptionStatus';
-import { getMosqueSubscription, getFeaturesForPlan } from '@/lib/subscription';
-import { MosqueSubscription } from '@/lib/subscription';
+import { getMosqueSubscription, getUserSubscription, getFeaturesForPlan } from '@/lib/subscription';
+import { MosqueSubscription, UserSubscription } from '@/lib/subscription';
 import { SubscriptionPlan, SubscriptionFeatures } from '@/lib/stripe';
 import { useUserMosque, useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +32,7 @@ function BillingContent() {
   const { isCompleted, isLoading } = useOnboardingRedirect();
   
   // All hooks must be called before any conditional returns
-  const [subscription, setSubscription] = useState<MosqueSubscription | null>(null);
+  const [subscription, setSubscription] = useState<MosqueSubscription | UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const searchParams = useSearchParams();
@@ -41,11 +41,24 @@ function BillingContent() {
 
   useEffect(() => {
     const fetchSubscription = async () => {
-      if (!mosqueId) return;
+      if (!user?.id && !mosqueId) return;
       
       try {
-        const subData = await getMosqueSubscription(mosqueId);
-        setSubscription(subData);
+        // Prefer user-linked subscription, fallback to mosque-linked
+        if (user?.id) {
+          const userSub = await getUserSubscription(user.id);
+          if (userSub) {
+            setSubscription(userSub as any);
+          } else if (mosqueId) {
+            const mosqueSub = await getMosqueSubscription(mosqueId);
+            setSubscription(mosqueSub);
+          } else {
+            setSubscription(null);
+          }
+        } else if (mosqueId) {
+          const mosqueSub = await getMosqueSubscription(mosqueId);
+          setSubscription(mosqueSub);
+        }
       } catch (error) {
         console.error('Error fetching subscription:', error);
       } finally {
@@ -56,7 +69,7 @@ function BillingContent() {
     if (isCompleted && !isLoading) {
       fetchSubscription();
     }
-  }, [mosqueId, isCompleted, isLoading]);
+  }, [user?.id, mosqueId, isCompleted, isLoading]);
   
   // Redirect non-admin users
   if (!isAdmin) {
@@ -75,7 +88,7 @@ function BillingContent() {
   }
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
-    if (!mosqueId || plan === 'free') return;
+    if ((!user?.id && !mosqueId) || plan === 'free') return;
 
     setUpgrading(plan);
     
@@ -114,6 +127,7 @@ function BillingContent() {
         },
         body: JSON.stringify({
           mosqueId,
+          userId: user?.id,
           plan,
           adminEmail,
           adminName
@@ -141,7 +155,7 @@ function BillingContent() {
   };
 
   const handleManageBilling = async () => {
-    if (!mosqueId) return;
+    if (!user?.id && !mosqueId) return;
 
     try {
       const response = await fetch('/api/subscriptions/create-portal-session', {
@@ -149,7 +163,7 @@ function BillingContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ mosqueId }),
+        body: JSON.stringify({ mosqueId, userId: user?.id }),
       });
 
       const { url } = await response.json();
@@ -238,7 +252,7 @@ function BillingContent() {
             </div>
           </div>
           <SubscriptionStatus 
-            mosqueId={mosqueId || ''} 
+            userId={user?.id || ''} 
             onManageBilling={handleManageBilling}
           />
         </TabsContent>
@@ -295,7 +309,7 @@ function BillingContent() {
             </div>
           </div>
           <SubscriptionStatus 
-            mosqueId={mosqueId || ''} 
+            userId={user?.id || ''} 
             onManageBilling={handleManageBilling}
           />
         </TabsContent>

@@ -45,8 +45,6 @@ export default function Header() {
     '/mosque-profile',
     '/billing',
     '/settings',
-    '/events',
-    '/khairat',
     '/profile',
     '/dependents',
   ];
@@ -104,16 +102,6 @@ export default function Header() {
                         Dashboard
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                    {/* {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                      <NavigationMenuItem>
-                        <NavigationMenuLink
-                          href="/events"
-                          className={navigationMenuTriggerStyle()}
-                        >
-                          Events
-                        </NavigationMenuLink>
-                      </NavigationMenuItem>
-                    )} */}
                   </>
                 )}
 
@@ -237,19 +225,6 @@ export default function Header() {
                       Dashboard
                     </Button>
                   </Link>
-                  {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                    <Link
-                      href="/events"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                      >
-                        Events
-                      </Button>
-                    </Link>
-                  )}
                 </>
               )}
             </nav>
