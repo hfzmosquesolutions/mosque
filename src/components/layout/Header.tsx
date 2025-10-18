@@ -84,14 +84,6 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-6">
             <NavigationMenu>
               <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    href="/mosques"
-                    className={navigationMenuTriggerStyle()}
-                  >
-                    Browse Mosques
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
                 {user && (
                   <>
                     <NavigationMenuItem>
@@ -104,6 +96,14 @@ export default function Header() {
                     </NavigationMenuItem>
                   </>
                 )}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href="/mosques"
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    Browse Mosques
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
                 {/* Language Dropdown */}
                 <DropdownMenu>

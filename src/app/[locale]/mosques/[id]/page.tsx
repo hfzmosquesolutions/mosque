@@ -1307,38 +1307,6 @@ export default function MosqueProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Quick Stats */}
-            <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                  {t('community')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-emerald-600">
-                    {followerCount}
-                  </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    {followerCount === 1 ? t('follower') : t('followers')}
-                  </div>
-                </div>
-                {!user && (
-                  <div className="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                      {t('joinCommunity')}
-                    </p>
-                    <Button
-                      onClick={() => router.push('/login')}
-                      className="w-full"
-                    >
-                      {t('signInToFollow')}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

@@ -71,7 +71,7 @@ export default function MosquesPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const t = useTranslations();
+  const t = useTranslations('mosques');
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -221,7 +221,7 @@ export default function MosquesPage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
             <p className="mt-4 text-slate-600 dark:text-slate-400">
-              {t('mosques.loading')}
+              {t('loading')}
             </p>
           </div>
         </div>
@@ -236,11 +236,11 @@ export default function MosquesPage() {
           <div className="text-center">
             <div className="text-red-500 text-xl mb-4">⚠️</div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-              {t('mosques.errorLoading')}
+              {t('errorLoading')}
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
             <Button onClick={fetchMosques} variant="outline">
-              {t('common.tryAgain')}
+              {t('tryAgain')}
             </Button>
           </div>
         </div>
@@ -263,13 +263,13 @@ export default function MosquesPage() {
               router.replace(url);
             }}
             role="search"
-            aria-label={t('mosques.searchPlaceholder')}
+            aria-label={t('searchPlaceholder')}
           >
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
               <Input
                 type="text"
-                placeholder={t('mosques.searchPlaceholder')}
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 id="mosques-search-top"
@@ -281,7 +281,7 @@ export default function MosquesPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  aria-label={t('common.clear') || 'Clear'}
+                  aria-label={t('clear')}
                   onClick={() => {
                     setSearchQuery('');
                     router.replace(pathname);
@@ -294,11 +294,11 @@ export default function MosquesPage() {
               <Button
                 type="submit"
                 variant="default"
-                aria-label={t('common.search')}
+                aria-label={t('search')}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-4 rounded-md flex items-center gap-2"
               >
                 <Search className="h-4 w-4" />
-                <span>{t('common.search')}</span>
+                <span>{t('search')}</span>
               </Button>
             </div>
           </form>
@@ -308,17 +308,17 @@ export default function MosquesPage() {
         <div className="flex justify-between items-center mb-3">
           <div>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
-              {t('mosques.mosquesFound', { count: filteredMosques.length })}
+              {t('mosquesFound', { count: filteredMosques.length })}
             </h2>
             <p className="text-slate-600 dark:text-slate-400">
               {searchQuery
-                ? t('mosques.resultsFor', { query: searchQuery })
-                : t('mosques.allRegistered')}
+                ? t('resultsFor', { query: searchQuery })
+                : t('allRegistered')}
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Star className="h-4 w-4 text-yellow-500" />
-            <span>{t('mosques.verifiedListings')}</span>
+            <span>{t('verifiedListings')}</span>
           </div>
         </div>
 
@@ -328,12 +328,12 @@ export default function MosquesPage() {
             <SheetTrigger asChild>
               <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                 <Filter className="h-4 w-4" />
-                {t('common.filters') || 'Filters'}
+                {t('filters')}
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
-                <SheetTitle>{t('mosques.refineSearch') || 'Refine search'}</SheetTitle>
+                <SheetTitle>{t('refineSearch')}</SheetTitle>
               </SheetHeader>
               <div className="p-4 space-y-6">
                 
@@ -342,16 +342,16 @@ export default function MosquesPage() {
 
                 {/* Mobile Location Filters */}
                 <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Location</div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('location')}</div>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">State</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">{t('state')}</label>
                       <select
                         value={selectedState}
                         onChange={(e) => setSelectedState(e.target.value)}
                         className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
                       >
-                        <option value="">All States</option>
+                        <option value="">{t('allStates')}</option>
                         {MALAYSIAN_STATES.map((state) => (
                           <option key={state.value} value={state.value}>
                             {state.label}
@@ -360,12 +360,12 @@ export default function MosquesPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">City</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">{t('city')}</label>
                       <input
                         type="text"
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
-                        placeholder="Search city..."
+                        placeholder={t('searchCity')}
                         className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 px-3"
                       />
                     </div>
@@ -376,7 +376,7 @@ export default function MosquesPage() {
                         className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2"
                       >
                         <X className="h-4 w-4" />
-                        Clear Filters
+                        {t('clearFilters')}
                       </button>
                     )}
                   </div>
@@ -384,12 +384,12 @@ export default function MosquesPage() {
 
                 {/* Mobile Service Filters */}
                 <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Services</div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('services')}</div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     {[
-                      { id: 'khairat_management', label: 'Khairat' },
-                      { id: 'kariah_management', label: 'Kariah' },
-                      { id: 'organization_people', label: 'Organization' },
+                      { id: 'khairat_management', label: t('khairat') },
+                      { id: 'kariah_management', label: t('kariah') },
+                      { id: 'organization_people', label: t('organization') },
                     ].map((svc) => (
                       <label key={svc.id} className="flex items-center gap-2">
                         <input
@@ -414,7 +414,7 @@ export default function MosquesPage() {
 
                 <div>
                   <Button className="w-full" variant="default" onClick={() => filterMosques()}>
-                    {t('common.apply') || 'Apply'}
+                    {t('apply')}
                   </Button>
                   <Button
                     className="w-full mt-2"
@@ -424,7 +424,7 @@ export default function MosquesPage() {
                       setSortBy('relevance');
                     }}
                   >
-                    {t('common.reset') || 'Reset'}
+                    {t('reset')}
                   </Button>
                 </div>
               </div>
@@ -439,9 +439,9 @@ export default function MosquesPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
                     <Filter className="h-4 w-4" />
-                    <span>{t('common.filters') || 'Filters'}</span>
+                    <span>{t('filters')}</span>
                   </div>
-                  <CardTitle className="text-lg">{t('mosques.refineSearch') || 'Refine search'}</CardTitle>
+                  <CardTitle className="text-lg">{t('refineSearch')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Search moved to top; sidebar now only filters */}
@@ -450,13 +450,13 @@ export default function MosquesPage() {
 
                   {/* Location Filters */}
                   <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Location</div>
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('location')}</div>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">State</label>
+                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">{t('state')}</label>
                         <Select value={selectedState || undefined} onValueChange={(value) => setSelectedState(value || '')}>
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="All States" />
+                            <SelectValue placeholder={t('allStates')} />
                           </SelectTrigger>
                           <SelectContent>
                             {MALAYSIAN_STATES.map((state) => (
@@ -468,11 +468,11 @@ export default function MosquesPage() {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">City</label>
+                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">{t('city')}</label>
                         <Input
                           value={selectedCity}
                           onChange={(e) => setSelectedCity(e.target.value)}
-                          placeholder="Search city..."
+                          placeholder={t('searchCity')}
                           className="w-full"
                         />
                       </div>
@@ -484,7 +484,7 @@ export default function MosquesPage() {
                           className="w-full"
                         >
                           <X className="h-4 w-4 mr-1" />
-                          Clear Filters
+                          {t('clearFilters')}
                         </Button>
                       )}
                     </div>
@@ -492,12 +492,12 @@ export default function MosquesPage() {
 
                   {/* Services Filters */}
                   <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Services</div>
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('services')}</div>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'khairat_management', label: 'Khairat' },
-                        { id: 'kariah_management', label: 'Kariah' },
-                        { id: 'organization_people', label: 'Organization' },
+                        { id: 'khairat_management', label: t('khairat') },
+                        { id: 'kariah_management', label: t('kariah') },
+                        { id: 'organization_people', label: t('organization') },
                       ].map((svc) => (
                         <label key={svc.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                           <input
@@ -528,7 +528,7 @@ export default function MosquesPage() {
                       variant="default"
                       onClick={() => filterMosques()}
                     >
-                      {t('common.apply') || 'Apply'}
+                      {t('apply')}
                     </Button>
                     <Button
                       className="w-full mt-2"
@@ -539,7 +539,7 @@ export default function MosquesPage() {
                       setSelectedServices([]);
                       }}
                     >
-                      {t('common.reset') || 'Reset'}
+                      {t('reset')}
                     </Button>
                   </div>
                 </CardContent>
@@ -555,16 +555,16 @@ export default function MosquesPage() {
                   <Building className="h-12 w-12 text-slate-400" />
                 </div>
                 <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
-                  {t('mosques.noMosquesFound')}
+                  {t('noMosquesFound')}
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                   {searchQuery
-                    ? t('mosques.adjustSearch')
-                    : t('mosques.noMosquesRegistered')}
+                    ? t('adjustSearch')
+                    : t('noMosquesRegistered')}
                 </p>
                 {!searchQuery && (
                   <Button className="mt-6" variant="outline">
-                    {t('mosques.registerMosque')}
+                    {t('registerMosque')}
                   </Button>
                 )}
               </div>
@@ -626,9 +626,9 @@ export default function MosquesPage() {
                               if (enabledServices.length === 0) return null;
 
                               const SERVICE_INFO: Record<string, { label: string; Icon: any; cls?: string }> = {
-                                khairat_management: { label: 'Khairat', Icon: HandCoins, cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-                                kariah_management: { label: 'Kariah', Icon: Users, cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                                organization_people: { label: 'Organization', Icon: Users, cls: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
+                                khairat_management: { label: t('khairat'), Icon: HandCoins, cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+                                kariah_management: { label: t('kariah'), Icon: Users, cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                                organization_people: { label: t('organization'), Icon: Users, cls: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
                                 friday_prayers: { label: 'Friday', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
                                 daily_prayers: { label: 'Daily', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
                                 mosque_profile: { label: 'Profile', Icon: Globe2, cls: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
@@ -656,7 +656,7 @@ export default function MosquesPage() {
                             <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />
-                                <span>{t('mosques.community')}</span>
+                                <span>{t('community')}</span>
                               </div>
                             </div>
                           </div>

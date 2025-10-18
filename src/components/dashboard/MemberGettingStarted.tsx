@@ -83,7 +83,7 @@ export function MemberGettingStarted({
       title: 'Discover Local Mosques',
       description: 'Connect with other mosques in your area',
       icon: MapPin,
-      href: '/find-mosque',
+      href: '/mosques',
       completed: false, // This would need to be tracked
       priority: 'low',
     },

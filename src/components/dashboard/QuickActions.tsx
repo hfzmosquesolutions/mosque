@@ -166,7 +166,7 @@ export function QuickActions() {
       title: 'Find Mosques',
       description: 'Discover other mosques in your area',
       icon: MapPin,
-      href: '/find-mosque',
+      href: '/mosques',
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
       iconColor: 'text-indigo-600 dark:text-indigo-400',

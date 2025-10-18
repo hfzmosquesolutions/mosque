@@ -77,7 +77,7 @@ export function MemberQuickInsights({
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
       action: 'Find Mosques',
-      href: '/find-mosque',
+      href: '/mosques',
       show: true,
     },
   ];
