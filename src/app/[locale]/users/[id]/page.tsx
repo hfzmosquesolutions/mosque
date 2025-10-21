@@ -20,8 +20,6 @@ import { getUserProfile } from '@/lib/api';
 import { UserProfile } from '@/types/database';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { FollowButton } from '@/components/following/FollowButton';
-import { getUserFollowStats } from '@/lib/api/following';
 
 export default function PublicUserProfilePage() {
   const t = useTranslations('users');
@@ -33,8 +31,6 @@ export default function PublicUserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -44,10 +40,6 @@ export default function PublicUserProfilePage() {
       if (response.success && response.data) {
         setProfile(response.data);
 
-        // Fetch follow stats
-        const stats = await getUserFollowStats(userId);
-        setFollowerCount(stats.followers_count);
-        setFollowingCount(stats.following_count);
       } else {
         setError(response.error || 'Profile not found');
       }
@@ -85,9 +77,6 @@ export default function PublicUserProfilePage() {
 
   const isOwnProfile = currentUser?.id === userId;
 
-  const handleFollowChange = (isFollowing: boolean) => {
-    setFollowerCount((prev) => (isFollowing ? prev + 1 : prev - 1));
-  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -164,15 +153,6 @@ export default function PublicUserProfilePage() {
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            {!isOwnProfile && currentUser && (
-              <FollowButton
-                userId={userId}
-                userName={profile?.full_name || 'User'}
-                variant="default"
-                size="sm"
-                onFollowChange={handleFollowChange}
-              />
-            )}
             {isOwnProfile && (
               <Link href="/profile">
                 <Button variant="outline" className="gap-2">
@@ -256,21 +236,6 @@ export default function PublicUserProfilePage() {
           {/* Stats Bar */}
           <div className="px-6 py-4 bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                  <Users className="h-4 w-4 mr-2" />
-                  <span className="font-medium">{followerCount}</span>
-                  <span className="ml-1">
-                    {followerCount === 1 ? t('follower') : t('followers')}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                  <Users className="h-4 w-4 mr-2" />
-                  <span className="font-medium">{followingCount}</span>
-                  <span className="ml-1">
-                    {followingCount === 1 ? t('following') : t('following')}
-                  </span>
-                </div>
                 <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>
@@ -285,7 +250,6 @@ export default function PublicUserProfilePage() {
                     )}
                   </span>
                 </div>
-              </div>
             </div>
           </div>
         </div>
@@ -410,16 +374,6 @@ export default function PublicUserProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-2">
-                  {!isOwnProfile && currentUser && (
-                    <FollowButton
-                      userId={userId}
-                      userName={profile?.full_name || 'User'}
-                      variant="default"
-                      size="sm"
-                      onFollowChange={handleFollowChange}
-                      className="w-full justify-start p-3 h-auto"
-                    />
-                  )}
                   {isOwnProfile && (
                     <Link href="/profile">
                       <Button variant="ghost" className="w-full justify-start p-3 h-auto">
@@ -463,32 +417,6 @@ export default function PublicUserProfilePage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                    <Users className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {t('followers')}
-                    </p>
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {followerCount}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                    <Users className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {t('following')}
-                    </p>
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {followingCount}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
                     <Calendar className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div>
@@ -524,7 +452,7 @@ export default function PublicUserProfilePage() {
                   <Link
                     href="/profile"
                     className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-                   >
+                  >
                     {t('editProfileSettings')}
                   </Link>{' '}
                   {t('manageVisibility')}

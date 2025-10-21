@@ -15,8 +15,8 @@ export default function PricingPage() {
 
   const prices = useMemo(
     () => ({
-      monthly: { free: 0, standard: 29, pro: 69 },
-      annual: { free: 0, standard: 24, pro: 54 }, // billed monthly equivalent
+      monthly: { free: 0, standard: 49, pro: 399 },
+      annual: { free: 0, standard: 39, pro: 319 }, // billed monthly equivalent (20% discount)
     }),
     []
   );
@@ -78,7 +78,7 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">${prices[billing].free}</div>
+                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].free}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -104,7 +104,7 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">${prices[billing].standard}</div>
+                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].standard}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -128,7 +128,7 @@ export default function PricingPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">${prices[billing].pro}</div>
+                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].pro}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
@@ -161,15 +161,15 @@ export default function PricingPage() {
             {[
             { label: t('mosqueProfile'), f: true, s: true, p: true },
             { label: t('khairatManagement'), f: false, s: true, p: true },
-              
+            { label: t('memberCount'), f: t('upToMembers', { count: 50 }), s: t('upToMembers', { count: 500 }), p: t('unlimitedMembers') },
             { label: t('advancedAnalytics'), f: false, s: false, p: true },
             { label: t('prioritySupport'), f: false, s: true, p: true },
           ].map((row) => (
             <div key={row.label} className="grid grid-cols-4 px-6 py-3 border-t border-emerald-100/50 dark:border-slate-800 text-sm">
               <div className="text-slate-700 dark:text-slate-300">{row.label}</div>
-              <div className="text-center">{row.f ? "✔" : "—"}</div>
-              <div className="text-center">{row.s ? "✔" : "—"}</div>
-              <div className="text-center">{row.p ? "✔" : "—"}</div>
+              <div className="text-center">{typeof row.f === 'boolean' ? (row.f ? "✔" : "—") : row.f}</div>
+              <div className="text-center">{typeof row.s === 'boolean' ? (row.s ? "✔" : "—") : row.s}</div>
+              <div className="text-center">{typeof row.p === 'boolean' ? (row.p ? "✔" : "—") : row.p}</div>
             </div>
           ))}
         </div>

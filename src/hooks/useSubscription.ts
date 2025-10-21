@@ -44,8 +44,8 @@ export function useSubscription(mosqueId: string) {
     }
   };
 
-  const isPremium = subscription?.plan === 'premium' || subscription?.plan === 'enterprise';
-  const isEnterprise = subscription?.plan === 'enterprise';
+  const isPremium = subscription?.plan === 'standard' || subscription?.plan === 'pro';
+  const isEnterprise = subscription?.plan === 'pro';
   const isActive = subscription?.status === 'active' || subscription?.status === 'trialing';
 
   return {

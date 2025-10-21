@@ -60,7 +60,7 @@ export function MemberQuickInsights({
     },
     {
       id: 'apply-kariah',
-      title: 'Apply for Kariah Membership',
+      title: 'Register as Kariah Member',
       description: 'Join as a kariah member to get exclusive benefits and priority access',
       icon: Award,
       color: 'text-purple-600',

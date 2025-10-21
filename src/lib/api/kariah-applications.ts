@@ -1,5 +1,5 @@
-// Kariah Applications API Functions
-// Handles kariah application operations with client-side authentication
+// Kariah Registration API Functions
+// Handles kariah member registration operations with client-side authentication
 
 import { supabase } from '../supabase';
 
@@ -33,7 +33,7 @@ export interface KariahApplicationFilters {
 }
 
 /**
- * Get kariah applications with filtering and pagination
+ * Get kariah registrations with filtering and pagination
  */
 export async function getKariahApplications(filters: KariahApplicationFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
@@ -114,7 +114,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
   const { data: applications, error, count } = await query;
 
   if (error) {
-    throw new Error(`Failed to fetch kariah applications: ${error.message}`);
+    throw new Error(`Failed to fetch kariah registrations: ${error.message}`);
   }
 
   return {
@@ -129,7 +129,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
 }
 
 /**
- * Submit a kariah application
+ * Submit a kariah registration
  */
 export async function submitKariahApplication(applicationData: {
   mosque_id: string;
@@ -180,7 +180,7 @@ export async function submitKariahApplication(applicationData: {
     .single();
 
   if (membership) {
-    throw new Error('You are already a kariah member of this mosque');
+    throw new Error('You are already registered as a kariah member of this mosque');
   }
 
   // Create the application
@@ -201,17 +201,17 @@ export async function submitKariahApplication(applicationData: {
     .single();
 
   if (error) {
-    throw new Error(`Failed to submit application: ${error.message}`);
+    throw new Error(`Failed to submit registration: ${error.message}`);
   }
 
   return {
-    message: 'Application submitted successfully',
+    message: 'Registration submitted successfully',
     application
   };
 }
 
 /**
- * Review a kariah application (admin only)
+ * Review a kariah registration (admin only)
  */
 export async function reviewKariahApplication(reviewData: {
   application_id: string;
@@ -308,7 +308,7 @@ export async function reviewKariahApplication(reviewData: {
 }
 
 /**
- * Get kariah application by ID
+ * Get kariah registration by ID
  */
 export async function getKariahApplicationById(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
@@ -358,7 +358,7 @@ export async function getKariahApplicationById(applicationId: string) {
 }
 
 /**
- * Delete a kariah application
+ * Delete a kariah registration
  */
 export async function deleteKariahApplication(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
@@ -429,7 +429,7 @@ export async function deleteKariahApplication(applicationId: string) {
 }
 
 /**
- * Withdraw a kariah application (change status to withdrawn)
+ * Withdraw a kariah registration (change status to withdrawn)
  */
 export async function withdrawKariahApplication(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();

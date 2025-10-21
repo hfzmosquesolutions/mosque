@@ -18,20 +18,16 @@ import { useTranslations } from 'next-intl';
 
 interface MemberStatsCardsProps {
   totalContributed: number;
-  followerCount: number;
   dependentsCount: number;
   recentContributionsCount: number;
   eventsAttended?: number;
-  mosquesFollowed?: number;
 }
 
 export function MemberStatsCards({ 
   totalContributed, 
-  followerCount, 
   dependentsCount, 
   recentContributionsCount,
-  eventsAttended = 0,
-  mosquesFollowed = 0
+  eventsAttended = 0
 }: MemberStatsCardsProps) {
   const t = useTranslations('dashboard');
 
@@ -61,13 +57,6 @@ export function MemberStatsCards({
         {...StatsCardColors.orange}
       />
 
-      <StatsCard
-        title="Mosques Followed"
-        value={mosquesFollowed}
-        subtitle="Communities you follow"
-        icon={MapPin}
-        {...StatsCardColors.purple}
-      />
     </div>
   );
 }

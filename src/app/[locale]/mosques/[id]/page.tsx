@@ -26,10 +26,6 @@ import {
 } from 'lucide-react';
 import {
   getMosque,
-  followMosque,
-  unfollowMosque,
-  isUserFollowingMosque,
-  getMosqueFollowerCount,
   getKhairatPrograms,
   getOrganizationPeople,
 } from '@/lib/api';
@@ -38,7 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X } from 'lucide-react';
+import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck } from 'lucide-react';
 import { createClaim, uploadClaimDocument } from '@/lib/api';
 import { submitKariahApplication, getKariahApplications, deleteKariahApplication, withdrawKariahApplication } from '@/lib/api/kariah-applications';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
@@ -47,6 +43,7 @@ import type { UserProfile, ClaimDocument } from '@/types/database';
 import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
 import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
+import { KariahRegistrationInfo } from '@/components/mosque/KariahRegistrationInfo';
 import { Mosque, KhairatProgram } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
@@ -67,9 +64,6 @@ export default function MosqueProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followLoading, setFollowLoading] = useState(false);
   const [isKhairatModalOpen, setIsKhairatModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isKariahSuccessModalOpen, setIsKariahSuccessModalOpen] = useState(false);
@@ -125,9 +119,6 @@ export default function MosqueProfilePage() {
       );
       setMosque(mosqueResponse.data);
 
-      // Fetch follower count
-      const followerCount = await getMosqueFollowerCount(mosqueId);
-      setFollowerCount(followerCount);
 
       // Fetch contribution programs
       console.log('[PAGE] MosqueProfilePage - Fetching contribution programs');
@@ -163,10 +154,6 @@ export default function MosqueProfilePage() {
       }
 
       // Check if user is following this mosque (only if user is logged in)
-      if (user?.id) {
-        const following = await isUserFollowingMosque(user.id, mosqueId);
-        setIsFollowing(following);
-      }
     } catch (err) {
       console.error('[PAGE] MosqueProfilePage - Catch error:', err);
       setError(t('errorFetchingData'));
@@ -214,37 +201,6 @@ export default function MosqueProfilePage() {
     }
   }, [searchParams, user?.id, loading]);
 
-  const handleFollow = async () => {
-    if (!user?.id) {
-      router.push('/login');
-      return;
-    }
-
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        const response = await unfollowMosque(user.id, mosqueId);
-        if (response.success) {
-          setIsFollowing(false);
-          setFollowerCount((prev) => prev - 1);
-        } else {
-          console.error('Failed to unfollow mosque:', response.error);
-        }
-      } else {
-        const response = await followMosque(user.id, mosqueId);
-        if (response.success) {
-          setIsFollowing(true);
-          setFollowerCount((prev) => prev + 1);
-        } else {
-          console.error('Failed to follow mosque:', response.error);
-        }
-      }
-    } catch (error) {
-      console.error('Error handling follow action:', error);
-    } finally {
-      setFollowLoading(false);
-    }
-  };
 
   // events functionality removed
 
@@ -585,35 +541,6 @@ export default function MosqueProfilePage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-end space-x-2 sm:space-x-3 flex-shrink-0">
-                  {user && (
-                    <Button
-                      onClick={handleFollow}
-                      disabled={followLoading}
-                      variant={isFollowing ? 'secondary' : 'default'}
-                      size="sm"
-                      className="text-xs sm:text-sm"
-                    >
-                      {followLoading ? (
-                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-current mr-1 sm:mr-2"></div>
-                      ) : isFollowing ? (
-                        <>
-                          <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">
-                            {t('following')}
-                          </span>
-                          <span className="sm:hidden">Following</span>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">
-                            {t('follow')}
-                          </span>
-                          <span className="sm:hidden">Follow</span>
-                        </>
-                      )}
-                    </Button>
-                  )}
                   <ShareProfileButton mosque={mosque} />
                   <Badge
                     variant="secondary"
@@ -630,13 +557,6 @@ export default function MosqueProfilePage() {
           <div className="px-6 py-4 bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-6">
-                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                  <Users className="h-4 w-4 mr-2" />
-                  <span className="font-medium">{followerCount}</span>
-                  <span className="ml-1">
-                    {followerCount === 1 ? t('follower') : t('followers')}
-                  </span>
-                </div>
                 {mosque.settings?.established_year != null && (
                   <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                     <Calendar className="h-4 w-4 mr-2" />
@@ -1112,6 +1032,43 @@ export default function MosqueProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-2">
+                  {/* Register as Kariah Member */}
+                  <ServiceAwareButton
+                    serviceId="kariah_management"
+                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
+                    disabledMessage="Kariah registrations are not currently available for this mosque."
+                    className="w-full justify-start p-3 h-auto"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!user?.id) {
+                        router.push('/login');
+                        return;
+                      }
+                      handleApplyKariah();
+                    }}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
+                      !user?.id || isApplyingKariah
+                        ? 'bg-gray-200 dark:bg-gray-700' 
+                        : 'bg-purple-100 dark:bg-purple-800'
+                    }`}>
+                      {isApplyingKariah ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <UserCheck className={`h-5 w-5 ${
+                          !user?.id 
+                            ? 'text-gray-400 dark:text-gray-500' 
+                            : 'text-purple-600 dark:text-purple-400'
+                        }`} />
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="font-medium text-slate-900 dark:text-white text-sm">
+                        {isApplyingKariah ? t('submitting') : t('applyKariah')}
+                      </h3>
+                    </div>
+                  </ServiceAwareButton>
+
                   {/* Pay Khairat */}
                   <ServiceAwareButton
                     serviceId="khairat_management"
@@ -1174,43 +1131,6 @@ export default function MosqueProfilePage() {
                     <div className="flex-1 text-left">
                       <h3 className="font-medium text-slate-900 dark:text-white text-sm">
                         {t('submitKhairatClaim')}
-                      </h3>
-                    </div>
-                  </ServiceAwareButton>
-
-                  {/* Apply Kariah */}
-                  <ServiceAwareButton
-                    serviceId="kariah_management"
-                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                    disabledMessage="Kariah applications are not currently available for this mosque."
-                    className="w-full justify-start p-3 h-auto"
-                    variant="ghost"
-                    onClick={() => {
-                      if (!user?.id) {
-                        router.push('/login');
-                        return;
-                      }
-                      handleApplyKariah();
-                    }}
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                      !user?.id || isApplyingKariah
-                        ? 'bg-gray-200 dark:bg-gray-700' 
-                        : 'bg-blue-100 dark:bg-blue-800'
-                    }`}>
-                      {isApplyingKariah ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
-                      ) : (
-                        <FileText className={`h-5 w-5 ${
-                          !user?.id 
-                            ? 'text-gray-400 dark:text-gray-500' 
-                            : 'text-blue-600 dark:text-blue-400'
-                        }`} />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <h3 className="font-medium text-slate-900 dark:text-white text-sm">
-                        {isApplyingKariah ? t('submitting') : t('applyKariah')}
                       </h3>
                     </div>
                   </ServiceAwareButton>
@@ -1422,7 +1342,7 @@ export default function MosqueProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Kariah Application Confirmation Modal */}
+      {/* Kariah Registration Confirmation Modal */}
       <Dialog open={isKariahApplicationModalOpen} onOpenChange={setIsKariahApplicationModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1519,6 +1439,11 @@ export default function MosqueProfilePage() {
               )}
             </div>
 
+            {/* Kariah Registration Information */}
+            {!currentApplicationStatus && (
+              <KariahRegistrationInfo mosqueId={mosqueId} />
+            )}
+
             {/* User Profile Review Section */}
             {editingProfile && (
               <div className="border-t pt-4">
@@ -1594,26 +1519,6 @@ export default function MosqueProfilePage() {
                         </p>
                       )}
                     </div>
-
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {t('address')}
-                    </label>
-                    {isEditingProfile ? (
-                      <Textarea
-                        value={editingProfile.address || ''}
-                        onChange={(e) => setEditingProfile({...editingProfile, address: e.target.value})}
-                        className="mt-1"
-                        rows={2}
-                        placeholder={t('enterYourAddress')}
-                      />
-                    ) : (
-                      <p className="text-sm text-slate-900 dark:text-white mt-1">
-                        {editingProfile.address || t('notProvided')}
-                      </p>
-                    )}
                   </div>
 
                   {isEditingProfile && (
@@ -1705,7 +1610,7 @@ export default function MosqueProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Kariah Application Success Modal */}
+      {/* Kariah Registration Success Modal */}
       <Dialog open={isKariahSuccessModalOpen} onOpenChange={setIsKariahSuccessModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -23,7 +23,7 @@ export function FeatureGate({
   featureName,
   children,
   fallback,
-  requiredPlan = 'premium',
+  requiredPlan = 'standard',
   showUpgrade = true,
   onUpgrade
 }: FeatureGateProps) {
@@ -66,9 +66,9 @@ export function FeatureGate({
 
   const getPlanIcon = (plan: SubscriptionPlan) => {
     switch (plan) {
-      case 'premium':
+      case 'standard':
         return <Crown className="h-5 w-5 text-yellow-500" />;
-      case 'enterprise':
+      case 'pro':
         return <Zap className="h-5 w-5 text-purple-500" />;
       default:
         return <Lock className="h-5 w-5 text-gray-500" />;
@@ -77,10 +77,10 @@ export function FeatureGate({
 
   const getPlanName = (plan: SubscriptionPlan) => {
     switch (plan) {
-      case 'premium':
-        return 'Premium';
-      case 'enterprise':
-        return 'Enterprise';
+      case 'standard':
+        return 'Standard';
+      case 'pro':
+        return 'Pro';
       default:
         return 'Free';
     }

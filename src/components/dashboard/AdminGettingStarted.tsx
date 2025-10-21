@@ -72,8 +72,8 @@ export function AdminGettingStarted({
     },
     {
       id: 'review-applications',
-      title: 'Review Kariah Applications',
-      description: 'Process pending kariah membership applications',
+      title: 'Review Kariah Registrations',
+      description: 'Process pending kariah member registrations',
       icon: UserCheck,
       href: '/kariah',
       completed: !hasPendingApplications,

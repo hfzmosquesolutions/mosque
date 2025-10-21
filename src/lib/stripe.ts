@@ -29,10 +29,10 @@ export const STRIPE_CONFIG = {
         members: 50
       }
     },
-    premium: {
-      name: 'Premium',
-      price: 9900, // RM 99.00 in cents
-      stripe_price_id: process.env.STRIPE_PREMIUM_PRICE_ID,
+    standard: {
+      name: 'Standard',
+      price: 4900, // RM 49.00 in cents
+      stripe_price_id: process.env.STRIPE_STANDARD_PRICE_ID,
       features: [
         'Everything in Free',
         'Khairat management',
@@ -46,12 +46,12 @@ export const STRIPE_CONFIG = {
         members: -1
       }
     },
-    enterprise: {
-      name: 'Enterprise',
-      price: 29900, // RM 299.00 in cents
-      stripe_price_id: process.env.STRIPE_ENTERPRISE_PRICE_ID,
+    pro: {
+      name: 'Pro',
+      price: 39900, // RM 399.00 in cents
+      stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
       features: [
-        'Everything in Premium',
+        'Everything in Standard',
         'Multi-mosque support',
         'API access',
         'Custom integrations',
@@ -93,7 +93,7 @@ export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures
         api_access: false,
         custom_branding: false
       };
-    case 'premium':
+    case 'standard':
       return {
         khairat_management: true,
         advanced_kariah: true,
@@ -103,7 +103,7 @@ export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures
         api_access: false,
         custom_branding: false
       };
-    case 'enterprise':
+    case 'pro':
       return {
         khairat_management: true,
         advanced_kariah: true,

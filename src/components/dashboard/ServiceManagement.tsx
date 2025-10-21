@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   Settings, 
   HandHeart, 
@@ -12,10 +14,12 @@ import {
   Banknote,
   CheckCircle,
   XCircle,
-  Info
+  Info,
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { updateMosqueSettings } from '@/lib/api';
+import { updateMosqueSettings, getKariahRegistrationSettings, updateKariahRegistrationSettings } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Service {
@@ -25,6 +29,12 @@ interface Service {
   icon: React.ComponentType<{ className?: string }>;
   enabled: boolean;
   category: 'core' | 'community' | 'financial' | 'management';
+}
+
+interface KariahRegistrationSettings {
+  requirements: string;
+  benefits: string;
+  custom_message: string;
 }
 
 interface ServiceManagementProps {
@@ -74,6 +84,13 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [kariahSettings, setKariahSettings] = useState<KariahRegistrationSettings>({
+    requirements: '',
+    benefits: '',
+    custom_message: ''
+  });
+  const [loadingKariahSettings, setLoadingKariahSettings] = useState(false);
+  const [savingKariahSettings, setSavingKariahSettings] = useState(false);
   const t = useTranslations('dashboard');
 
   useEffect(() => {
@@ -84,6 +101,43 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
     }));
     setServices(initializedServices);
   }, [currentServices]);
+
+  useEffect(() => {
+    loadKariahSettings();
+  }, [mosqueId]);
+
+  const loadKariahSettings = async () => {
+    try {
+      setLoadingKariahSettings(true);
+      const result = await getKariahRegistrationSettings(mosqueId);
+      
+      if (result.success && result.data) {
+        setKariahSettings(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading kariah settings:', error);
+    } finally {
+      setLoadingKariahSettings(false);
+    }
+  };
+
+  const saveKariahSettings = async () => {
+    try {
+      setSavingKariahSettings(true);
+      const result = await updateKariahRegistrationSettings(mosqueId, kariahSettings);
+      
+      if (result.success) {
+        toast.success('Kariah registration settings saved successfully');
+      } else {
+        toast.error(result.error || 'Failed to save kariah registration settings');
+      }
+    } catch (error) {
+      console.error('Error saving kariah settings:', error);
+      toast.error('Failed to save kariah registration settings');
+    } finally {
+      setSavingKariahSettings(false);
+    }
+  };
 
   const handleServiceToggle = async (serviceId: string, enabled: boolean) => {
     setSaving(true);
@@ -228,6 +282,85 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
             </div>
           );
         })}
+
+        {/* Kariah Registration Settings */}
+        {currentServices.includes('kariah_management') && (
+          <div className="space-y-4">
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Kariah Registration Settings
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure registration requirements and benefits for new ahli kariah
+                  </p>
+                </div>
+                <Button 
+                  onClick={saveKariahSettings} 
+                  disabled={savingKariahSettings}
+                  size="sm"
+                >
+                  {savingKariahSettings ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </div>
+
+              <div className="grid gap-4">
+                {/* Requirements */}
+                <div className="space-y-2">
+                  <Label htmlFor="requirements" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Registration Requirements
+                  </Label>
+                  <Textarea
+                    id="requirements"
+                    placeholder="e.g., Valid IC/Passport, Proof of residence in the area, Emergency contact information..."
+                    value={kariahSettings.requirements}
+                    onChange={(e) => 
+                      setKariahSettings(prev => ({ ...prev, requirements: e.target.value }))
+                    }
+                    rows={3}
+                  />
+                </div>
+
+                {/* Benefits */}
+                <div className="space-y-2">
+                  <Label htmlFor="benefits" className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Membership Benefits
+                  </Label>
+                  <Textarea
+                    id="benefits"
+                    placeholder="e.g., Access to khairat programs, Community support, Voting rights in mosque decisions..."
+                    value={kariahSettings.benefits}
+                    onChange={(e) => 
+                      setKariahSettings(prev => ({ ...prev, benefits: e.target.value }))
+                    }
+                    rows={3}
+                  />
+                </div>
+
+                {/* Custom Message */}
+                <div className="space-y-2">
+                  <Label htmlFor="custom-message" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Custom Welcome Message
+                  </Label>
+                  <Textarea
+                    id="custom-message"
+                    placeholder="e.g., Welcome to our mosque community! We're excited to have you join us..."
+                    value={kariahSettings.custom_message}
+                    onChange={(e) => 
+                      setKariahSettings(prev => ({ ...prev, custom_message: e.target.value }))
+                    }
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-muted/50 p-4 rounded-lg">
           <div className="flex items-start gap-2">

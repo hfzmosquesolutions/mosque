@@ -121,6 +121,17 @@ export function QuickActions() {
 
   const memberActions: QuickAction[] = [
     {
+      id: 'apply-kariah',
+      title: 'Register as Kariah Member',
+      description: 'Join as a kariah member of your mosque',
+      icon: UserCheck,
+      href: '/kariah-application',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      isNew: true,
+    },
+    {
       id: 'contribute',
       title: 'Make Contribution',
       description: 'Support khairat programs in your community',
@@ -129,7 +140,6 @@ export function QuickActions() {
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       iconColor: 'text-red-600 dark:text-red-400',
-      isNew: true,
     },
     {
       id: 'add-dependents',
@@ -150,16 +160,6 @@ export function QuickActions() {
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       iconColor: 'text-green-600 dark:text-green-400',
-    },
-    {
-      id: 'apply-kariah',
-      title: 'Apply for Kariah',
-      description: 'Join as a kariah member of your mosque',
-      icon: UserCheck,
-      href: '/kariah-application',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50 dark:bg-purple-950/20',
-      iconColor: 'text-purple-600 dark:text-purple-400',
     },
     {
       id: 'find-mosque',

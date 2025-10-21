@@ -279,20 +279,20 @@ function BillingContent() {
               isCurrentPlan={currentPlan === 'free'}
             />
             <SubscriptionCard
-              plan="premium"
+              plan="standard"
               currentPlan={currentPlan}
-              features={getFeaturesForPlan('premium')}
+              features={getFeaturesForPlan('standard')}
               onSelectPlan={handleUpgrade}
-              loading={upgrading === 'premium'}
-              isCurrentPlan={currentPlan === 'premium'}
+              loading={upgrading === 'standard'}
+              isCurrentPlan={currentPlan === 'standard'}
             />
             <SubscriptionCard
-              plan="enterprise"
+              plan="pro"
               currentPlan={currentPlan}
-              features={getFeaturesForPlan('enterprise')}
+              features={getFeaturesForPlan('pro')}
               onSelectPlan={handleUpgrade}
-              loading={upgrading === 'enterprise'}
-              isCurrentPlan={currentPlan === 'enterprise'}
+              loading={upgrading === 'pro'}
+              isCurrentPlan={currentPlan === 'pro'}
             />
           </div>
         </TabsContent>

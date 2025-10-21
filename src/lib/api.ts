@@ -7,7 +7,6 @@ import {
   UpdateUserProfile,
   Mosque,
   UpdateMosque,
-  MosqueFollower,
   KhairatProgram,
   KhairatContribution,
   UserDependent,
@@ -45,6 +44,13 @@ export interface OrganizationPerson {
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+// Kariah Registration Settings types
+export interface KariahRegistrationSettings {
+  requirements: string;
+  benefits: string;
+  custom_message: string;
 }
 
 export interface CreateOrganizationPerson {
@@ -181,6 +187,19 @@ export async function completeOnboarding(
             country: onboardingData.mosqueAddressData?.country,
             user_id: userId, // Set the creator as the mosque owner
             is_private: false, // Default to public profile
+            settings: {
+              enabled_services: [
+                'kariah_management',
+                'khairat_management', 
+                'organization_people',
+                'mosque_profile'
+              ],
+              kariah_registration: {
+                requirements: '',
+                benefits: '',
+                custom_message: ''
+              }
+            }
           })
           .select()
           .single();
@@ -191,9 +210,6 @@ export async function completeOnboarding(
         }
 
         mosqueId = mosque.id;
-
-        // TODO: Create default Khairat program for the new mosque
-        // This functionality can be added later if needed
       } else if (onboardingData.mosqueAction === 'join' && onboardingData.existingMosqueId) {
         mosqueId = onboardingData.existingMosqueId;
 
@@ -998,156 +1014,6 @@ export async function globalSearch(
   }
 }
 
-// =============================================
-// MOSQUE FOLLOWING OPERATIONS
-// =============================================
-
-/**
- * Follow a mosque
- */
-export async function followMosque(
-  userId: string,
-  mosqueId: string
-): Promise<ApiResponse<MosqueFollower>> {
-  try {
-    // Check if user is already following this mosque
-    const { data: existing, error: checkError } = await supabase
-      .from('mosque_followers')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('mosque_id', mosqueId)
-      .single();
-
-    if (existing) {
-      return { success: false, error: 'You are already following this mosque' };
-    }
-
-    const { data, error } = await supabase
-      .from('mosque_followers')
-      .insert({
-        user_id: userId,
-        mosque_id: mosqueId,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to follow mosque' };
-  }
-}
-
-/**
- * Unfollow a mosque
- */
-export async function unfollowMosque(
-  userId: string,
-  mosqueId: string
-): Promise<ApiResponse<{ success: true }>> {
-  try {
-    const { error } = await supabase
-      .from('mosque_followers')
-      .delete()
-      .eq('user_id', userId)
-      .eq('mosque_id', mosqueId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data: { success: true } };
-  } catch (error) {
-    return { success: false, error: 'Failed to unfollow mosque' };
-  }
-}
-
-/**
- * Check if user is following a mosque
- */
-export async function isUserFollowingMosque(
-  userId: string,
-  mosqueId: string
-): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('mosque_followers')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('mosque_id', mosqueId)
-      .single();
-
-    return !error && !!data;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
- * Get mosques that a user is following
- */
-export async function getUserFollowedMosques(
-  userId: string,
-  limit = 20,
-  offset = 0
-): Promise<PaginatedResponse<Mosque>> {
-  try {
-    const { data, error, count } = await supabase
-      .from('mosque_followers')
-      .select(`
-        mosques(*)
-      `, { count: 'exact' })
-      .eq('user_id', userId)
-      .range(offset, offset + limit - 1)
-      .order('followed_at', { ascending: false });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const mosques = (data?.map(item => item.mosques).filter(Boolean) || []) as unknown as Mosque[];
-    const totalCount = count || 0;
-    const totalPages = Math.ceil(totalCount / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    return {
-      data: mosques,
-      count: totalCount,
-      page: currentPage,
-      limit,
-      total_pages: totalPages,
-      has_next: currentPage < totalPages,
-      has_prev: currentPage > 1,
-    };
-  } catch (error) {
-    throw new Error('Failed to fetch followed mosques');
-  }
-}
-
-/**
- * Get follower count for a mosque
- */
-export async function getMosqueFollowerCount(mosqueId: string): Promise<number> {
-  try {
-    const { count, error } = await supabase
-      .from('mosque_followers')
-      .select('*', { count: 'exact', head: true })
-      .eq('mosque_id', mosqueId);
-
-    if (error) {
-      console.error('Error fetching mosque follower count:', error);
-      return 0;
-    }
-
-    return count || 0;
-  } catch (error) {
-    console.error('Error fetching mosque follower count:', error);
-    return 0;
-  }
-}
 
 // =============================================
 // MEMBER MANAGEMENT OPERATIONS
@@ -1861,5 +1727,77 @@ export async function deleteOrganizationPerson(
   } catch (error) {
     console.error('Error deleting organization person:', error);
     return { success: false, error: 'Failed to delete organization person' };
+  }
+}
+
+/**
+ * Get kariah registration settings for a mosque
+ */
+export async function getKariahRegistrationSettings(mosqueId: string): Promise<ApiResponse<KariahRegistrationSettings>> {
+  try {
+    const { data: mosque, error } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (error) {
+      return { success: false, error: `Failed to fetch mosque settings: ${error.message}` };
+    }
+
+    const kariahSettings = mosque?.settings?.kariah_registration || {
+      requirements: '',
+      benefits: '',
+      custom_message: ''
+    };
+
+    return { success: true, data: kariahSettings };
+  } catch (error) {
+    console.error('Error fetching kariah registration settings:', error);
+    return { success: false, error: 'Failed to fetch kariah registration settings' };
+  }
+}
+
+/**
+ * Update kariah registration settings for a mosque
+ */
+export async function updateKariahRegistrationSettings(
+  mosqueId: string, 
+  settings: KariahRegistrationSettings
+): Promise<ApiResponse<{ success: boolean }>> {
+  try {
+    // First, get the current settings to preserve other settings
+    const { data: currentMosque, error: fetchError } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (fetchError) {
+      return { success: false, error: `Failed to fetch current settings: ${fetchError.message}` };
+    }
+
+    // Merge the new kariah registration settings with existing settings
+    const currentSettings = currentMosque?.settings || {};
+    const updatedSettings = {
+      ...currentSettings,
+      kariah_registration: settings
+    };
+
+    const { error } = await supabase
+      .from('mosques')
+      .update({
+        settings: updatedSettings
+      })
+      .eq('id', mosqueId);
+
+    if (error) {
+      return { success: false, error: `Failed to update settings: ${error.message}` };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    console.error('Error updating kariah registration settings:', error);
+    return { success: false, error: 'Failed to update kariah registration settings' };
   }
 }

@@ -153,16 +153,6 @@ CREATE TABLE public.legacy_khairat_records (
   CONSTRAINT legacy_khairat_records_matched_user_id_fkey FOREIGN KEY (matched_user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT legacy_khairat_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
 );
-CREATE TABLE public.mosque_followers (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
-  mosque_id uuid NOT NULL,
-  followed_at timestamp with time zone DEFAULT now(),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT mosque_followers_pkey PRIMARY KEY (id),
-  CONSTRAINT mosque_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT mosque_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
-);
 CREATE TABLE public.mosque_payment_providers (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   mosque_id uuid NOT NULL,
@@ -182,16 +172,6 @@ CREATE TABLE public.mosque_payment_providers (
   toyyibpay_category_code text,
   CONSTRAINT mosque_payment_providers_pkey PRIMARY KEY (id),
   CONSTRAINT mosque_payment_providers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
-);
-CREATE TABLE public.mosque_user_followers (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  mosque_id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  followed_at timestamp with time zone DEFAULT now(),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT mosque_user_followers_pkey PRIMARY KEY (id),
-  CONSTRAINT mosque_user_followers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT mosque_user_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.mosques (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -341,16 +321,6 @@ CREATE TABLE public.user_dependents (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT user_dependents_pkey PRIMARY KEY (id),
   CONSTRAINT user_dependents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id)
-);
-CREATE TABLE public.user_followers (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  follower_id uuid NOT NULL,
-  following_id uuid NOT NULL,
-  followed_at timestamp with time zone DEFAULT now(),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT user_followers_pkey PRIMARY KEY (id),
-  CONSTRAINT user_followers_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES auth.users(id),
-  CONSTRAINT user_followers_following_id_fkey FOREIGN KEY (following_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_profiles (
   id uuid NOT NULL,

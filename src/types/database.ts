@@ -24,7 +24,6 @@ export type NotificationCategory =
   | 'event' 
   | 'announcement' 
   | 'system' 
-  | 'following' 
   | 'membership' 
   | 'payment';
 
@@ -79,21 +78,6 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export interface MosqueFollower {
-  id: string;
-  user_id: string;
-  mosque_id: string;
-  followed_at: string;
-  created_at: string;
-}
-
-export interface UserFollower {
-  id: string;
-  follower_id: string; // The user who is following
-  following_id: string; // The user being followed
-  followed_at: string;
-  created_at: string;
-}
 
 export interface UserDependent {
   id: string;
@@ -111,13 +95,6 @@ export interface UserDependent {
   updated_at: string;
 }
 
-export interface MosqueUserFollower {
-  id: string;
-  mosque_id: string; // The mosque that is following
-  user_id: string; // The user being followed by the mosque
-  followed_at: string;
-  created_at: string;
-}
 
 // =============================================
 // EVENTS MODULE
@@ -574,9 +551,6 @@ export type TableName =
   | 'audit_logs'
   | 'notifications'
   | 'system_settings'
-  | 'mosque_followers'
-  | 'user_followers'
-  | 'mosque_user_followers'
   | 'user_dependents';
 
 // Generic database record type
@@ -631,21 +605,6 @@ export interface Database {
         Row: Resource;
         Insert: CreateResource;
         Update: UpdateResource;
-      };
-      mosque_followers: {
-        Row: MosqueFollower;
-        Insert: Omit<MosqueFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
-      };
-      user_followers: {
-        Row: UserFollower;
-        Insert: Omit<UserFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
-      };
-      mosque_user_followers: {
-        Row: MosqueUserFollower;
-        Insert: Omit<MosqueUserFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
       };
       user_dependents: {
         Row: UserDependent;

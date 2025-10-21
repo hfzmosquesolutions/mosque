@@ -41,7 +41,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
 import { UserProfile } from '@/types/database';
-import { FollowingDashboard } from '@/components/following';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -236,12 +235,6 @@ function ProfileContent() {
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
             >
               {t('contactEmergencyTab')}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="following" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-            >
-              {t('followingTab')}
             </TabsTrigger>
             <TabsTrigger 
               value="public" 
@@ -469,10 +462,6 @@ function ProfileContent() {
             </Card>
           </TabsContent>
 
-          {/* Following Tab */}
-          <TabsContent value="following" className="space-y-6">
-            <FollowingDashboard />
-          </TabsContent>
 
           {/* Public Profile Tab */}
           <TabsContent value="public" className="space-y-6">

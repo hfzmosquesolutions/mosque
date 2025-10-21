@@ -37,8 +37,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
-import { getUserFollowStats } from '@/lib/api/following';
-import { getMosqueFollowerCount, getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
+import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
@@ -186,10 +185,6 @@ function DashboardContent() {
       // Fetch follower count based on user role
       try {
         if (isAdmin && mosqueId) {
-          // For admin users, get mosque follower count
-          const mosqueFollowerCount = await getMosqueFollowerCount(mosqueId);
-          setFollowerCount(mosqueFollowerCount);
-          
           // Fetch mosque data for admin users
           try {
             const mosqueResponse = await getMosque(mosqueId);
@@ -220,9 +215,8 @@ function DashboardContent() {
           }
 
         } else if (user?.id) {
-          // For normal users, get user follower count
-          const userStats = await getUserFollowStats(user.id);
-          setFollowerCount(userStats.followers_count);
+          // For normal users, set follower count to 0
+          setFollowerCount(0);
         }
       } catch (followerError) {
         console.error('Error fetching follower count:', followerError);

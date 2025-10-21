@@ -28,7 +28,7 @@ export function SubscriptionCard({
 }: SubscriptionCardProps) {
   const t = useTranslations('billing');
   const planConfig = STRIPE_CONFIG.plans[plan];
-  const isPopular = plan === 'premium';
+  const isPopular = plan === 'standard';
 
   return (
     <Card className={`relative ${isPopular ? 'border-emerald-500 shadow-lg' : 'border-gray-200'} ${isCurrentPlan ? 'bg-emerald-50 dark:bg-emerald-950' : ''}`}>

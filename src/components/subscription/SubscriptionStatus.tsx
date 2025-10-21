@@ -105,10 +105,10 @@ export function SubscriptionStatus({ userId, onManageBilling }: SubscriptionStat
     switch (plan) {
       case 'free':
         return t('planPrice.free');
-      case 'premium':
-        return t('planPrice.premium');
-      case 'enterprise':
-        return t('planPrice.enterprise');
+      case 'standard':
+        return t('planPrice.standard');
+      case 'pro':
+        return t('planPrice.pro');
       default:
         return t('unknown');
     }

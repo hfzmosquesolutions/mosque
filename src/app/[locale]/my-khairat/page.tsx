@@ -20,7 +20,7 @@ import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
 import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { KhairatContribution, KhairatProgram, Mosque, CreateKhairatClaim } from '@/types/database';
-import { getUserKhairatContributions, getUserFollowedMosques, createClaim } from '@/lib/api';
+import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/api';
 import { toast } from 'sonner';
 
 function MyKhairatContent() {
@@ -33,9 +33,9 @@ function MyKhairatContent() {
   const [userContributions, setUserContributions] = useState<
     (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })[]
   >([]);
-  const [isFollowedMosquesOpen, setIsFollowedMosquesOpen] = useState(false);
-  const [followedMosques, setFollowedMosques] = useState<Mosque[]>([]);
-  const [loadingFollowed, setLoadingFollowed] = useState(false);
+  const [isMosqueSearchOpen, setIsMosqueSearchOpen] = useState(false);
+  const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
+  const [loadingMosques, setLoadingMosques] = useState(false);
   const [activeTab, setActiveTab] = useState('payments');
   const [showCreateClaimDialog, setShowCreateClaimDialog] = useState(false);
   const [isClaimMosquesOpen, setIsClaimMosquesOpen] = useState(false);
@@ -117,26 +117,27 @@ function MyKhairatContent() {
     }
   };
 
-  // Load followed mosques when opening the modal
+  // Load available mosques when opening the modal
   useEffect(() => {
-    if ((!isFollowedMosquesOpen && !isClaimMosquesOpen) || !user) return;
+    if ((!isMosqueSearchOpen && !isClaimMosquesOpen) || !user) return;
     let cancelled = false;
     (async () => {
       try {
-        setLoadingFollowed(true);
-        const res = await getUserFollowedMosques(user.id, 50, 0);
-        if (!cancelled) setFollowedMosques(res.data || []);
+        setLoadingMosques(true);
+        // Load all available mosques for selection
+        const res = await searchMosques('', 50, 0);
+        if (!cancelled) setAvailableMosques(res.data || []);
       } catch (e) {
-        console.error('Failed to load followed mosques', e);
-        if (!cancelled) setFollowedMosques([]);
+        console.error('Failed to load mosques', e);
+        if (!cancelled) setAvailableMosques([]);
       } finally {
-        if (!cancelled) setLoadingFollowed(false);
+        if (!cancelled) setLoadingMosques(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [isFollowedMosquesOpen, isClaimMosquesOpen, user]);
+  }, [isMosqueSearchOpen, isClaimMosquesOpen, user]);
 
   if (adminLoading || hasAdminAccess) {
     return null;
@@ -179,7 +180,7 @@ function MyKhairatContent() {
                 View and manage your khairat payment history
               </p>
             </div>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsFollowedMosquesOpen(true)}>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsMosqueSearchOpen(true)}>
               <HandHeart className="mr-2 h-4 w-4" /> Make Payment
             </Button>
           </div>
@@ -199,12 +200,12 @@ function MyKhairatContent() {
                 Start Your Khairat Journey
               </h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
-                Make your first Khairat payment to support your mosque community. Choose from your followed mosques to get started.
+                Make your first Khairat payment to support your mosque community. Choose from available mosques to get started.
               </p>
               <Button 
                 size="lg" 
                 className="bg-emerald-600 hover:bg-emerald-700 text-lg px-8 py-3" 
-                onClick={() => setIsFollowedMosquesOpen(true)}
+                onClick={() => setIsMosqueSearchOpen(true)}
               >
                 <HandHeart className="mr-2 h-5 w-5" /> Make Payment
               </Button>
@@ -233,32 +234,32 @@ function MyKhairatContent() {
       </Tabs>
       
       {/* Followed Mosques Modal */}
-      <Dialog open={isFollowedMosquesOpen} onOpenChange={setIsFollowedMosquesOpen}>
+      <Dialog open={isMosqueSearchOpen} onOpenChange={setIsMosqueSearchOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Select Mosque to Make Payment</DialogTitle>
-            <p className="text-sm text-muted-foreground">Choose a mosque from your followed list to make a khairat payment</p>
+            <p className="text-sm text-muted-foreground">Choose a mosque to make a khairat payment</p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
-            {loadingFollowed ? (
+            {loadingMosques ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                <div className="text-sm text-muted-foreground">Loading your followed mosques...</div>
+                <div className="text-sm text-muted-foreground">Loading available mosques...</div>
               </div>
-            ) : followedMosques.length === 0 ? (
+            ) : availableMosques.length === 0 ? (
               <div className="text-center py-8">
                 <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="text-sm text-muted-foreground mb-2">You are not following any mosques yet.</div>
-                <div className="text-xs text-muted-foreground">Follow mosques to see them here.</div>
+                <div className="text-sm text-muted-foreground mb-2">No mosques available.</div>
+                <div className="text-xs text-muted-foreground">Try again later</div>
               </div>
             ) : (
               <div className="space-y-3">
-                {followedMosques.map((mosque) => (
+                {availableMosques.map((mosque) => (
                   <Card
                     key={mosque.id}
                     className="cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700"
                     onClick={() => {
-                      setIsFollowedMosquesOpen(false);
+                      setIsMosqueSearchOpen(false);
                       window.open(`/mosques/${mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
                     }}
                   >
@@ -315,23 +316,23 @@ function MyKhairatContent() {
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Select Mosque to Submit Claim</DialogTitle>
-            <p className="text-sm text-muted-foreground">Choose a mosque from your followed list to submit a khairat claim</p>
+            <p className="text-sm text-muted-foreground">Choose a mosque to submit a khairat claim</p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
-            {loadingFollowed ? (
+            {loadingMosques ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <div className="text-sm text-muted-foreground">Loading your followed mosques...</div>
+                <div className="text-sm text-muted-foreground">Loading available mosques...</div>
               </div>
-            ) : followedMosques.length === 0 ? (
+            ) : availableMosques.length === 0 ? (
               <div className="text-center py-8">
                 <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="text-sm text-muted-foreground mb-2">You are not following any mosques yet.</div>
-                <div className="text-xs text-muted-foreground">Follow mosques to see them here.</div>
+                <div className="text-sm text-muted-foreground mb-2">No mosques available.</div>
+                <div className="text-xs text-muted-foreground">Try again later</div>
               </div>
             ) : (
               <div className="space-y-3">
-                {followedMosques.map((mosque) => (
+                {availableMosques.map((mosque) => (
                   <Card
                     key={mosque.id}
                     className="cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700"

@@ -65,7 +65,7 @@ export function KariahDataDashboard({
                 {t('memberships')}
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Manage kariah memberships and member information
+                Manage kariah members and member information
               </p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export function KariahDataDashboard({
                 {t('applications')}
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Review and manage kariah membership applications
+                Review and manage kariah member registrations
               </p>
             </div>
           </div>

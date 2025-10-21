@@ -37,7 +37,6 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
-import { getUserFollowStats } from '@/lib/api/following';
 import { getUserNotifications, markNotificationAsRead } from '@/lib/api/notifications';
 import { QuickActions } from './QuickActions';
 import { MemberStatsCards } from './MemberStatsCards';
@@ -65,7 +64,6 @@ interface MemberDashboardProps {
 
 export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
   const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [followerCount, setFollowerCount] = useState<number>(0);
   const [dependentsCount, setDependentsCount] = useState<number>(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -154,14 +152,6 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
         setDependentsCount(dependentsData.length);
       }
 
-      // Fetch follower count
-      try {
-        const userStats = await getUserFollowStats(user.id);
-        setFollowerCount(userStats.followers_count);
-      } catch (followerError) {
-        console.error('Error fetching follower count:', followerError);
-        setFollowerCount(0);
-      }
 
     } catch (error) {
       console.error('Error fetching member data:', error);
@@ -343,11 +333,9 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
       {/* Member Stats Cards */}
       <MemberStatsCards 
         totalContributed={totalContributed}
-        followerCount={followerCount}
         dependentsCount={dependentsCount}
         recentContributionsCount={recentContributions.length}
         eventsAttended={0} // TODO: Implement events tracking
-        mosquesFollowed={0} // TODO: Implement mosque following tracking
       />
 
       {/* Getting Started and Quick Actions - Side by Side */}

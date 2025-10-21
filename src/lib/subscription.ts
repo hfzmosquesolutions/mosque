@@ -243,9 +243,9 @@ export function getFeaturesForPlan(plan: SubscriptionPlan): SubscriptionFeatures
     advanced_kariah: plan !== 'free',
     unlimited_events: false,
     financial_reports: plan !== 'free',
-    multi_mosque: plan === 'enterprise',
-    api_access: plan === 'enterprise',
-    custom_branding: plan === 'enterprise'
+    multi_mosque: plan === 'pro',
+    api_access: plan === 'pro',
+    custom_branding: plan === 'pro'
   } : {
     khairat_management: false,
     advanced_kariah: false,
