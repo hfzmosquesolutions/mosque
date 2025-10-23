@@ -36,13 +36,13 @@ import {
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  getKhairatPrograms,
+  getMosqueKhairatSettings,
   getUserMosqueId,
   getMosque,
   updateMosque,
 } from '@/lib/api';
 import type {
-  KhairatProgram,
+  MosqueKhairatSettings,
   Mosque,
   UpdateMosque,
 } from '@/types/database';
@@ -125,8 +125,8 @@ function MosqueProfileContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [programs, setPrograms] = useState<KhairatProgram[]>([]);
-  const [programsLoading, setProgramsLoading] = useState(true);
+  const [khairatSettings, setKhairatSettings] = useState<MosqueKhairatSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
 
@@ -213,28 +213,28 @@ function MosqueProfileContent() {
     }
   }, [mosqueId]);
 
-  const loadPrograms = useCallback(async () => {
+  const loadKhairatSettings = useCallback(async () => {
     if (!mosqueId) return;
 
-    setProgramsLoading(true);
+    setSettingsLoading(true);
     try {
-      const response = await getKhairatPrograms(mosqueId);
+      const response = await getMosqueKhairatSettings(mosqueId);
       if (response.success && response.data) {
-        setPrograms(response.data);
+        setKhairatSettings(response.data);
       }
     } catch (error) {
-      console.error('Error loading programs:', error);
+      console.error('Error loading khairat settings:', error);
     } finally {
-      setProgramsLoading(false);
+      setSettingsLoading(false);
     }
   }, [mosqueId]);
 
   useEffect(() => {
     if (mosqueId) {
       loadMosqueData();
-      loadPrograms();
+      loadKhairatSettings();
     }
-  }, [mosqueId, loadMosqueData, loadPrograms]);
+  }, [mosqueId, loadMosqueData, loadKhairatSettings]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -593,94 +593,51 @@ function MosqueProfileContent() {
                   </p>
                 </div>
                 <div>
-                  {programsLoading ? (
+                  {settingsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
                     </div>
-                  ) : programs.length > 0 ? (
+                  ) : (
                     <div className="space-y-4">
-                      {programs.map((program) => (
-                        <div
-                          key={program.id}
-                          className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                                {program.name}
-                              </h4>
-                              {program.description && (
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                  {program.description}
-                                </p>
-                              )}
-                            </div>
-                            <Badge
-                              variant={
-                                program.is_active ? 'default' : 'secondary'
-                              }
-                            >
-                              {program.is_active
-                                ? t('mosqueProfile.active')
-                                : t('mosqueProfile.inactive')}
-                            </Badge>
+                      <div className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                              Khairat Kematian
+                            </h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              Death benefit contributions for mosque members
+                            </p>
                           </div>
-
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            {program.target_amount && (
-                              <div className="flex items-center gap-1">
-                                <Target className="h-4 w-4" />
-                                <span>
-                                  {t('mosqueProfile.target')}: $
-                                  {program.target_amount.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {program.start_date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>
-                                  {t('mosqueProfile.started')}:{' '}
-                                  {new Date(
-                                    program.start_date
-                                  ).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {program.target_amount &&
-                            program.current_amount !== undefined && (
-                              <div className="mt-3">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                  <span className="text-slate-600 dark:text-slate-400">
-                                    {t('mosqueProfile.progress')}
-                                  </span>
-                                  <span className="font-medium">
-                                    $
-                                    {(
-                                      program.current_amount || 0
-                                    ).toLocaleString()}{' '}
-                                    / ${program.target_amount.toLocaleString()}
-                                  </span>
-                                </div>
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                  <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{
-                                      width: `${Math.min(
-                                        ((program.current_amount || 0) /
-                                          program.target_amount) *
-                                          100,
-                                        100
-                                      )}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                          <Badge
+                            variant={khairatSettings?.enabled ? 'default' : 'secondary'}
+                          >
+                            {khairatSettings?.enabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
                         </div>
-                      ))}
+
+                        {khairatSettings?.enabled && (
+                          <div className="space-y-2 mt-3">
+                            {khairatSettings.fixed_price && (
+                              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <DollarSign className="h-4 w-4" />
+                                <span>Fixed Price: RM {khairatSettings.fixed_price.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {khairatSettings.target_amount && (
+                              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <Target className="h-4 w-4" />
+                                <span>Target: RM {khairatSettings.target_amount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {khairatSettings.description && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                {khairatSettings.description}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       <div className="pt-4 border-t">
                         <Button variant="outline" className="w-full" asChild>
@@ -688,30 +645,11 @@ function MosqueProfileContent() {
                             href="/khairat"
                             className="flex items-center gap-2"
                           >
-                            <TrendingUp className="h-4 w-4" />
-                            {t('mosqueProfile.manageAllPrograms')}
+                            <Settings className="h-4 w-4" />
+                            Manage Khairat Settings
                           </a>
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
-                        {t('mosqueProfile.noProgramsYet')}
-                      </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                        {t('mosqueProfile.createContributionPrograms')}
-                      </p>
-                      <Button variant="outline" asChild>
-                        <a
-                          href="/khairat"
-                          className="flex items-center gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          {t('mosqueProfile.createFirstProgram')}
-                        </a>
-                      </Button>
                     </div>
                   )}
                 </div>

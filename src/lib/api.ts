@@ -7,8 +7,8 @@ import {
   UpdateUserProfile,
   Mosque,
   UpdateMosque,
-  KhairatProgram,
   KhairatContribution,
+  MosqueKhairatSettings,
   UserDependent,
   CreateUserDependent,
   UpdateUserDependent,
@@ -454,32 +454,41 @@ export async function updateMosqueSettings(
 // =============================================
 
 /**
- * Get khairat programs for a mosque
+ * Get mosque khairat settings
  */
-export async function getKhairatPrograms(
+export async function getMosqueKhairatSettings(
   mosqueId: string
-): Promise<ApiResponse<KhairatProgram[]>> {
+): Promise<ApiResponse<MosqueKhairatSettings>> {
   try {
-    const { data, error } = await supabase
-      .from('khairat_programs')
-      .select('*')
-      .eq('mosque_id', mosqueId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+    const { data: mosque, error } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
 
     if (error) {
       return { success: false, error: error.message };
     }
 
-    return { success: true, data };
+    const khairatSettings = mosque.settings?.khairat || {
+      enabled: false,
+      fixed_price: undefined,
+      description: undefined,
+      payment_methods: [],
+      target_amount: undefined,
+      start_date: undefined,
+      end_date: undefined
+    };
+
+    return { success: true, data: khairatSettings };
   } catch (error) {
-    return { success: false, error: 'Failed to fetch khairat programs' };
+    return { success: false, error: 'Failed to fetch mosque khairat settings' };
   }
 }
 
 
 /**
- * Create khairat contribution
+ * Create khairat contribution (now mosque-specific)
  */
 export async function createKhairatContribution(
   contributionData: Omit<KhairatContribution, 'id' | 'contributed_at'>
@@ -509,19 +518,16 @@ export async function getUserKhairatContributions(
   userId: string,
   limit = 20,
   offset = 0
-): Promise<PaginatedResponse<KhairatContribution & { program: KhairatProgram & { mosque: Mosque } }>> {
+): Promise<PaginatedResponse<KhairatContribution & { mosque: Mosque }>> {
   try {
     const { data, error, count } = await supabase
       .from('khairat_contributions')
       .select(`
         *,
-        program:khairat_programs(
-          *,
-          mosque:mosques(
-            id,
-            name,
-            address
-          )
+        mosque:mosques(
+          id,
+          name,
+          address
         )
       `, { count: 'exact' })
       .eq('contributor_id', userId)
@@ -551,10 +557,10 @@ export async function getUserKhairatContributions(
 
 
 /**
- * Get khairat contributions for a specific program (admin view)
+ * Get khairat contributions for a specific mosque (admin view)
  */
 export async function getKhairatContributions(
-  programId: string,
+  mosqueId: string,
   limit = 20,
   offset = 0
 ): Promise<PaginatedResponse<KhairatContribution & { contributor?: UserProfile }>> {
@@ -569,7 +575,7 @@ export async function getKhairatContributions(
           phone
         )
       `, { count: 'exact' })
-      .eq('program_id', programId)
+      .eq('mosque_id', mosqueId)
       .order('contributed_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -596,49 +602,44 @@ export async function getKhairatContributions(
 
 
 /**
- * Update khairat program (dedicated table)
+ * Update mosque khairat settings
  */
-export async function updateKhairatProgram(
-  programId: string,
-  updateData: Partial<Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>>
-): Promise<ApiResponse<KhairatProgram>> {
+export async function updateMosqueKhairatSettings(
+  mosqueId: string,
+  settings: MosqueKhairatSettings
+): Promise<ApiResponse<MosqueKhairatSettings>> {
   try {
+    // Get current settings
+    const { data: mosque, error: fetchError } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (fetchError) {
+      return { success: false, error: fetchError.message };
+    }
+
+    // Update settings with new khairat settings
+    const updatedSettings = {
+      ...mosque.settings,
+      khairat: settings
+    };
+
     const { data, error } = await supabase
-      .from('khairat_programs')
-      .update(updateData)
-      .eq('id', programId)
-      .select()
+      .from('mosques')
+      .update({ settings: updatedSettings })
+      .eq('id', mosqueId)
+      .select('settings')
       .single();
 
     if (error) {
       return { success: false, error: error.message };
     }
 
-    return { success: true, data };
+    return { success: true, data: settings };
   } catch (error) {
-    return { success: false, error: 'Failed to update khairat program' };
-  }
-}
-
-/**
- * Delete khairat program (dedicated table)
- */
-export async function deleteKhairatProgram(
-  programId: string
-): Promise<ApiResponse<{ success: true }>> {
-  try {
-    const { error } = await supabase
-      .from('khairat_programs')
-      .delete()
-      .eq('id', programId);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data: { success: true } };
-  } catch (error) {
-    return { success: false, error: 'Failed to delete khairat program' };
+    return { success: false, error: 'Failed to update mosque khairat settings' };
   }
 }
 
@@ -649,24 +650,19 @@ export async function getMosqueKhairatContributions(
   mosqueId: string,
   limit = 20,
   offset = 0
-): Promise<PaginatedResponse<KhairatContribution & { program: KhairatProgram; contributor?: UserProfile }>> {
+): Promise<PaginatedResponse<KhairatContribution & { contributor?: UserProfile }>> {
   try {
     const { data, error, count } = await supabase
       .from('khairat_contributions')
       .select(`
         *,
-        program:khairat_programs!inner(
-          id,
-          name,
-          mosque_id
-        ),
         contributor:user_profiles(
           id,
           full_name,
           phone
         )
       `, { count: 'exact' })
-      .eq('program.mosque_id', mosqueId)
+      .eq('mosque_id', mosqueId)
       .order('contributed_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -691,31 +687,6 @@ export async function getMosqueKhairatContributions(
   }
 }
 
-/**
- * Create khairat program (legacy function)
- */
-export async function createKhairatProgram(
-  programData: Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>
-): Promise<ApiResponse<KhairatProgram>> {
-  try {
-    const { data, error } = await supabase
-      .from('khairat_programs')
-      .insert({
-        ...programData,
-        current_amount: 0
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to create khairat program' };
-  }
-}
 
 
 /**
@@ -859,44 +830,22 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
     const previousMonthDonationAmount = 0;
     const donationTrendPercentage = 0;
 
-    // Get contribution program counts and progress
-    const { count: totalKhairatPrograms } = await supabase
-      .from('khairat_programs')
-      .select('*', { count: 'exact', head: true })
+    // Get khairat contributions directly (no more programs)
+    const { data: khairatContributions } = await supabase
+      .from('khairat_contributions')
+      .select('amount, status')
       .eq('mosque_id', mosqueId);
 
-    const { count: activeKhairatPrograms } = await supabase
-      .from('khairat_programs')
-      .select('*', { count: 'exact', head: true })
-      .eq('mosque_id', mosqueId)
-      .eq('is_active', true);
-
-    // Get detailed contribution program progress
-    const { data: contributionPrograms } = await supabase
-      .from('khairat_programs')
-      .select('id, name, current_amount, target_amount')
-      .eq('mosque_id', mosqueId)
-      .eq('is_active', true)
-      .limit(5);
-
-    const khairatProgramsProgress = contributionPrograms?.map(program => ({
-      id: program.id,
-      name: program.name,
-      current_amount: program.current_amount,
-      target_amount: program.target_amount || 0,
-      progress_percentage: program.target_amount > 0 
-        ? Math.min((program.current_amount / program.target_amount) * 100, 100)
-        : 0
-    })) || [];
-
     // Calculate total khairat amount and monthly contributions
-    const totalKhairatAmount = contributionPrograms?.reduce((sum, program) => sum + program.current_amount, 0) || 0;
+    const totalKhairatAmount = khairatContributions?.reduce((sum, contribution) => 
+      contribution.status === 'completed' ? sum + contribution.amount : sum, 0) || 0;
     
-    // Get monthly khairat contributions by joining with khairat_programs
+    // Get monthly khairat contributions
     const { data: monthlyKhairatData } = await supabase
       .from('khairat_contributions')
-      .select('amount, khairat_programs!inner(mosque_id)')
-      .eq('khairat_programs.mosque_id', mosqueId)
+      .select('amount')
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'completed')
       .gte('contributed_at', startOfMonth.toISOString());
     
     const monthlyKhairatContributions = monthlyKhairatData?.reduce((sum, contribution) => sum + contribution.amount, 0) || 0;
@@ -932,10 +881,10 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       upcoming_events: upcomingEvents || 0,
       total_donations: totalDonations || 0,
       monthly_donations: monthlyDonations || 0,
-      total_contribution_programs: totalKhairatPrograms || 0,
-      active_contribution_programs: activeKhairatPrograms || 0,
-      total_khairat_programs: totalKhairatPrograms || 0,
-      active_khairat_programs: activeKhairatPrograms || 0,
+      total_contribution_programs: 0, // No more programs
+      active_contribution_programs: 0, // No more programs
+      total_khairat_programs: 0, // No more programs
+      active_khairat_programs: 0, // No more programs
       unread_notifications: 0, // This would be user-specific
       recent_activities: [], // This would require a separate query
       // Enhanced metrics
@@ -943,7 +892,7 @@ export async function getDashboardStats(mosqueId: string): Promise<ApiResponse<D
       monthly_donation_amount: monthlyDonationAmount,
       previous_month_donation_amount: previousMonthDonationAmount,
       donation_trend_percentage: donationTrendPercentage,
-      khairat_programs_progress: khairatProgramsProgress,
+      khairat_programs_progress: [], // No more programs
       mosque_profile_completion: {
         percentage: mosqueProfileCompletionPercentage,
         missing_fields: profileMissingFields

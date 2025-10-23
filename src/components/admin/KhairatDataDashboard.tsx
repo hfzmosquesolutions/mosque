@@ -21,10 +21,10 @@ export function KhairatDataDashboard({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Applications & Memberships
+              Applications
             </h2>
             <p className="text-muted-foreground mt-1">
-              Manage khairat applications and memberships in one unified interface
+              Manage khairat applications in one unified interface
             </p>
           </div>
         </div>

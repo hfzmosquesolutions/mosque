@@ -76,7 +76,6 @@ CREATE TABLE public.khairat_claims (
 );
 CREATE TABLE public.khairat_contributions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  program_id uuid NOT NULL,
   contributor_id uuid,
   contributor_name character varying,
   amount numeric NOT NULL,
@@ -89,9 +88,10 @@ CREATE TABLE public.khairat_contributions (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   bill_id text,
+  mosque_id uuid NOT NULL,
   CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
-  CONSTRAINT khairat_contributions_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.khairat_programs(id),
-  CONSTRAINT khairat_contributions_contributor_id_fkey1 FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id)
+  CONSTRAINT khairat_contributions_contributor_id_fkey1 FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT khairat_contributions_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
 CREATE TABLE public.khairat_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -111,24 +111,6 @@ CREATE TABLE public.khairat_members (
   CONSTRAINT khairat_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
   CONSTRAINT khairat_members_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id)
-);
-CREATE TABLE public.khairat_programs (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  mosque_id uuid NOT NULL,
-  name character varying NOT NULL,
-  description text,
-  target_amount numeric,
-  current_amount numeric DEFAULT 0,
-  fixed_price numeric,
-  start_date date,
-  end_date date,
-  is_active boolean DEFAULT true,
-  created_by uuid NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT khairat_programs_pkey PRIMARY KEY (id),
-  CONSTRAINT khairat_programs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT khairat_programs_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.legacy_khairat_records (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

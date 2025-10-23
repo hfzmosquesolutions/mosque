@@ -32,8 +32,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
-import { getKhairatPrograms, createKhairatContribution } from '@/lib/api';
-import type { Mosque, KhairatProgram } from '@/types/database';
+import { getMosqueKhairatSettings, createKhairatContribution } from '@/lib/api';
+import type { Mosque, MosqueKhairatSettings } from '@/types/database';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
@@ -42,8 +42,6 @@ interface KhairatContributionFormProps {
   onClose: () => void;
   onSuccess?: () => void;
   preselectedMosqueId?: string;
-  preselectedProgramId?: string;
-  defaultProgramType?: import('@/types/database').ProgramType;
 }
 
 export function KhairatContributionForm({
@@ -51,22 +49,15 @@ export function KhairatContributionForm({
   onClose,
   onSuccess,
   preselectedMosqueId,
-  preselectedProgramId,
-  defaultProgramType,
 }: KhairatContributionFormProps) {
   const { user } = useAuth();
   const t = useTranslations('contributions');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
-  const [khairatPrograms, setKhairatPrograms] = useState<KhairatProgram[]>(
-    []
-  );
+  const [khairatSettings, setKhairatSettings] = useState<MosqueKhairatSettings | null>(null);
   const [selectedMosqueId, setSelectedMosqueId] = useState(
     preselectedMosqueId || ''
-  );
-  const [selectedProgramId, setSelectedProgramId] = useState(
-    preselectedProgramId || ''
   );
   const [amount, setAmount] = useState('');
   const [payerName, setPayerName] = useState('');
@@ -78,33 +69,27 @@ export function KhairatContributionForm({
   const [hasOnlinePayment, setHasOnlinePayment] = useState(false);
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
-  const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(false);
   const isMosqueFixed = Boolean(preselectedMosqueId);
 
   useEffect(() => {
     if (selectedMosqueId) {
-      loadKhairatPrograms(selectedMosqueId);
+      loadKhairatSettings(selectedMosqueId);
       checkPaymentProvider(selectedMosqueId);
     } else {
-      setKhairatPrograms([]);
-      setSelectedProgramId('');
+      setKhairatSettings(null);
       setHasOnlinePayment(false);
     }
   }, [selectedMosqueId]);
 
-  // Handle fixed price when program is selected
+  // Handle fixed price when mosque is selected
   useEffect(() => {
-    if (selectedProgramId) {
-      const selectedProgram = khairatPrograms.find(p => p.id === selectedProgramId);
-      if (selectedProgram?.fixed_price && selectedProgram.fixed_price > 0) {
-        setAmount(selectedProgram.fixed_price.toString());
-      } else {
-        setAmount('');
-      }
+    if (khairatSettings?.fixed_price && khairatSettings.fixed_price > 0) {
+      setAmount(khairatSettings.fixed_price.toString());
     } else {
       setAmount('');
     }
-  }, [selectedProgramId, khairatPrograms]);
+  }, [khairatSettings]);
 
   // Auto-populate email, name, and mobile from user account
   useEffect(() => {
@@ -220,25 +205,25 @@ export function KhairatContributionForm({
     }
   }, [isOpen, user]);
 
-  const loadKhairatPrograms = async (mosqueId: string) => {
-    setLoadingPrograms(true);
+  const loadKhairatSettings = async (mosqueId: string) => {
+    setLoadingSettings(true);
     try {
-      const response = await getKhairatPrograms(mosqueId);
+      const response = await getMosqueKhairatSettings(mosqueId);
       if (response.success && response.data) {
-        setKhairatPrograms(response.data);
+        setKhairatSettings(response.data);
       } else {
-        throw new Error(response.error || 'Failed to load khairat programs');
+        throw new Error(response.error || 'Failed to load khairat settings');
       }
     } catch (error) {
-      console.error('Error loading khairat programs:', error);
+      console.error('Error loading khairat settings:', error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to load khairat programs';
+          : 'Failed to load khairat settings';
       toast.error(errorMessage);
-      setKhairatPrograms([]);
+      setKhairatSettings(null);
     } finally {
-      setLoadingPrograms(false);
+      setLoadingSettings(false);
     }
   };
 
@@ -255,8 +240,8 @@ export function KhairatContributionForm({
       return;
     }
 
-    if (!selectedProgramId) {
-      toast.error(t('makePaymentDialog.paymentProgramRequired'));
+    if (!khairatSettings?.enabled) {
+      toast.error('Khairat is not enabled for this mosque');
       return;
     }
 
@@ -292,7 +277,7 @@ export function KhairatContributionForm({
     setSubmitting(true);
     try {
       const paymentData = {
-        program_id: selectedProgramId,
+        mosque_id: selectedMosqueId,
         contributor_id: user.id,
         contributor_name: payerName || undefined,
         amount: parseFloat(amount),
@@ -319,15 +304,12 @@ export function KhairatContributionForm({
                 },
                 body: JSON.stringify({
                   contributionId,
-                  programId: selectedProgramId,
+                  mosqueId: selectedMosqueId,
                   amount: parseFloat(amount),
                   payerName: payerName.trim(),
                   payerEmail: payerEmail.trim(),
                   payerMobile: payerMobile.trim() || undefined,
-                  description: `Khairat contribution - ${
-                    khairatPrograms.find((p) => p.id === selectedProgramId)
-                      ?.name
-                  }`,
+                  description: `Khairat contribution - ${selectedMosqueId}`,
                   providerType: paymentMethod,
                 }),
               }
@@ -393,7 +375,6 @@ export function KhairatContributionForm({
 
   const handleClose = () => {
     setSelectedMosqueId(preselectedMosqueId || '');
-    setSelectedProgramId(preselectedProgramId || '');
     setAmount('');
     setPayerName('');
     setPaymentMethod('');
@@ -406,8 +387,8 @@ export function KhairatContributionForm({
     onClose();
   };
 
-  // Check if there are no programs available for the selected mosque
-  const hasNoPrograms = selectedMosqueId && !loadingPrograms && khairatPrograms.length === 0;
+  // Check if khairat is not enabled for the selected mosque
+  const khairatNotEnabled = selectedMosqueId && !loadingSettings && (!khairatSettings || !khairatSettings.enabled);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -422,24 +403,22 @@ export function KhairatContributionForm({
           </DialogDescription>
         </DialogHeader>
 
-        {hasNoPrograms ? (
+        {khairatNotEnabled ? (
           <div className="space-y-4 pb-4">
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CreditCard className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                {t('makePaymentDialog.noProgramsTitle', { fallback: 'No Programs Available' })}
+                Khairat Not Available
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t('makePaymentDialog.noProgramsMessage', { 
-                  fallback: 'This mosque currently has no active khairat programs. Please check back later or contact the mosque for more information.' 
-                })}
+                This mosque has not enabled khairat contributions yet. Please check back later or contact the mosque for more information.
               </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={handleClose} className="w-full">
-                {t('makePaymentDialog.close', { fallback: 'Close' })}
+                Close
               </Button>
             </DialogFooter>
           </div>
@@ -521,82 +500,13 @@ export function KhairatContributionForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="program">
-              {t('makePaymentDialog.paymentProgramRequired')}
-            </Label>
-            <Select
-              value={selectedProgramId}
-              onValueChange={setSelectedProgramId}
-              disabled={!selectedMosqueId}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('makePaymentDialog.chooseProgram')}>
-                  {selectedProgramId && (
-                    <span>
-                      {
-                        khairatPrograms.find((p) => p.id === selectedProgramId)
-                          ?.name
-                      }
-                    </span>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {loadingPrograms ? (
-                  <SelectItem value="loading" disabled>
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                      {t('makePaymentDialog.loadingPrograms')}
-                    </div>
-                  </SelectItem>
-                ) : khairatPrograms.length === 0 ? (
-                  <SelectItem value="no-programs" disabled>
-                    {selectedMosqueId
-                      ? t('makePaymentDialog.noProgramsAvailable')
-                      : t('makePaymentDialog.selectMosqueFirst')}
-                  </SelectItem>
-                ) : (
-                  khairatPrograms.map((program) => (
-                    <SelectItem key={program.id} value={program.id}>
-                      <div className="space-y-1">
-                        <div className="font-medium">{program.name}</div>
-                        {program.description && (
-                          <div className="text-sm text-muted-foreground">
-                            {program.description}
-                          </div>
-                        )}
-                        {/* <div className="flex items-center gap-2 text-xs">
-                          {program.target_amount ? (
-                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-                              Target: RM{' '}
-                              {program.target_amount.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
-                              Ongoing program
-                            </span>
-                          )}
-                          <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
-                            Raised: RM{' '}
-                            {(program.current_amount || 0).toLocaleString()}
-                          </span>
-                        </div> */}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="amount">
               {t('makePaymentDialog.amountRequired')}
             </Label>
 {(() => {
-              const selectedProgram = khairatPrograms.find(p => p.id === selectedProgramId);
-              const hasFixedPrice = Boolean(selectedProgram?.fixed_price && selectedProgram.fixed_price > 0);
+              const hasFixedPrice = Boolean(khairatSettings?.fixed_price && khairatSettings.fixed_price > 0);
               
               return (
                 <>
@@ -607,14 +517,14 @@ export function KhairatContributionForm({
                     min="1"
                     value={amount}
                     onChange={(e) => !hasFixedPrice && setAmount(e.target.value)}
-                    placeholder={hasFixedPrice ? `RM ${selectedProgram?.fixed_price?.toFixed(2)}` : t('makePaymentDialog.enterAmount')}
+                    placeholder={hasFixedPrice ? `RM ${khairatSettings?.fixed_price?.toFixed(2)}` : t('makePaymentDialog.enterAmount')}
                     readOnly={hasFixedPrice}
                     className={hasFixedPrice ? "bg-muted cursor-not-allowed" : ""}
                     required
                   />
-                  {hasFixedPrice && selectedProgram?.fixed_price && (
+                  {hasFixedPrice && khairatSettings?.fixed_price && (
                     <p className="text-xs text-muted-foreground">
-                      {t('makePaymentDialog.fixedPriceMessage', { amount: selectedProgram.fixed_price.toFixed(2) })}
+                      Fixed price: RM {khairatSettings.fixed_price.toFixed(2)}
                     </p>
                   )}
                 </>
@@ -667,7 +577,7 @@ export function KhairatContributionForm({
             </>
           )}
 
-          {selectedMosqueId && selectedProgramId && (
+          {selectedMosqueId && khairatSettings?.enabled && (
             <div className="space-y-3">
               <Label>{t('makePaymentDialog.paymentMethodRequired')}</Label>
               {checkingPaymentProvider ? (
@@ -797,7 +707,7 @@ export function KhairatContributionForm({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !selectedProgramId || !amount}
+              disabled={submitting || !selectedMosqueId || !amount || !khairatSettings?.enabled}
             >
               {submitting ? (
                 <>

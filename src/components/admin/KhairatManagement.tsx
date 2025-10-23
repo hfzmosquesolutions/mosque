@@ -319,7 +319,7 @@ export function KhairatManagement({
     const isApplication = ['pending', 'approved', 'rejected', 'under_review', 'withdrawn'].includes(status);
     return (
       <Badge variant={isApplication ? 'outline' : 'secondary'} className="text-xs">
-        {isApplication ? 'Application' : 'Membership'}
+        {isApplication ? 'Application' : 'Member'}
       </Badge>
     );
   };
@@ -455,14 +455,14 @@ export function KhairatManagement({
             value={stats.memberships.active.toString()}
             icon={UserCheck}
             {...StatsCardColors.emerald}
-            description="Active memberships"
+            description="Active members"
           />
           <StatsCard
             title="Total Members"
             value={stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended}
             icon={Users}
             {...StatsCardColors.slate}
-            description="All memberships"
+            description="All members"
           />
         </div>
       )}
@@ -486,7 +486,7 @@ export function KhairatManagement({
             <SelectContent>
               <SelectItem value="all">All Records</SelectItem>
               <SelectItem value="applications">Applications</SelectItem>
-              <SelectItem value="memberships">Memberships</SelectItem>
+              <SelectItem value="memberships">Members</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import {
   getMosque,
-  getKhairatPrograms,
+  getMosqueKhairatSettings,
   getOrganizationPeople,
 } from '@/lib/api';
 import { KhairatContributionForm } from '@/components/khairat/KhairatContributionForm';
@@ -136,18 +136,16 @@ export default function MosqueProfilePage() {
       setMosque(mosqueResponse.data);
 
 
-      // Fetch contribution programs
-      console.log('[PAGE] MosqueProfilePage - Fetching contribution programs');
-      const programsResponse = await getKhairatPrograms(mosqueId);
-      if (programsResponse.success && programsResponse.data) {
-        // Filter only active programs
-        const activePrograms = programsResponse.data.filter(
-          (program) => program.is_active
-        );
-        setContributionPrograms(activePrograms);
+      // Fetch khairat settings
+      console.log('[PAGE] MosqueProfilePage - Fetching khairat settings');
+      const settingsResponse = await getMosqueKhairatSettings(mosqueId);
+      if (settingsResponse.success && settingsResponse.data) {
+        // Check if khairat is enabled
+        const khairatEnabled = settingsResponse.data.enabled;
+        setContributionPrograms(khairatEnabled ? [settingsResponse.data] : []);
         console.log(
-          '[PAGE] MosqueProfilePage - Active programs count:',
-          activePrograms.length
+          '[PAGE] MosqueProfilePage - Khairat enabled:',
+          khairatEnabled
         );
       }
 

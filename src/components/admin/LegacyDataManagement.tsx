@@ -13,7 +13,7 @@ import {
   getLegacyRecordStats,
 } from '@/lib/api/legacy-records';
 import { getKariahMemberships } from '@/lib/api/kariah-memberships';
-import { getKhairatPrograms, createKhairatContribution } from '@/lib/api';
+import { getMosqueKhairatSettings, createKhairatContribution } from '@/lib/api';
 import {
   Dialog,
   DialogContent,

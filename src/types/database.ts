@@ -165,27 +165,13 @@ export interface Donation {
 }
 
 // =============================================
-// KHAIRAT (WELFARE) MODULE - Dedicated Tables
+// KHAIRAT (WELFARE) MODULE - Simplified Structure
 // =============================================
-export interface KhairatProgram {
-  id: string;
-  mosque_id: string;
-  name: string;
-  description?: string;
-  target_amount?: number;
-  current_amount: number;
-  fixed_price?: number;
-  start_date?: string;
-  end_date?: string;
-  is_active: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
 
+// Khairat is now mosque-specific, no more programs
 export interface KhairatContribution {
   id: string;
-  program_id: string;
+  mosque_id: string;
   contributor_id?: string;
   contributor_name?: string;
   amount: number;
@@ -198,6 +184,17 @@ export interface KhairatContribution {
   created_at?: string;
   updated_at?: string;
   bill_id?: string | null;
+}
+
+// Mosque khairat settings (stored in mosques.settings jsonb)
+export interface MosqueKhairatSettings {
+  enabled: boolean;
+  fixed_price?: number;
+  description?: string;
+  payment_methods?: string[];
+  target_amount?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface KhairatMember {

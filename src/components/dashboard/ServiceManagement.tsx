@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { 
   Settings, 
   HandHeart, 
@@ -19,8 +20,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { updateMosqueSettings, getKariahRegistrationSettings, updateKariahRegistrationSettings, getKhairatRegistrationSettings, updateKhairatRegistrationSettings } from '@/lib/api';
+import { updateMosqueSettings, getKariahRegistrationSettings, updateKariahRegistrationSettings, getKhairatRegistrationSettings, updateKhairatRegistrationSettings, getMosqueKhairatSettings, updateMosqueKhairatSettings } from '@/lib/api';
 import { toast } from 'sonner';
+import type { MosqueKhairatSettings } from '@/types/database';
 
 interface Service {
   id: string;
@@ -91,13 +93,26 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   });
   const [loadingKariahSettings, setLoadingKariahSettings] = useState(false);
   const [savingKariahSettings, setSavingKariahSettings] = useState(false);
-  const [khairatSettings, setKhairatSettings] = useState<KariahRegistrationSettings>({
+  const [khairatRegistrationSettings, setKhairatRegistrationSettings] = useState<KariahRegistrationSettings>({
     requirements: '',
     benefits: '',
     custom_message: ''
   });
-  const [loadingKhairatSettings, setLoadingKhairatSettings] = useState(false);
-  const [savingKhairatSettings, setSavingKhairatSettings] = useState(false);
+  const [loadingKhairatRegistrationSettings, setLoadingKhairatRegistrationSettings] = useState(false);
+  const [savingKhairatRegistrationSettings, setSavingKhairatRegistrationSettings] = useState(false);
+  
+  // Khairat system settings (enabled, fixed price, etc.)
+  const [khairatSystemSettings, setKhairatSystemSettings] = useState<MosqueKhairatSettings>({
+    enabled: false,
+    fixed_price: undefined,
+    description: undefined,
+    payment_methods: [],
+    target_amount: undefined,
+    start_date: undefined,
+    end_date: undefined,
+  });
+  const [loadingKhairatSystemSettings, setLoadingKhairatSystemSettings] = useState(false);
+  const [savingKhairatSystemSettings, setSavingKhairatSystemSettings] = useState(false);
   const t = useTranslations('dashboard');
 
   useEffect(() => {
@@ -111,7 +126,8 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
 
   useEffect(() => {
     loadKariahSettings();
-    loadKhairatSettings();
+    loadKhairatRegistrationSettings();
+    loadKhairatSystemSettings();
   }, [mosqueId]);
 
   const loadKariahSettings = async () => {
@@ -161,39 +177,54 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
     }
   };
 
-  const loadKhairatSettings = async () => {
+  const loadKhairatRegistrationSettings = async () => {
     try {
-      setLoadingKhairatSettings(true);
+      setLoadingKhairatRegistrationSettings(true);
       const result = await getKhairatRegistrationSettings(mosqueId);
       
       if (result.success && result.data) {
-        setKhairatSettings(result.data);
+        setKhairatRegistrationSettings(result.data);
       }
     } catch (error) {
-      console.error('Error loading khairat settings:', error);
+      console.error('Error loading khairat registration settings:', error);
     } finally {
-      setLoadingKhairatSettings(false);
+      setLoadingKhairatRegistrationSettings(false);
     }
   };
 
-  const saveKhairatSettings = async () => {
+  const loadKhairatSystemSettings = async () => {
+    try {
+      setLoadingKhairatSystemSettings(true);
+      const result = await getMosqueKhairatSettings(mosqueId);
+      
+      if (result.success && result.data) {
+        setKhairatSystemSettings(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading khairat system settings:', error);
+    } finally {
+      setLoadingKhairatSystemSettings(false);
+    }
+  };
+
+  const saveKhairatRegistrationSettings = async () => {
     // Validate character limits
-    if (khairatSettings.requirements.length > 200) {
+    if (khairatRegistrationSettings.requirements.length > 200) {
       toast.error(t('requirementsLimitExceeded'));
       return;
     }
-    if (khairatSettings.benefits.length > 200) {
+    if (khairatRegistrationSettings.benefits.length > 200) {
       toast.error(t('benefitsLimitExceeded'));
       return;
     }
-    if (khairatSettings.custom_message.length > 300) {
+    if (khairatRegistrationSettings.custom_message.length > 300) {
       toast.error(t('customMessageLimitExceeded'));
       return;
     }
 
     try {
-      setSavingKhairatSettings(true);
-      const result = await updateKhairatRegistrationSettings(mosqueId, khairatSettings);
+      setSavingKhairatRegistrationSettings(true);
+      const result = await updateKhairatRegistrationSettings(mosqueId, khairatRegistrationSettings);
       
       if (result.success) {
         toast.success('Khairat registration settings saved successfully');
@@ -204,7 +235,25 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       console.error('Error saving khairat settings:', error);
       toast.error('Failed to save khairat registration settings');
     } finally {
-      setSavingKhairatSettings(false);
+      setSavingKhairatRegistrationSettings(false);
+    }
+  };
+
+  const saveKhairatSystemSettings = async () => {
+    try {
+      setSavingKhairatSystemSettings(true);
+      const result = await updateMosqueKhairatSettings(mosqueId, khairatSystemSettings);
+      
+      if (result.success) {
+        toast.success('Khairat system settings saved successfully');
+      } else {
+        toast.error(result.error || 'Failed to save khairat system settings');
+      }
+    } catch (error) {
+      console.error('Error saving khairat system settings:', error);
+      toast.error('Failed to save khairat system settings');
+    } finally {
+      setSavingKhairatSystemSettings(false);
     }
   };
 
@@ -467,11 +516,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                   </p>
                 </div>
                 <Button 
-                  onClick={saveKhairatSettings} 
-                  disabled={savingKhairatSettings}
+                  onClick={saveKhairatRegistrationSettings} 
+                  disabled={savingKhairatRegistrationSettings}
                   size="sm"
                 >
-                  {savingKhairatSettings ? 'Saving...' : 'Save Settings'}
+                  {savingKhairatRegistrationSettings ? 'Saving...' : 'Save Settings'}
                 </Button>
               </div>
 
@@ -485,17 +534,17 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                   <Textarea
                     id="khairat-requirements"
                     placeholder="e.g., Valid IC/Passport, Proof of residence in the area, Emergency contact information..."
-                    value={khairatSettings.requirements}
+                    value={khairatRegistrationSettings.requirements}
                     onChange={(e) => 
-                      setKhairatSettings(prev => ({ ...prev, requirements: e.target.value }))
+                      setKhairatRegistrationSettings(prev => ({ ...prev, requirements: e.target.value }))
                     }
                     rows={3}
                     maxLength={200}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{t('maxCharacters', { limit: 200 })}</span>
-                    <span className={khairatSettings.requirements.length > 200 ? 'text-red-500' : ''}>
-                      {khairatSettings.requirements.length}/200
+                    <span className={khairatRegistrationSettings.requirements.length > 200 ? 'text-red-500' : ''}>
+                      {khairatRegistrationSettings.requirements.length}/200
                     </span>
                   </div>
                 </div>
@@ -509,17 +558,17 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                   <Textarea
                     id="khairat-benefits"
                     placeholder="e.g., Access to khairat programs, Community support, Voting rights in mosque decisions..."
-                    value={khairatSettings.benefits}
+                    value={khairatRegistrationSettings.benefits}
                     onChange={(e) => 
-                      setKhairatSettings(prev => ({ ...prev, benefits: e.target.value }))
+                      setKhairatRegistrationSettings(prev => ({ ...prev, benefits: e.target.value }))
                     }
                     rows={3}
                     maxLength={200}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{t('maxCharacters', { limit: 200 })}</span>
-                    <span className={khairatSettings.benefits.length > 200 ? 'text-red-500' : ''}>
-                      {khairatSettings.benefits.length}/200
+                    <span className={khairatRegistrationSettings.benefits.length > 200 ? 'text-red-500' : ''}>
+                      {khairatRegistrationSettings.benefits.length}/200
                     </span>
                   </div>
                 </div>
@@ -533,20 +582,127 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                   <Textarea
                     id="khairat-custom-message"
                     placeholder="e.g., Welcome to our khairat community! We're excited to have you join us in supporting our mosque and community..."
-                    value={khairatSettings.custom_message}
+                    value={khairatRegistrationSettings.custom_message}
                     onChange={(e) => 
-                      setKhairatSettings(prev => ({ ...prev, custom_message: e.target.value }))
+                      setKhairatRegistrationSettings(prev => ({ ...prev, custom_message: e.target.value }))
                     }
                     rows={4}
                     maxLength={300}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{t('maxCharacters', { limit: 300 })}</span>
-                    <span className={khairatSettings.custom_message.length > 300 ? 'text-red-500' : ''}>
-                      {khairatSettings.custom_message.length}/300
+                    <span className={khairatRegistrationSettings.custom_message.length > 300 ? 'text-red-500' : ''}>
+                      {khairatRegistrationSettings.custom_message.length}/300
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Khairat System Settings */}
+        {currentServices.includes('khairat_management') && (
+          <div className="space-y-4">
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Khairat System Settings
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure the khairat kematian system for your mosque
+                  </p>
+                </div>
+                <Button 
+                  onClick={saveKhairatSystemSettings} 
+                  disabled={savingKhairatSystemSettings}
+                  size="sm"
+                >
+                  {savingKhairatSystemSettings ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </div>
+
+              <div className="grid gap-4">
+                {/* Enable Khairat */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="khairat-enabled">Enable Khairat System</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow members to make khairat contributions
+                    </p>
+                  </div>
+                  <Switch
+                    id="khairat-enabled"
+                    checked={khairatSystemSettings.enabled}
+                    onCheckedChange={(checked) => 
+                      setKhairatSystemSettings(prev => ({ ...prev, enabled: checked }))
+                    }
+                  />
+                </div>
+
+                {khairatSystemSettings.enabled && (
+                  <>
+                    {/* Description */}
+                    <div className="space-y-2">
+                      <Label htmlFor="khairat-description">Description</Label>
+                      <Textarea
+                        id="khairat-description"
+                        placeholder="Describe your khairat system..."
+                        value={khairatSystemSettings.description || ''}
+                        onChange={(e) => 
+                          setKhairatSystemSettings(prev => ({ ...prev, description: e.target.value }))
+                        }
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Fixed Price */}
+                    <div className="space-y-2">
+                      <Label htmlFor="khairat-fixed-price">Fixed Price (RM)</Label>
+                      <Input
+                        id="khairat-fixed-price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={khairatSystemSettings.fixed_price?.toString() || ''}
+                        onChange={(e) => 
+                          setKhairatSystemSettings(prev => ({ 
+                            ...prev, 
+                            fixed_price: parseFloat(e.target.value) || undefined 
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Leave empty to allow any amount
+                      </p>
+                    </div>
+
+                    {/* Target Amount */}
+                    <div className="space-y-2">
+                      <Label htmlFor="khairat-target-amount">Target Amount (RM)</Label>
+                      <Input
+                        id="khairat-target-amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={khairatSystemSettings.target_amount?.toString() || ''}
+                        onChange={(e) => 
+                          setKhairatSystemSettings(prev => ({ 
+                            ...prev, 
+                            target_amount: parseFloat(e.target.value) || undefined 
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Optional target amount for the khairat fund
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
