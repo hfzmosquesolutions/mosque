@@ -17,40 +17,25 @@ CREATE TABLE public.audit_logs (
   CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT audit_logs_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
-CREATE TABLE public.kariah_applications (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
+CREATE TABLE public.kariah_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
   mosque_id uuid NOT NULL,
-  ic_passport_number character varying NOT NULL,
+  ic_passport_number character varying,
   application_reason text,
-  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying, 'under_review'::character varying]::text[])),
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying, 'under_review'::character varying, 'withdrawn'::character varying, 'active'::character varying, 'inactive'::character varying, 'suspended'::character varying]::text[])),
+  admin_notes text,
   reviewed_by uuid,
   reviewed_at timestamp with time zone,
-  review_notes text,
-  matched_legacy_records_count integer DEFAULT 0,
+  joined_date date,
+  membership_number character varying,
+  notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  notes text,
-  admin_notes text,
-  CONSTRAINT kariah_applications_pkey PRIMARY KEY (id),
-  CONSTRAINT kariah_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
-  CONSTRAINT kariah_applications_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT kariah_applications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id)
-);
-CREATE TABLE public.kariah_memberships (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  mosque_id uuid NOT NULL,
-  membership_number character varying UNIQUE,
-  status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'suspended'::character varying]::text[])),
-  joined_date date DEFAULT CURRENT_DATE,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  notes text,
-  admin_notes text,
-  CONSTRAINT kariah_memberships_pkey PRIMARY KEY (id),
-  CONSTRAINT kariah_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
-  CONSTRAINT kariah_memberships_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+  CONSTRAINT kariah_members_pkey PRIMARY KEY (id),
+  CONSTRAINT kariah_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT kariah_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT kariah_members_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.khairat_claim_documents (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -107,6 +92,25 @@ CREATE TABLE public.khairat_contributions (
   CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_contributions_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.khairat_programs(id),
   CONSTRAINT khairat_contributions_contributor_id_fkey1 FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id)
+);
+CREATE TABLE public.khairat_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  mosque_id uuid NOT NULL,
+  ic_passport_number character varying,
+  application_reason text,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying, 'under_review'::character varying, 'withdrawn'::character varying, 'active'::character varying, 'inactive'::character varying, 'suspended'::character varying]::text[])),
+  admin_notes text,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  joined_date date,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT khairat_members_pkey PRIMARY KEY (id),
+  CONSTRAINT khairat_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT khairat_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
+  CONSTRAINT khairat_members_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.khairat_programs (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

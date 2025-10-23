@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HandHeart, Search, MapPin, Building, Users, CreditCard, FileText, Plus } from 'lucide-react';
+import { HandHeart, Search, MapPin, Building, Users, CreditCard, FileText, Plus, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
 import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
+import { UserApplicationsTable } from '@/components/khairat/UserApplicationsTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { KhairatContribution, KhairatProgram, Mosque, CreateKhairatClaim } from '@/types/database';
 import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/api';
@@ -162,6 +163,13 @@ function MyKhairatContent() {
             Payments
           </TabsTrigger>
           <TabsTrigger 
+            value="applications" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            <Heart className="h-4 w-4" />
+            Applications
+          </TabsTrigger>
+          <TabsTrigger 
             value="claims" 
             className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
           >
@@ -213,6 +221,20 @@ function MyKhairatContent() {
           ) : (
             <UserPaymentsTable contributions={userContributions as any} showHeader={false} />
           )}
+        </TabsContent>
+
+        <TabsContent value="applications" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Applications
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                View and manage your khairat membership applications
+              </p>
+            </div>
+          </div>
+          <UserApplicationsTable showHeader={false} />
         </TabsContent>
 
         <TabsContent value="claims" forceMount className="space-y-6 p-6">

@@ -280,7 +280,12 @@ function DashboardContent() {
             break;
           case 'application':
             if (isAdmin) {
-              window.location.href = '/kariah';
+              // Check if it's a khairat or kariah application based on notification metadata
+              if (notification.metadata?.type === 'khairat') {
+                window.location.href = '/khairat?tab=applications';
+              } else {
+                window.location.href = '/kariah';
+              }
             }
             break;
           case 'claim':

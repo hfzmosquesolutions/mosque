@@ -1,18 +1,18 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { KariahManagement } from './KariahManagement';
+import { KhairatManagement } from './KhairatManagement';
 
-interface KariahDataDashboardProps {
+interface KhairatDataDashboardProps {
   mosqueId: string;
   mosqueName: string;
 }
 
-export function KariahDataDashboard({
+export function KhairatDataDashboard({
   mosqueId,
   mosqueName,
-}: KariahDataDashboardProps) {
-  const t = useTranslations('kariahManagement');
+}: KhairatDataDashboardProps) {
+  const t = useTranslations('khairatManagement');
 
   return (
     <div className="space-y-6">
@@ -24,14 +24,14 @@ export function KariahDataDashboard({
               Applications & Memberships
             </h2>
             <p className="text-muted-foreground mt-1">
-              Manage kariah applications and memberships in one unified interface
+              Manage khairat applications and memberships in one unified interface
             </p>
           </div>
         </div>
       </div>
 
-      {/* Kariah Management Component */}
-      <KariahManagement mosqueId={mosqueId} />
+      {/* Khairat Management Component */}
+      <KhairatManagement mosqueId={mosqueId} />
     </div>
   );
 }

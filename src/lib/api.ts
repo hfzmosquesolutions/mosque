@@ -198,6 +198,11 @@ export async function completeOnboarding(
                 requirements: '',
                 benefits: '',
                 custom_message: ''
+              },
+              khairat_registration: {
+                requirements: '',
+                benefits: '',
+                custom_message: ''
               }
             }
           })
@@ -1799,5 +1804,77 @@ export async function updateKariahRegistrationSettings(
   } catch (error) {
     console.error('Error updating kariah registration settings:', error);
     return { success: false, error: 'Failed to update kariah registration settings' };
+  }
+}
+
+/**
+ * Get khairat registration settings for a mosque
+ */
+export async function getKhairatRegistrationSettings(mosqueId: string): Promise<ApiResponse<KariahRegistrationSettings>> {
+  try {
+    const { data: mosque, error } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (error) {
+      return { success: false, error: `Failed to fetch mosque settings: ${error.message}` };
+    }
+
+    const khairatSettings = mosque?.settings?.khairat_registration || {
+      requirements: '',
+      benefits: '',
+      custom_message: ''
+    };
+
+    return { success: true, data: khairatSettings };
+  } catch (error) {
+    console.error('Error fetching khairat registration settings:', error);
+    return { success: false, error: 'Failed to fetch khairat registration settings' };
+  }
+}
+
+/**
+ * Update khairat registration settings for a mosque
+ */
+export async function updateKhairatRegistrationSettings(
+  mosqueId: string, 
+  settings: KariahRegistrationSettings
+): Promise<ApiResponse<{ success: boolean }>> {
+  try {
+    // First, get the current settings to preserve other settings
+    const { data: currentMosque, error: fetchError } = await supabase
+      .from('mosques')
+      .select('settings')
+      .eq('id', mosqueId)
+      .single();
+
+    if (fetchError) {
+      return { success: false, error: `Failed to fetch current settings: ${fetchError.message}` };
+    }
+
+    // Merge the new khairat registration settings with existing settings
+    const currentSettings = currentMosque?.settings || {};
+    const updatedSettings = {
+      ...currentSettings,
+      khairat_registration: settings
+    };
+
+    const { error } = await supabase
+      .from('mosques')
+      .update({
+        settings: updatedSettings
+      })
+      .eq('id', mosqueId);
+
+    if (error) {
+      return { success: false, error: `Failed to update settings: ${error.message}` };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    console.error('Error updating khairat registration settings:', error);
+    return { success: false, error: 'Failed to update khairat registration settings' };
   }
 }

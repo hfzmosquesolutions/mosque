@@ -109,7 +109,8 @@ export default function PricingPage() {
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('everythingInFree')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('khairatProgramManagement')}</li>
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('kariahMemberManagement')}</li>
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('khairatKematianManagement')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('priorityEmailSupport')}</li>
               </ul>
               <div className="mt-6">
@@ -160,7 +161,8 @@ export default function PricingPage() {
           </div>
             {[
             { label: t('mosqueProfile'), f: true, s: true, p: true },
-            { label: t('khairatManagement'), f: false, s: true, p: true },
+            { label: t('kariahMemberManagement'), f: false, s: true, p: true },
+            { label: t('khairatKematianManagement'), f: false, s: true, p: true },
             { label: t('memberCount'), f: t('upToMembers', { count: 50 }), s: t('upToMembers', { count: 500 }), p: t('unlimitedMembers') },
             { label: t('advancedAnalytics'), f: false, s: false, p: true },
             { label: t('prioritySupport'), f: false, s: true, p: true },

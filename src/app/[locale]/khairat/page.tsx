@@ -63,6 +63,7 @@ import type {
   KhairatClaimWithDetails,
 } from '@/types/database';
 import { ClaimsManagement } from '@/components/admin/ClaimsManagement';
+import { KhairatDataDashboard } from '@/components/admin/KhairatDataDashboard';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
@@ -123,7 +124,7 @@ function KhairatContent() {
   // Handle URL tab parameter
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'programs', 'payments', 'claims'].includes(tabParam)) {
+    if (tabParam && ['overview', 'programs', 'payments', 'claims', 'applications'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -442,6 +443,14 @@ function KhairatContent() {
           >
             Claims
           </TabsTrigger>
+          {hasAdminAccess && (
+            <TabsTrigger 
+              value="applications" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              Applications
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" forceMount className="space-y-6 p-6">
@@ -1050,6 +1059,15 @@ function KhairatContent() {
             </Dialog>
           )}
         </TabsContent>
+
+        {hasAdminAccess && (
+          <TabsContent value="applications" forceMount className="space-y-6 p-6">
+            <KhairatDataDashboard 
+              mosqueId={mosqueId || ''} 
+              mosqueName={mosque?.name || 'Mosque'} 
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       {hasAdminAccess && (

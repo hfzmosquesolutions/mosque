@@ -1,29 +1,16 @@
-// Kariah Registration API Functions
-// Handles kariah member registration operations with client-side authentication
+// Khairat Registration API Functions
+// Handles khairat member registration operations with client-side authentication
+// Updated to use the consolidated khairat_members table
 
 import { supabase } from '../supabase';
+import { KhairatMember } from '@/types/database';
 
-export interface KariahApplication {
-  id: string;
-  user_id: string;
-  mosque_id: string;
-  ic_passport_number: string;
-  status: 'pending' | 'approved' | 'rejected';
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-  user?: {
-    id: string;
-    full_name: string;
-    phone?: string;
-  };
-  mosque?: {
-    id: string;
-    name: string;
-  };
+// Legacy interface for backward compatibility
+export interface KhairatApplication extends Omit<KhairatMember, 'joined_date' | 'notes'> {
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn';
 }
 
-export interface KariahApplicationFilters {
+export interface KhairatApplicationFilters {
   mosque_id?: string;
   user_id?: string;
   status?: string;
@@ -33,9 +20,9 @@ export interface KariahApplicationFilters {
 }
 
 /**
- * Get kariah registrations with filtering and pagination
+ * Get khairat registrations with filtering and pagination
  */
-export async function getKariahApplications(filters: KariahApplicationFilters = {}) {
+export async function getKhairatApplications(filters: KhairatApplicationFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
   
   if (!user.user) {
@@ -51,14 +38,14 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
   } = filters;
 
   let query = supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select(`
       *,
-      user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
+      mosque:mosques(id, name),
+      program:khairat_programs(id, name)
     `)
     .order('created_at', { ascending: false });
-
 
   // If user_id is provided, get applications for that user
   if (user_id) {
@@ -114,7 +101,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
   const { data: applications, error, count } = await query;
 
   if (error) {
-    throw new Error(`Failed to fetch kariah registrations: ${error.message}`);
+    throw new Error(`Failed to fetch khairat registrations: ${error.message}`);
   }
 
   return {
@@ -129,12 +116,13 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
 }
 
 /**
- * Submit a kariah registration
+ * Submit a khairat registration
  */
-export async function submitKariahApplication(applicationData: {
+export async function submitKhairatApplication(applicationData: {
   mosque_id: string;
-  ic_passport_number: string;
-  notes?: string;
+  program_id?: string;
+  ic_passport_number?: string;
+  application_reason?: string;
 }) {
   const { data: user } = await supabase.auth.getUser();
   
@@ -142,24 +130,27 @@ export async function submitKariahApplication(applicationData: {
     throw new Error('User not authenticated');
   }
 
-  const { mosque_id, ic_passport_number, notes } = applicationData;
+  const { mosque_id, program_id, ic_passport_number, application_reason } = applicationData;
+  
 
-  if (!mosque_id || !ic_passport_number) {
-    throw new Error('Mosque ID and IC/Passport number are required');
+
+  if (!mosque_id) {
+    throw new Error('Mosque ID is required');
   }
 
-  // Validate IC/Passport format
-  const { data: isValid } = await supabase
-    .rpc('validate_ic_passport', { ic_passport: ic_passport_number });
+  // Validate IC/Passport format if provided
+  if (ic_passport_number) {
+    const { data: isValid } = await supabase
+      .rpc('validate_ic_passport', { ic_passport: ic_passport_number });
 
-  if (!isValid) {
-    throw new Error('Invalid IC/Passport format');
+    if (!isValid) {
+      throw new Error('Invalid IC/Passport format');
+    }
   }
 
   // Check if user already has a pending or approved application for this mosque
-  // Note: rejected and withdrawn applications are allowed to be overwritten by reapplication
   const { data: existingApp } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select('id, status')
     .eq('user_id', user.user.id)
     .eq('mosque_id', mosque_id)
@@ -172,7 +163,7 @@ export async function submitKariahApplication(applicationData: {
 
   // Check if user has a withdrawn or rejected application - if so, update it to pending instead of creating new
   const { data: existingWithdrawnOrRejectedApp } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select('id, status')
     .eq('user_id', user.user.id)
     .eq('mosque_id', mosque_id)
@@ -182,11 +173,12 @@ export async function submitKariahApplication(applicationData: {
   if (existingWithdrawnOrRejectedApp) {
     // Update the withdrawn/rejected application to pending instead of creating new
     const { error: updateError } = await supabase
-      .from('kariah_applications')
+      .from('khairat_applications')
       .update({
         status: 'pending',
-        ic_passport_number: ic_passport_number,
-        application_reason: notes,
+        program_id: program_id || null,
+        ic_passport_number: ic_passport_number || null,
+        application_reason: application_reason || null,
         admin_notes: null, // Clear any admin notes from previous rejection
         reviewed_by: null, // Clear reviewer info
         reviewed_at: null, // Clear review date
@@ -204,9 +196,9 @@ export async function submitKariahApplication(applicationData: {
     };
   }
 
-  // Check if user is already a kariah member
+  // Check if user is already a khairat member
   const { data: membership } = await supabase
-    .from('kariah_memberships')
+    .from('khairat_memberships')
     .select('id')
     .eq('user_id', user.user.id)
     .eq('mosque_id', mosque_id)
@@ -214,23 +206,25 @@ export async function submitKariahApplication(applicationData: {
     .single();
 
   if (membership) {
-    throw new Error('You are already registered as a kariah member of this mosque');
+    throw new Error('You are already registered as a khairat member of this mosque');
   }
 
   // Create the application
   const { data: application, error } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .insert({
       user_id: user.user.id,
       mosque_id,
-      ic_passport_number,
-      notes: notes || null,
+      program_id: program_id || null,
+      ic_passport_number: ic_passport_number || null,
+      application_reason: application_reason || null,
       status: 'pending'
     })
     .select(`
       *,
-      user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
+      mosque:mosques(id, name),
+      program:khairat_programs(id, name)
     `)
     .single();
 
@@ -245,9 +239,9 @@ export async function submitKariahApplication(applicationData: {
 }
 
 /**
- * Review a kariah registration (admin only)
+ * Review a khairat registration (admin only)
  */
-export async function reviewKariahApplication(reviewData: {
+export async function reviewKhairatApplication(reviewData: {
   application_id: string;
   mosque_id: string;
   status: 'approved' | 'rejected';
@@ -282,9 +276,11 @@ export async function reviewKariahApplication(reviewData: {
     throw new Error('Forbidden: Not authorized to review applications for this mosque');
   }
 
+
+
   // Update the application
   const { data: application, error } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .update({
       status,
       admin_notes: admin_notes || null,
@@ -295,8 +291,9 @@ export async function reviewKariahApplication(reviewData: {
     .eq('mosque_id', mosque_id)
     .select(`
       *,
-      user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
+      mosque:mosques(id, name),
+      program:khairat_programs(id, name)
     `)
     .single();
 
@@ -304,19 +301,21 @@ export async function reviewKariahApplication(reviewData: {
     throw new Error(`Failed to review application: ${error.message}`);
   }
 
-  // If approved, create kariah membership
+  // If approved, create khairat membership
   if (status === 'approved' && application) {
     console.log('Creating membership for approved application:', {
       user_id: application.user_id,
       mosque_id: application.mosque_id,
+      program_id: application.program_id,
       application_id
     });
 
     const { data: membershipData, error: membershipError } = await supabase
-      .from('kariah_memberships')
+      .from('khairat_memberships')
       .insert({
         user_id: application.user_id,
         mosque_id: application.mosque_id,
+        program_id: application.program_id || null,
         status: 'active',
         joined_date: new Date().toISOString().split('T')[0], // Use date format YYYY-MM-DD
         notes: `Approved from application ${application_id}`
@@ -330,8 +329,6 @@ export async function reviewKariahApplication(reviewData: {
       // But log more details for debugging
     } else {
       console.log('Membership created successfully:', membershipData);
-      
-
     }
   }
 
@@ -342,9 +339,9 @@ export async function reviewKariahApplication(reviewData: {
 }
 
 /**
- * Get kariah registration by ID
+ * Get khairat registration by ID
  */
-export async function getKariahApplicationById(applicationId: string) {
+export async function getKhairatApplicationById(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
   
   if (!user.user) {
@@ -356,11 +353,12 @@ export async function getKariahApplicationById(applicationId: string) {
   }
 
   const { data: application, error } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select(`
       *,
-      user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name, user_id)
+      user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
+      mosque:mosques(id, name, user_id),
+      program:khairat_programs(id, name)
     `)
     .eq('id', applicationId)
     .single();
@@ -392,9 +390,9 @@ export async function getKariahApplicationById(applicationId: string) {
 }
 
 /**
- * Delete a kariah registration
+ * Delete a khairat registration
  */
-export async function deleteKariahApplication(applicationId: string) {
+export async function deleteKhairatApplication(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
   
   if (!user.user) {
@@ -407,7 +405,7 @@ export async function deleteKariahApplication(applicationId: string) {
 
   // Get the application first to check ownership
   const { data: application, error: fetchError } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select('user_id, mosque_id, status')
     .eq('id', applicationId)
     .single();
@@ -449,7 +447,7 @@ export async function deleteKariahApplication(applicationId: string) {
   }
 
   const { error } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .delete()
     .eq('id', applicationId);
 
@@ -463,9 +461,9 @@ export async function deleteKariahApplication(applicationId: string) {
 }
 
 /**
- * Withdraw a kariah registration (change status to withdrawn)
+ * Withdraw a khairat registration (change status to withdrawn)
  */
-export async function withdrawKariahApplication(applicationId: string) {
+export async function withdrawKhairatApplication(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
   
   if (!user.user) {
@@ -478,7 +476,7 @@ export async function withdrawKariahApplication(applicationId: string) {
 
   // Get the application first to check ownership and status
   const { data: application, error: fetchError } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .select('user_id, mosque_id, status')
     .eq('id', applicationId)
     .single();
@@ -519,7 +517,7 @@ export async function withdrawKariahApplication(applicationId: string) {
   }
 
   const { error } = await supabase
-    .from('kariah_applications')
+    .from('khairat_applications')
     .update({ 
       status: 'withdrawn',
       updated_at: new Date().toISOString()

@@ -2,22 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Users } from 'lucide-react';
-import { getKariahRegistrationSettings } from '@/lib/api';
+import { Heart } from 'lucide-react';
+import { getKhairatRegistrationSettings } from '@/lib/api';
 
-interface KariahRegistrationInfoProps {
+interface KhairatRegistrationInfoProps {
   mosqueId: string;
 }
 
-interface KariahRegistrationSettings {
+interface KhairatRegistrationSettings {
   requirements: string;
   benefits: string;
   custom_message: string;
 }
 
-export function KariahRegistrationInfo({ mosqueId }: KariahRegistrationInfoProps) {
+export function KhairatRegistrationInfo({ mosqueId }: KhairatRegistrationInfoProps) {
   const t = useTranslations('mosqueProfile');
-  const [settings, setSettings] = useState<KariahRegistrationSettings | null>(null);
+  const [settings, setSettings] = useState<KhairatRegistrationSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,13 +27,13 @@ export function KariahRegistrationInfo({ mosqueId }: KariahRegistrationInfoProps
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const result = await getKariahRegistrationSettings(mosqueId);
+      const result = await getKhairatRegistrationSettings(mosqueId);
       
       if (result.success && result.data) {
         setSettings(result.data);
       }
     } catch (error) {
-      console.error('Error loading kariah registration settings:', error);
+      console.error('Error loading khairat registration settings:', error);
     } finally {
       setLoading(false);
     }

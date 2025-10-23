@@ -200,6 +200,40 @@ export interface KhairatContribution {
   bill_id?: string | null;
 }
 
+export interface KhairatMember {
+  id: string;
+  user_id: string;
+  mosque_id: string;
+  ic_passport_number?: string;
+  application_reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn' | 'active' | 'inactive' | 'suspended';
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  joined_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    full_name: string;
+    phone?: string;
+  };
+  mosque?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Legacy interfaces for backward compatibility (deprecated)
+export interface KhairatApplication extends Omit<KhairatMember, 'joined_date' | 'notes'> {
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn';
+}
+
+export interface KhairatMembership extends Omit<KhairatMember, 'ic_passport_number' | 'application_reason' | 'admin_notes' | 'reviewed_by' | 'reviewed_at'> {
+  status: 'active' | 'inactive' | 'suspended';
+}
+
 
 
 
@@ -544,6 +578,8 @@ export type TableName =
   | 'donations'
   | 'khairat_programs'
   | 'khairat_contributions'
+  | 'khairat_applications'
+  | 'khairat_memberships'
   | 'khairat_claims'
   | 'khairat_claim_documents'
   | 'resource_categories'
@@ -599,6 +635,18 @@ export interface Database {
         Row: KhairatContribution;
         Insert: Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at' | 'bill_id'> & { bill_id?: string | null };
         Update: Partial<Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at'>>;
+      };
+
+      khairat_applications: {
+        Row: KhairatApplication;
+        Insert: Omit<KhairatApplication, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>;
+        Update: Partial<Omit<KhairatApplication, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>>;
+      };
+
+      khairat_memberships: {
+        Row: KhairatMembership;
+        Insert: Omit<KhairatMembership, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>;
+        Update: Partial<Omit<KhairatMembership, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>>;
       };
 
       resources: {
@@ -774,4 +822,43 @@ export interface ClaimFilters extends SearchFilters {
   amount_max?: number;
   submitted_from?: string;
   submitted_to?: string;
+}
+
+// =============================================
+// KARIAH MEMBER INTERFACES
+// =============================================
+
+export interface KariahMember {
+  id: string;
+  user_id: string;
+  mosque_id: string;
+  ic_passport_number?: string;
+  application_reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn' | 'active' | 'inactive' | 'suspended';
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  joined_date?: string;
+  membership_number?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    full_name: string;
+    phone?: string;
+  };
+  mosque?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Legacy interfaces for backward compatibility (deprecated)
+export interface KariahApplication extends Omit<KariahMember, 'joined_date' | 'notes' | 'membership_number'> {
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn';
+}
+
+export interface KariahMembership extends Omit<KariahMember, 'ic_passport_number' | 'application_reason' | 'admin_notes' | 'reviewed_by' | 'reviewed_at'> {
+  status: 'active' | 'inactive' | 'suspended';
 }

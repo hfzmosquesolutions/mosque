@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { updateMosqueSettings, getKariahRegistrationSettings, updateKariahRegistrationSettings } from '@/lib/api';
+import { updateMosqueSettings, getKariahRegistrationSettings, updateKariahRegistrationSettings, getKhairatRegistrationSettings, updateKhairatRegistrationSettings } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Service {
@@ -91,6 +91,13 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   });
   const [loadingKariahSettings, setLoadingKariahSettings] = useState(false);
   const [savingKariahSettings, setSavingKariahSettings] = useState(false);
+  const [khairatSettings, setKhairatSettings] = useState<KariahRegistrationSettings>({
+    requirements: '',
+    benefits: '',
+    custom_message: ''
+  });
+  const [loadingKhairatSettings, setLoadingKhairatSettings] = useState(false);
+  const [savingKhairatSettings, setSavingKhairatSettings] = useState(false);
   const t = useTranslations('dashboard');
 
   useEffect(() => {
@@ -104,6 +111,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
 
   useEffect(() => {
     loadKariahSettings();
+    loadKhairatSettings();
   }, [mosqueId]);
 
   const loadKariahSettings = async () => {
@@ -122,6 +130,20 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   };
 
   const saveKariahSettings = async () => {
+    // Validate character limits
+    if (kariahSettings.requirements.length > 200) {
+      toast.error(t('requirementsLimitExceeded'));
+      return;
+    }
+    if (kariahSettings.benefits.length > 200) {
+      toast.error(t('benefitsLimitExceeded'));
+      return;
+    }
+    if (kariahSettings.custom_message.length > 300) {
+      toast.error(t('customMessageLimitExceeded'));
+      return;
+    }
+
     try {
       setSavingKariahSettings(true);
       const result = await updateKariahRegistrationSettings(mosqueId, kariahSettings);
@@ -136,6 +158,53 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       toast.error('Failed to save kariah registration settings');
     } finally {
       setSavingKariahSettings(false);
+    }
+  };
+
+  const loadKhairatSettings = async () => {
+    try {
+      setLoadingKhairatSettings(true);
+      const result = await getKhairatRegistrationSettings(mosqueId);
+      
+      if (result.success && result.data) {
+        setKhairatSettings(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading khairat settings:', error);
+    } finally {
+      setLoadingKhairatSettings(false);
+    }
+  };
+
+  const saveKhairatSettings = async () => {
+    // Validate character limits
+    if (khairatSettings.requirements.length > 200) {
+      toast.error(t('requirementsLimitExceeded'));
+      return;
+    }
+    if (khairatSettings.benefits.length > 200) {
+      toast.error(t('benefitsLimitExceeded'));
+      return;
+    }
+    if (khairatSettings.custom_message.length > 300) {
+      toast.error(t('customMessageLimitExceeded'));
+      return;
+    }
+
+    try {
+      setSavingKhairatSettings(true);
+      const result = await updateKhairatRegistrationSettings(mosqueId, khairatSettings);
+      
+      if (result.success) {
+        toast.success('Khairat registration settings saved successfully');
+      } else {
+        toast.error(result.error || 'Failed to save khairat registration settings');
+      }
+    } catch (error) {
+      console.error('Error saving khairat settings:', error);
+      toast.error('Failed to save khairat registration settings');
+    } finally {
+      setSavingKhairatSettings(false);
     }
   };
 
@@ -234,7 +303,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
             <div key={categoryKey} className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <categoryIcon className="h-4 w-4 text-muted-foreground" />
+                  {React.createElement(categoryIcon, { className: "h-4 w-4 text-muted-foreground" })}
                   <h3 className="font-medium">{categoryLabel}</h3>
                 </div>
                 <Badge variant="secondary" className="text-xs">
@@ -321,7 +390,14 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                       setKariahSettings(prev => ({ ...prev, requirements: e.target.value }))
                     }
                     rows={3}
+                    maxLength={200}
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 200 })}</span>
+                    <span className={kariahSettings.requirements.length > 200 ? 'text-red-500' : ''}>
+                      {kariahSettings.requirements.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 {/* Benefits */}
@@ -338,7 +414,14 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                       setKariahSettings(prev => ({ ...prev, benefits: e.target.value }))
                     }
                     rows={3}
+                    maxLength={200}
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 200 })}</span>
+                    <span className={kariahSettings.benefits.length > 200 ? 'text-red-500' : ''}>
+                      {kariahSettings.benefits.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 {/* Custom Message */}
@@ -355,7 +438,114 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                       setKariahSettings(prev => ({ ...prev, custom_message: e.target.value }))
                     }
                     rows={2}
+                    maxLength={300}
                   />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 300 })}</span>
+                    <span className={kariahSettings.custom_message.length > 300 ? 'text-red-500' : ''}>
+                      {kariahSettings.custom_message.length}/300
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Khairat Registration Settings */}
+        {currentServices.includes('khairat_management') && (
+          <div className="space-y-4">
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Khairat Registration Settings
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure registration requirements and benefits for new khairat members
+                  </p>
+                </div>
+                <Button 
+                  onClick={saveKhairatSettings} 
+                  disabled={savingKhairatSettings}
+                  size="sm"
+                >
+                  {savingKhairatSettings ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </div>
+
+              <div className="grid gap-4">
+                {/* Requirements */}
+                <div className="space-y-2">
+                  <Label htmlFor="khairat-requirements" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Registration Requirements
+                  </Label>
+                  <Textarea
+                    id="khairat-requirements"
+                    placeholder="e.g., Valid IC/Passport, Proof of residence in the area, Emergency contact information..."
+                    value={khairatSettings.requirements}
+                    onChange={(e) => 
+                      setKhairatSettings(prev => ({ ...prev, requirements: e.target.value }))
+                    }
+                    rows={3}
+                    maxLength={200}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 200 })}</span>
+                    <span className={khairatSettings.requirements.length > 200 ? 'text-red-500' : ''}>
+                      {khairatSettings.requirements.length}/200
+                    </span>
+                  </div>
+                </div>
+
+                {/* Benefits */}
+                <div className="space-y-2">
+                  <Label htmlFor="khairat-benefits" className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Membership Benefits
+                  </Label>
+                  <Textarea
+                    id="khairat-benefits"
+                    placeholder="e.g., Access to khairat programs, Community support, Voting rights in mosque decisions..."
+                    value={khairatSettings.benefits}
+                    onChange={(e) => 
+                      setKhairatSettings(prev => ({ ...prev, benefits: e.target.value }))
+                    }
+                    rows={3}
+                    maxLength={200}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 200 })}</span>
+                    <span className={khairatSettings.benefits.length > 200 ? 'text-red-500' : ''}>
+                      {khairatSettings.benefits.length}/200
+                    </span>
+                  </div>
+                </div>
+
+                {/* Custom Message */}
+                <div className="space-y-2">
+                  <Label htmlFor="khairat-custom-message" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Custom Welcome Message
+                  </Label>
+                  <Textarea
+                    id="khairat-custom-message"
+                    placeholder="e.g., Welcome to our khairat community! We're excited to have you join us in supporting our mosque and community..."
+                    value={khairatSettings.custom_message}
+                    onChange={(e) => 
+                      setKhairatSettings(prev => ({ ...prev, custom_message: e.target.value }))
+                    }
+                    rows={4}
+                    maxLength={300}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('maxCharacters', { limit: 300 })}</span>
+                    <span className={khairatSettings.custom_message.length > 300 ? 'text-red-500' : ''}>
+                      {khairatSettings.custom_message.length}/300
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
