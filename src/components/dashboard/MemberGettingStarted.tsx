@@ -65,7 +65,7 @@ export function MemberGettingStarted({
       title: 'Register as Kariah Member',
       description: 'Join as a kariah member for exclusive benefits',
       icon: Award,
-      href: '/kariah-application',
+      href: '/my-mosques',
       completed: hasAppliedForKariah,
       priority: 'medium',
     },

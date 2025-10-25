@@ -1653,7 +1653,7 @@ export default function MosqueProfilePage() {
               <Button 
                 onClick={() => {
                   setIsSuccessModalOpen(false);
-                  router.push('/my-khairat');
+                  router.push('/my-mosques');
                 }}
                 className="w-full"
               >

@@ -241,7 +241,7 @@ export function RecentActivityFeed({ contributions, claims, isAdmin = false }: R
 
         {activities.length > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <Link href={isAdmin ? '/dashboard' : '/my-khairat'}>
+            <Link href={isAdmin ? '/dashboard' : '/my-mosques'}>
               <Button variant="outline" size="sm" className="w-full">
                 View All Activity
                 <ArrowRight className="ml-2 h-3 w-3" />

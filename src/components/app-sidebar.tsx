@@ -79,10 +79,10 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     // For regular users, show community features
     // Events removed
 
-    // Show Khairat (user version)
+    // Show My Mosques (user version)
     baseNavigation.push({
-      name: t('khairat'),
-      href: '/my-khairat',
+      name: t('myMosques'),
+      href: '/my-mosques',
       icon: HandHeart,
     });
 
@@ -96,13 +96,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     }
 
     // Khairat page is not available to regular users
-
-    // Kariah application for regular users only
-    baseNavigation.push({
-      name: t('kariahApplication'),
-      href: '/kariah-application',
-      icon: UserPlus,
-    });
+    // Kariah applications are now handled through My Mosques page
 
     // Claims are now managed inside Khairat page tabs
 

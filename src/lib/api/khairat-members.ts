@@ -35,7 +35,7 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
     .select(`
       *,
       user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, logo_url, banner_url, address)
     `)
     .order('created_at', { ascending: false });
 

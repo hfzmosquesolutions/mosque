@@ -28,7 +28,7 @@ function PaymentResultContent() {
 
   // Determine the correct redirect path based on user role
   const getKhairatPath = () => {
-    return hasAdminAccess ? '/khairat' : '/my-khairat';
+    return hasAdminAccess ? '/khairat' : '/my-mosques';
   };
 
   useEffect(() => {

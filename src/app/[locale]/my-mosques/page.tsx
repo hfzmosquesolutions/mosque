@@ -26,8 +26,8 @@ import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/a
 import { getKariahMembers } from '@/lib/api/kariah-members';
 import { toast } from 'sonner';
 
-function MyKhairatContent() {
-  const t = useTranslations('khairat');
+function MyMosquesContent() {
+  const t = useTranslations('mosques');
   const router = useRouter();
   const { user } = useAuth();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
@@ -150,7 +150,7 @@ function MyKhairatContent() {
       {/* Header with Title */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          My Khairat
+          My Mosques
         </h1>
       </div>
 
@@ -405,11 +405,11 @@ function MyKhairatContent() {
   );
 }
 
-export default function MyKhairatPage() {
+export default function MyMosquesPage() {
   return (
     <ProtectedRoute>
-      <DashboardLayout title="Khairat">
-        <MyKhairatContent />
+      <DashboardLayout title="My Mosques">
+        <MyMosquesContent />
       </DashboardLayout>
     </ProtectedRoute>
   );

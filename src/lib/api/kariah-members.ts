@@ -60,7 +60,7 @@ export async function getKariahMembers(filters: KariahMemberFilters = {}) {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, logo_url, banner_url, address)
     `)
     .order('created_at', { ascending: false });
 

@@ -66,7 +66,7 @@ export function MemberQuickInsights({
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       action: 'Apply Now',
-      href: '/kariah-application',
+      href: '/my-mosques',
       show: true,
     },
     {
