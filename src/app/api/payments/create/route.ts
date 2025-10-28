@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Get program details to validate mosque
     const supabaseAdmin = getSupabaseAdmin();
     const { data: program, error: programError } = await supabaseAdmin
-      .from('contribution_programs')
+      .from('khairat_programs')
       .select('id, mosque_id')
       .eq('id', programId)
       .single();
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // Check if contribution exists and is pending
     const { data: contribution, error: contributionError } = await supabaseAdmin
-      .from('contributions')
+      .from('khairat_contributions')
       .select('id, status, program_id')
       .eq('id', contributionId)
       .eq('program_id', programId)

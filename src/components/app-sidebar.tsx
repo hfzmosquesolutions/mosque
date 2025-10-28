@@ -14,6 +14,8 @@ import {
   UserPlus,
   Database,
   FileText,
+  CreditCard,
+  UserCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -62,16 +64,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       href: '/khairat',
       icon: HandHeart,
     });
-    baseNavigation.push({
-      name: t('kariah'),
-      href: '/kariah',
-      icon: Users,
-    });
-    baseNavigation.push({
-      name: t('claims.title'),
-      href: '/claims',
-      icon: FileText,
-    });
+    // Claims are now managed inside Khairat page tabs
     baseNavigation.push({
       name: t('mosqueProfile'),
       href: '/mosque-profile',
@@ -79,43 +72,28 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
     });
   } else {
     // For regular users, show community features
-    if (RUNTIME_FEATURES.EVENTS_VISIBLE) {
-      baseNavigation.push({
-        name: t('events'),
-        href: '/events',
-        icon: Calendar,
-      });
-    }
+    // Events removed
+
+    // Show My Mosques (user version)
+    baseNavigation.push({
+      name: t('myMosques'),
+      href: '/my-mosques',
+      icon: HandHeart,
+    });
 
     // Only include Contributions if enabled for regular users
     if (FEATURES.CONTRIBUTIONS_ENABLED) {
       baseNavigation.push({
         name: t('contributions'),
-        href: '/contributions',
+        href: '/khairat',
         icon: HandHeart,
       });
     }
 
-    // Dedicated Khairat page for regular users
-    baseNavigation.push({
-      name: t('khairat'),
-      href: '/khairat',
-      icon: HandHeart,
-    });
+    // Khairat page is not available to regular users
+    // Kariah applications are now handled through My Mosques page
 
-    // Kariah application for regular users only
-    baseNavigation.push({
-      name: t('kariahApplication'),
-      href: '/kariah-application',
-      icon: UserPlus,
-    });
-
-    // Claims page for regular users
-    baseNavigation.push({
-      name: t('claims.title'),
-      href: '/claims',
-      icon: FileText,
-    });
+    // Claims are now managed inside Khairat page tabs
 
     // Dependents management for regular users only
     baseNavigation.push({
@@ -129,6 +107,15 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
       name: t('profile'),
       href: '/profile',
       icon: User,
+    });
+  }
+
+  // Add billing link only for admin users
+  if (hasAdminAccess) {
+    baseNavigation.push({
+      name: t('billing'),
+      href: '/billing',
+      icon: CreditCard,
     });
   }
 
@@ -221,7 +208,7 @@ export function AppSidebar() {
                   ))
                 : navigation.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const isActive = pathname.includes(item.href);
 
                     return (
                       <SidebarMenuItem key={item.name}>
@@ -229,6 +216,7 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive}
                           tooltip={item.name}
+                          className={isActive ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
                         >
                           <Link href={item.href}>
                             <span className="flex items-center gap-2">
@@ -263,8 +251,9 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === '/settings'}
+                    isActive={pathname.includes('/settings')}
                     tooltip="Settings"
+                    className={pathname.includes('/settings') ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
                   >
                     <Link href="/settings">
                       <span className="flex items-center gap-2">

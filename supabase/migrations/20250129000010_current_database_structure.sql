@@ -175,7 +175,6 @@
 --   email character varying,
 --   website character varying,
 --   description text,
---   prayer_times jsonb,
 --   settings jsonb DEFAULT '{}'::jsonb,
 --   created_at timestamp with time zone DEFAULT now(),
 --   updated_at timestamp with time zone DEFAULT now(),

@@ -9,9 +9,7 @@ The mosque management system now includes a comprehensive onboarding process tha
 ### 1. Community Member
 - **Purpose**: Regular mosque attendees and community members
 - **Access**: 
-  - Prayer times and Islamic calendar
-  - Event browsing and registration
-  - Donation system
+  - Khairat (welfare) programs and payments
   - Khairat (welfare) programs
   - Islamic resources and educational materials
 - **Membership Types**:
@@ -24,8 +22,8 @@ The mosque management system now includes a comprehensive onboarding process tha
 - **Purpose**: Mosque staff, board members, and authorized personnel
 - **Access**: All member features plus:
   - Member management
-  - Event creation and management
-  - Community announcements
+  - Khairat program management
+  
   - Financial reports and analytics
   - Mosque settings configuration
   - System administration
@@ -112,18 +110,15 @@ Currently using localStorage for demonstration:
 - Edit member information
 - Manage member roles and permissions
 
-### Event Management
-- Create and edit mosque events
-- Manage event registrations
-- Send event notifications
+### Khairat Program Management
+- Create and edit khairat programs
+- Manage khairat payments
+- Review khairat claims
 
-### Financial Oversight
-- View donation reports
 - Track khairat contributions
 - Generate financial analytics
 
 ### Communication
-- Send community announcements
 - Manage notification preferences
 - Broadcast important messages
 

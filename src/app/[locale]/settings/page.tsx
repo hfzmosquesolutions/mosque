@@ -59,6 +59,7 @@ import { toast } from 'sonner';
 import { PaymentProviderSettings } from '@/components/settings/PaymentProviderSettings';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import Link from 'next/link';
 
 interface UserSettings {
   profile: {
@@ -294,251 +295,66 @@ function SettingsContent() {
   }
 
   return (
-    <DashboardLayout title="Settings">
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-2xl" />
-          <div className="relative p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-muted-foreground text-lg">
-                  {t('settings.welcomeDescription')}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Activity className="h-4 w-4" />
-                    <span>{t('settings.customizablePreferences')}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Shield className="h-4 w-4" />
-                    <span>{t('settings.secureSettings')}</span>
-                  </div>
-                </div>
-              </div>
-              {hasUnsavedChanges && (
-                <Button
-                  onClick={handleSaveSettings}
-                  size="lg"
-                  disabled={saving}
-                  className="bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Save className="mr-2 h-5 w-5" />
-                  {t('settings.saveChanges')}
-                </Button>
-              )}
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header with Title */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t('settings.title')}
+          </h1>
         </div>
+      </div>
 
-        <Tabs defaultValue={tabParam || 'profile'} className="space-y-6">
-          <TabsList
-            className={`grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}
+      <Tabs defaultValue={tabParam || 'notifications'} className="space-y-6">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+          <TabsTrigger 
+            value="notifications" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
           >
-            <TabsTrigger value="profile">{t('settings.profile')}</TabsTrigger>
-            <TabsTrigger value="notifications">{t('settings.notifications')}</TabsTrigger>
-            <TabsTrigger value="appearance">{t('settings.appearance')}</TabsTrigger>
-            <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="payment-settings">
-                {t('settings.paymentGateway')}
-              </TabsTrigger>
-            )}
-          </TabsList>
+            {t('settings.notifications')}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="appearance" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            {t('settings.appearance')}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="security" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            {t('settings.security')}
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger 
+              value="payment-settings" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              {t('settings.paymentGateway')}
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-          {/* Profile Settings Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <Card className="border-0 shadow-md">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  <CardTitle>{t('settings.profileSettings')}</CardTitle>
-                </div>
-                <CardDescription>
-                  {t('settings.profileDescription')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">{t('settings.fullName')}</Label>
-                    <Input
-                      id="name"
-                      value={settings!.profile.name}
-                      onChange={(e) =>
-                        updateSettings('profile', 'name', e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t('settings.emailAddress')}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={settings!.profile.email}
-                      onChange={(e) =>
-                        updateSettings('profile', 'email', e.target.value)
-                      }
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t('settings.phoneNumber')}</Label>
-                    <Input
-                      id="phone"
-                      value={settings!.profile.phone}
-                      onChange={(e) =>
-                        updateSettings('profile', 'phone', e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">{t('settings.role')}</Label>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default">{settings!.profile.role}</Badge>
-                      <span className="text-sm text-slate-500">
-                        {t('settings.contactAdminToChangeRole')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Additional personal information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">{t('settings.address')}</Label>
-                    <Textarea
-                      id="address"
-                      placeholder={t('settings.addressPlaceholder')}
-                      value={profile?.address || ''}
-                      onChange={(e) => {
-                        setProfile((prev) =>
-                          prev
-                            ? ({
-                                ...prev,
-                                address: e.target.value,
-                              } as UserProfile)
-                            : prev
-                        );
-                        setHasUnsavedChanges(true);
-                      }}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">{t('settings.dateOfBirth')}</Label>
-                      <div className="relative">
-                        <Input
-                          id="dob"
-                          type="date"
-                          value={profile?.date_of_birth || ''}
-                          onChange={(e) => {
-                            setProfile((prev) =>
-                              prev
-                                ? ({
-                                    ...prev,
-                                    date_of_birth: e.target.value,
-                                  } as UserProfile)
-                                : prev
-                            );
-                            setHasUnsavedChanges(true);
-                          }}
-                        />
-                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="gender">{t('settings.gender')}</Label>
-                      <Select
-                        value={profile?.gender || ''}
-                        onValueChange={(value) => {
-                          setProfile((prev) =>
-                            prev
-                              ? ({ ...prev, gender: value } as UserProfile)
-                              : prev
-                          );
-                          setHasUnsavedChanges(true);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('settings.selectGender')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">{t('settings.male')}</SelectItem>
-                          <SelectItem value="female">{t('settings.female')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="occupation">{t('settings.occupation')}</Label>
-                    <div className="relative">
-                      <Input
-                        id="occupation"
-                        value={profile?.occupation || ''}
-                        onChange={(e) => {
-                          setProfile((prev) =>
-                            prev
-                              ? ({
-                                  ...prev,
-                                  occupation: e.target.value,
-                                } as UserProfile)
-                              : prev
-                          );
-                          setHasUnsavedChanges(true);
-                        }}
-                      />
-                      <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyName">
-                      {t('settings.emergencyContactName')}
-                    </Label>
-                    <Input
-                      id="emergencyName"
-                      value={profile?.emergency_contact_name || ''}
-                      onChange={(e) => {
-                        setProfile((prev) =>
-                          prev
-                            ? ({
-                                ...prev,
-                                emergency_contact_name: e.target.value,
-                              } as UserProfile)
-                            : prev
-                        );
-                        setHasUnsavedChanges(true);
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-
-          </TabsContent>
 
           {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card className="border-0 shadow-md">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  <CardTitle>{t('settings.notificationPreferences')}</CardTitle>
-                </div>
-                <CardDescription>
+          <TabsContent value="notifications" forceMount className="space-y-6 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {t('settings.notificationPreferences')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   {t('settings.configureNotifications')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="emailNotifications">
-                      {t('settings.emailNotifications')}
-                    </Label>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="emailNotifications">
+                    {t('settings.emailNotifications')}
+                  </Label>
                     <p className="text-sm text-muted-foreground">
                       {t('settings.receiveNotificationsViaEmail')}
                     </p>
@@ -622,25 +438,25 @@ function SettingsContent() {
                     className="rounded border-gray-300"
                   />
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           </TabsContent>
 
           {/* Appearance Tab */}
-          <TabsContent value="appearance" className="space-y-6">
-            <Card className="border-0 shadow-md">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  <CardTitle>{t('settings.appearance')}</CardTitle>
-                </div>
-                <CardDescription>
+          <TabsContent value="appearance" forceMount className="space-y-6 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {t('settings.appearance')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   {t('settings.customizeLookAndFeel')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">{t('settings.theme')}</Label>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="theme">{t('settings.theme')}</Label>
                   <Select
                     value={settings!.appearance.theme}
                     onValueChange={(value) =>
@@ -686,33 +502,43 @@ function SettingsContent() {
                     </SelectContent>
                   </Select>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           </TabsContent>
 
           {/* Payment Settings Tab - Admin Only */}
           {isAdmin && (
-            <TabsContent value="payment-settings" className="space-y-6">
+            <TabsContent value="payment-settings" forceMount className="space-y-6 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                    {t('settings.paymentGateway')}
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Configure payment gateway settings for your mosque
+                  </p>
+                </div>
+              </div>
               <PaymentProviderSettings />
             </TabsContent>
           )}
 
           {/* Security Tab */}
-          <TabsContent value="security" className="space-y-6">
-            <Card className="border-0 shadow-md">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  <CardTitle>{t('settings.securitySettings')}</CardTitle>
-                </div>
-                <CardDescription>
+          <TabsContent value="security" forceMount className="space-y-6 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {t('settings.securitySettings')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   {t('settings.manageAccountSecurity')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="twoFactor">{t('settings.twoFactorAuthentication')}</Label>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="twoFactor">{t('settings.twoFactorAuthentication')}</Label>
                     <p className="text-sm text-muted-foreground">
                       {t('settings.addExtraLayerSecurity')}
                     </p>
@@ -753,19 +579,19 @@ function SettingsContent() {
                     {t('settings.automaticallySignOut')}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
 export default function SettingsPage() {
   return (
     <ProtectedRoute>
-      <SettingsContent />
+      <DashboardLayout title="Settings">
+        <SettingsContent />
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }

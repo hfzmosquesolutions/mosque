@@ -33,6 +33,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { AddressForm, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
+import { AddressData } from '@/types/database';
 
 interface OnboardingData {
   // Personal Information
@@ -48,6 +50,7 @@ interface OnboardingData {
   mosqueAction?: 'join' | 'create';
   mosqueName?: string;
   mosqueAddress?: string;
+  mosqueAddressData?: AddressData;
   existingMosqueId?: string;
 }
 
@@ -61,6 +64,15 @@ function OnboardingContent() {
     address: '',
     icPassportNumber: '',
     accountType: '',
+    mosqueAddressData: {
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: '',
+      postcode: '',
+      country: 'Malaysia',
+      full_address: '',
+    },
   });
   const { user, signOut } = useAuth();
   const router = useRouter();
@@ -95,6 +107,27 @@ function OnboardingContent() {
                   updatedData.mosqueAction = 'create'; // Assume they created it since they own it
                   updatedData.mosqueName = mosque.name;
                   updatedData.mosqueAddress = mosque.address || '';
+                  
+                  // Parse existing address or use structured address fields
+                  updatedData.mosqueAddressData = mosque.address_line1 
+                    ? {
+                        address_line1: mosque.address_line1 || '',
+                        address_line2: mosque.address_line2 || '',
+                        city: mosque.city || '',
+                        state: mosque.state || '',
+                        postcode: mosque.postcode || '',
+                        country: mosque.country || 'Malaysia',
+                        full_address: formatAddressForDisplay({
+                          address_line1: mosque.address_line1 || '',
+                          address_line2: mosque.address_line2 || '',
+                          city: mosque.city || '',
+                          state: mosque.state || '',
+                          postcode: mosque.postcode || '',
+                          country: mosque.country || 'Malaysia',
+                          full_address: '',
+                        }),
+                      }
+                    : parseAddressString(mosque.address || '');
                 }
               }
             } catch (mosqueError) {
@@ -118,9 +151,17 @@ function OnboardingContent() {
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateMosqueAddressData = (addressData: AddressData) => {
+    setData((prev) => ({ 
+      ...prev, 
+      mosqueAddressData: addressData,
+      mosqueAddress: addressData.full_address, // Keep legacy field in sync
+    }));
+  };
+
   const handleNext = () => {
     if (step === 1) {
-      if (!data.fullName || !data.phone || !data.icPassportNumber) {
+      if (!data.fullName || !data.phone) {
         toast.error(t('fillRequiredFields'));
         return;
       }
@@ -171,6 +212,8 @@ function OnboardingContent() {
         mosqueName: data.accountType === 'admin' ? data.mosqueName : undefined,
         mosqueAddress:
           data.accountType === 'admin' ? data.mosqueAddress : undefined,
+        mosqueAddressData:
+          data.accountType === 'admin' ? data.mosqueAddressData : undefined,
         existingMosqueId:
           data.accountType === 'admin' ? data.existingMosqueId : undefined,
       });
@@ -220,28 +263,6 @@ function OnboardingContent() {
             value={data.phone}
             onChange={(e) => updateData('phone', e.target.value)}
             placeholder={t('enterPhoneNumber')}
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="icPassportNumber">{t('icPassportNumber')} *</Label>
-          <Input
-            id="icPassportNumber"
-            value={data.icPassportNumber}
-            onChange={(e) => updateData('icPassportNumber', e.target.value)}
-            placeholder={t('enterIcPassportNumber')}
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="address">{t('addressOptional')}</Label>
-          <Input
-            id="address"
-            value={data.address}
-            onChange={(e) => updateData('address', e.target.value)}
-            placeholder={t('enterAddress')}
             className="mt-1"
           />
         </div>
@@ -396,14 +417,19 @@ function OnboardingContent() {
               </div>
 
               <div>
-                <Label htmlFor="mosqueAddress">
-                  {t('mosqueAddressOptional')}
-                </Label>
-                <Input
-                  id="mosqueAddress"
-                  value={data.mosqueAddress || ''}
-                  onChange={(e) => updateData('mosqueAddress', e.target.value)}
-                  placeholder={t('enterMosqueAddress')}
+                <AddressForm
+                  value={data.mosqueAddressData || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    postcode: '',
+                    country: 'Malaysia',
+                    full_address: '',
+                  }}
+                  onChange={updateMosqueAddressData}
+                  disabled={false}
+                  showFullAddress={false}
                   className="mt-1"
                 />
               </div>
@@ -472,14 +498,6 @@ function OnboardingContent() {
             <div>
               <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
-                <p>
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {t('action')}:
-                  </span>{' '}
-                  <span className="font-medium capitalize">
-                    {data.mosqueAction}
-                  </span>
-                </p>
                 {data.mosqueAction === 'create' && data.mosqueName && (
                   <p>
                     <span className="text-slate-600 dark:text-slate-400">
@@ -496,16 +514,29 @@ function OnboardingContent() {
                     <span className="font-medium">{data.existingMosqueId}</span>
                   </p>
                 )}
+                {data.mosqueAction === 'create' && data.mosqueAddressData && data.mosqueAddressData.address_line1 && (
+                  <div className="mt-2">
+                    <p className="text-slate-600 dark:text-slate-400 mb-1">
+                      {t('mosqueAddress')}:
+                    </p>
+                    <div className="text-sm space-y-1">
+                      <p className="font-medium">{data.mosqueAddressData.address_line1}</p>
+                      {data.mosqueAddressData.address_line2 && (
+                        <p className="font-medium">{data.mosqueAddressData.address_line2}</p>
+                      )}
+                      <p className="font-medium">
+                        {[data.mosqueAddressData.city, data.mosqueAddressData.state, data.mosqueAddressData.postcode]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      <p className="font-medium">{data.mosqueAddressData.country}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {data.address && (
-            <div>
-              <h4 className="font-semibold mb-2">{t('address')}</h4>
-              <p className="font-medium">{data.address}</p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Insert all contributions
     const { data: contributions, error: contributionError } = await supabaseAdmin
-      .from('contributions')
+      .from('khairat_contributions')
       .insert(contributionInserts)
       .select('id');
 
@@ -127,7 +127,7 @@ console.log('contributions',contributions)
       console.error('Error updating legacy records:', updateError);
       // Try to rollback contributions if legacy record update fails
       await supabaseAdmin
-        .from('contributions')
+        .from('khairat_contributions')
         .delete()
         .in('id', contributions.map((c: any) => c.id));
       

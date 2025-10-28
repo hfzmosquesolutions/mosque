@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     // Delete contributions if they exist
     if (contributionIds.length > 0) {
       const { error: deleteError } = await supabaseAdmin
-        .from('contributions')
+        .from('khairat_contributions')
         .delete()
         .in('id', contributionIds);
 

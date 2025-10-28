@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     };
 
     const { data: contribution, error: contributionError } = await supabaseAdmin
-      .from('contributions')
+      .from('khairat_contributions')
       .insert(contributionData)
       .select()
       .single();

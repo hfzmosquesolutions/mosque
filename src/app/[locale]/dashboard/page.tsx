@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loading } from '@/components/ui/loading';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   User,
   Heart,
@@ -18,8 +24,12 @@ import {
   TrendingUp,
   Activity,
   Building2,
+  ExternalLink,
+  Bell,
+  Building,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -27,17 +37,21 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
-import { getUserFollowStats } from '@/lib/api/following';
-import { getMosqueFollowerCount, getMosqueKhairatContributions } from '@/lib/api';
+import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
+import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
+import { AdminGettingStarted } from '@/components/dashboard/AdminGettingStarted';
 
 
 interface Contribution {
   id: string;
   amount: number;
   contributed_at: string;
-  program: {
+  status: 'pending' | 'completed' | 'cancelled' | 'failed';
+  program?: {
     name: string;
   };
 }
@@ -56,6 +70,10 @@ function DashboardContent() {
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [membershipStats, setMembershipStats] = useState<any>(null);
   const [mosqueName, setMosqueName] = useState<string>('');
+  const [mosqueData, setMosqueData] = useState<any>(null);
+  const [khairatClaims, setKhairatClaims] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
@@ -68,6 +86,28 @@ function DashboardContent() {
     }
   }, [user, onboardingLoading, roleLoading, isCompleted, isAdmin, mosqueId]);
 
+  // Fetch notifications from database
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const notificationsData = await getUserNotifications(1, 5);
+        setNotifications(notificationsData.data);
+        
+        // Calculate unread count from the fetched notifications only
+        const unreadCountFromFetched = notificationsData.data.filter(n => !n.is_read).length;
+        setUnreadCount(unreadCountFromFetched);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -75,7 +115,7 @@ function DashboardContent() {
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select('full_name, role')
+        .select('full_name, role, onboarding_completed')
         .eq('id', user?.id)
         .single();
 
@@ -86,11 +126,11 @@ function DashboardContent() {
       // Fetch user's contributions
       const { data: contributionsData, error: contributionsError } =
         await supabase
-          .from('contributions')
+          .from('khairat_contributions')
           .select(
             `
             *,
-            program:contribution_programs(
+            program:khairat_programs(
               *,
               mosque:mosques(
                 id,
@@ -112,6 +152,7 @@ function DashboardContent() {
             id: item.id,
             amount: item.amount,
             contributed_at: item.contributed_at,
+            status: item.status || 'completed',
             program: {
               name: item.program?.name || t('unknownProgram'),
             },
@@ -144,23 +185,15 @@ function DashboardContent() {
       // Fetch follower count based on user role
       try {
         if (isAdmin && mosqueId) {
-          // For admin users, get mosque follower count
-          const mosqueFollowerCount = await getMosqueFollowerCount(mosqueId);
-          setFollowerCount(mosqueFollowerCount);
-          
-          // Fetch mosque name for admin users
+          // Fetch mosque data for admin users
           try {
-            const { data: mosqueData, error: mosqueError } = await supabase
-              .from('mosques')
-              .select('name')
-              .eq('id', mosqueId)
-              .single();
-            
-            if (!mosqueError && mosqueData) {
-              setMosqueName(mosqueData.name);
+            const mosqueResponse = await getMosque(mosqueId);
+            if (mosqueResponse.success && mosqueResponse.data) {
+              setMosqueData(mosqueResponse.data);
+              setMosqueName(mosqueResponse.data.name);
             }
           } catch (mosqueError) {
-            console.error('Error fetching mosque name:', mosqueError);
+            console.error('Error fetching mosque data:', mosqueError);
           }
           
           // Fetch membership statistics for admin users
@@ -171,15 +204,25 @@ function DashboardContent() {
             console.error('Error fetching membership statistics:', membershipError);
             setMembershipStats(null);
           }
+
+          // Fetch khairat claims for admin users
+          try {
+            const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
+            setKhairatClaims(claimsData.data || []);
+          } catch (claimsError) {
+            console.error('Error fetching khairat claims:', claimsError);
+            setKhairatClaims([]);
+          }
+
         } else if (user?.id) {
-          // For normal users, get user follower count
-          const userStats = await getUserFollowStats(user.id);
-          setFollowerCount(userStats.followers_count);
+          // For normal users, set follower count to 0
+          setFollowerCount(0);
         }
       } catch (followerError) {
         console.error('Error fetching follower count:', followerError);
         setFollowerCount(0);
       }
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -187,11 +230,73 @@ function DashboardContent() {
     }
   };
 
-  const totalContributed = (isAdmin ? allContributions : contributions).reduce(
-    (sum, contribution) => sum + contribution.amount,
-    0
-  );
-  const recentContributions = isAdmin ? allContributions.slice(0, 5) : contributions.slice(0, 5);
+  const totalContributed = (isAdmin ? allContributions : contributions)
+    .filter(contribution => contribution.status === 'completed')
+    .reduce((sum, contribution) => sum + contribution.amount, 0);
+  const recentContributions = (isAdmin ? allContributions : contributions)
+    .filter(contribution => contribution.status === 'completed')
+    .slice(0, 5);
+
+  // Calculate successful khairat claims count
+  const successfulClaimsCount = khairatClaims.filter(claim => 
+    claim.status === 'approved' || claim.status === 'paid'
+  ).length;
+
+  // Handle notification click
+  const handleNotificationClick = async (notification: any) => {
+    try {
+      // Mark notification as read in database
+      await markNotificationAsRead(notification.id);
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notification.id 
+            ? { ...n, is_read: true, read_at: new Date().toISOString() }
+            : n
+        )
+      );
+      
+      // Update unread count based on current notifications
+      setUnreadCount(prev => {
+        const updatedNotifications = notifications.map(n => 
+          n.id === notification.id 
+            ? { ...n, is_read: true, read_at: new Date().toISOString() }
+            : n
+        );
+        return updatedNotifications.filter(n => !n.is_read).length;
+      });
+      
+      console.log('Notification clicked:', notification);
+      
+      // Navigate based on notification type or action_url
+      if (notification.action_url) {
+        window.location.href = notification.action_url;
+      } else {
+        // Fallback navigation based on type
+        switch (notification.type) {
+          case 'payment':
+            window.location.href = '/khairat';
+            break;
+          case 'application':
+            if (isAdmin) {
+              // Redirect to khairat applications
+              window.location.href = '/khairat?tab=applications';
+            }
+            break;
+          case 'claim':
+            if (isAdmin) {
+              window.location.href = '/khairat?tab=claims';
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   if (onboardingLoading || !isCompleted) {
     return null;
@@ -200,66 +305,20 @@ function DashboardContent() {
   if (userLoading || loading || roleLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-          </div>
+        <Loading 
+          message="Loading dashboard..." 
+          size="lg"
+          className="py-12"
+        />
+      </DashboardLayout>
+    );
+  }
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4">
-                        <Skeleton className="h-12 w-12 rounded-lg" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
+  // Render different dashboards based on user role
+  if (!isAdmin) {
+    return (
+      <DashboardLayout>
+        <MemberDashboard user={user} userProfile={userProfile} />
       </DashboardLayout>
     );
   }
@@ -267,20 +326,123 @@ function DashboardContent() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t('welcome')}, {userProfile?.full_name || user?.email}
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              {userProfile?.role === 'admin' 
-                ? mosqueName 
-                  ? `Administrator for ${mosqueName}`
-                  : t('adminRole')
-                : t('memberRole')
-              }
-            </p>
+        {/* Enhanced Header with Mosque Branding */}
+        <div className="relative rounded-xl overflow-hidden">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: mosqueData?.banner_url
+                ? `url(${mosqueData.banner_url})`
+                : 'linear-gradient(to right, rgb(16, 185, 129), rgb(34, 197, 94))',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/80 via-emerald-500/80 to-emerald-600/80 dark:from-emerald-700/80 dark:via-emerald-600/80 dark:to-emerald-700/80"></div>
+          <div className="relative p-6">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {mosqueData?.logo_url ? (
+                    <Image
+                      src={mosqueData.logo_url}
+                      alt={`${mosqueData.name} logo`}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover rounded-2xl"
+                    />
+                  ) : (
+                    <Building className="h-8 w-8 text-white" />
+                  )}
+                </div>
+                <div className="text-white min-w-0 flex-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-1 leading-tight">
+                    {t('welcome')}, {userProfile?.full_name || user?.email}
+                  </h1>
+                  <p className="text-white/90 text-sm sm:text-base">
+                    {mosqueName 
+                      ? `Administrator for ${mosqueName}`
+                      : t('adminRole')
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end space-x-3 flex-shrink-0">
+                {/* Notifications */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm">
+                      <Bell className="h-5 w-5" />
+                      {unreadCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80">
+                    <div className="p-4">
+                      <h3 className="font-semibold text-sm mb-3">Notifications</h3>
+                      {notifications.length > 0 ? (
+                        <div className="space-y-1">
+                          {notifications.map((notification, index) => {
+                            const isRead = notification.is_read;
+                            return (
+                              <div 
+                                key={notification.id} 
+                                className={`p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 ${
+                                  !isRead ? 'bg-gray-50 dark:bg-gray-800' : ''
+                                }`}
+                                onClick={() => handleNotificationClick(notification)}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                      {new Date(notification.created_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  {!isRead && (
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                          No notifications
+                        </p>
+                      )}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* View Public Profile Button */}
+                {mosqueId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/mosques/${mosqueId}`, '_blank')}
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t('viewPublicProfile')}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -288,231 +450,52 @@ function DashboardContent() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('totalContributed')}
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">
-                RM {totalContributed.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isAdmin ? 'Total payments from all users' : t('totalPaymentsMade')}
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('totalContributed')}
+            value={`RM ${totalContributed.toLocaleString()}`}
+            subtitle="Total khairat received"
+            icon={DollarSign}
+            {...StatsCardColors.emerald}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('followers')}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {followerCount}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isAdmin ? t('mosqueFollowers') : t('peopleFollowingYou')}
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('followers')}
+            value={followerCount}
+            subtitle={t('mosqueFollowers')}
+            icon={Users}
+            {...StatsCardColors.blue}
+          />
 
-          {!isAdmin && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {t('myDependents')}
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  {/* This would need to be fetched from dependents */}0
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('familyMembersAdded')}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          <StatsCard
+            title="Kariah Members"
+            value={membershipStats?.total || 0}
+            subtitle="Registered kariah members"
+            icon={Building2}
+            {...StatsCardColors.purple}
+          />
 
-          {isAdmin && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Kariah Members
-                </CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
-                  {membershipStats?.total || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Registered kariah members
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {t('recentPayments')}
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {recentContributions.length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isAdmin ? 'Latest khairat payments' : t('yourLatestKhairatPayments')}
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title={t('successfulClaims')}
+            value={successfulClaimsCount}
+            subtitle="Successful khairat claims"
+            icon={TrendingUp}
+            {...StatsCardColors.orange}
+          />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Recent Payments */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-emerald-600" />
-                  {t('recentPayments')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentContributions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">
-                      {t('noPaymentsYet')}
-                    </p>
-                    <Link href="/khairat">
-                      <Button>
-                        <Heart className="mr-2 h-4 w-4" />
-                        {t('makeYourFirstPayment')}
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentContributions
-                      .slice(0, 3)
-                      .map((contribution, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                              <Heart className="h-4 w-4 text-emerald-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {contribution.program.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {isAdmin 
-                                  ? (contribution as any).contributor?.full_name || 'Anonymous'
-                                  : new Date(
-                                      contribution.contributed_at
-                                    ).toLocaleDateString()
-                                }
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-emerald-600">
-                              RM {contribution.amount}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    {recentContributions.length > 3 && (
-                      <div className="text-center pt-2">
-                        <Link href="/khairat">
-                          <Button variant="outline" size="sm">
-                            {t('viewAllPayments')}
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Quick Actions & Info */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Shield className="h-4 w-4 text-green-600" />
-                  {t('quickActions')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Link href="/khairat">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between hover:bg-emerald-50 hover:text-emerald-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Heart className="h-3 w-3" />
-                      {t('khairatPrograms')}
-                    </span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
-                <Link href="/profile">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between hover:bg-blue-50 hover:text-blue-700"
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="h-3 w-3" />
-                      {t('myProfile')}
-                    </span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </Link>
-                {!isAdmin && (
-                  <Link href="/dependents">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-between hover:bg-orange-50 hover:text-orange-700"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Users className="h-3 w-3" />
-                        {t('myDependents')}
-                      </span>
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Notifications */}
-            <NotificationCard />
-          </div>
+        {/* Admin Getting Started and Quick Actions - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AdminGettingStarted 
+            mosqueId={mosqueId}
+            totalMembers={membershipStats?.total || 0}
+            totalContributions={totalContributed}
+            totalClaims={successfulClaimsCount}
+            hasMosqueProfile={!!mosqueData}
+            hasCreatedProgram={allContributions.length > 0}
+            hasPendingApplications={false} // TODO: Implement pending applications tracking
+          />
+          <QuickActions />
         </div>
-
-
 
       </div>
     </DashboardLayout>

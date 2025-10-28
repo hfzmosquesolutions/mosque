@@ -11,8 +11,18 @@ export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey);
 export const createClient = (cookieStore?: any) => {
   // For API routes, we typically use the service role key for admin operations
   // The cookieStore parameter is accepted but not used in this implementation
+  
+  // Only use service role key on server side
+  if (typeof window === 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  
+  // Fallback to anon key for client side or when service role key is not available
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || supabaseAnonKey
   );
 };

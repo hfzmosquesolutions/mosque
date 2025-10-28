@@ -1,13 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-import { Database, Users, UserCheck, FileText } from 'lucide-react';
-import { LegacyDataManagement } from './LegacyDataManagement';
-import { KariahApplicationsReview } from './KariahApplicationsReview';
-import { KariahMembershipManagement } from './KariahMembershipManagement';
+import { KariahManagement } from './KariahManagement';
 
 interface KariahDataDashboardProps {
   mosqueId: string;
@@ -19,51 +13,25 @@ export function KariahDataDashboard({
   mosqueName,
 }: KariahDataDashboardProps) {
   const t = useTranslations('kariahManagement');
-  const [activeTab, setActiveTab] = useState('applications');
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">{t('kariahManagement')}</h1>
-        <p className="text-muted-foreground">
-          {t('manageKariahDataDescription', { mosqueName })}
-        </p>
+      {/* Standardized header (match claims section) */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              Applications & Memberships
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Manage kariah applications and memberships in one unified interface
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="applications" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            {t('applications')}
-          </TabsTrigger>
-          <TabsTrigger value="memberships" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            {t('memberships')}
-          </TabsTrigger>
-          <TabsTrigger value="legacy-data" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            {t('legacyData')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="memberships" className="space-y-6">
-          <KariahMembershipManagement mosqueId={mosqueId} />
-        </TabsContent>
-
-        <TabsContent value="applications" className="space-y-6">
-          <KariahApplicationsReview mosqueId={mosqueId} />
-        </TabsContent>
-
-        <TabsContent value="legacy-data" className="space-y-6">
-          <LegacyDataManagement mosqueId={mosqueId} />
-        </TabsContent>
-      </Tabs>
+      {/* Kariah Management Component */}
+      <KariahManagement mosqueId={mosqueId} />
     </div>
   );
 }

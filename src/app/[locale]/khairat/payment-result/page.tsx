@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAdminAccess } from '@/hooks/useUserRole';
 
 interface PaymentResultData {
   status: string;
@@ -21,8 +22,14 @@ function PaymentResultContent() {
   const t = useTranslations('khairat');
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { hasAdminAccess } = useAdminAccess();
   const [resultData, setResultData] = useState<PaymentResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Determine the correct redirect path based on user role
+  const getKhairatPath = () => {
+    return hasAdminAccess ? '/khairat' : '/my-mosques';
+  };
 
   useEffect(() => {
     // Extract data from URL parameters
@@ -111,7 +118,7 @@ function PaymentResultContent() {
                 {t('unableToRetrieveDetails')}
               </p>
               <Button
-                onClick={() => router.push('/khairat')}
+                onClick={() => router.push(getKhairatPath())}
                 className="w-full"
               >
                 {t('backToKhairat')}
@@ -192,7 +199,7 @@ function PaymentResultContent() {
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  onClick={() => router.push('/khairat')}
+                  onClick={() => router.push(getKhairatPath())}
                   variant="outline"
                   className="flex-1"
                 >
@@ -201,7 +208,7 @@ function PaymentResultContent() {
 
                 {resultData.status === 'success' && (
                   <Button
-                    onClick={() => router.push('/khairat')}
+                    onClick={() => router.push(getKhairatPath())}
                     className="flex-1"
                   >
                     {t('viewMyContributions')}
@@ -210,7 +217,7 @@ function PaymentResultContent() {
 
                 {resultData.status === 'failed' && (
                   <Button
-                    onClick={() => router.push('/khairat')}
+                    onClick={() => router.push(getKhairatPath())}
                     className="flex-1"
                   >
                     {t('tryAgain')}

@@ -29,7 +29,6 @@ CREATE TABLE mosques (
     email VARCHAR(255),
     website VARCHAR(255),
     description TEXT,
-    prayer_times JSONB, -- Store prayer times configuration
     settings JSONB DEFAULT '{}', -- Store mosque-specific settings
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -564,7 +563,7 @@ IMPORTANT NOTES:
    - Modify the sample mosque data or remove it entirely
    - Adjust the enum values to match your specific needs
    - Add additional fields as required for your implementation
-   - Configure prayer times and other mosque-specific settings
+   - Configure mosque-specific settings
 
 8. PERFORMANCE:
    - Indexes are created for common query patterns

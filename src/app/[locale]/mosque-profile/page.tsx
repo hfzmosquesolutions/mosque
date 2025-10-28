@@ -22,7 +22,6 @@ import {
   Eye,
   EyeOff,
   Phone,
-  Clock,
   Users,
   Calendar,
   CheckCircle,
@@ -32,17 +31,19 @@ import {
   TrendingUp,
   ExternalLink,
   Image as ImageIcon,
+  Settings,
+  DollarSign,
 } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  getContributionPrograms,
+  getMosqueKhairatSettings,
   getUserMosqueId,
   getMosque,
   updateMosque,
 } from '@/lib/api';
 import type {
-  ContributionProgram,
+  MosqueKhairatSettings,
   Mosque,
   UpdateMosque,
 } from '@/types/database';
@@ -51,7 +52,12 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { AddressForm, AddressData, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OrganizationPeopleManagement } from '@/components/admin/OrganizationPeopleManagement';
+import { ServiceManagement } from '@/components/dashboard/ServiceManagement';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -60,6 +66,8 @@ interface MosqueProfileData extends Mosque {
   capacity?: string;
   imam_name?: string;
   services?: string[];
+  // Address data for the form
+  addressData?: AddressData;
 }
 
 // Type for mosque settings
@@ -79,27 +87,28 @@ const getDefaultMosqueProfile = (): MosqueProfileData => ({
   email: '',
   website: '',
   user_id: '',
-  prayer_times: {
-    fajr: '5:30 AM',
-    dhuhr: '12:30 PM',
-    asr: '3:45 PM',
-    maghrib: '6:15 PM',
-    isha: '7:30 PM',
-  },
   settings: {
     established_year: '',
     capacity: '',
     imam_name: '',
     services: [
       'Daily Prayers',
-      'Friday Prayers',
       'Islamic Education',
-      'Community Events',
+      'Community Activities',
     ],
   },
   is_private: false,
   created_at: '',
   updated_at: '',
+  addressData: {
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country: 'Malaysia',
+    full_address: '',
+  },
 });
 
 function MosqueProfileContent() {
@@ -107,19 +116,20 @@ function MosqueProfileContent() {
   const { hasAdminAccess } = useAdminAccess();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<MosqueProfileData>(
     getDefaultMosqueProfile()
   );
   const [originalProfile, setOriginalProfile] = useState<MosqueProfileData>(
     getDefaultMosqueProfile()
   );
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [, setIsLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
-  const [programsLoading, setProgramsLoading] = useState(true);
+  const [khairatSettings, setKhairatSettings] = useState<MosqueKhairatSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
 
   const updateProfile = (
     field: keyof MosqueProfileData,
@@ -128,15 +138,10 @@ function MosqueProfileContent() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updatePrayerTime = (prayer: string, time: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      prayer_times: {
-        ...prev.prayer_times,
-        [prayer]: time,
-      },
-    }));
+  const updateAddressData = (addressData: AddressData) => {
+    setProfile((prev) => ({ ...prev, addressData }));
   };
+
 
   const loadUserMosque = useCallback(async () => {
     if (!user) return;
@@ -163,6 +168,27 @@ function MosqueProfileContent() {
     try {
       const response = await getMosque(mosqueId);
       if (response.success && response.data) {
+        // Parse existing address or use structured address fields
+        const addressData = response.data.address_line1 
+          ? {
+              address_line1: response.data.address_line1 || '',
+              address_line2: response.data.address_line2 || '',
+              city: response.data.city || '',
+              state: response.data.state || '',
+              postcode: response.data.postcode || '',
+              country: response.data.country || 'Malaysia',
+              full_address: formatAddressForDisplay({
+                address_line1: response.data.address_line1 || '',
+                address_line2: response.data.address_line2 || '',
+                city: response.data.city || '',
+                state: response.data.state || '',
+                postcode: response.data.postcode || '',
+                country: response.data.country || 'Malaysia',
+                full_address: '',
+              }),
+            }
+          : parseAddressString(response.data.address || '');
+
         const mosqueData: MosqueProfileData = {
           ...response.data,
           // Extract additional fields from settings if they exist
@@ -173,10 +199,10 @@ function MosqueProfileContent() {
             (response.data.settings as MosqueSettings)?.imam_name || '',
           services: (response.data.settings as MosqueSettings)?.services || [
             'Daily Prayers',
-            'Friday Prayers',
             'Islamic Education',
-            'Community Events',
+            'Community Activities',
           ],
+          addressData,
         };
         setProfile(mosqueData);
         setOriginalProfile(mosqueData);
@@ -188,28 +214,28 @@ function MosqueProfileContent() {
     }
   }, [mosqueId]);
 
-  const loadPrograms = useCallback(async () => {
+  const loadKhairatSettings = useCallback(async () => {
     if (!mosqueId) return;
 
-    setProgramsLoading(true);
+    setSettingsLoading(true);
     try {
-      const response = await getContributionPrograms(mosqueId);
+      const response = await getMosqueKhairatSettings(mosqueId);
       if (response.success && response.data) {
-        setPrograms(response.data);
+        setKhairatSettings(response.data);
       }
     } catch (error) {
-      console.error('Error loading programs:', error);
+      console.error('Error loading khairat settings:', error);
     } finally {
-      setProgramsLoading(false);
+      setSettingsLoading(false);
     }
   }, [mosqueId]);
 
   useEffect(() => {
     if (mosqueId) {
       loadMosqueData();
-      loadPrograms();
+      loadKhairatSettings();
     }
-  }, [mosqueId, loadMosqueData, loadPrograms]);
+  }, [mosqueId, loadMosqueData, loadKhairatSettings]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -220,13 +246,18 @@ function MosqueProfileContent() {
       const updateData: UpdateMosque = {
         name: profile.name,
         description: profile.description || undefined,
-        address: profile.address || undefined,
+        address: profile.addressData?.full_address || profile.address || undefined,
+        address_line1: profile.addressData?.address_line1 || undefined,
+        address_line2: profile.addressData?.address_line2 || undefined,
+        city: profile.addressData?.city || undefined,
+        state: profile.addressData?.state || undefined,
+        postcode: profile.addressData?.postcode || undefined,
+        country: profile.addressData?.country || undefined,
         phone: profile.phone || undefined,
         email: profile.email || undefined,
         website: profile.website || undefined,
         logo_url: profile.logo_url || undefined,
         banner_url: profile.banner_url || undefined,
-        prayer_times: profile.prayer_times,
         settings: {
           ...profile.settings,
           established_year: profile.established_year,
@@ -240,7 +271,6 @@ function MosqueProfileContent() {
       const response = await updateMosque(mosqueId, updateData);
       if (response.success) {
         setOriginalProfile(profile);
-        setIsEditing(false);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
@@ -253,10 +283,6 @@ function MosqueProfileContent() {
     }
   };
 
-  const handleCancel = () => {
-    setProfile(originalProfile);
-    setIsEditing(false);
-  };
 
   if (onboardingLoading || !isCompleted) {
     return null;
@@ -285,14 +311,47 @@ function MosqueProfileContent() {
   return (
     <DashboardLayout title={t('navigation.profile')}>
       <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl" />
-          <div className="relative p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-slate-600 dark:text-slate-400">
-                  {t('mosqueProfile.manageProfile')}
+         {/* Header with Title */}
+         <div>
+           <h1 className="text-3xl font-bold tracking-tight">
+             {t('mosqueProfile.mosqueProfile')}
+           </h1>
+         </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+            <TabsTrigger 
+              value="profile" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              <Building className="h-4 w-4" />
+              {t('mosqueProfile.profile')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="services" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              <Settings className="h-4 w-4" />
+              Services
+            </TabsTrigger>
+            <TabsTrigger 
+              value="organization" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4" />
+              {t('mosqueProfile.organizationPeople')}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" forceMount className="space-y-6 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {t('mosqueProfile.profile')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Manage your mosque's basic information and settings
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -304,100 +363,32 @@ function MosqueProfileContent() {
                     </span>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  {mosqueId && (
-                    <Button variant="outline" asChild>
-                      <a
-                        href={`/mosques/${mosqueId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        {t('mosqueProfile.viewPublicProfile')}
-                      </a>
-                    </Button>
-                  )}
-                  {isEditing ? (
-                    <>
-                      <Button variant="outline" onClick={handleCancel}>
-                        {t('common.cancel')}
-                      </Button>
-                      <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? (
-                          <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                            {t('mosqueProfile.saving')}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Save className="h-4 w-4" />
-                            {t('mosqueProfile.saveChanges')}
-                          </div>
-                        )}
-                      </Button>
-                    </>
+                <Button onClick={handleSave} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-700">
+                  {isSaving ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      {t('mosqueProfile.saving')}
+                    </div>
                   ) : (
-                    <Button onClick={() => setIsEditing(true)}>
-                      {t('mosqueProfile.editProfile')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Save className="h-4 w-4" />
+                      {t('mosqueProfile.saveChanges')}
+                    </div>
                   )}
-                </div>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Profile Status Card */}
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                {profile.is_private ? (
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <EyeOff className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                ) : (
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                    <Eye className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                    {t('mosqueProfile.profileStatus')}
-                  </h3>
-                  <Badge variant={profile.is_private ? 'secondary' : 'default'}>
-                    {profile.is_private
-                      ? t('mosqueProfile.private')
-                      : t('mosqueProfile.public')}
-                  </Badge>
-                </div>
-                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                  {profile.is_private
-                    ? t('mosqueProfile.privateProfileDescription')
-                    : t('mosqueProfile.publicProfileDescription')}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Basic Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="h-5 w-5" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Basic Information */}
+                  <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information Section */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t('mosqueProfile.basicInformation')}
-                </CardTitle>
-                <CardDescription>
-                  {t('mosqueProfile.essentialDetails')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+              </div>
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="mosqueName">
@@ -407,7 +398,6 @@ function MosqueProfileContent() {
                       id="mosqueName"
                       value={profile.name}
                       onChange={(e) => updateProfile('name', e.target.value)}
-                      disabled={!isEditing}
                     />
                   </div>
                   <div className="space-y-2">
@@ -420,7 +410,6 @@ function MosqueProfileContent() {
                       onChange={(e) =>
                         updateProfile('established_year', e.target.value)
                       }
-                      disabled={!isEditing}
                       placeholder={t(
                         'mosqueProfile.establishedYearPlaceholder'
                       )}
@@ -437,7 +426,6 @@ function MosqueProfileContent() {
                     onChange={(e) =>
                       updateProfile('description', e.target.value)
                     }
-                    disabled={!isEditing}
                     rows={3}
                     placeholder={t('mosqueProfile.descriptionPlaceholder')}
                   />
@@ -453,7 +441,6 @@ function MosqueProfileContent() {
                       onChange={(e) =>
                         updateProfile('capacity', e.target.value)
                       }
-                      disabled={!isEditing}
                       placeholder={t('mosqueProfile.capacityPlaceholder')}
                     />
                   </div>
@@ -467,27 +454,24 @@ function MosqueProfileContent() {
                       onChange={(e) =>
                         updateProfile('imam_name', e.target.value)
                       }
-                      disabled={!isEditing}
                       placeholder={t('mosqueProfile.imamNamePlaceholder')}
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Mosque Branding */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5" />
+            {/* Divider */}
+            <hr className="border-slate-200 dark:border-slate-700" />
+
+            {/* Mosque Branding Section */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Mosque Branding
-                </CardTitle>
-                <CardDescription>
-                  Upload your mosque logo and banner to enhance your public
-                  profile
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </h3>
+              </div>
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ImageUpload
                     label="Mosque Logo"
@@ -532,33 +516,33 @@ function MosqueProfileContent() {
                     maxSizeInMB={5}
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
+            {/* Divider */}
+            <hr className="border-slate-200 dark:border-slate-700" />
+
+            {/* Contact Information Section */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {t('mosqueProfile.contactInformation')}
-                </CardTitle>
-                <CardDescription>
-                  {t('mosqueProfile.howPeopleCanReach')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="address">
-                    {t('mosqueProfile.addressRequired')}
-                  </Label>
-                  <Textarea
-                    id="address"
-                    value={profile.address}
-                    onChange={(e) => updateProfile('address', e.target.value)}
-                    disabled={!isEditing}
-                    rows={2}
-                  />
-                </div>
+                </h3>
+              </div>
+              <div className="space-y-4">
+                <AddressForm
+                  value={profile.addressData || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    postcode: '',
+                    country: 'Malaysia',
+                    full_address: '',
+                  }}
+                  onChange={updateAddressData}
+                  showFullAddress={true}
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">
@@ -568,7 +552,6 @@ function MosqueProfileContent() {
                       id="phone"
                       value={profile.phone}
                       onChange={(e) => updateProfile('phone', e.target.value)}
-                      disabled={!isEditing}
                     />
                   </div>
                   <div className="space-y-2">
@@ -580,7 +563,6 @@ function MosqueProfileContent() {
                       type="email"
                       value={profile.email}
                       onChange={(e) => updateProfile('email', e.target.value)}
-                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -591,198 +573,101 @@ function MosqueProfileContent() {
                     type="url"
                     value={profile.website}
                     onChange={(e) => updateProfile('website', e.target.value)}
-                    disabled={!isEditing}
                     placeholder={t('mosqueProfile.websitePlaceholder')}
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Prayer Times */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  {t('mosqueProfile.prayerTimes')}
-                </CardTitle>
-                <CardDescription>
-                  {t('mosqueProfile.dailyPrayerSchedule')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(profile.prayer_times || {}).map(
-                    ([prayer, time]) => (
-                      <div key={prayer} className="space-y-2">
-                        <Label htmlFor={prayer} className="capitalize">
-                          {prayer}
-                        </Label>
-                        <Input
-                          id={prayer}
-                          value={time as string}
-                          onChange={(e) =>
-                            updatePrayerTime(prayer, e.target.value)
-                          }
-                          disabled={!isEditing}
-                          placeholder={t('mosqueProfile.prayerTimePlaceholder')}
-                        />
-                      </div>
-                    )
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Divider */}
+            <hr className="border-slate-200 dark:border-slate-700" />
 
-            {/* Programs */}
+            {/* Programs Section */}
             {FEATURES.CONTRIBUTIONS_ENABLED && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
+              <div className="space-y-6">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {t('mosqueProfile.contributionPrograms')}
-                  </CardTitle>
-                  <CardDescription>
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
                     {t('mosqueProfile.activeProgramsInitiatives')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {programsLoading ? (
+                  </p>
+                </div>
+                <div>
+                  {settingsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
                     </div>
-                  ) : programs.length > 0 ? (
+                  ) : (
                     <div className="space-y-4">
-                      {programs.map((program) => (
-                        <div
-                          key={program.id}
-                          className="border rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-slate-900 dark:text-slate-100">
-                                {program.name}
-                              </h4>
-                              {program.description && (
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                  {program.description}
-                                </p>
-                              )}
-                            </div>
-                            <Badge
-                              variant={
-                                program.is_active ? 'default' : 'secondary'
-                              }
-                            >
-                              {program.is_active
-                                ? t('mosqueProfile.active')
-                                : t('mosqueProfile.inactive')}
-                            </Badge>
+                      <div className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                              Khairat Kematian
+                            </h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              Death benefit contributions for mosque members
+                            </p>
                           </div>
-
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            {program.target_amount && (
-                              <div className="flex items-center gap-1">
-                                <Target className="h-4 w-4" />
-                                <span>
-                                  {t('mosqueProfile.target')}: $
-                                  {program.target_amount.toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {program.start_date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>
-                                  {t('mosqueProfile.started')}:{' '}
-                                  {new Date(
-                                    program.start_date
-                                  ).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {program.target_amount &&
-                            program.current_amount !== undefined && (
-                              <div className="mt-3">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                  <span className="text-slate-600 dark:text-slate-400">
-                                    {t('mosqueProfile.progress')}
-                                  </span>
-                                  <span className="font-medium">
-                                    $
-                                    {(
-                                      program.current_amount || 0
-                                    ).toLocaleString()}{' '}
-                                    / ${program.target_amount.toLocaleString()}
-                                  </span>
-                                </div>
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                  <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{
-                                      width: `${Math.min(
-                                        ((program.current_amount || 0) /
-                                          program.target_amount) *
-                                          100,
-                                        100
-                                      )}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                          <Badge
+                            variant={khairatSettings?.enabled ? 'default' : 'secondary'}
+                          >
+                            {khairatSettings?.enabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
                         </div>
-                      ))}
+
+                        {khairatSettings?.enabled && (
+                          <div className="space-y-2 mt-3">
+                            {khairatSettings.fixed_price && (
+                              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <DollarSign className="h-4 w-4" />
+                                <span>Fixed Price: RM {khairatSettings.fixed_price.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {khairatSettings.target_amount && (
+                              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <Target className="h-4 w-4" />
+                                <span>Target: RM {khairatSettings.target_amount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {khairatSettings.description && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                {khairatSettings.description}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       <div className="pt-4 border-t">
                         <Button variant="outline" className="w-full" asChild>
                           <a
-                            href="/contributions"
+                            href="/khairat"
                             className="flex items-center gap-2"
                           >
-                            <TrendingUp className="h-4 w-4" />
-                            {t('mosqueProfile.manageAllPrograms')}
+                            <Settings className="h-4 w-4" />
+                            Manage Khairat Settings
                           </a>
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Target className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
-                        {t('mosqueProfile.noProgramsYet')}
-                      </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                        {t('mosqueProfile.createContributionPrograms')}
-                      </p>
-                      <Button variant="outline" asChild>
-                        <a
-                          href="/contributions"
-                          className="flex items-center gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          {t('mosqueProfile.createFirstProgram')}
-                        </a>
-                      </Button>
-                    </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
-          </div>
+                  </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  {t('mosqueProfile.profileStatus')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                  {/* Sidebar */}
+                  <div className="space-y-6">
+             {/* Status Card */}
+             <Card>
+               <CardHeader className="pb-3">
+                 <CardTitle className="text-slate-900 dark:text-slate-100">
+                   {t('mosqueProfile.profileStatus')}
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label>{t('mosqueProfile.profileVisibility')}</Label>
@@ -795,7 +680,6 @@ function MosqueProfileContent() {
                     onCheckedChange={(checked) =>
                       updateProfile('is_private', !checked)
                     }
-                    disabled={!isEditing}
                   />
                 </div>
                 <div className="pt-4 border-t">
@@ -806,70 +690,55 @@ function MosqueProfileContent() {
                         : t('mosqueProfile.public')}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mb-3">
                     {t('mosqueProfile.lastUpdated')}:{' '}
                     {profile.updated_at
                       ? new Date(profile.updated_at).toLocaleDateString()
                       : t('mosqueProfile.never')}
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('mosqueProfile.quickStats')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">
-                    {t('mosqueProfile.capacity')}
-                  </span>
-                  <span className="font-medium">
-                    {profile.capacity} {t('mosqueProfile.people')}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">
-                    {t('mosqueProfile.established')}
-                  </span>
-                  <span className="font-medium">
-                    {profile.established_year}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">
-                    {t('mosqueProfile.services')}
-                  </span>
-                  <span className="font-medium">
-                    {profile.services?.length || 0} {t('mosqueProfile.offered')}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Services */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('mosqueProfile.servicesOffered')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {profile.services?.map((service, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {service}
-                    </Badge>
-                  )) || (
-                    <p className="text-sm text-slate-500">
-                      {t('mosqueProfile.noServicesListed')}
-                    </p>
+                  {mosqueId && (
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a
+                        href={`/mosques/${mosqueId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {t('mosqueProfile.viewPublicProfile')}
+                      </a>
+                    </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+               </CardContent>
+             </Card>
+
+                  </div>
+                </div>
+          </TabsContent>
+
+          <TabsContent value="services" forceMount className="space-y-6 p-6">
+            {mosqueId && (
+              <ServiceManagement 
+                mosqueId={mosqueId}
+                currentServices={(profile.settings?.enabled_services as string[]) || []}
+                onServicesUpdate={(services) => {
+                  setProfile(prev => ({
+                    ...prev,
+                    settings: {
+                      ...(prev.settings || {}),
+                      enabled_services: services
+                    }
+                  }));
+                }}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="organization" forceMount className="space-y-6 p-6">
+            {mosqueId && <OrganizationPeopleManagement mosqueId={mosqueId} />}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

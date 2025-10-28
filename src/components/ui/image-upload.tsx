@@ -16,6 +16,7 @@ interface ImageUploadProps {
   onImageRemove?: () => void;
   onImageChange?: (url: string | null) => Promise<void>; // Optional callback for immediate database updates
   aspectRatio?: 'square' | 'banner'; // square for logo, banner for banner image
+  filePrefix?: string; // Custom prefix for filename (e.g., 'person', 'logo', 'banner')
   maxSizeInMB?: number;
 }
 
@@ -27,6 +28,7 @@ export function ImageUpload({
   onImageRemove,
   onImageChange,
   aspectRatio = 'square',
+  filePrefix,
   maxSizeInMB = 5,
 }: ImageUploadProps) {
   const { user } = useAuth();
@@ -65,9 +67,31 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
+      // If there's an existing image, delete it first
+      if (currentImageUrl) {
+        try {
+          const url = new URL(currentImageUrl);
+          const pathParts = url.pathname.split('/');
+          
+          // Find the index of 'mosque-images' and get everything after it
+          const mosqueImagesIndex = pathParts.findIndex(part => part === 'mosque-images');
+          if (mosqueImagesIndex !== -1 && mosqueImagesIndex < pathParts.length - 1) {
+            const filePath = pathParts.slice(mosqueImagesIndex + 1).join('/');
+            
+            // Delete the old image from storage
+            await supabase.storage.from('mosque-images').remove([filePath]);
+            console.log('Old image deleted from storage');
+          }
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+          // Continue with upload even if old image deletion fails
+        }
+      }
+
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${aspectRatio}-${Date.now()}.${fileExt}`;
+      const prefix = filePrefix || aspectRatio;
+      const fileName = `${user.id}/${prefix}-${Date.now()}.${fileExt}`;
 
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
@@ -137,11 +161,15 @@ export function ImageUpload({
         // Extract the file path from the URL
         const url = new URL(currentImageUrl);
         const pathParts = url.pathname.split('/');
-        const fileName = pathParts[pathParts.length - 1];
-        const filePath = `${user?.id}/${fileName}`;
+        
+        // Find the index of 'mosque-images' and get everything after it
+        const mosqueImagesIndex = pathParts.findIndex(part => part === 'mosque-images');
+        if (mosqueImagesIndex !== -1 && mosqueImagesIndex < pathParts.length - 1) {
+          const filePath = pathParts.slice(mosqueImagesIndex + 1).join('/');
 
-        // Delete from Supabase storage
-        await supabase.storage.from('mosque-images').remove([filePath]);
+          // Delete from Supabase storage
+          await supabase.storage.from('mosque-images').remove([filePath]);
+        }
         
         onImageRemove?.();
         

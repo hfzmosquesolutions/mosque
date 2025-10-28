@@ -24,7 +24,6 @@ export type NotificationCategory =
   | 'event' 
   | 'announcement' 
   | 'system' 
-  | 'following' 
   | 'membership' 
   | 'payment';
 
@@ -35,7 +34,13 @@ export type NotificationCategory =
 export interface Mosque {
   id: string;
   name: string;
-  address?: string;
+  address?: string; // Legacy field for backward compatibility
+  address_line1?: string; // Primary address line
+  address_line2?: string; // Secondary address line
+  city?: string; // City name
+  state?: string; // State or federal territory
+  postcode?: string; // Postal code
+  country?: string; // Country (defaults to Malaysia)
   phone?: string;
   email?: string;
   website?: string;
@@ -43,7 +48,6 @@ export interface Mosque {
   logo_url?: string | null; // URL to the mosque logo image
   banner_url?: string | null; // URL to the mosque banner image
   user_id: string; // References auth.users(id) - mosque owner/creator
-  prayer_times?: Record<string, unknown>; // JSON object for prayer times configuration
   settings?: Record<string, unknown>; // JSON object for mosque-specific settings
   is_private: boolean; // Whether the mosque profile is private
   created_at: string;
@@ -53,6 +57,7 @@ export interface Mosque {
 export interface UserProfile {
   id: string; // References auth.users(id)
   full_name: string;
+  username?: string; // Public username for profile URL
   phone?: string;
   address?: string;
   ic_passport_number?: string; // Identity Card or Passport number
@@ -74,21 +79,6 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export interface MosqueFollower {
-  id: string;
-  user_id: string;
-  mosque_id: string;
-  followed_at: string;
-  created_at: string;
-}
-
-export interface UserFollower {
-  id: string;
-  follower_id: string; // The user who is following
-  following_id: string; // The user being followed
-  followed_at: string;
-  created_at: string;
-}
 
 export interface UserDependent {
   id: string;
@@ -106,13 +96,6 @@ export interface UserDependent {
   updated_at: string;
 }
 
-export interface MosqueUserFollower {
-  id: string;
-  mosque_id: string; // The mosque that is following
-  user_id: string; // The user being followed by the mosque
-  followed_at: string;
-  created_at: string;
-}
 
 // =============================================
 // EVENTS MODULE
@@ -183,29 +166,13 @@ export interface Donation {
 }
 
 // =============================================
-// CONTRIBUTION (WELFARE) MODULE
+// KHAIRAT (WELFARE) MODULE - Simplified Structure
 // =============================================
 
-export interface ContributionProgram {
+// Khairat is now mosque-specific, no more programs
+export interface KhairatContribution {
   id: string;
   mosque_id: string;
-  name: string;
-  description?: string;
-  target_amount?: number;
-  current_amount: number;
-  fixed_price?: number;
-  start_date?: string;
-  end_date?: string;
-  is_active: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  program_type: ProgramType;
-}
-
-export interface Contribution {
-  id: string;
-  program_id: string;
   contributor_id?: string;
   contributor_name?: string;
   amount: number;
@@ -215,11 +182,68 @@ export interface Contribution {
   notes?: string;
   contributed_at: string;
   payment_data?: PaymentData;
+  created_at?: string;
+  updated_at?: string;
+  bill_id?: string | null;
 }
 
-// Legacy alias for backward compatibility
-export type KhairatProgram = ContributionProgram;
-export type KhairatContribution = Contribution;
+// Minimal legacy KhairatProgram interface (for backward compatibility)
+export interface KhairatProgram {
+  id: string;
+  name: string;
+  description?: string;
+  target_amount?: number;
+  current_amount?: number;
+  mosque_id?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Mosque khairat settings (stored in mosques.settings jsonb)
+export interface MosqueKhairatSettings {
+  enabled: boolean;
+  fixed_price?: number;
+  description?: string;
+  payment_methods?: string[];
+  target_amount?: number;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface KhairatMember {
+  id: string;
+  user_id: string;
+  mosque_id: string;
+  ic_passport_number?: string;
+  application_reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn' | 'active' | 'inactive' | 'suspended';
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  joined_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    full_name: string;
+    phone?: string;
+  };
+  mosque?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Legacy interfaces for backward compatibility (deprecated)
+export interface KhairatApplication extends Omit<KhairatMember, 'joined_date' | 'notes'> {
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn';
+}
+
+export interface KhairatMembership extends Omit<KhairatMember, 'ic_passport_number' | 'application_reason' | 'admin_notes' | 'reviewed_by' | 'reviewed_at'> {
+  status: 'active' | 'inactive' | 'suspended';
+}
 
 
 
@@ -328,14 +352,18 @@ export interface DonationWithDetails extends Donation {
 }
 
 // Contribution program with contributions
-export interface ContributionProgramWithContributions extends ContributionProgram {
-  contributions?: Contribution[];
+export interface KhairatProgramWithContributions extends KhairatProgram {
+  contributions?: KhairatContribution[];
   contribution_count?: number;
   progress_percentage?: number;
 }
 
 // Legacy alias for backward compatibility
-export type KhairatProgramWithContributions = ContributionProgramWithContributions;
+export interface KhairatProgramWithContributions extends KhairatProgram {
+  contributions?: KhairatContribution[];
+  contribution_count?: number;
+  progress_percentage?: number;
+}
 
 // Resource with category info
 export interface ResourceWithCategory extends Resource {
@@ -370,6 +398,17 @@ export interface PaginatedResponse<T> {
 // FORM DATA TYPES
 // =============================================
 
+// Import AddressData from address form component
+export interface AddressData {
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+  full_address?: string; // For backward compatibility
+}
+
 // Onboarding form data (matches existing interface)
 export interface OnboardingData {
   fullName: string;
@@ -380,6 +419,7 @@ export interface OnboardingData {
   mosqueAction?: 'join' | 'create';
   mosqueName?: string;
   mosqueAddress?: string;
+  mosqueAddressData?: AddressData;
   existingMosqueId?: string;
 }
 
@@ -411,8 +451,8 @@ export interface DonationFormData {
   notes?: string;
 }
 
-// Contribution form data
-export interface ContributionFormData {
+// Khairat contribution form data
+export interface KhairatContributionFormData {
   program_id: string;
   amount: number;
   contributor_name?: string;
@@ -422,7 +462,7 @@ export interface ContributionFormData {
 }
 
 // Legacy alias for backward compatibility
-export type KhairatContributionFormData = ContributionFormData;
+export type ContributionFormData = KhairatContributionFormData;
 
 
 
@@ -547,20 +587,17 @@ export type TableName =
   | 'event_registrations'
   | 'donation_categories'
   | 'donations'
-  | 'contribution_programs'
-  | 'contributions'
   | 'khairat_programs'
+  | 'khairat_contributions'
+  | 'khairat_applications'
+  | 'khairat_memberships'
   | 'khairat_claims'
-  | 'claim_documents'
-  | 'claim_history'
+  | 'khairat_claim_documents'
   | 'resource_categories'
   | 'resources'
   | 'audit_logs'
   | 'notifications'
   | 'system_settings'
-  | 'mosque_followers'
-  | 'user_followers'
-  | 'mosque_user_followers'
   | 'user_dependents';
 
 // Generic database record type
@@ -599,25 +636,34 @@ export interface Database {
         Update: UpdateDonation;
       };
 
+      khairat_programs: {
+        Row: KhairatProgram;
+        Insert: Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at' | 'current_amount'>;
+        Update: Partial<Omit<KhairatProgram, 'id' | 'created_at' | 'updated_at'>>;
+      };
+
+      khairat_contributions: {
+        Row: KhairatContribution;
+        Insert: Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at' | 'bill_id'> & { bill_id?: string | null };
+        Update: Partial<Omit<KhairatContribution, 'id' | 'created_at' | 'updated_at'>>;
+      };
+
+      khairat_applications: {
+        Row: KhairatApplication;
+        Insert: Omit<KhairatApplication, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>;
+        Update: Partial<Omit<KhairatApplication, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>>;
+      };
+
+      khairat_memberships: {
+        Row: KhairatMembership;
+        Insert: Omit<KhairatMembership, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>;
+        Update: Partial<Omit<KhairatMembership, 'id' | 'created_at' | 'updated_at' | 'user' | 'mosque' | 'program'>>;
+      };
+
       resources: {
         Row: Resource;
         Insert: CreateResource;
         Update: UpdateResource;
-      };
-      mosque_followers: {
-        Row: MosqueFollower;
-        Insert: Omit<MosqueFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
-      };
-      user_followers: {
-        Row: UserFollower;
-        Insert: Omit<UserFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
-      };
-      mosque_user_followers: {
-        Row: MosqueUserFollower;
-        Insert: Omit<MosqueUserFollower, 'id' | 'created_at'>;
-        Update: never; // Following relationships are insert/delete only
       };
       user_dependents: {
         Row: UserDependent;
@@ -629,15 +675,10 @@ export interface Database {
         Insert: CreateKhairatClaim;
         Update: UpdateKhairatClaim;
       };
-      claim_documents: {
+      khairat_claim_documents: {
         Row: ClaimDocument;
         Insert: Omit<ClaimDocument, 'id' | 'created_at'>;
         Update: never; // Documents are insert/delete only
-      };
-      claim_history: {
-        Row: ClaimHistory;
-        Insert: Omit<ClaimHistory, 'id' | 'created_at'>;
-        Update: never; // History is insert only
       };
     };
     Views: Record<string, never>;
@@ -730,20 +771,14 @@ export interface KhairatClaim {
   id: string;
   claimant_id: string;
   mosque_id: string;
-  program_id?: string;
   title: string;
   description: string;
   requested_amount: number;
   approved_amount?: number;
   status: ClaimStatus;
   priority: ClaimPriority;
-  reason_category?: string;
-  supporting_documents?: any;
   admin_notes?: string;
   rejection_reason?: string;
-  disbursement_method?: string;
-  disbursement_reference?: string;
-  disbursed_at?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   approved_by?: string;
@@ -763,24 +798,13 @@ export interface ClaimDocument {
   created_at: string;
 }
 
-export interface ClaimHistory {
-  id: string;
-  claim_id: string;
-  action: string;
-  old_status?: ClaimStatus;
-  new_status?: ClaimStatus;
-  performed_by: string;
-  notes?: string;
-  created_at: string;
-}
 
 // Extended interfaces with relations
 export interface KhairatClaimWithDetails extends KhairatClaim {
   claimant?: UserProfile;
   mosque?: Mosque;
-  program?: ContributionProgram;
+  program?: KhairatProgram;
   documents?: ClaimDocument[];
-  history?: ClaimHistory[];
   reviewer?: UserProfile;
   approver?: UserProfile;
 }
@@ -804,10 +828,48 @@ export interface ClaimFilters extends SearchFilters {
   mosque_id?: string;
   status?: ClaimStatus;
   priority?: ClaimPriority;
-  program_id?: string;
   claimant_id?: string;
   amount_min?: number;
   amount_max?: number;
   submitted_from?: string;
   submitted_to?: string;
+}
+
+// =============================================
+// KARIAH MEMBER INTERFACES
+// =============================================
+
+export interface KariahMember {
+  id: string;
+  user_id: string;
+  mosque_id: string;
+  ic_passport_number?: string;
+  application_reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn' | 'active' | 'inactive' | 'suspended';
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  joined_date?: string;
+  membership_number?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    full_name: string;
+    phone?: string;
+  };
+  mosque?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Legacy interfaces for backward compatibility (deprecated)
+export interface KariahApplication extends Omit<KariahMember, 'joined_date' | 'notes' | 'membership_number'> {
+  status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn';
+}
+
+export interface KariahMembership extends Omit<KariahMember, 'ic_passport_number' | 'application_reason' | 'admin_notes' | 'reviewed_by' | 'reviewed_at'> {
+  status: 'active' | 'inactive' | 'suspended';
 }

@@ -1,5 +1,5 @@
-// Kariah Applications API Functions
-// Handles kariah application operations with client-side authentication
+// Kariah Registration API Functions
+// Handles kariah member registration operations with client-side authentication
 
 import { supabase } from '../supabase';
 
@@ -33,7 +33,7 @@ export interface KariahApplicationFilters {
 }
 
 /**
- * Get kariah applications with filtering and pagination
+ * Get kariah registrations with filtering and pagination
  */
 export async function getKariahApplications(filters: KariahApplicationFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
@@ -114,7 +114,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
   const { data: applications, error, count } = await query;
 
   if (error) {
-    throw new Error(`Failed to fetch kariah applications: ${error.message}`);
+    throw new Error(`Failed to fetch kariah registrations: ${error.message}`);
   }
 
   return {
@@ -129,7 +129,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
 }
 
 /**
- * Submit a kariah application
+ * Submit a kariah registration
  */
 export async function submitKariahApplication(applicationData: {
   mosque_id: string;
@@ -157,7 +157,7 @@ export async function submitKariahApplication(applicationData: {
   }
 
   // Check if user already has a pending or approved application for this mosque
-  // Note: rejected applications are allowed to be overwritten by reapplication
+  // Note: rejected and withdrawn applications are allowed to be overwritten by reapplication
   const { data: existingApp } = await supabase
     .from('kariah_applications')
     .select('id, status')
@@ -170,6 +170,40 @@ export async function submitKariahApplication(applicationData: {
     throw new Error(`You already have a ${existingApp.status} application for this mosque. Please delete your previous application if you want to reapply.`);
   }
 
+  // Check if user has a withdrawn or rejected application - if so, update it to pending instead of creating new
+  const { data: existingWithdrawnOrRejectedApp } = await supabase
+    .from('kariah_applications')
+    .select('id, status')
+    .eq('user_id', user.user.id)
+    .eq('mosque_id', mosque_id)
+    .in('status', ['withdrawn', 'rejected'])
+    .single();
+
+  if (existingWithdrawnOrRejectedApp) {
+    // Update the withdrawn/rejected application to pending instead of creating new
+    const { error: updateError } = await supabase
+      .from('kariah_applications')
+      .update({
+        status: 'pending',
+        ic_passport_number: ic_passport_number,
+        application_reason: notes,
+        admin_notes: null, // Clear any admin notes from previous rejection
+        reviewed_by: null, // Clear reviewer info
+        reviewed_at: null, // Clear review date
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existingWithdrawnOrRejectedApp.id);
+
+    if (updateError) {
+      throw new Error(`Failed to reactivate application: ${updateError.message}`);
+    }
+
+    return {
+      message: 'Application reactivated successfully',
+      applicationId: existingWithdrawnOrRejectedApp.id
+    };
+  }
+
   // Check if user is already a kariah member
   const { data: membership } = await supabase
     .from('kariah_memberships')
@@ -180,7 +214,7 @@ export async function submitKariahApplication(applicationData: {
     .single();
 
   if (membership) {
-    throw new Error('You are already a kariah member of this mosque');
+    throw new Error('You are already registered as a kariah member of this mosque');
   }
 
   // Create the application
@@ -201,17 +235,17 @@ export async function submitKariahApplication(applicationData: {
     .single();
 
   if (error) {
-    throw new Error(`Failed to submit application: ${error.message}`);
+    throw new Error(`Failed to submit registration: ${error.message}`);
   }
 
   return {
-    message: 'Application submitted successfully',
+    message: 'Registration submitted successfully',
     application
   };
 }
 
 /**
- * Review a kariah application (admin only)
+ * Review a kariah registration (admin only)
  */
 export async function reviewKariahApplication(reviewData: {
   application_id: string;
@@ -308,7 +342,7 @@ export async function reviewKariahApplication(reviewData: {
 }
 
 /**
- * Get kariah application by ID
+ * Get kariah registration by ID
  */
 export async function getKariahApplicationById(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
@@ -358,7 +392,7 @@ export async function getKariahApplicationById(applicationId: string) {
 }
 
 /**
- * Delete a kariah application
+ * Delete a kariah registration
  */
 export async function deleteKariahApplication(applicationId: string) {
   const { data: user } = await supabase.auth.getUser();
@@ -425,5 +459,78 @@ export async function deleteKariahApplication(applicationId: string) {
 
   return {
     message: 'Application deleted successfully'
+  };
+}
+
+/**
+ * Withdraw a kariah registration (change status to withdrawn)
+ */
+export async function withdrawKariahApplication(applicationId: string) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  if (!applicationId) {
+    throw new Error('Application ID is required');
+  }
+
+  // Get the application first to check ownership and status
+  const { data: application, error: fetchError } = await supabase
+    .from('kariah_applications')
+    .select('user_id, mosque_id, status')
+    .eq('id', applicationId)
+    .single();
+
+  if (fetchError || !application) {
+    throw new Error('Application not found');
+  }
+
+  // Check if user can withdraw this application
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.user.id)
+    .single();
+
+  const { data: mosqueAdmin } = await supabase
+    .from('mosques')
+    .select('user_id')
+    .eq('id', application.mosque_id)
+    .single();
+
+  const isOwner = application.user_id === user.user.id;
+  const isAdmin = userProfile?.role === 'admin';
+  const isMosqueAdmin = mosqueAdmin?.user_id === user.user.id;
+
+  if (!isOwner && !isAdmin && !isMosqueAdmin) {
+    throw new Error('Forbidden: Cannot withdraw this application');
+  }
+
+  // Only allow withdrawal of pending applications
+  if (application.status !== 'pending') {
+    throw new Error('Only pending applications can be withdrawn');
+  }
+
+  // Additional check: users can only withdraw their own applications
+  if (!isOwner) {
+    throw new Error('Only the applicant can withdraw their own application');
+  }
+
+  const { error } = await supabase
+    .from('kariah_applications')
+    .update({ 
+      status: 'withdrawn',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', applicationId);
+
+  if (error) {
+    throw new Error(`Failed to withdraw application: ${error.message}`);
+  }
+
+  return {
+    message: 'Application withdrawn successfully'
   };
 }

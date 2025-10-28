@@ -1,30 +1,42 @@
 import createMiddleware from 'next-intl/middleware';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { locales } from './i18n';
 
-export default createMiddleware({
-  // A list of all locales that are supported
+const intlMiddleware = createMiddleware({
   locales,
-
-  // Used when no locale matches
-  defaultLocale: 'en',
-
-  // Always use locale prefix
+  defaultLocale: 'ms',
   localePrefix: 'always'
 });
 
+export default function middleware(request: NextRequest) {
+  const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true';
+  const pathname = request.nextUrl.pathname;
+
+  // Allow static assets, API routes and special paths to bypass maintenance
+  const isAssetRequest =
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_vercel') ||
+    /\.[^/]+$/.test(pathname);
+
+  // Localized maintenance path e.g. /ms/maintenance or /en/maintenance
+  const isMaintenancePath = /^\/(ms|en)\/maintenance\/?$/.test(pathname);
+
+  if (isMaintenanceMode && !isAssetRequest && !isMaintenancePath) {
+    const localeMatch = pathname.match(/^\/(ms|en)(\/|$)/);
+    const locale = localeMatch ? localeMatch[1] : 'ms';
+    const url = new URL(`/${locale}/maintenance`, request.url);
+    return NextResponse.redirect(url);
+  }
+
+  return intlMiddleware(request);
+}
+
 export const config = {
-  // Match only internationalized pathnames
   matcher: [
-    // Enable a redirect to a matching locale at the root
     '/',
-
-    // Set a cookie to remember the previous locale for
-    // all requests that have a locale prefix
     '/(ms|en)/:path*',
-
-    // Enable redirects that add missing locales
-    // (e.g. `/pathnames` -> `/en/pathnames`)
-    // Exclude API routes, _next, _vercel, and files with extensions
     '/((?!api|_next|_vercel|.*\\..*).*)',
   ]
 };

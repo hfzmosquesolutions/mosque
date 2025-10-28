@@ -40,14 +40,13 @@ export default function Header() {
   const internalPages = [
     '/dashboard',
     '/khairat',
-    '/kariah',
     '/claims',
     '/mosque-profile',
+    '/billing',
     '/settings',
-    '/events',
-    '/contributions',
     '/profile',
     '/dependents',
+    '/my-mosques',
   ];
 
   // Remove locale prefix from pathname for checking internal pages
@@ -85,14 +84,6 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-6">
             <NavigationMenu>
               <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    href="/mosques"
-                    className={navigationMenuTriggerStyle()}
-                  >
-                    Browse Mosques
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
                 {user && (
                   <>
                     <NavigationMenuItem>
@@ -103,18 +94,16 @@ export default function Header() {
                         Dashboard
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                    {/* {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                      <NavigationMenuItem>
-                        <NavigationMenuLink
-                          href="/events"
-                          className={navigationMenuTriggerStyle()}
-                        >
-                          Events
-                        </NavigationMenuLink>
-                      </NavigationMenuItem>
-                    )} */}
                   </>
                 )}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href="/mosques"
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    Browse Mosques
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
                 {/* Language Dropdown */}
                 <DropdownMenu>
@@ -236,19 +225,6 @@ export default function Header() {
                       Dashboard
                     </Button>
                   </Link>
-                  {RUNTIME_FEATURES.EVENTS_VISIBLE && (
-                    <Link
-                      href="/events"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                      >
-                        Events
-                      </Button>
-                    </Link>
-                  )}
                 </>
               )}
             </nav>

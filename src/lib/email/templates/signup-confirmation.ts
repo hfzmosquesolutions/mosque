@@ -169,7 +169,7 @@ export function generateSignupConfirmationTemplate({
           <li>Browse and register for mosque events</li>
           <li>Make contributions to various programs</li>
           <li>Connect with your local mosque community</li>
-          <li>Stay updated with announcements and activities</li>
+          <li>Stay updated with activities</li>
         </ul>
       </div>
       

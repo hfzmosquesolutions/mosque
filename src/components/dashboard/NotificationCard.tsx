@@ -56,8 +56,6 @@ function getCategoryIcon(category?: NotificationCategory) {
       return Megaphone;
     case 'system':
       return Settings;
-    case 'following':
-      return Users;
     case 'membership':
       return Users;
     case 'payment':

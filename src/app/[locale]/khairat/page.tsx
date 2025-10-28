@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -24,20 +25,27 @@ import {
   TrendingUp,
   Users,
   Edit,
+  Trophy,
+  AlertCircle,
+  CheckCircle,
+  Settings,
 } from 'lucide-react';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
-import { ContributionForm } from '@/components/contributions/ContributionForm';
-import { ContributionsTabContent } from '@/components/contributions/ContributionsTabContent';
-import { UserPaymentsTable } from '@/components/contributions/UserPaymentsTable';
+import { KhairatContributionForm } from '@/components/khairat/KhairatContributionForm';
+import { KhairatTabContent } from '@/components/khairat/KhairatTabContent';
+import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 
-import { ProgramManagement } from '@/components/contributions/ProgramManagement';
+import { MosqueKhairatContributions } from '@/components/khairat/MosqueKhairatContributions';
 import {
-  getUserContributions,
-  getContributionPrograms,
+  getUserKhairatContributions,
   getMosque,
   getMosqueKhairatContributions,
+  getUserClaims,
+  getMosqueClaims,
 } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -47,59 +55,109 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { EditProgramForm } from '@/components/contributions/EditProgramForm';
 import type {
-  Contribution,
-  ContributionProgram,
+  KhairatContribution,
   Mosque,
+  KhairatClaimWithDetails,
 } from '@/types/database';
+import { ClaimsManagement } from '@/components/admin/ClaimsManagement';
+import { KhairatDataDashboard } from '@/components/admin/KhairatDataDashboard';
+import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { createClaim } from '@/lib/api';
+import Link from 'next/link';
+import type { ClaimStatus, ClaimPriority, CreateKhairatClaim } from '@/types/database';
+import { checkMosquePaymentGateway, type PaymentGatewayStatus } from '@/lib/payments/payment-gateway-check';
 
 function KhairatContent() {
   const t = useTranslations('khairat');
   const { user } = useAuth();
-  const { hasAdminAccess } = useAdminAccess();
+  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
-  const [userContributions, setUserContributions] = useState<
-    (Contribution & { program: ContributionProgram & { mosque: Mosque } })[]
-  >([]);
-  const [allContributions, setAllContributions] = useState<
-    (Contribution & { program: any; contributor?: any })[]
-  >([]);
-  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [userContributions, setUserContributions] = useState<KhairatContribution[]>([]);
+  const [allContributions, setAllContributions] = useState<KhairatContribution[]>([]);
   const [mosque, setMosque] = useState<Mosque | null>(null);
+  const [userClaims, setUserClaims] = useState<KhairatClaimWithDetails[]>([]);
+  const [adminClaims, setAdminClaims] = useState<KhairatClaimWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
-  const [isProgramManagementOpen, setIsProgramManagementOpen] = useState(false);
-  const [selectedProgram, setSelectedProgram] =
-    useState<ContributionProgram | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [programToEdit, setProgramToEdit] =
-    useState<ContributionProgram | null>(null);
+  const [showCreateClaimDialog, setShowCreateClaimDialog] = useState(false);
+  const [submittingClaim, setSubmittingClaim] = useState(false);
+  const [claimForm, setClaimForm] = useState<{
+    requested_amount: number;
+    title: string;
+    description: string;
+    priority: ClaimPriority;
+  }>({ requested_amount: 0, title: '', description: '', priority: 'medium' });
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [paymentGatewayStatus, setPaymentGatewayStatus] = useState<PaymentGatewayStatus | null>(null);
+  const [checkingPaymentGateway, setCheckingPaymentGateway] = useState(false);
+
+  // Redirect normal users away from admin-only khairat page (wait for role + onboarding to resolve)
+  useEffect(() => {
+    if (!onboardingLoading && isCompleted && !adminLoading && !hasAdminAccess) {
+      router.replace('/dashboard');
+    }
+  }, [hasAdminAccess, adminLoading, onboardingLoading, isCompleted, router]);
+
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['overview', 'applications', 'payments', 'claims'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const getStatusConfig = (tAny: any): Record<ClaimStatus, { label: string }> => ({
+    pending: { label: 'pending' },
+    under_review: { label: 'under_review' },
+    approved: { label: 'approved' },
+    rejected: { label: 'rejected' },
+    paid: { label: 'paid' },
+    cancelled: { label: 'cancelled' },
+  });
+
+  const checkPaymentGateway = async (mosqueId: string) => {
+    setCheckingPaymentGateway(true);
+    try {
+      const status = await checkMosquePaymentGateway(mosqueId);
+      setPaymentGatewayStatus(status);
+    } catch (error) {
+      console.error('Error checking payment gateway:', error);
+      setPaymentGatewayStatus({
+        hasActiveProvider: false,
+        providers: [],
+        needsSetup: true,
+      });
+    } finally {
+      setCheckingPaymentGateway(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const contributionsResult = await getUserContributions(user.id);
-      setUserContributions(
-        (contributionsResult.data || []).filter(
-          (c) => c.program?.program_type === 'khairat'
-        )
-      );
+      const contributionsResult = await getUserKhairatContributions(user.id);
+      setUserContributions(contributionsResult.data || []);
 
       if (mosqueId) {
-        const programsResult = await getContributionPrograms(
-          mosqueId,
-          'khairat'
-        );
-        if (programsResult.success && programsResult.data) {
-          setPrograms(programsResult.data);
-        }
-
         const mosqueResult = await getMosque(mosqueId);
         if (mosqueResult.success && mosqueResult.data) {
           setMosque(mosqueResult.data);
+        }
+
+        // Check payment gateway status for admin users
+        if (hasAdminAccess) {
+          await checkPaymentGateway(mosqueId);
         }
 
         // Fetch all contributions for admin users
@@ -107,7 +165,7 @@ function KhairatContent() {
           try {
             const allContributionsResult = await getMosqueKhairatContributions(
               mosqueId,
-              50,
+              1000,
               0
             );
             setAllContributions(allContributionsResult.data || []);
@@ -115,9 +173,27 @@ function KhairatContent() {
             console.error('Error fetching all contributions:', error);
             setAllContributions([]);
           }
+
+          // Fetch latest claims for admin overview
+          try {
+            const claimsResult = await getMosqueClaims(mosqueId, undefined, 5, 0);
+            setAdminClaims(claimsResult.data || []);
+          } catch (e) {
+            console.error('Error fetching mosque claims:', e);
+            setAdminClaims([]);
+          }
+        }
+        // Regular user claims
+        if (!hasAdminAccess) {
+          try {
+            const userClaimsResult = await getUserClaims(user.id, 50, 0);
+            setUserClaims(userClaimsResult.data || []);
+          } catch (e) {
+            console.error('Error fetching user claims:', e);
+            setUserClaims([]);
+          }
         }
       } else {
-        setPrograms([]);
         setMosque(null);
         setAllContributions([]);
       }
@@ -132,7 +208,12 @@ function KhairatContent() {
     if (user) fetchData();
   }, [user, fetchData, isCompleted, onboardingLoading]);
 
-  if (onboardingLoading || !isCompleted) {
+  if (onboardingLoading || !isCompleted || adminLoading) {
+    return null;
+  }
+
+  // Do not render anything for non-admin users
+  if (!hasAdminAccess) {
     return null;
   }
 
@@ -154,7 +235,7 @@ function KhairatContent() {
     (sum, contribution) => sum + contribution.amount,
     0
   );
-  const activePrograms = programs.filter((p) => p.is_active).length;
+  // Khairat is now mosque-specific, no need for program counts
   const recentContributions = hasAdminAccess
     ? allContributions.slice(0, 5)
     : userContributions.slice(0, 5);
@@ -162,404 +243,497 @@ function KhairatContent() {
     contributionsToCalculate.length > 0
       ? totalContributed / contributionsToCalculate.length
       : 0;
-  const programsSupported = hasAdminAccess 
-    ? new Set(allContributions.map((c) => c.program_id)).size
-    : new Set(userContributions.map((c) => c.program_id)).size;
+  // Khairat is now mosque-specific, no need for program counting
+
+  // Admin metrics: total received (completed) and latest payment
+  const adminCompletedContributions = hasAdminAccess
+    ? allContributions.filter((c) => c.status === 'completed')
+    : [];
+  const adminTotalReceived = hasAdminAccess
+    ? adminCompletedContributions.reduce((sum, c) => sum + c.amount, 0)
+    : 0;
+  const adminLatestPayment = hasAdminAccess
+    ? (adminCompletedContributions[0] || allContributions[0])
+    : undefined;
+  const adminLatestPayments = hasAdminAccess
+    ? adminCompletedContributions.slice(0, 5)
+    : [];
+  const adminLatestClaims = hasAdminAccess
+    ? adminClaims.slice(0, 5)
+    : [];
+
+  // Khairat is now mosque-specific, no need for program calculations
+
+  const calculateProgress = (current: number, target?: number) => {
+    if (!target || target === 0) return 0;
+    return Math.min((current / target) * 100, 100);
+  };
+
 
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-2xl" />
-        <div className="relative p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-lg">
-                {hasAdminAccess
-                  ? t('manageKhairatPrograms')
-                  : t('contributeToKhairat')}
-              </p>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Activity className="h-4 w-4" />
-                  <span>
-                    {userContributions.length} {t('paymentsMade')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Target className="h-4 w-4" />
-                  <span>
-                    {activePrograms} {t('activePrograms')}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Button
-              onClick={() => setIsContributionModalOpen(true)}
-              size="lg"
-              className="bg-emerald-600 hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              {t('makePayment')}
-            </Button>
-          </div>
-        </div>
+      {/* Header with Title */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {hasAdminAccess ? t('khairatManagement') : t('khairat')}
+        </h1>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
-          <TabsTrigger value="payments">{t('payments')}</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+          <TabsTrigger 
+            value="overview" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            {t('overview')}
+          </TabsTrigger>
+          {hasAdminAccess && (
+            <TabsTrigger 
+              value="applications" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              Applications
+            </TabsTrigger>
+          )}
+          <TabsTrigger 
+            value="payments" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            {t('payments')}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="claims" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+          >
+            Claims
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-8">
-          {/* Enhanced Header */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {t('khairatOverview')}
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  {t('paymentSummaryDescription')}
-                </p>
-              </div>
+        <TabsContent value="overview" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('overview')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'View khairat statistics and recent activities'
+                  : t('paymentSummaryDescription')
+                }
+              </p>
             </div>
           </div>
 
-          {/* Enhanced Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('totalContributed')}
-                </CardTitle>
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                  RM {totalContributed.toLocaleString()}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {hasAdminAccess 
-                    ? t('acrossPayments', { count: allContributions.length }) + ' (All Users)'
-                    : t('acrossPayments', { count: userContributions.length })}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('recentActivity')}
-                </CardTitle>
-                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                  <ArrowUpRight className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                  {Math.min(recentContributions.length, 3)}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('recentPayments')}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('averagePayment')}
-                </CardTitle>
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  RM{' '}
-                  {averageContribution.toLocaleString(undefined, {
-                    maximumFractionDigits: 0,
-                  })}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('perPayment')}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('programsSupported')}
-                </CardTitle>
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {programsSupported}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('differentPrograms')}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-0 shadow-md">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                      {t('khairatPrograms')}
-                    </CardTitle>
-                    <CardDescription className="text-sm">
-                      {t('supportWelfareInitiatives')}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {programs.filter((p) => p.is_active).length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {programs.filter((p) => p.is_active).length}{' '}
-                        {t('active')}
-                      </Badge>
-                    )}
-                    {hasAdminAccess && (
-                      <Button
-                        onClick={() => setIsProgramManagementOpen(true)}
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <Plus className="mr-1 h-3 w-3" />
-                        Add Program
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {programs.filter((p) => p.is_active).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Target className="h-8 w-8 text-muted-foreground mb-3" />
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-                      {t('noActiveKhairatPrograms')}
-                    </h3>
-                    <p className="text-muted-foreground text-center text-xs">
-                      {t('checkBackLaterPrograms')}
-                    </p>
+          {/* System Status & Alerts */}
+          <div className="space-y-4">
+            {/* Payment Gateway Status Alert */}
+            {hasAdminAccess && paymentGatewayStatus && (
+              <div>
+                {paymentGatewayStatus.needsSetup ? (
+                  <div className="bg-amber-50 border border-amber-200 dark:bg-amber-950 dark:border-amber-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-amber-800 dark:text-amber-200">
+                          Payment Gateway Not Configured
+                        </h3>
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                          To accept online payments for khairat contributions, you need to set up a payment gateway. 
+                          <Link href="/settings?tab=payment-settings" className="ml-1 underline hover:no-underline">
+                            Set it up now →
+                          </Link>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {programs
-                      .filter((p) => p.is_active)
-                      .slice(0, 3)
-                      .map((program) => {
-                        const progressPercentage = program.target_amount
-                          ? Math.min(
-                              (program.current_amount / program.target_amount) *
-                                100,
-                              100
-                            )
-                          : 0;
-                        return (
-                          <div
-                            key={program.id}
-                            className="group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all duration-200 p-3 rounded-lg border border-gray-100 dark:border-gray-800"
-                            onClick={() => {
-                              setProgramToEdit(program);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1">
-                                  <h3 className="font-semibold text-sm group-hover:text-emerald-600 transition-colors truncate">
-                                    {program.name}
-                                  </h3>
-                                  <ArrowUpRight className="h-3 w-3 text-muted-foreground group-hover:text-emerald-600 transition-colors ml-2 flex-shrink-0" />
-                                </div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm font-bold text-emerald-600">
-                                    RM {program.current_amount.toLocaleString()}
-                                  </span>
-                                  {program.target_amount ? (
-                                    <span className="text-xs text-muted-foreground">
-                                      of RM{' '}
-                                      {program.target_amount.toLocaleString()}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-blue-600 font-medium">
-                                      {t('ongoing')}
-                                    </span>
-                                  )}
-                                </div>
-                                {program.target_amount ? (
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                      <div
-                                        className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500"
-                                        style={{
-                                          width: `${progressPercentage}%`,
-                                        }}
-                                      ></div>
-                                    </div>
-                                    <span className="text-xs font-medium text-emerald-600 flex-shrink-0">
-                                      {Math.round(progressPercentage)}%
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-muted-foreground">
-                                    {t('noTargetAmountSet')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  <div className="bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-green-800 dark:text-green-200">
+                          Payment Gateway Ready
+                        </h3>
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                          Online payments are enabled with {paymentGatewayStatus.providers.join(', ')}. 
+                          Members can contribute to khairat securely online.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </div>
 
-            <Card className="border-0 shadow-md">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                      {t('recentPayments')}
-                    </CardTitle>
-                    <CardDescription className="text-sm">
-                      {hasAdminAccess
-                        ? t('latestKhairatPayments')
-                        : t('yourLatestKhairatActivity')}
-                    </CardDescription>
+          {/* Key Metrics */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <StatsCard
+              title={hasAdminAccess ? 'Total Received' : t('totalContributed')}
+              value={`RM ${(hasAdminAccess ? adminTotalReceived : totalContributed).toLocaleString()}`}
+              subtitle={hasAdminAccess
+                ? `Across ${adminCompletedContributions.length} payments`
+                : t('acrossPayments', { count: userContributions.length })}
+              icon={DollarSign}
+              {...StatsCardColors.emerald}
+            />
+
+            <StatsCard
+              title={t('recentActivity')}
+              value={hasAdminAccess ? Math.min(adminLatestPayments.length, 3) : Math.min(recentContributions.length, 3)}
+              subtitle={t('recentPayments')}
+              icon={ArrowUpRight}
+              {...StatsCardColors.orange}
+            />
+
+            <StatsCard
+              title={t('averagePayment')}
+              value={`RM ${(
+                hasAdminAccess
+                  ? (adminCompletedContributions.length > 0
+                      ? adminTotalReceived / adminCompletedContributions.length
+                      : 0)
+                  : averageContribution
+              ).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              subtitle={t('perPayment')}
+              icon={TrendingUp}
+              {...StatsCardColors.blue}
+            />
+
+            <StatsCard
+              title="Average Contribution"
+              value=""
+              icon={Trophy}
+              {...StatsCardColors.yellow}
+            >
+              {averageContribution > 0 ? (
+                <div>
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    RM {averageContribution.toLocaleString()}
                   </div>
-                  {recentContributions.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      {Math.min(recentContributions.length, 3)} {t('recent')}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {hasAdminAccess ? 'Per contribution' : 'Your average'}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No contributions yet</p>
+              )}
+            </StatsCard>
+          </div>
+
+          {/* System Overview & Recent Activity */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Khairat System Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  System Status
+                </CardTitle>
+                <CardDescription>
+                  Current status of your mosque's khairat system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">System Status</span>
+                    <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      Active
                     </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Total Contributors</span>
+                    <span className="text-sm font-semibold">
+                      {hasAdminAccess 
+                        ? new Set(allContributions.map(c => c.contributor_id || c.contributor_name)).size
+                        : userContributions.length > 0 ? '1' : '0'
+                      }
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">This Month</span>
+                    <span className="text-sm font-semibold">
+                      {hasAdminAccess 
+                        ? allContributions.filter(c => {
+                            const contributionDate = new Date(c.contributed_at);
+                            const now = new Date();
+                            return contributionDate.getMonth() === now.getMonth() && 
+                                   contributionDate.getFullYear() === now.getFullYear();
+                          }).length
+                        : userContributions.filter(c => {
+                            const contributionDate = new Date(c.contributed_at);
+                            const now = new Date();
+                            return contributionDate.getMonth() === now.getMonth() && 
+                                   contributionDate.getFullYear() === now.getFullYear();
+                          }).length
+                      } contributions
+                    </span>
+                  </div>
+                  
+                  {hasAdminAccess && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Khairat settings can be configured in Settings → Service Management
+                      </p>
+                    </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>
+                  Latest khairat activities and updates
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {recentContributions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Heart className="h-8 w-8 text-muted-foreground mb-3" />
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-1">
-                      {t('noPaymentsYet')}
-                    </h3>
-                    <p className="text-muted-foreground text-center text-xs mb-3">
-                      {t('startMakingPayments')}
-                    </p>
-                    <Button
-                      onClick={() => setIsContributionModalOpen(true)}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      {t('makePayment')}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentContributions.slice(0, 3).map((contribution) => (
-                      <div
-                        key={contribution.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all"
-                      >
-                        <div className="min-w-0">
+                <div className="space-y-3">
+                  {(hasAdminAccess ? adminLatestPayments : recentContributions).length > 0 ? (
+                    (hasAdminAccess ? adminLatestPayments : recentContributions).slice(0, 3).map((p: any) => (
+                      <div key={p.id} className="flex items-center justify-between py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800">
+                        <div className="min-w-0 mr-4">
                           <p className="text-sm font-medium truncate">
-                            {contribution.program?.name || 'Program'}
+                            {hasAdminAccess ? (p.contributor_name || 'Anonymous') : 'Your contribution'}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {hasAdminAccess
-                              ? (contribution as any).contributor?.full_name ||
-                                contribution.contributor_name ||
-                                'Anonymous'
-                              : contribution.contributor_name || 'Anonymous'}
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(p.contributed_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(
-                              contribution.contributed_at
-                            ).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                            RM {contribution.amount.toLocaleString()}
-                          </span>
+                        <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                          RM {p.amount.toLocaleString()}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">No recent activity</p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
+
         </TabsContent>
 
-        <TabsContent value="payments" className="space-y-6">
+        {hasAdminAccess && (
+          <TabsContent value="applications" forceMount className="space-y-6 p-6">
+            <KhairatDataDashboard 
+              mosqueId={mosqueId || ''} 
+              mosqueName={mosque?.name || 'Mosque'} 
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="payments" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                {t('payments')}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'View and manage all khairat payment transactions'
+                  : 'View your khairat payment history'
+                }
+              </p>
+            </div>
+          </div>
           {hasAdminAccess ? (
-            <ContributionsTabContent programs={programs} />
+            mosqueId ? (
+              <MosqueKhairatContributions mosqueId={mosqueId} showHeader={false} />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No mosque associated</p>
+              </div>
+            )
           ) : (
-            <UserPaymentsTable contributions={userContributions} />
+            <UserPaymentsTable contributions={userContributions as any} />
           )}
         </TabsContent>
+
+        <TabsContent value="claims" forceMount className="space-y-6 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                Claims
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {hasAdminAccess 
+                  ? 'Review and manage khairat claim requests'
+                  : 'View and submit your khairat claims'
+                }
+              </p>
+            </div>
+          </div>
+          {hasAdminAccess ? (
+            mosqueId ? (
+              <ClaimsManagement mosqueId={mosqueId} showHeader={false} />
+            ) : null
+          ) : (
+            <div className="space-y-4">
+              {userClaims.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No claims yet.</div>
+              ) : (
+                userClaims.map((claim) => (
+                  <div key={claim.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{claim.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{claim.program?.name || 'Khairat'} • {new Date(claim.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">{claim.status}</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">RM {claim.requested_amount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div>
+                <Button onClick={() => setShowCreateClaimDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> New Claim
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Create Claim Dialog (user) */}
+          {!hasAdminAccess && (
+            <Dialog open={showCreateClaimDialog} onOpenChange={setShowCreateClaimDialog}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>{t('claims.submitClaim', { fallback: 'Submit New Claim' })}</DialogTitle>
+                  <DialogDescription>
+                    {t('claims.claimDetails', { fallback: 'Fill in details for your khairat claim' })}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">{t('claims.title', { fallback: 'Title' })} *</Label>
+                    <Input
+                      id="title"
+                      type="text"
+                      value={claimForm.title}
+                      onChange={(e) => setClaimForm((prev) => ({ ...prev, title: e.target.value }))}
+                      placeholder={t('claims.titlePlaceholder', { fallback: 'Enter claim title...' })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">{t('claims.claimAmount', { fallback: 'Claim Amount (RM)' })} *</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={claimForm.requested_amount || ''}
+                      onChange={(e) =>
+                        setClaimForm((prev) => ({
+                          ...prev,
+                          requested_amount: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">{t('common.priority', { fallback: 'Priority' })}</Label>
+                    <Select
+                      value={claimForm.priority}
+                      onValueChange={(value: ClaimPriority) =>
+                        setClaimForm((prev) => ({ ...prev, priority: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">{t('claims.priority.low', { fallback: 'Low' })}</SelectItem>
+                        <SelectItem value="medium">{t('claims.priority.medium', { fallback: 'Medium' })}</SelectItem>
+                        <SelectItem value="high">{t('claims.priority.high', { fallback: 'High' })}</SelectItem>
+                        <SelectItem value="urgent">{t('claims.priority.urgent', { fallback: 'Urgent' })}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">{t('claims.description', { fallback: 'Description' })} *</Label>
+                    <Textarea
+                      id="description"
+                      value={claimForm.description}
+                      onChange={(e) => setClaimForm((prev) => ({ ...prev, description: e.target.value }))}
+                      placeholder={t('claims.descriptionPlaceholder', { fallback: 'Describe your claim...' })}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCreateClaimDialog(false)}
+                      disabled={submittingClaim}
+                    >
+                      {t('claims.cancel', { fallback: 'Cancel' })}
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!user || !mosqueId || !claimForm.title || !claimForm.description || !claimForm.requested_amount) {
+                          toast.error(t('claims.messages.fillRequired', { fallback: 'Please fill all required fields' }));
+                          return;
+                        }
+                        try {
+                          setSubmittingClaim(true);
+                          const payload: CreateKhairatClaim = {
+                            claimant_id: user.id,
+                            mosque_id: mosqueId,
+                            title: claimForm.title,
+                            description: claimForm.description,
+                            requested_amount: claimForm.requested_amount,
+                            priority: claimForm.priority,
+                          };
+                          await createClaim(payload);
+                          toast.success(t('claims.messages.submitSuccess', { fallback: 'Claim submitted successfully' }));
+                          setShowCreateClaimDialog(false);
+                          setClaimForm({ requested_amount: 0, title: '', description: '', priority: 'medium' });
+                          fetchData();
+                        } catch (e) {
+                          console.error(e);
+                          toast.error(t('claims.messages.submitError', { fallback: 'Failed to submit claim' }));
+                        } finally {
+                          setSubmittingClaim(false);
+                        }
+                      }}
+                      disabled={submittingClaim}
+                    >
+                      {submittingClaim ? t('claims.submitting', { fallback: 'Submitting...' }) : t('claims.submitClaimButton', { fallback: 'Submit Claim' })}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </TabsContent>
+
       </Tabs>
 
-      {hasAdminAccess && (
-        <ProgramManagement
-          filterType="khairat"
-          onProgramsUpdate={fetchData}
-          isCreateDialogOpen={isProgramManagementOpen}
-          onCreateDialogOpenChange={setIsProgramManagementOpen}
+
+      {!hasAdminAccess && (
+        <KhairatContributionForm
+          isOpen={isContributionModalOpen}
+          onClose={() => setIsContributionModalOpen(false)}
+          onSuccess={fetchData}
         />
       )}
 
-      <ContributionForm
-        isOpen={isContributionModalOpen}
-        onClose={() => setIsContributionModalOpen(false)}
-        onSuccess={fetchData}
-      />
-
-      {/* Edit Program Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="h-5 w-5" />
-              Edit Program
-            </DialogTitle>
-            <DialogDescription>
-              Update the details of this khairat program
-            </DialogDescription>
-          </DialogHeader>
-
-          {programToEdit && (
-            <EditProgramForm
-              program={programToEdit}
-              onSuccess={() => {
-                setIsEditDialogOpen(false);
-                setProgramToEdit(null);
-                fetchData();
-              }}
-              onCancel={() => {
-                setIsEditDialogOpen(false);
-                setProgramToEdit(null);
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
