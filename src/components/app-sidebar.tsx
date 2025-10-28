@@ -60,11 +60,6 @@ const getNavigation = (hasAdminAccess: boolean, t: any) => {
   // For admin users, only show the core features
   if (hasAdminAccess) {
     baseNavigation.push({
-      name: t('kariah'),
-      href: '/kariah',
-      icon: Users,
-    });
-    baseNavigation.push({
       name: t('khairat'),
       href: '/khairat',
       icon: HandHeart,

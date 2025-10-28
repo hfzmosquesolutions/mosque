@@ -9,11 +9,11 @@ import {
   ArrowRight,
   Heart,
   Users,
-  UserPlus,
   Calendar,
-  MapPin,
   Award,
   DollarSign,
+  User,
+  MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,61 +31,56 @@ interface MemberGettingStartedProps {
   totalContributed: number;
   dependentsCount: number;
   contributionsCount: number;
-  hasAppliedForKariah: boolean;
+  hasCompletedOnboarding: boolean;
+  hasRegisteredForKhairat: boolean;
+  hasFoundMosque: boolean;
 }
 
 export function MemberGettingStarted({ 
   totalContributed, 
   dependentsCount, 
   contributionsCount,
-  hasAppliedForKariah = false 
+  hasCompletedOnboarding = false,
+  hasRegisteredForKhairat = false,
+  hasFoundMosque = false
 }: MemberGettingStartedProps) {
   
   const steps: Step[] = [
     {
-      id: 'first-contribution',
-      title: 'Make Your First Contribution',
-      description: 'Start supporting your community with a khairat contribution',
-      icon: Heart,
-      href: '/khairat',
-      completed: contributionsCount > 0,
+      id: 'complete-onboarding',
+      title: 'Complete Your Profile Setup',
+      description: 'Finish setting up your profile and account information',
+      icon: User,
+      href: '/onboarding',
+      completed: hasCompletedOnboarding,
       priority: 'high',
     },
     {
-      id: 'add-dependents',
-      title: 'Add Family Members',
-      description: 'Register your dependents to extend khairat coverage',
-      icon: UserPlus,
-      href: '/dependents',
-      completed: dependentsCount > 0,
-      priority: 'high',
-    },
-    {
-      id: 'apply-kariah',
-      title: 'Register as Kariah Member',
-      description: 'Join as a kariah member for exclusive benefits',
-      icon: Award,
-      href: '/my-mosques',
-      completed: hasAppliedForKariah,
-      priority: 'medium',
-    },
-    {
-      id: 'explore-events',
-      title: 'Join Mosque Events',
-      description: 'Participate in community activities and events',
-      icon: Calendar,
-      href: '/events',
-      completed: false, // This would need to be tracked
-      priority: 'medium',
-    },
-    {
-      id: 'find-mosques',
-      title: 'Discover Local Mosques',
-      description: 'Connect with other mosques in your area',
+      id: 'find-local-mosque',
+      title: 'Find Your Local Mosque',
+      description: 'Discover and connect with mosques in your area',
       icon: MapPin,
       href: '/mosques',
-      completed: false, // This would need to be tracked
-      priority: 'low',
+      completed: hasFoundMosque,
+      priority: 'high',
+    },
+    {
+      id: 'register-khairat',
+      title: 'Register for Khairat',
+      description: 'Find your mosque and join a khairat program to support your community',
+      icon: Heart,
+      href: '/mosques',
+      completed: hasRegisteredForKhairat,
+      priority: 'high',
+    },
+    {
+      id: 'make-first-contribution',
+      title: 'Make Your First Contribution',
+      description: 'Start supporting your community with a khairat contribution',
+      icon: DollarSign,
+      href: '/my-mosques',
+      completed: contributionsCount > 0,
+      priority: 'high',
     },
   ];
 
@@ -188,12 +183,14 @@ export function MemberGettingStarted({
                     }`}>
                       {step.title}
                     </h4>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs px-2 py-0 ${getPriorityColor(step.priority)}`}
-                    >
-                      {getPriorityText(step.priority)}
-                    </Badge>
+                    {!step.completed && (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs px-2 py-0 ${getPriorityColor(step.priority)}`}
+                      >
+                        {getPriorityText(step.priority)}
+                      </Badge>
+                    )}
                   </div>
                   <p className={`text-xs ${
                     step.completed 
@@ -212,7 +209,12 @@ export function MemberGettingStarted({
                     </Badge>
                   ) : (
                     <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
-                      <Link href={step.href} className="flex items-center gap-1">
+                      <Link 
+                        href={step.href} 
+                        className="flex items-center gap-1"
+                        target={step.href === '/mosques' ? '_blank' : undefined}
+                        rel={step.href === '/mosques' ? 'noopener noreferrer' : undefined}
+                      >
                         Start
                         <ArrowRight className="h-3 w-3" />
                       </Link>

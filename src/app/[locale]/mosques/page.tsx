@@ -76,6 +76,10 @@ export default function MosquesPage() {
 
   useEffect(() => {
     fetchMosques();
+    // Track that user has visited mosques page
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasVisitedMosques', 'true');
+    }
   }, []);
 
   // Initialize search query from URL (?q=...)

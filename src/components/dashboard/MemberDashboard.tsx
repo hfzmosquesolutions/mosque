@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loading } from '@/components/ui/loading';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 import { getUserNotifications, markNotificationAsRead } from '@/lib/api/notifications';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { QuickActions } from './QuickActions';
 import { MemberStatsCards } from './MemberStatsCards';
 import { MemberRecentActivity } from './MemberRecentActivity';
@@ -68,8 +69,14 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [hasRegisteredForKhairat, setHasRegisteredForKhairat] = useState<boolean>(false);
+  const [hasFoundMosque, setHasFoundMosque] = useState<boolean>(false);
+  const [activeClaimsAmount, setActiveClaimsAmount] = useState<number>(0);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  
+  // Use the onboarding status hook for reliable tracking
+  const { isCompleted: hasCompletedOnboarding } = useOnboardingStatus();
 
   useEffect(() => {
     if (user) {
@@ -144,7 +151,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
 
       // Fetch dependents count
       const { data: dependentsData, error: dependentsError } = await supabase
-        .from('dependents')
+        .from('user_dependents')
         .select('id')
         .eq('user_id', user?.id);
 
@@ -152,6 +159,37 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
         setDependentsCount(dependentsData.length);
       }
 
+      // Check if user has registered for khairat (khairat membership)
+      const { data: khairatMemberships, error: khairatError } = await supabase
+        .from('khairat_members')
+        .select('id, status')
+        .eq('user_id', user?.id)
+        .in('status', ['pending', 'approved', 'active']);
+
+      if (!khairatError && khairatMemberships && khairatMemberships.length > 0) {
+        setHasRegisteredForKhairat(true);
+      }
+
+      // Fetch approved claims amount
+      const { data: claimsData, error: claimsError } = await supabase
+        .from('khairat_claims')
+        .select('approved_amount')
+        .eq('claimant_id', user?.id)
+        .eq('status', 'approved');
+
+      if (!claimsError && claimsData) {
+        const totalApprovedAmount = claimsData.reduce((sum, claim) => sum + (claim.approved_amount || 0), 0);
+        setActiveClaimsAmount(totalApprovedAmount);
+      }
+
+      // Check if user has found a mosque (through khairat registration)
+      // If user has registered for khairat, they have found a mosque
+      const hasFoundMosqueThroughRegistration = khairatMemberships && khairatMemberships.length > 0;
+      
+      // Also check if user has visited mosques page (localStorage tracking)
+      const hasVisitedMosques = localStorage.getItem('hasVisitedMosques') === 'true';
+      
+      setHasFoundMosque(hasFoundMosqueThroughRegistration || hasVisitedMosques);
 
     } catch (error) {
       console.error('Error fetching member data:', error);
@@ -200,29 +238,11 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <Loading 
+        message="Loading dashboard..." 
+        size="lg"
+        className="py-12"
+      />
     );
   }
 
@@ -334,8 +354,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
       <MemberStatsCards 
         totalContributed={totalContributed}
         dependentsCount={dependentsCount}
-        recentContributionsCount={recentContributions.length}
-        eventsAttended={0} // TODO: Implement events tracking
+        activeClaimsAmount={activeClaimsAmount}
       />
 
       {/* Getting Started and Quick Actions - Side by Side */}
@@ -344,7 +363,9 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
           totalContributed={totalContributed}
           dependentsCount={dependentsCount}
           contributionsCount={contributions.length}
-          hasAppliedForKariah={false} // TODO: Implement kariah application tracking
+          hasCompletedOnboarding={hasCompletedOnboarding}
+          hasRegisteredForKhairat={hasRegisteredForKhairat}
+          hasFoundMosque={hasFoundMosque}
         />
         <QuickActions />
       </div>

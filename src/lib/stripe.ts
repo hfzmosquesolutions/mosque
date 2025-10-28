@@ -31,7 +31,7 @@ export const STRIPE_CONFIG = {
     },
     standard: {
       name: 'Standard',
-      price: 4900, // RM 49.00 in cents
+      price: 7900, // RM 79.00 in cents
       stripe_price_id: process.env.STRIPE_STANDARD_PRICE_ID,
       features: [
         'Everything in Free',

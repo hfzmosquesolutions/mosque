@@ -1736,7 +1736,7 @@
     },
     "planPrice": {
       "free": "Free",
-      "standard": "RM 49/month",
+      "standard": "RM 79/month",
       "pro": "RM 399/month"
     },
     "unknown": "Unknown",
@@ -1824,6 +1824,8 @@
       "everythingInStandard": "Everything in Standard",
       "advancedAnalytics": "Advanced analytics",
       "prioritySupport": "Priority support",
+      "memberManagement": "Khairat Member Management",
+      "programManagement": "Khairat Program Management",
       "compareFeatures": "Compare features",
       "feature": "Feature",
       "mosqueProfile": "Mosque profile",
@@ -1840,9 +1842,18 @@
       "readyToSetup": "Ready to set up your mosque?",
       "createProfileDescription": "Create your profile and get set up in minutes.",
       "memberCount": "Members",
-      "upToMembers": "Up to {count} members",
-      "unlimitedMembers": "Unlimited members",
-      "memberCountDescription": "Number of mosque members supported"
+      "upToMembers": "Up to {count} khairat members",
+      "unlimitedMembers": "Unlimited khairat members",
+      "memberCountDescription": "Number of khairat members supported",
+      "mosqueSizeSuitableFor": "Suitable for",
+      "smallMosques": "Small mosques",
+      "mediumMosques": "Medium mosques", 
+      "largeMosques": "Large mosques",
+      "mosqueSizeDescriptions": {
+        "free": "The perfect starting place for your small mosque & surau",
+        "standard": "The ideal solution for your growing mosque community",
+        "pro": "The complete platform for your large mosque organization"
+      }
     },
     "khairatManagement": {
       "khairatManagement": "Khairat Management",

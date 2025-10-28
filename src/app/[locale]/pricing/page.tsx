@@ -15,7 +15,7 @@ export default function PricingPage() {
 
   const prices = useMemo(
     () => ({
-      monthly: { free: 0, standard: 49, pro: 399 },
+      monthly: { free: 0, standard: 79, pro: 399 },
       annual: { free: 0, standard: 39, pro: 319 }, // billed monthly equivalent (20% discount)
     }),
     []
@@ -71,21 +71,22 @@ export default function PricingPage() {
         {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Free */}
-          <Card className="border-emerald-100 dark:border-slate-700">
+          <Card className="border-emerald-100 dark:border-slate-700 flex flex-col">
             <CardHeader>
               <CardTitle>{t('free')}</CardTitle>
-              <CardDescription>{t('getStartedEssentials')}</CardDescription>
+              <CardDescription>{t('mosqueSizeDescriptions.free')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col flex-grow">
               <div className="flex items-baseline gap-2">
                 <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].free}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('upToMembers', { count: 50 })}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('publicMosqueProfile')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('communityDirectory')}</li>
               </ul>
-              <div className="mt-6">
+              <div className="mt-auto pt-6">
                 <Link href="/signup">
                   <Button className="w-full">{t('getStarted')}</Button>
                 </Link>
@@ -94,26 +95,27 @@ export default function PricingPage() {
           </Card>
 
           {/* Standard (Recommended) */}
-          <Card className="relative border-emerald-300 ring-2 ring-emerald-300/60 dark:border-emerald-700/60">
+          <Card className="relative border-emerald-300 ring-2 ring-emerald-300/60 dark:border-emerald-700/60 flex flex-col">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs rounded-full bg-emerald-600 text-white shadow">
               {t('recommended')}
             </div>
             <CardHeader>
               <CardTitle>{t('standard')}</CardTitle>
-              <CardDescription>{t('bestForGrowingCommunities')}</CardDescription>
+              <CardDescription>{t('mosqueSizeDescriptions.standard')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col flex-grow">
               <div className="flex items-baseline gap-2">
                 <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].standard}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('upToMembers', { count: 500 })}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('everythingInFree')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('kariahMemberManagement')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('khairatKematianManagement')}</li>
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('memberManagement')}</li>
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('programManagement')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('priorityEmailSupport')}</li>
               </ul>
-              <div className="mt-6">
+              <div className="mt-auto pt-6">
                 <Link href="/signup">
                   <Button className="w-full bg-emerald-600 hover:bg-emerald-700">{t('startStandard')}</Button>
                 </Link>
@@ -122,22 +124,23 @@ export default function PricingPage() {
           </Card>
 
           {/* Pro */}
-          <Card className="border-emerald-100 dark:border-slate-700">
+          <Card className="border-emerald-100 dark:border-slate-700 flex flex-col">
             <CardHeader>
               <CardTitle>{t('pro')}</CardTitle>
-              <CardDescription>{t('advancedFeaturesSupport')}</CardDescription>
+              <CardDescription>{t('mosqueSizeDescriptions.pro')}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col flex-grow">
               <div className="flex items-baseline gap-2">
                 <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].pro}</div>
                 <div className="text-slate-500 text-sm">{periodSuffix}</div>
               </div>
               <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('unlimitedMembers')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('everythingInStandard')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('advancedAnalytics')}</li>
                 <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('prioritySupport')}</li>
               </ul>
-              <div className="mt-6">
+              <div className="mt-auto pt-6">
                 <Link href="/signup">
                   <Button className="w-full" variant="outline">{t('startPro')}</Button>
                 </Link>
@@ -161,8 +164,8 @@ export default function PricingPage() {
           </div>
             {[
             { label: t('mosqueProfile'), f: true, s: true, p: true },
-            { label: t('kariahMemberManagement'), f: false, s: true, p: true },
-            { label: t('khairatKematianManagement'), f: false, s: true, p: true },
+            { label: t('memberManagement'), f: false, s: true, p: true },
+            { label: t('programManagement'), f: false, s: true, p: true },
             { label: t('memberCount'), f: t('upToMembers', { count: 50 }), s: t('upToMembers', { count: 500 }), p: t('unlimitedMembers') },
             { label: t('advancedAnalytics'), f: false, s: false, p: true },
             { label: t('prioritySupport'), f: false, s: true, p: true },

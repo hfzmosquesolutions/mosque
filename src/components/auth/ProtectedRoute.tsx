@@ -22,7 +22,12 @@ export function ProtectedRoute({
   useEffect(() => {
     if (!loading) {
       if (requireAuth && !user) {
-        router.push(redirectTo);
+        // Capture the current URL to redirect back after login
+        const currentUrl = window.location.pathname + window.location.search;
+        const loginUrl = redirectTo === '/login' 
+          ? `/login?returnUrl=${encodeURIComponent(currentUrl)}`
+          : redirectTo;
+        router.push(loginUrl);
       } else if (!requireAuth && user) {
         // Redirect authenticated users away from auth pages
         router.push('/dashboard');

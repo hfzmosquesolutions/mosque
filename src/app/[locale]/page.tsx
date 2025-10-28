@@ -224,15 +224,6 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
-              {/* Kariah */}
-              <Link href={`/${locale}/mosques?services=kariah_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                <span className="rounded-full p-1 bg-blue-50 text-blue-600 dark:bg-blue-900/30">
-                  <Users className="h-3.5 w-3.5" />
-                </span>
-                <span className="font-semibold">{t('joinKariah')}</span>
-                <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-              </Link>
-
               {/* Khairat */}
               <Link href={`/${locale}/mosques?services=khairat_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
                 <span className="rounded-full p-1 bg-purple-50 text-purple-600 dark:bg-purple-900/30">

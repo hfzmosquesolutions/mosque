@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Clock,
   CheckCircle,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -51,18 +52,6 @@ export function QuickActions() {
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       iconColor: 'text-red-600 dark:text-red-400',
       isNew: true,
-    },
-    {
-      id: 'manage-members',
-      title: 'Manage Kariah Members',
-      description: 'Review applications and manage memberships',
-      icon: UserCheck,
-      href: '/kariah',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/20',
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      badge: '3 pending',
-      badgeColor: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
     },
     {
       id: 'review-claims',
@@ -121,25 +110,34 @@ export function QuickActions() {
 
   const memberActions: QuickAction[] = [
     {
-      id: 'apply-kariah',
-      title: 'Register as Kariah Member',
-      description: 'Join as a kariah member of your mosque',
-      icon: UserCheck,
+      id: 'my-mosque',
+      title: 'My Mosque',
+      description: 'View and manage your mosque connections',
+      icon: Building2,
       href: '/my-mosques',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       iconColor: 'text-purple-600 dark:text-purple-400',
-      isNew: true,
     },
     {
-      id: 'contribute',
-      title: 'Make Contribution',
-      description: 'Support khairat programs in your community',
+      id: 'pay-khairat',
+      title: 'Pay Khairat',
+      description: 'Make khairat contributions to support your community',
       icon: Heart,
-      href: '/khairat',
+      href: '/my-mosques',
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       iconColor: 'text-red-600 dark:text-red-400',
+    },
+    {
+      id: 'claim-khairat',
+      title: 'Claim Khairat',
+      description: 'Submit and track your khairat claims',
+      icon: FileText,
+      href: '/my-mosques?tab=claims',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+      iconColor: 'text-orange-600 dark:text-orange-400',
     },
     {
       id: 'add-dependents',
@@ -152,20 +150,20 @@ export function QuickActions() {
       iconColor: 'text-blue-600 dark:text-blue-400',
     },
     {
-      id: 'my-contributions',
-      title: 'My Contributions',
-      description: 'View your khairat contribution history',
-      icon: DollarSign,
-      href: '/my-mosques',
+      id: 'my-profile',
+      title: 'My Profile',
+      description: 'Update your personal information and settings',
+      icon: UserCheck,
+      href: '/profile',
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       iconColor: 'text-green-600 dark:text-green-400',
     },
     {
-      id: 'find-mosque',
-      title: 'Find Mosques',
+      id: 'more-mosques',
+      title: 'More Mosques',
       description: 'Discover other mosques in your area',
-      icon: MapPin,
+      icon: Search,
       href: '/mosques',
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50 dark:bg-indigo-950/20',
@@ -194,7 +192,7 @@ export function QuickActions() {
           {actions.map((action) => {
             const IconComponent = action.icon;
             return (
-              <Link key={action.id} href={action.href}>
+              <Link key={action.id} href={action.href} target={action.id === 'more-mosques' ? '_blank' : undefined}>
                 <div
                   className={`group relative p-4 rounded-xl border transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${action.bgColor} border-transparent hover:border-current/30 text-center cursor-pointer`}
                 >

@@ -1777,7 +1777,7 @@
     },
     "planPrice": {
       "free": "Percuma",
-      "standard": "RM 49/bulan",
+      "standard": "RM 79/bulan",
       "pro": "RM 399/bulan"
     },
     "unknown": "Tidak diketahui",
@@ -1866,6 +1866,8 @@
       "everythingInStandard": "Semua dalam Standard",
       "advancedAnalytics": "Analitik lanjutan",
       "prioritySupport": "Sokongan keutamaan",
+      "memberManagement": "Pengurusan Ahli Khairat",
+      "programManagement": "Pengurusan Program Khairat",
       "compareFeatures": "Bandingkan ciri-ciri",
       "feature": "Ciri",
       "mosqueProfile": "Profil masjid",
@@ -1882,9 +1884,18 @@
       "readyToSetup": "Bersedia untuk menyediakan masjid anda?",
       "createProfileDescription": "Cipta profil anda dan siap dalam beberapa minit.",
       "memberCount": "Ahli",
-      "upToMembers": "Sehingga {count} ahli",
-      "unlimitedMembers": "Ahli tanpa had",
-      "memberCountDescription": "Bilangan ahli masjid yang disokong"
+      "upToMembers": "Sehingga {count} ahli khairat",
+      "unlimitedMembers": "Ahli khairat tanpa had",
+      "memberCountDescription": "Bilangan ahli khairat yang disokong",
+      "mosqueSizeSuitableFor": "Sesuai untuk",
+      "smallMosques": "Masjid kecil",
+      "mediumMosques": "Masjid sederhana", 
+      "largeMosques": "Masjid besar",
+      "mosqueSizeDescriptions": {
+        "free": "Tempat permulaan yang sempurna untuk masjid kecil & surau anda",
+        "standard": "Penyelesaian ideal untuk komuniti masjid yang berkembang",
+        "pro": "Platform lengkap untuk organisasi masjid besar anda"
+      }
     },
     "khairatManagement": {
       "khairatManagement": "Pengurusan Khairat",

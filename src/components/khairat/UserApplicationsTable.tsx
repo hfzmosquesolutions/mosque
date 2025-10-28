@@ -48,16 +48,15 @@ import {
   deleteKhairatMember,
   withdrawKhairatMembership 
 } from '@/lib/api/khairat-members';
-import { getKariahMembers } from '@/lib/api/kariah-members';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import type { KhairatMember, KariahMember } from '@/types/database';
+import type { KhairatMember } from '@/types/database';
 
 interface UserApplicationsTableProps {
   showHeader?: boolean;
 }
 
-// Combined mosque membership type
+// Khairat mosque membership type
 interface MosqueMembership {
   id: string;
   mosque_id: string;
@@ -73,9 +72,7 @@ interface MosqueMembership {
     banner_url?: string;
     address?: string;
   };
-  type: 'kariah' | 'khairat' | 'combined';
-  kariah?: any;
-  khairat?: any;
+  type: 'khairat';
 }
 
 export function UserApplicationsTable({ showHeader = true }: UserApplicationsTableProps) {
@@ -95,70 +92,22 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
     
     setLoading(true);
     try {
-      // Fetch both kariah and khairat applications
-      const [kariahMembers, khairatMembers] = await Promise.all([
-        getKariahMembers({ user_id: user.id }),
-        getKhairatMembers({ user_id: user.id })
-      ]);
+      // Fetch khairat applications only
+      const khairatMembers = await getKhairatMembers({ user_id: user.id });
 
-      // Group applications by mosque to avoid duplicates
-      const mosqueGroups = new Map<string, {
-        mosque: any;
-        kariah?: any;
-        khairat?: any;
-        latestDate: string;
-      }>();
+      const items: MosqueMembership[] = khairatMembers.map((member: any) => ({
+        id: member.id,
+        mosque_id: member.mosque_id,
+        user_id: member.user_id,
+        status: member.status,
+        created_at: member.created_at,
+        updated_at: member.updated_at,
+        admin_notes: member.admin_notes,
+        mosque: member.mosque,
+        type: 'khairat' as const
+      })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      // Process kariah members
-      kariahMembers.forEach(member => {
-        const mosqueId = member.mosque_id;
-        if (!mosqueGroups.has(mosqueId)) {
-          mosqueGroups.set(mosqueId, {
-            mosque: member.mosque,
-            latestDate: member.created_at
-          });
-        }
-        const group = mosqueGroups.get(mosqueId)!;
-        group.kariah = member;
-        if (new Date(member.created_at) > new Date(group.latestDate)) {
-          group.latestDate = member.created_at;
-        }
-      });
-
-      // Process khairat members
-      khairatMembers.forEach(member => {
-        const mosqueId = member.mosque_id;
-        if (!mosqueGroups.has(mosqueId)) {
-          mosqueGroups.set(mosqueId, {
-            mosque: member.mosque,
-            latestDate: member.created_at
-          });
-        }
-        const group = mosqueGroups.get(mosqueId)!;
-        group.khairat = member;
-        if (new Date(member.created_at) > new Date(group.latestDate)) {
-          group.latestDate = member.created_at;
-        }
-      });
-
-      // Convert to array and sort by latest date
-      const combinedMembers: MosqueMembership[] = Array.from(mosqueGroups.values())
-        .map(group => ({
-          id: group.kariah?.id || group.khairat?.id,
-          mosque_id: group.mosque.id,
-          user_id: group.kariah?.user_id || group.khairat?.user_id,
-          status: group.kariah?.status || group.khairat?.status,
-          created_at: group.latestDate,
-          updated_at: group.kariah?.updated_at || group.khairat?.updated_at,
-          admin_notes: group.kariah?.admin_notes || group.khairat?.admin_notes,
-          mosque: group.mosque,
-          type: 'combined' as const,
-          kariah: group.kariah,
-          khairat: group.khairat
-        }))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
-      setMembers(combinedMembers);
+      setMembers(items);
     } catch (error) {
       console.error('Error fetching mosque memberships:', error);
       toast.error('Failed to load mosque memberships');
@@ -172,42 +121,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
   }, [user]);
 
   const getStatusBadge = (application: MosqueMembership) => {
-    if (application.type === 'combined') {
-      // Show both kariah and khairat statuses
-      const kariahStatus = application.kariah?.status;
-      const khairatStatus = application.khairat?.status;
-      
-      return (
-        <div className="space-y-2">
-          {kariahStatus && (
-            <div className="flex flex-col gap-1">
-              <Badge variant="outline" className="border-blue-200 text-blue-800 bg-blue-50">
-                <Users className="h-3 w-3 mr-1" />
-                Kariah: {getStatusText(kariahStatus)}
-              </Badge>
-              <span className="text-xs text-blue-600">
-                {getStatusDescription(kariahStatus, 'kariah')}
-              </span>
-            </div>
-          )}
-          {khairatStatus && (
-            <div className="flex flex-col gap-1">
-              <Badge variant="outline" className="border-emerald-200 text-emerald-800 bg-emerald-50">
-                <Heart className="h-3 w-3 mr-1" />
-                Khairat: {getStatusText(khairatStatus)}
-              </Badge>
-              <span className="text-xs text-emerald-600">
-                {getStatusDescription(khairatStatus, 'khairat')}
-              </span>
-            </div>
-          )}
-        </div>
-      );
-    }
-    
-    // Single type status
-    const isKariah = application.type === 'kariah';
-    return getSingleStatusBadge(application.status, isKariah);
+    return getSingleStatusBadge(application.status);
   };
 
   const getStatusText = (status: string) => {
@@ -223,17 +137,16 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
     }
   };
 
-  const getStatusDescription = (status: string, type: 'kariah' | 'khairat') => {
-    const isKariah = type === 'kariah';
+  const getStatusDescription = (status: string) => {
     switch (status) {
       case 'pending':
-        return isKariah ? 'Your kariah application is being processed' : 'Your khairat application is being processed';
+        return 'Your khairat application is being processed';
       case 'under_review':
         return 'Mosque admin is reviewing your application';
       case 'approved':
-        return isKariah ? 'You are now a kariah member' : 'You can now make khairat payments';
+        return 'You can now make khairat payments';
       case 'active':
-        return isKariah ? 'Active kariah member' : 'Active khairat member';
+        return 'Active khairat member';
       case 'rejected':
         return 'You can reapply later';
       case 'withdrawn':
@@ -245,7 +158,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
     }
   };
 
-  const getSingleStatusBadge = (status: string, isKariah: boolean) => {
+  const getSingleStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
         return (
@@ -255,7 +168,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
               Awaiting Review
             </Badge>
             <span className="text-xs text-yellow-600">
-              {isKariah ? 'Your kariah application is being processed' : 'Your khairat application is being processed'}
+              Your khairat application is being processed
             </span>
           </div>
         );
@@ -274,10 +187,10 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
           <div className="flex flex-col gap-1">
             <Badge variant="outline" className="border-green-200 text-green-800 bg-green-50">
               <CheckCircle className="h-3 w-3 mr-1" />
-              {isKariah ? 'Kariah Member' : 'Khairat Member'}
+              Khairat Member
             </Badge>
             <span className="text-xs text-green-600">
-              {isKariah ? 'You are now a kariah member' : 'You can now make khairat payments'}
+              You can now make khairat payments
             </span>
           </div>
         );
@@ -289,7 +202,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
               Active
             </Badge>
             <span className="text-xs text-green-600">
-              {isKariah ? 'Active kariah member' : 'Active khairat member'}
+              Active khairat member
             </span>
           </div>
         );
@@ -420,7 +333,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
               Join Your First Mosque
             </h3>
             <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
-              Connect with mosques in your community. Become a kariah member and participate in khairat programs to make meaningful contributions.
+              Connect with mosques in your community and participate in khairat programs to make meaningful contributions.
             </p>
         <Button 
           size="lg" 
@@ -471,11 +384,11 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                   <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                     {application.mosque?.id ? (
                       <button
-                        onClick={() => window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer')}
+                        onClick={() => application.mosque?.id && window.open(`/mosques/${application.mosque?.id}`, '_blank', 'noopener,noreferrer')}
                         className="text-slate-900 dark:text-slate-100 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
                         title="View mosque profile"
                       >
-                        {application.mosque.name}
+                        {application.mosque?.name}
                       </button>
                     ) : (
                       <span className="text-slate-500">Unknown Mosque</span>
@@ -484,7 +397,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                   {application.mosque?.address && (
                     <div className="flex items-center text-xs text-slate-600 dark:text-slate-400 mt-1">
                       <MapPin className="h-3 w-3 mr-1 flex-shrink-0 text-emerald-600" />
-                      <span className="truncate">{application.mosque.address}</span>
+                      <span className="truncate">{application.mosque?.address}</span>
                     </div>
                   )}
                 </div>
@@ -517,45 +430,34 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    if (application.mosque?.id) {
-                      if (application.type === 'combined') {
-                        // For combined applications, check if khairat is approved/active
-                        const khairatApproved = application.khairat?.status === 'approved' || application.khairat?.status === 'active';
-                        if (khairatApproved) {
-                          window.open(`/mosques/${application.mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
-                        } else {
-                          window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
-                        }
-                      } else if (application.type === 'khairat') {
-                        if (application.status === 'approved' || application.status === 'active') {
-                          window.open(`/mosques/${application.mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
-                        }
-                      } else {
-                        // For kariah members, open mosque profile
-                        window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
-                      }
+                    if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
+                      window.open(`/mosques/${application.mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
                     }
                   }}
                   disabled={
-                    application.type === 'combined' 
-                      ? !(application.khairat?.status === 'approved' || application.khairat?.status === 'active' || application.kariah?.status === 'approved' || application.kariah?.status === 'active')
-                      : application.status !== 'approved' && application.status !== 'active'
+                    application.status !== 'approved' && application.status !== 'active'
                   }
                   className={
-                    (application.type === 'combined' 
-                      ? (application.khairat?.status === 'approved' || application.khairat?.status === 'active' || application.kariah?.status === 'approved' || application.kariah?.status === 'active')
-                      : (application.status === 'approved' || application.status === 'active'))
+                    (application.status === 'approved' || application.status === 'active')
                       ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50 w-full"
                       : "border-gray-300 text-gray-400 cursor-not-allowed w-full"
                   }
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {application.type === 'combined' 
-                    ? (application.khairat?.status === 'approved' || application.khairat?.status === 'active' ? 'Make Payment' : 'View Mosque')
-                    : application.type === 'khairat' 
-                      ? (application.status === 'approved' || application.status === 'active' ? 'Make Payment' : 'Pay Khairat')
-                      : (application.status === 'approved' || application.status === 'active' ? 'View Mosque' : 'Kariah Member')
-                  }
+                  {(application.status === 'approved' || application.status === 'active') ? 'Make Payment' : 'Pay Khairat'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (application.mosque?.id) {
+                      window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  className="w-full mt-2 border-slate-300"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Visit Mosque
                 </Button>
             </div>
           </Card>

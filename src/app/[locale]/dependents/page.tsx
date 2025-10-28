@@ -51,7 +51,7 @@ import {
 import { UserDependent, CreateUserDependent } from '@/types/database';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
-import { toast } from 'sonner';
+import { Loading } from '@/components/ui/loading';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -231,9 +231,11 @@ function DependentsContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
+      <Loading 
+        message="Loading dependents..." 
+        size="lg"
+        className="py-12"
+      />
     );
   }
 

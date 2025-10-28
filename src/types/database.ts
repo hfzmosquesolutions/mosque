@@ -57,6 +57,7 @@ export interface Mosque {
 export interface UserProfile {
   id: string; // References auth.users(id)
   full_name: string;
+  username?: string; // Public username for profile URL
   phone?: string;
   address?: string;
   ic_passport_number?: string; // Identity Card or Passport number

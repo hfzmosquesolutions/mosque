@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HandHeart, MapPin, Building, Users, CreditCard, FileText, Plus, Heart } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
@@ -23,12 +23,12 @@ import { Loading } from '@/components/ui/loading';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { KhairatContribution, KhairatProgram, Mosque, CreateKhairatClaim } from '@/types/database';
 import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/api';
-import { getKariahMembers } from '@/lib/api/kariah-members';
 import { toast } from 'sonner';
 
 function MyMosquesContent() {
   const t = useTranslations('mosques');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
@@ -38,7 +38,10 @@ function MyMosquesContent() {
   >([]);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
   const [loadingMosques, setLoadingMosques] = useState(false);
-  const [activeTab, setActiveTab] = useState('my-mosques');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'claims' || tab === 'payments' ? tab : 'my-mosques';
+  });
   const [showCreateClaimDialog, setShowCreateClaimDialog] = useState(false);
   const [isClaimMosquesOpen, setIsClaimMosquesOpen] = useState(false);
   const [submittingClaim, setSubmittingClaim] = useState(false);
@@ -186,7 +189,7 @@ function MyMosquesContent() {
               My Mosques
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              View and manage your kariah and khairat memberships
+              View and manage your khairat memberships and claims
             </p>
             </div>
             <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>

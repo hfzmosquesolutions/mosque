@@ -13,26 +13,25 @@ import {
   Activity,
   Calendar,
   MapPin,
+  FileText,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface MemberStatsCardsProps {
   totalContributed: number;
   dependentsCount: number;
-  recentContributionsCount: number;
-  eventsAttended?: number;
+  activeClaimsAmount?: number;
 }
 
 export function MemberStatsCards({ 
   totalContributed, 
   dependentsCount, 
-  recentContributionsCount,
-  eventsAttended = 0
+  activeClaimsAmount = 0
 }: MemberStatsCardsProps) {
   const t = useTranslations('dashboard');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <StatsCard
         title="Total Contributed"
         value={`RM ${totalContributed.toLocaleString()}`}
@@ -42,21 +41,20 @@ export function MemberStatsCards({
       />
 
       <StatsCard
+        title="Approved Claims"
+        value={`RM ${activeClaimsAmount.toLocaleString()}`}
+        subtitle="Total amount from approved claims"
+        icon={FileText}
+        {...StatsCardColors.purple}
+      />
+
+      <StatsCard
         title="Family Members"
         value={dependentsCount}
         subtitle="Dependents registered"
         icon={Users}
         {...StatsCardColors.blue}
       />
-
-      <StatsCard
-        title="Events Attended"
-        value={eventsAttended}
-        subtitle="Mosque events joined"
-        icon={Calendar}
-        {...StatsCardColors.orange}
-      />
-
     </div>
   );
 }

@@ -36,7 +36,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck, Heart } from 'lucide-react';
 import { createClaim, uploadClaimDocument } from '@/lib/api';
-import { submitKariahApplication, getKariahMembers, deleteKariahMember, withdrawKariahMembership } from '@/lib/api/kariah-members';
 import { submitKhairatApplication, getKhairatMembers, deleteKhairatMember, withdrawKhairatMembership } from '@/lib/api/khairat-members';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
 import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
@@ -44,11 +43,9 @@ import type { UserProfile, ClaimDocument } from '@/types/database';
 import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
 import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
-import { KariahRegistrationInfo } from '@/components/mosque/KariahRegistrationInfo';
-import { KariahRegistrationDialog } from '@/components/mosque/KariahRegistrationDialog';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
 import { KhairatRegistrationDialog } from '@/components/mosque/KhairatRegistrationDialog';
-import { Mosque, KhairatProgram } from '@/types/database';
+import { Mosque } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -63,20 +60,13 @@ export default function MosqueProfilePage() {
   const t = useTranslations('mosqueProfile');
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
-  const [contributionPrograms, setContributionPrograms] = useState<
-    KhairatProgram[]
-  >([]);
+  const [contributionPrograms, setContributionPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isKhairatModalOpen, setIsKhairatModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [isKariahSuccessModalOpen, setIsKariahSuccessModalOpen] = useState(false);
   const [isKhairatSuccessModalOpen, setIsKhairatSuccessModalOpen] = useState(false);
-  const [isKariahApplicationModalOpen, setIsKariahApplicationModalOpen] = useState(false);
-  const [currentApplicationStatus, setCurrentApplicationStatus] = useState<string | null>(null);
-  const [adminNotes, setAdminNotes] = useState<string | null>(null);
-  const [currentApplicationId, setCurrentApplicationId] = useState<string | null>(null);
   const [isKhairatApplicationModalOpen, setIsKhairatApplicationModalOpen] = useState(false);
   const [currentKhairatApplicationStatus, setCurrentKhairatApplicationStatus] = useState<string | null>(null);
   const [khairatAdminNotes, setKhairatAdminNotes] = useState<string | null>(null);
@@ -92,7 +82,6 @@ export default function MosqueProfilePage() {
   const [currentMembershipId, setCurrentMembershipId] = useState<string | null>(null);
   const [selectedProgramId, setSelectedProgramId] = useState<string>('');
   const [isKhairatClaimDialogOpen, setIsKhairatClaimDialogOpen] = useState(false);
-  const [isApplyingKariah, setIsApplyingKariah] = useState(false);
   const [isApplyingKhairat, setIsApplyingKhairat] = useState(false);
   const [khairatClaimSubmitting, setKhairatClaimSubmitting] = useState(false);
   const [khairatClaimTitle, setKhairatClaimTitle] = useState('');
@@ -251,7 +240,8 @@ export default function MosqueProfilePage() {
 
   const handleContributeToProgram = (programId: string) => {
     if (!user?.id) {
-      router.push('/login');
+      const currentUrl = window.location.pathname + window.location.search;
+      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
       return;
     }
     setSelectedProgramId(programId);
@@ -260,7 +250,8 @@ export default function MosqueProfilePage() {
 
   const handleOpenKhairatClaim = () => {
     if (!user?.id) {
-      router.push('/login');
+      const currentUrl = window.location.pathname + window.location.search;
+      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
       return;
     }
     setIsKhairatClaimDialogOpen(true);
@@ -339,58 +330,7 @@ export default function MosqueProfilePage() {
     }
   };
 
-  const fetchCurrentApplicationStatus = async () => {
-    if (!user?.id || !mosque?.id) return;
-    
-    try {
-      const members = await getKariahMembers({ user_id: user.id, mosque_id: mosque.id });
-      
-      if (members.length > 0) {
-        const latestMember = members[0];
-        console.log('Latest kariah member record:', latestMember);
-        setCurrentApplicationStatus(latestMember.status);
-        setAdminNotes(latestMember.admin_notes || null);
-        setCurrentApplicationId(latestMember.id);
-        
-        // If it's an active membership, set the membership ID
-        if (latestMember.status === 'active') {
-          setCurrentMembershipId(latestMember.id);
-        } else {
-          setCurrentMembershipId(null);
-        }
-      } else {
-        setCurrentApplicationStatus(null);
-        setAdminNotes(null);
-        setCurrentApplicationId(null);
-        setCurrentMembershipId(null);
-      }
-    } catch (error) {
-      console.error('Error fetching application status:', error);
-      setCurrentApplicationStatus(null);
-      setAdminNotes(null);
-      setCurrentApplicationId(null);
-      setCurrentMembershipId(null);
-    }
-  };
 
-  const handleApplyKariah = async () => {
-    if (!user?.id) {
-      router.push('/login');
-      return;
-    }
-    if (!mosque) return;
-    if (!userProfile?.ic_passport_number) {
-      toast.error(t('completeProfileFirst'));
-      router.push('/profile');
-      return;
-    }
-    
-    // Fetch current application status before showing modal
-    await fetchCurrentApplicationStatus();
-    // Initialize editing profile with current user profile
-    setEditingProfile(userProfile);
-    setIsKariahApplicationModalOpen(true);
-  };
 
   const handleEditProfile = () => {
     setIsEditingProfile(true);
@@ -417,144 +357,6 @@ export default function MosqueProfilePage() {
   const handleCancelEditProfile = () => {
     setEditingProfile(userProfile);
     setIsEditingProfile(false);
-  };
-
-  const handleDeleteApplication = () => {
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!currentApplicationId) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteKariahMember(currentApplicationId);
-      toast.success(t('applicationDeletedSuccessfully'));
-      setIsDeleteConfirmOpen(false);
-      setIsKariahApplicationModalOpen(false);
-      // Reset application status
-      setCurrentApplicationStatus(null);
-      setAdminNotes(null);
-      setCurrentApplicationId(null);
-    } catch (error: any) {
-      console.error('Error deleting application:', error);
-      toast.error(error?.message || t('errorDeletingApplication'));
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleWithdrawApplication = () => {
-    setIsWithdrawConfirmOpen(true);
-  };
-
-  const handleConfirmWithdraw = async () => {
-    if (!currentApplicationId) return;
-    
-    setIsWithdrawing(true);
-    try {
-      // For applications, we need to update the status to withdrawn
-      // For memberships, we use the withdrawKariahMembership function
-      if (currentApplicationStatus === 'active') {
-        await withdrawKariahMembership(currentApplicationId);
-      } else {
-        // For applications, update status to withdrawn
-        const { updateKariahMember } = await import('@/lib/api/kariah-members');
-        await updateKariahMember(currentApplicationId, { status: 'withdrawn' });
-      }
-      toast.success(t('applicationWithdrawnSuccessfully'));
-      setIsWithdrawConfirmOpen(false);
-      setIsKariahApplicationModalOpen(false);
-      // Reset application status
-      setCurrentApplicationStatus(null);
-      setAdminNotes(null);
-      setCurrentApplicationId(null);
-      // Refresh the application status to ensure it's updated
-      await fetchCurrentApplicationStatus();
-    } catch (error: any) {
-      console.error('Error withdrawing application:', error);
-      toast.error(error?.message || t('errorWithdrawingApplication'));
-    } finally {
-      setIsWithdrawing(false);
-    }
-  };
-
-  const handleWithdrawMembership = async () => {
-    if (!user?.id || !mosque?.id) return;
-    try {
-      // Ensure we have the membership ID before opening the confirm dialog
-      if (!currentMembershipId) {
-        const { getKariahMemberships } = await import('@/lib/api/kariah-memberships');
-        const membershipResponse = await getKariahMemberships({
-          user_id: user.id,
-          mosque_id: mosque.id,
-          limit: 1,
-        });
-
-        const foundId = membershipResponse.memberships?.[0]?.id;
-        if (foundId) {
-          setCurrentMembershipId(foundId);
-        } else {
-          toast.error(t('errorWithdrawingMembership'));
-          return;
-        }
-      }
-
-      setIsWithdrawMembershipConfirmOpen(true);
-    } catch (err) {
-      console.error('Error preparing membership withdrawal:', err);
-      toast.error(t('errorWithdrawingMembership'));
-    }
-  };
-
-  const handleConfirmWithdrawMembership = async () => {
-    if (!currentMembershipId) return;
-    
-    setIsWithdrawingMembership(true);
-    try {
-      await withdrawKariahMembership(currentMembershipId);
-      toast.success(t('membershipWithdrawnSuccessfully'));
-      setIsWithdrawMembershipConfirmOpen(false);
-      setIsKariahApplicationModalOpen(false);
-      // Reset application status
-      setCurrentApplicationStatus(null);
-      setAdminNotes(null);
-      setCurrentApplicationId(null);
-      setCurrentMembershipId(null);
-      // Refresh the application status to ensure it's updated
-      await fetchCurrentApplicationStatus();
-    } catch (error: any) {
-      console.error('Error withdrawing membership:', error);
-      toast.error(error?.message || t('errorWithdrawingMembership'));
-    } finally {
-      setIsWithdrawingMembership(false);
-    }
-  };
-
-  const handleConfirmKariahApplication = async () => {
-    if (!user?.id || !mosque || !userProfile?.ic_passport_number) return;
-    
-    setIsApplyingKariah(true);
-    try {
-      const result = await submitKariahApplication({
-        mosque_id: String(mosque.id),
-        ic_passport_number: userProfile.ic_passport_number,
-        notes: '',
-      });
-      
-      // Check if it's a reactivation or new application
-      const isReactivation = result.message?.includes('reactivated');
-      toast.success(result.message || t('applicationSubmitted'));
-      setIsKariahApplicationModalOpen(false);
-      setIsKariahSuccessModalOpen(true);
-      
-      // Refresh application status after submission
-      await fetchCurrentApplicationStatus();
-    } catch (e: any) {
-      toast.error(e?.message || t('errorSubmittingApplication'));
-    } finally {
-      setIsApplyingKariah(false);
-    }
   };
 
   const handleKhairatSuccess = () => {
@@ -603,7 +405,8 @@ export default function MosqueProfilePage() {
 
   const handleApplyKhairat = async () => {
     if (!user?.id) {
-      router.push('/login');
+      const currentUrl = window.location.pathname + window.location.search;
+      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
       return;
     }
     if (!mosque) return;
@@ -925,14 +728,6 @@ export default function MosqueProfilePage() {
                 >
                   {t('overview')}
                 </TabsTrigger>
-                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
-                  <TabsTrigger 
-                    value="programs" 
-                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                  >
-                    {t('programs')}
-                  </TabsTrigger>
-                )}
                 {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
                   <TabsTrigger 
                     value="organization" 
@@ -946,271 +741,12 @@ export default function MosqueProfilePage() {
 
               <TabsContent value="overview" className="space-y-6 mt-6">
 
-                {/* Active Programs Section */}
-                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
-                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between text-xl">
-                        <div className="flex items-center">
-                          <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                          {t('activePrograms')}
-                        </div>
-                        {contributionPrograms.length > 3 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setActiveTab('programs')}
-                          >
-                            {t('viewAllPrograms')}
-                          </Button>
-                        )}
-                      </CardTitle>
-                      <CardDescription>{t('supportPrograms')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {contributionPrograms.length === 0 ? (
-                        <div className="text-center py-8">
-                          <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-slate-500 dark:text-slate-400">
-                            {t('noActivePrograms')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {contributionPrograms.slice(0, 3).map((program) => {
-                            const progressPercentage = program.target_amount
-                              ? Math.min(
-                                  ((program.current_amount || 0) /
-                                    program.target_amount) *
-                                    100,
-                                  100
-                                )
-                              : 0;
-
-                            return (
-                              <div
-                                key={program.id}
-                                className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="font-semibold text-slate-900 dark:text-white">
-                                        {program.name}
-                                      </h4>
-                                      <Badge
-                                        variant="secondary"
-                                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
-                                      >
-                                        Khairat
-                                      </Badge>
-                                    </div>
-                                    {program.description && (
-                                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                        {program.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <ServiceAwareButton
-                                    size="sm"
-                                    onClick={() =>
-                                      handleContributeToProgram(program.id)
-                                    }
-                                    className="ml-4 bg-emerald-600 hover:bg-emerald-700"
-                                    serviceId="khairat_management"
-                                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                                    disabledMessage="Khairat contributions are not currently available for this mosque."
-                                  >
-                                    <CreditCard className="h-4 w-4 mr-1" />
-                                    {t('contribute')}
-                                  </ServiceAwareButton>
-                                </div>
-
-                                {/* Progress Bar */}
-                                {program.target_amount && (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-slate-600 dark:text-slate-400">
-                                        {t('progress')}
-                                      </span>
-                                      <span className="font-medium text-slate-900 dark:text-white">
-                                        RM{' '}
-                                        {(
-                                          program.current_amount || 0
-                                        ).toLocaleString()}{' '}
-                                        / RM{' '}
-                                        {program.target_amount.toLocaleString()}
-                                      </span>
-                                    </div>
-                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                      <div
-                                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                        style={{
-                                          width: `${progressPercentage}%`,
-                                        }}
-                                      ></div>
-                                    </div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                                      {t('completed', {
-                                        percentage: progressPercentage.toFixed(1),
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Ongoing program without target */}
-                                {!program.target_amount && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">
-                                      {t('totalRaised')}
-                                    </span>
-                                    <span className="font-medium text-emerald-600">
-                                      RM{' '}
-                                      {(
-                                        program.current_amount || 0
-                                      ).toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Activities Section */}
                 {/* activities removed */}
 
                 {/* events removed */}
               </TabsContent>
 
-              {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('khairat_management') && (
-                <TabsContent value="programs" className="space-y-6 mt-6">
-                  <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-xl">
-                        <CreditCard className="h-5 w-5 mr-2 text-emerald-600" />
-                        {t('allPrograms')}
-                      </CardTitle>
-                      <CardDescription>{t('supportPrograms')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {contributionPrograms.length === 0 ? (
-                        <div className="text-center py-8">
-                          <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-slate-500 dark:text-slate-400">
-                            {t('noActivePrograms')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {contributionPrograms.map((program) => {
-                            const progressPercentage = program.target_amount
-                              ? Math.min(
-                                  ((program.current_amount || 0) /
-                                    program.target_amount) *
-                                    100,
-                                  100
-                                )
-                              : 0;
-
-                            return (
-                              <div
-                                key={program.id}
-                                className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <h4 className="font-semibold text-slate-900 dark:text-white">
-                                        {program.name}
-                                      </h4>
-                                      <Badge
-                                        variant="secondary"
-                                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
-                                      >
-                                        Khairat
-                                      </Badge>
-                                    </div>
-                                    {program.description && (
-                                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                        {program.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <ServiceAwareButton
-                                    size="sm"
-                                    onClick={() =>
-                                      handleContributeToProgram(program.id)
-                                    }
-                                    className="ml-4 bg-emerald-600 hover:bg-emerald-700"
-                                    serviceId="khairat_management"
-                                    enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                                    disabledMessage="Khairat contributions are not currently available for this mosque."
-                                  >
-                                    <CreditCard className="h-4 w-4 mr-1" />
-                                    {t('contribute')}
-                                  </ServiceAwareButton>
-                                </div>
-
-                                {/* Progress Bar */}
-                                {program.target_amount && (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-slate-600 dark:text-slate-400">
-                                        {t('progress')}
-                                      </span>
-                                      <span className="font-medium text-slate-900 dark:text-white">
-                                        RM{' '}
-                                        {(
-                                          program.current_amount || 0
-                                        ).toLocaleString()}{' '}
-                                        / RM{' '}
-                                        {program.target_amount.toLocaleString()}
-                                      </span>
-                                    </div>
-                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                      <div
-                                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                        style={{
-                                          width: `${progressPercentage}%`,
-                                        }}
-                                      ></div>
-                                    </div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                                      {t('completed', {
-                                        percentage: progressPercentage.toFixed(1),
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Ongoing program without target */}
-                                {!program.target_amount && (
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">
-                                      {t('totalRaised')}
-                                    </span>
-                                    <span className="font-medium text-emerald-600">
-                                      RM{' '}
-                                      {(
-                                        program.current_amount || 0
-                                      ).toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
 
               {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
               <TabsContent value="organization" className="space-y-6 mt-6">
@@ -1339,54 +875,6 @@ export default function MosqueProfilePage() {
                     )}
 
                     <div className="grid grid-cols-1 gap-2">
-                      {/* Register as Kariah Member */}
-                      <ServiceAwareButton
-                        serviceId="kariah_management"
-                        enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                        disabledMessage="Kariah registrations are not currently available for this mosque."
-                        className={`w-full justify-start p-3 h-auto ${isUserAnyMosqueAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        variant="ghost"
-                        disabled={isUserAnyMosqueAdmin}
-                        onClick={() => {
-                          if (isUserAnyMosqueAdmin) return;
-                          if (!user?.id) {
-                            router.push('/login');
-                            return;
-                          }
-                          handleApplyKariah();
-                        }}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                          isUserAnyMosqueAdmin
-                            ? 'bg-gray-200 dark:bg-gray-700'
-                            : !user?.id || isApplyingKariah
-                            ? 'bg-gray-200 dark:bg-gray-700' 
-                            : 'bg-purple-100 dark:bg-purple-800'
-                        }`}>
-                          {isApplyingKariah ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
-                          ) : (
-                            <UserCheck className={`h-5 w-5 ${
-                              isUserAnyMosqueAdmin
-                                ? 'text-gray-400 dark:text-gray-500'
-                                : !user?.id 
-                                ? 'text-gray-400 dark:text-gray-500' 
-                                : 'text-purple-600 dark:text-purple-400'
-                            }`} />
-                          )}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-medium text-slate-900 dark:text-white text-sm">
-                            {isApplyingKariah ? t('submitting') : t('applyKariah')}
-                          </h3>
-                          {isUserAnyMosqueAdmin && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
-                            </p>
-                          )}
-                        </div>
-                      </ServiceAwareButton>
-
                       {/* Register for Khairat */}
                       <ServiceAwareButton
                         serviceId="khairat_management"
@@ -1398,7 +886,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push('/login');
+                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
                             return;
                           }
                           handleApplyKhairat();
@@ -1446,7 +934,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push('/login');
+                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
                             return;
                           }
                           setIsKhairatModalOpen(true);
@@ -1490,7 +978,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push('/login');
+                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
                             return;
                           }
                           handleOpenKhairatClaim();
@@ -1529,7 +1017,7 @@ export default function MosqueProfilePage() {
                           {t('loginRequiredForActions', { fallback: 'Please log in to access these actions' })}
                         </p>
                         <Button
-                          onClick={() => router.push('/login')}
+                          onClick={() => router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
                           className="w-full"
                         >
                           {t('signInToContinue', { fallback: 'Sign In to Continue' })}
@@ -1627,8 +1115,6 @@ export default function MosqueProfilePage() {
         onClose={() => setIsKhairatModalOpen(false)}
         onSuccess={handleKhairatSuccess}
         preselectedMosqueId={mosque?.id}
-        preselectedProgramId={selectedProgramId}
-        defaultProgramType={'khairat' as any}
       />
 
       {/* Success Modal */}
@@ -1732,23 +1218,6 @@ export default function MosqueProfilePage() {
         </DialogContent>
       </Dialog>
 
-      <KariahRegistrationDialog
-        isOpen={isKariahApplicationModalOpen}
-        onOpenChange={setIsKariahApplicationModalOpen}
-        status={currentApplicationStatus as any}
-        adminNotes={adminNotes}
-        mosqueId={mosqueId}
-        mosqueName={mosque?.name}
-        isApplying={isApplyingKariah}
-        isWithdrawingApplication={isWithdrawing}
-        isDeletingApplication={isDeleting}
-        isWithdrawingMembership={isWithdrawingMembership}
-        onApply={handleConfirmKariahApplication}
-        onWithdrawApplication={handleConfirmWithdraw}
-        onDeleteApplication={handleConfirmDelete}
-        onWithdrawMembership={handleWithdrawMembership}
-      />
-
       <KhairatRegistrationDialog
         isOpen={isKhairatApplicationModalOpen}
         onOpenChange={setIsKhairatApplicationModalOpen}
@@ -1765,34 +1234,6 @@ export default function MosqueProfilePage() {
         onDeleteApplication={handleConfirmDeleteKhairatApplication}
         onWithdrawMembership={handleWithdrawKhairatMembership}
       />
-
-      {/* Kariah Registration Success Modal */}
-      <Dialog open={isKariahSuccessModalOpen} onOpenChange={setIsKariahSuccessModalOpen}>
-        <DialogContent className="max-w-md">
-          <div className="space-y-4">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                {t('applicationSubmitted')}
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t('kariahApplicationSuccessMessage')}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsKariahSuccessModalOpen(false)}
-                className="w-full"
-              >
-                {t('close')}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Khairat Registration Success Modal */}
       <Dialog open={isKhairatSuccessModalOpen} onOpenChange={setIsKhairatSuccessModalOpen}>
@@ -1822,7 +1263,7 @@ export default function MosqueProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Inline confirmations handled by KariahRegistrationDialog */}
+      {/* Inline confirmations handled by KhairatRegistrationDialog */}
     </div>
   );
 }

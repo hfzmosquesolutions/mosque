@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loading } from '@/components/ui/loading';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,6 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
 import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
-import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
@@ -115,7 +114,7 @@ function DashboardContent() {
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
-        .select('full_name, role')
+        .select('full_name, role, onboarding_completed')
         .eq('id', user?.id)
         .single();
 
@@ -280,12 +279,8 @@ function DashboardContent() {
             break;
           case 'application':
             if (isAdmin) {
-              // Check if it's a khairat or kariah application based on notification metadata
-              if (notification.metadata?.type === 'khairat') {
-                window.location.href = '/khairat?tab=applications';
-              } else {
-                window.location.href = '/kariah';
-              }
+              // Redirect to khairat applications
+              window.location.href = '/khairat?tab=applications';
             }
             break;
           case 'claim':
@@ -309,66 +304,11 @@ function DashboardContent() {
   if (userLoading || loading || roleLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4">
-                        <Skeleton className="h-12 w-12 rounded-lg" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
+        <Loading 
+          message="Loading dashboard..." 
+          size="lg"
+          className="py-12"
+        />
       </DashboardLayout>
     );
   }

@@ -71,15 +71,6 @@ export function AdminGettingStarted({
       priority: 'high',
     },
     {
-      id: 'review-applications',
-      title: 'Review Kariah Registrations',
-      description: 'Process pending kariah member registrations',
-      icon: UserCheck,
-      href: '/kariah',
-      completed: !hasPendingApplications,
-      priority: 'high',
-    },
-    {
       id: 'manage-claims',
       title: 'Manage Khairat Claims',
       description: 'Review and process khairat claims from members',

@@ -40,7 +40,6 @@ export default function Header() {
   const internalPages = [
     '/dashboard',
     '/khairat',
-    '/kariah',
     '/claims',
     '/mosque-profile',
     '/billing',

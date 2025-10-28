@@ -59,13 +59,6 @@ const getStatusConfig = (t: any) => ({
   cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400', label: t('status.cancelled') }
 });
 
-const getPriorityConfig = (t: any) => ({
-  low: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400', label: t('priority.low') },
-  medium: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', label: t('priority.medium') },
-  high: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: t('priority.high') },
-  urgent: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', label: t('priority.urgent') }
-});
-
 export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const { user } = useAuth();
   const t = useTranslations('claims');
@@ -79,7 +72,6 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   const statusConfig = getStatusConfig(t);
-  const priorityConfig = getPriorityConfig(t);
 
   useEffect(() => {
     if (user) {
@@ -150,27 +142,19 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
         const claim = row.original;
         return (
           <div>
-            <p className="font-semibold text-emerald-600 text-lg">
-              {formatCurrency(claim.requested_amount)}
-            </p>
-            {claim.approved_amount && claim.approved_amount !== claim.requested_amount && (
-              <p className="text-xs text-green-600">{t('approvedAmount')}: {formatCurrency(claim.approved_amount)}</p>
+            {claim.approved_amount ? (
+              <p className="font-semibold text-green-600 text-lg">
+                {formatCurrency(claim.approved_amount)}
+              </p>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                  {t('status.pending') || 'Pending'}
+                </Badge>
+              </div>
             )}
           </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'priority',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc('priority')} />
-      ),
-      cell: ({ row }) => {
-        const claim = row.original;
-        return (
-          <Badge className={priorityConfig[claim.priority].color}>
-            {priorityConfig[claim.priority].label}
-          </Badge>
         );
       },
     },
