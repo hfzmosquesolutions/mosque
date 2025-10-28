@@ -5,12 +5,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-type PageProps = {
-  params: { locale: string }
-};
-
-export default function MaintenancePage({ params }: PageProps) {
-  const { locale } = params;
+export default async function MaintenancePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const isMs = locale === 'ms';
 
   const title = isMs ? 'Penyelenggaraan Sementara' : 'Temporary Maintenance';
