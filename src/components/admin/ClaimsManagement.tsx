@@ -550,7 +550,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                               </p>
                               <p className="text-xs text-slate-500">
                                 {document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB` : ''} • 
-                                {new Date(document.uploaded_at).toLocaleDateString()}
+                                {new Date(document.created_at).toLocaleDateString()}
                               </p>
                             </div>
                           </div>

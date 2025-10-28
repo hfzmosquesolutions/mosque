@@ -440,29 +440,29 @@ export function KhairatManagement({
             title="Total Applications"
             value={stats.applications.pending + stats.applications.approved + stats.applications.rejected + stats.applications.withdrawn}
             icon={FileText}
+            subtitle="All applications"
             {...StatsCardColors.blue}
-            description="All applications"
           />
           <StatsCard
             title="Pending"
             value={stats.applications.pending.toString()}
             icon={Clock}
+            subtitle="Awaiting review"
             {...StatsCardColors.orange}
-            description="Awaiting review"
           />
           <StatsCard
             title="Active Members"
             value={stats.memberships.active.toString()}
             icon={UserCheck}
+            subtitle="Active members"
             {...StatsCardColors.emerald}
-            description="Active members"
           />
           <StatsCard
             title="Total Members"
             value={stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended}
             icon={Users}
+            subtitle="All members"
             {...StatsCardColors.slate}
-            description="All members"
           />
         </div>
       )}
@@ -511,7 +511,6 @@ export function KhairatManagement({
       <DataTable
         columns={columns}
         data={filteredMembers}
-        loading={loading}
       />
 
       {/* Member Details Dialog */}

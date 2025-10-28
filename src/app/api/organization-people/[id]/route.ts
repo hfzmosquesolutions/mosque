@@ -15,14 +15,15 @@ function getSupabaseAdmin() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error } = await supabaseAdmin
       .from('organization_people')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('is_active', true)
       .single();
 
@@ -46,9 +47,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { full_name, position, department, email, phone, address, bio, profile_picture_url, is_public, start_date, end_date, is_active } = body;
 
@@ -76,7 +78,7 @@ export async function PUT(
     const { data: orgPerson, error: fetchError } = await supabaseAdmin
       .from('organization_people')
       .select('mosque_id, profile_picture_url')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (fetchError || !orgPerson) {
@@ -133,7 +135,7 @@ export async function PUT(
     const { data, error } = await supabaseAdmin
       .from('organization_people')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -194,9 +196,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Get the current user
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -221,7 +224,7 @@ export async function DELETE(
     const { data: orgPerson, error: fetchError } = await supabaseAdmin
       .from('organization_people')
       .select('mosque_id, profile_picture_url')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (fetchError || !orgPerson) {
@@ -244,7 +247,7 @@ export async function DELETE(
     const { error } = await supabaseAdmin
       .from('organization_people')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Error deleting organization person:', error);

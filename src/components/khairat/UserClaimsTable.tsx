@@ -72,6 +72,12 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   const statusConfig = getStatusConfig(t);
+  const priorityConfig: Record<ClaimPriority, { label: string; color: string }> = {
+    low: { label: tc('priority.low') || 'Low', color: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300' },
+    medium: { label: tc('priority.medium') || 'Medium', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
+    high: { label: tc('priority.high') || 'High', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
+    urgent: { label: tc('priority.urgent') || 'Urgent', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  };
 
   useEffect(() => {
     if (user) {
@@ -451,7 +457,7 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
                             </p>
                             <p className="text-xs text-slate-500">
                               {document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB` : ''} • 
-                              {new Date(document.uploaded_at).toLocaleDateString()}
+                              {new Date(document.created_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>

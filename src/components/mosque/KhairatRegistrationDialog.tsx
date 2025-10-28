@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl';
 export interface KhairatRegistrationDialogProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
-	status: 'approved' | 'active' | 'pending' | 'withdrawn' | 'rejected' | null;
+    status: 'approved' | 'active' | 'pending' | 'withdrawn' | 'rejected' | 'inactive' | null;
 	adminNotes?: string | null;
 	mosqueId: string;
 	mosqueName?: string | null;
@@ -191,9 +191,9 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 						<Heart className="h-5 w-5 text-emerald-600" />
 						{t('applyKhairat')}
 					</DialogTitle>
-					<DialogDescription>
-						{t('joinKhairatCommunity', { mosqueName })}
-					</DialogDescription>
+                    <DialogDescription>
+                        {t('joinKhairatCommunity', { mosqueName: mosqueName || '' })}
+                    </DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 pb-4">

@@ -440,8 +440,6 @@ export function MosqueKhairatContributions({
       <DataTable
         columns={columns}
         data={filteredContributions}
-        loading={loading}
-        emptyMessage="No contributions found"
       />
 
       {/* Contribution Details Modal */}

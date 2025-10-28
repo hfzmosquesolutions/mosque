@@ -32,6 +32,7 @@ import {
   ExternalLink,
   Image as ImageIcon,
   Settings,
+  DollarSign,
 } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';

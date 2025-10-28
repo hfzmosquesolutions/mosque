@@ -133,24 +133,24 @@ export function KhairatMembershipManagement({
         const membership = row.original;
         return (
           <div className="space-y-1">
-            <div className="font-medium">{membership.user.full_name}</div>
+            <div className="font-medium">{membership.user?.full_name || 'Unknown'}</div>
             <div className="text-sm text-muted-foreground">
-              {membership.user.phone || membership.user.email || 'No contact info'}
+              {membership.user?.phone || 'No contact info'}
             </div>
           </div>
         );
       },
     },
     {
-      accessorKey: 'program.name',
+      accessorKey: 'mosque.name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Program" />
+        <DataTableColumnHeader column={column} title="Mosque" />
       ),
       cell: ({ row }) => {
         const membership = row.original;
         return (
           <div className="text-sm">
-            {membership.program?.name || 'General Khairat'}
+            {membership.mosque?.name || 'Unknown Mosque'}
           </div>
         );
       },
@@ -238,7 +238,7 @@ export function KhairatMembershipManagement({
             title="Active Members"
             value={stats.active.toString()}
             icon={CheckCircle}
-            {...StatsCardColors.green}
+            {...StatsCardColors.emerald}
           />
           <StatsCard
             title="Inactive Members"

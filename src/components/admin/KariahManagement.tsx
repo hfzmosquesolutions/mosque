@@ -428,30 +428,30 @@ export function KariahManagement({ mosqueId }: { mosqueId: string }) {
           <StatsCard
             title="Total Applications"
             value={stats.applications.pending + stats.applications.approved + stats.applications.rejected + stats.applications.withdrawn}
+            subtitle="All applications"
             icon={FileText}
             {...StatsCardColors.blue}
-            description="All applications"
           />
           <StatsCard
             title="Pending"
             value={stats.applications.pending.toString()}
+            subtitle="Awaiting review"
             icon={Clock}
             {...StatsCardColors.orange}
-            description="Awaiting review"
           />
           <StatsCard
             title="Active Members"
             value={stats.memberships.active.toString()}
+            subtitle="Active memberships"
             icon={UserCheck}
             {...StatsCardColors.emerald}
-            description="Active memberships"
           />
           <StatsCard
             title="Total Members"
             value={stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended}
+            subtitle="All memberships"
             icon={Users}
             {...StatsCardColors.slate}
-            description="All memberships"
           />
         </div>
       )}
@@ -499,7 +499,6 @@ export function KariahManagement({ mosqueId }: { mosqueId: string }) {
       <DataTable
         columns={columns}
         data={filteredMembers}
-        loading={loading}
       />
 
       {/* Member Details Dialog */}

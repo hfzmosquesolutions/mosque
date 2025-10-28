@@ -54,6 +54,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { Loading } from '@/components/ui/loading';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 function DependentsContent() {
   const t = useTranslations('dependents');

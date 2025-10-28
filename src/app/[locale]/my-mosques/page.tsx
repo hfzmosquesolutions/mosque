@@ -21,7 +21,7 @@ import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
 import { UserApplicationsTable } from '@/components/khairat/UserApplicationsTable';
 import { Loading } from '@/components/ui/loading';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { KhairatContribution, KhairatProgram, Mosque, CreateKhairatClaim } from '@/types/database';
+import type { KhairatContribution, Mosque, CreateKhairatClaim } from '@/types/database';
 import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -34,7 +34,7 @@ function MyMosquesContent() {
   const { mosqueId } = useUserMosque();
   const [loading, setLoading] = useState(true);
   const [userContributions, setUserContributions] = useState<
-    (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })[]
+    (KhairatContribution & { mosque: Mosque })[]
   >([]);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
   const [loadingMosques, setLoadingMosques] = useState(false);
@@ -94,7 +94,7 @@ function MyMosquesContent() {
         mosque_id: mosqueId,
         requested_amount: claimForm.requested_amount,
         title: claimForm.title.trim(),
-        description: claimForm.description.trim() || null,
+        description: claimForm.description.trim() || '',
         priority: claimForm.priority
       };
 

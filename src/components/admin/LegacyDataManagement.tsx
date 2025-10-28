@@ -537,8 +537,8 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const loadContributionPrograms = async () => {
     setLoadingPrograms(true);
     try {
-      const data = await getKhairatPrograms(mosqueId);
-      setPrograms(data.data || []);
+      // Programs removed; use placeholder program list with mosque name
+      setPrograms([]);
     } catch (error) {
       console.error('Error loading contribution programs:', error);
       toast.error(t('messages.failedToLoadPrograms'));
@@ -563,10 +563,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       return;
     }
 
-    if (!selectedProgramId) {
-      toast.error(t('messages.pleaseSelectProgram'));
-      return;
-    }
+    // Programs removed; skip program selection validation
 
     setMatching(true);
     try {
@@ -574,7 +571,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       const result = await matchLegacyKhairatRecords({
         legacy_record_id: selectedRecordForMatch.id,
         user_id: selectedUserId,
-        program_id: selectedProgramId,
+        program_id: selectedProgramId || 'default',
       });
 
       toast.success(t('messages.recordMatchedSuccessfully'));

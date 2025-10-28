@@ -187,6 +187,19 @@ export interface KhairatContribution {
   bill_id?: string | null;
 }
 
+// Minimal legacy KhairatProgram interface (for backward compatibility)
+export interface KhairatProgram {
+  id: string;
+  name: string;
+  description?: string;
+  target_amount?: number;
+  current_amount?: number;
+  mosque_id?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Mosque khairat settings (stored in mosques.settings jsonb)
 export interface MosqueKhairatSettings {
   enabled: boolean;

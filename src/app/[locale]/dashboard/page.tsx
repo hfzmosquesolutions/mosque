@@ -38,6 +38,7 @@ import { useTranslations } from 'next-intl';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
 import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
+import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -50,7 +51,7 @@ interface Contribution {
   amount: number;
   contributed_at: string;
   status: 'pending' | 'completed' | 'cancelled' | 'failed';
-  program: {
+  program?: {
     name: string;
   };
 }

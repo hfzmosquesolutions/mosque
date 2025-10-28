@@ -192,7 +192,7 @@ export function KariahRegistrationDialog(props: KariahRegistrationDialogProps) {
 						{t('applyKariah')}
 					</DialogTitle>
 					<DialogDescription>
-						{t('joinKariahCommunity', { mosqueName })}
+						{t('joinKariahCommunity', { mosqueName: mosqueName || '' })}
 					</DialogDescription>
 				</DialogHeader>
 

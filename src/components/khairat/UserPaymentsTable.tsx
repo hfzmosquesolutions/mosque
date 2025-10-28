@@ -31,29 +31,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type {
-  KhairatContribution,
-  KhairatProgram,
-  Mosque,
-} from '@/types/database';
+import type { KhairatContribution, Mosque } from '@/types/database';
 
 interface UserPaymentsTableProps {
-  contributions: (KhairatContribution & {
-    program: KhairatProgram & { mosque: Mosque };
-  })[];
+  contributions: (KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } })[];
   showHeader?: boolean;
 }
 
 export function UserPaymentsTable({ contributions, showHeader = true }: UserPaymentsTableProps) {
   const t = useTranslations('khairat');
   const [selectedContribution, setSelectedContribution] = useState<
-    | (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })
+    | (KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } })
     | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredContributions, setFilteredContributions] = useState<
-    (KhairatContribution & { program: KhairatProgram & { mosque: Mosque } })[]
+    (KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } })[]
   >([]);
 
   const formatCurrency = (amount: number) => {
@@ -148,16 +142,14 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
   };
 
   const handleViewDetails = (
-    contribution: KhairatContribution & {
-      program: KhairatProgram & { mosque: Mosque };
-    }
+    contribution: KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } }
   ) => {
     setSelectedContribution(contribution);
     setIsModalOpen(true);
   };
 
   const columns: ColumnDef<
-    KhairatContribution & { program: KhairatProgram & { mosque: Mosque } }
+    KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } }
   >[] = [
     {
       accessorKey: 'program.name',

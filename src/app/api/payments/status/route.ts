@@ -40,9 +40,7 @@ export async function GET(request: NextRequest) {
           status, 
           payment_reference, 
           payment_method,
-          khairat_programs!inner(
-            mosque_id
-          )
+          mosque_id
         `)
         .eq('id', contributionId)
         .single();
@@ -54,7 +52,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      mosqueId = contribution.contribution_programs[0].mosque_id;
+      mosqueId = contribution.mosque_id;
       actualPaymentId = contribution.payment_reference || paymentId || '';
 
       // If no payment reference, return contribution status
@@ -74,9 +72,7 @@ export async function GET(request: NextRequest) {
           id, 
           status, 
           payment_method,
-          khairat_programs!inner(
-            mosque_id
-          )
+          mosque_id
         `)
         .eq('payment_reference', paymentId)
         .single();
@@ -88,7 +84,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      mosqueId = contribution.contribution_programs[0].mosque_id;
+      mosqueId = contribution.mosque_id;
       actualPaymentId = paymentId!;
     }
 
