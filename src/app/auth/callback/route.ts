@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const returnUrl = requestUrl.searchParams.get('returnUrl') || '/dashboard';
 
   if (code) {
     const supabase = createClient(
@@ -15,8 +14,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error) {
-      // Redirect to the return URL or dashboard
-      return NextResponse.redirect(`${requestUrl.origin}${returnUrl}`);
+      // Redirect to dashboard
+      return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
     }
   }
 

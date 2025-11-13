@@ -53,13 +53,13 @@ export async function getKariahMemberships(filters: KariahMembershipFilters = {}
   } = filters;
 
   let query = supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select(`
       *,
-      user:user_profiles(id, full_name, phone, ic_passport_number),
+      user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone, ic_passport_number),
       mosque:mosques(id, name)
-    `)
-    .order('joined_date', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false });
 
   // If user_id is provided, get memberships for that user
   if (user_id) {
@@ -173,7 +173,7 @@ export async function createKariahMembership(membershipData: {
 
   // Check if membership already exists
   const { data: existingMembership } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select('id, status')
     .eq('user_id', user_id)
     .eq('mosque_id', mosque_id)
@@ -185,7 +185,7 @@ export async function createKariahMembership(membershipData: {
 
   // Create the membership
   const { data: membership, error } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .insert({
       user_id,
       mosque_id,
@@ -195,7 +195,7 @@ export async function createKariahMembership(membershipData: {
     })
     .select(`
       *,
-      user:user_profiles(id, full_name, phone),
+      user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
       mosque:mosques(id, name)
     `)
     .single();
@@ -225,10 +225,10 @@ export async function getKariahMembershipById(membershipId: string) {
   }
 
   const { data: membership, error } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select(`
       *,
-      user:user_profiles(id, full_name, phone),
+      user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
       mosque:mosques(id, name, user_id)
     `)
     .eq('id', membershipId)
@@ -283,7 +283,7 @@ export async function updateKariahMembership(
 
   // Get the membership first to check mosque admin rights
   const { data: existingMembership, error: fetchError } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select(`
       *,
       mosque:mosques(id, name, user_id)
@@ -311,7 +311,7 @@ export async function updateKariahMembership(
 
   // Update the membership
   const { data: membership, error } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .update({
       ...updateData,
       updated_at: new Date().toISOString()
@@ -319,7 +319,7 @@ export async function updateKariahMembership(
     .eq('id', membershipId)
     .select(`
       *,
-      user:user_profiles(id, full_name, phone),
+      user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
       mosque:mosques(id, name)
     `)
     .single();
@@ -350,7 +350,7 @@ export async function deleteKariahMembership(membershipId: string) {
 
   // Get the membership first to check mosque admin rights
   const { data: existingMembership, error: fetchError } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select(`
       *,
       mosque:mosques(id, name, user_id)
@@ -377,7 +377,7 @@ export async function deleteKariahMembership(membershipId: string) {
   }
 
   const { error } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .delete()
     .eq('id', membershipId);
 
@@ -406,7 +406,7 @@ export async function withdrawKariahMembership(membershipId: string) {
 
   // Get the membership first to check ownership and status
   const { data: existingMembership, error: fetchError } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select(`
       *,
       mosque:mosques(id, name)
@@ -427,7 +427,7 @@ export async function withdrawKariahMembership(membershipId: string) {
 
   // Delete the membership record
   const { error: deleteError } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .delete()
     .eq('id', membershipId);
 
@@ -488,7 +488,7 @@ export async function getMembershipStatistics(mosqueId: string) {
 
   // Get membership counts by status
   const { data: stats, error } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select('status')
     .eq('mosque_id', mosqueId);
 

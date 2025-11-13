@@ -180,6 +180,17 @@ export default function MosqueProfilePage() {
     loadProfile();
   }, [user]);
 
+  // Set page title immediately and update when mosque name loads
+  useEffect(() => {
+    if (loading) {
+      document.title = 'Loading... - Kariah Masjid';
+    } else if (mosque?.name) {
+      document.title = `${mosque.name} - Kariah Masjid`;
+    } else if (error) {
+      document.title = 'Mosque Not Found - Kariah Masjid';
+    }
+  }, [loading, mosque?.name, error]);
+
   // Check if current user is admin of any mosque
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -240,8 +251,7 @@ export default function MosqueProfilePage() {
 
   const handleContributeToProgram = (programId: string) => {
     if (!user?.id) {
-      const currentUrl = window.location.pathname + window.location.search;
-      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
+      router.push(`/login`);
       return;
     }
     setSelectedProgramId(programId);
@@ -250,8 +260,7 @@ export default function MosqueProfilePage() {
 
   const handleOpenKhairatClaim = () => {
     if (!user?.id) {
-      const currentUrl = window.location.pathname + window.location.search;
-      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
+      router.push(`/login`);
       return;
     }
     setIsKhairatClaimDialogOpen(true);
@@ -405,8 +414,7 @@ export default function MosqueProfilePage() {
 
   const handleApplyKhairat = async () => {
     if (!user?.id) {
-      const currentUrl = window.location.pathname + window.location.search;
-      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
+      router.push(`/login`);
       return;
     }
     if (!mosque) return;
@@ -886,7 +894,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                            router.push(`/login`);
                             return;
                           }
                           handleApplyKhairat();
@@ -934,7 +942,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                            router.push(`/login`);
                             return;
                           }
                           setIsKhairatModalOpen(true);
@@ -978,7 +986,7 @@ export default function MosqueProfilePage() {
                         onClick={() => {
                           if (isUserAnyMosqueAdmin) return;
                           if (!user?.id) {
-                            router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                            router.push(`/login`);
                             return;
                           }
                           handleOpenKhairatClaim();
@@ -1016,12 +1024,21 @@ export default function MosqueProfilePage() {
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                           {t('loginRequiredForActions', { fallback: 'Please log in to access these actions' })}
                         </p>
-                        <Button
-                          onClick={() => router.push(`/login?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
-                          className="w-full"
-                        >
-                          {t('signInToContinue', { fallback: 'Sign In to Continue' })}
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => window.open(`/login`, '_blank', 'noopener,noreferrer')}
+                            className="w-full"
+                          >
+                            {t('signInToContinue', { fallback: 'Sign In to Continue' })}
+                          </Button>
+                          <Button
+                            onClick={() => window.open(`/signup`, '_blank', 'noopener,noreferrer')}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            {t('createNewAccount', { fallback: 'Create New Account' })}
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </>

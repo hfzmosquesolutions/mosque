@@ -104,6 +104,14 @@ export default function Header() {
                     Browse Mosques
                   </NavigationMenuLink>
                 </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href={`/${locale}/docs`}
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    Documentation
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
                 {/* Language Dropdown */}
                 <DropdownMenu>
@@ -210,6 +218,14 @@ export default function Header() {
                   className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                 >
                   Browse Mosques
+                </Button>
+              </Link>
+              <Link href={`/${locale}/docs`} onClick={() => setIsMobileMenuOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                >
+                  Documentation
                 </Button>
               </Link>
               {user && (

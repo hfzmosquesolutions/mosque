@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { legacy_record_id, user_id, program_id } = await request.json();
+    const { legacy_record_id, user_id, mosque_id } = await request.json();
 
     if (!legacy_record_id || typeof legacy_record_id !== 'string') {
       return NextResponse.json(
@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user_id || !program_id) {
+    if (!user_id || !mosque_id) {
       return NextResponse.json(
-        { success: false, error: 'user_id and program_id are required' },
+        { success: false, error: 'user_id and mosque_id are required' },
         { status: 400 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Create contribution record for the legacy record
     const contributionData = {
-      program_id: program_id,
+      mosque_id: mosque_id,
       contributor_id: user_id,
       contributor_name: legacyRecord.full_name,
       amount: legacyRecord.amount,

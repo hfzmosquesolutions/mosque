@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
 
     const body = await request.json();
-    const { legacy_record_ids, user_id, program_id } = body;
+    const { legacy_record_ids, user_id, mosque_id } = body;
 
     if (!legacy_record_ids || !Array.isArray(legacy_record_ids) || legacy_record_ids.length === 0) {
       return NextResponse.json(
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!program_id) {
+    if (!mosque_id) {
       return NextResponse.json(
-        { error: 'program_id is required' },
+        { error: 'mosque_id is required' },
         { status: 400 }
       );
     }
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Start transaction - create contributions and update legacy records
     const contributionInserts = legacyRecords.map((record: any) => ({
-      program_id: program_id,
+      mosque_id: mosque_id,
       contributor_id: user_id,
       contributor_name: record.full_name,
       amount: record.amount,

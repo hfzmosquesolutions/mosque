@@ -132,6 +132,7 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
       cash: { label: t('cash'), variant: 'secondary' as const },
       billplz: { label: 'Billplz', variant: 'outline' as const },
       toyyibpay: { label: 'ToyyibPay', variant: 'outline' as const },
+      legacy_record: { label: t('legacyRecord'), variant: 'secondary' as const },
     };
 
     const config =
@@ -149,7 +150,7 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
   };
 
   const columns: ColumnDef<
-    KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } }
+    KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque }; payment_type?: 'legacy' | 'current' }
   >[] = [
     {
       accessorKey: 'program.name',
@@ -158,10 +159,18 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
       ),
       cell: ({ row }) => {
         const contribution = row.original;
+        const isLegacy = (contribution as any).payment_type === 'legacy';
         return (
           <div className="space-y-1">
-            <div className="font-medium text-slate-900 dark:text-slate-100">
-              {contribution.program?.name || 'Unknown Program'}
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-slate-900 dark:text-slate-100">
+                {contribution.program?.name || 'Unknown Program'}
+              </div>
+              {isLegacy && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                  {t('legacy')}
+                </Badge>
+              )}
             </div>
             <div className="text-sm text-muted-foreground">
               {contribution.program?.mosque?.name || 'Unknown Mosque'}

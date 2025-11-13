@@ -514,6 +514,86 @@ export async function createKhairatContribution(
 /**
  * Get user's khairat contributions across all mosques
  */
+/**
+ * Get combined payment history including both legacy records and current contributions
+ */
+export async function getUserPaymentHistory(
+  userId: string,
+  mosqueId?: string
+): Promise<ApiResponse<any[]>> {
+  try {
+    // Fetch current contributions with mosque details (all statuses)
+    let contributionsQuery = supabase
+      .from('khairat_contributions')
+      .select(`
+        id,
+        amount,
+        contributed_at,
+        status,
+        payment_method,
+        payment_reference,
+        notes,
+        contributor_name,
+        mosque:mosques(
+          id,
+          name,
+          address
+        )
+      `)
+      .eq('contributor_id', userId);
+
+    if (mosqueId) {
+      contributionsQuery = contributionsQuery.eq('mosque_id', mosqueId);
+    }
+
+    const { data: contributions, error: contribError } = await contributionsQuery;
+
+    if (contribError) {
+      console.error('Error fetching contributions:', contribError);
+      throw new Error(contribError.message);
+    }
+
+    // Transform contributions and mark legacy records
+    const formattedContributions = (contributions || []).map((contrib: any) => {
+      const isLegacy = contrib.payment_method === 'legacy_record';
+      
+      return {
+        id: contrib.id,
+        amount: contrib.amount,
+        contributed_at: contrib.contributed_at,
+        status: contrib.status,
+        payment_method: contrib.payment_method,
+        payment_reference: contrib.payment_reference,
+        notes: contrib.notes,
+        contributor_name: contrib.contributor_name,
+        program: {
+          id: 'khairat',
+          name: isLegacy ? 'Legacy Khairat' : 'Khairat',
+          mosque: contrib.mosque,
+        },
+        mosque: contrib.mosque,
+        payment_type: isLegacy ? 'legacy' as const : 'current' as const,
+      };
+    });
+
+    // Sort by date
+    const sortedRecords = formattedContributions.sort(
+      (a, b) => new Date(b.contributed_at).getTime() - new Date(a.contributed_at).getTime()
+    );
+
+    return {
+      success: true,
+      data: sortedRecords,
+    };
+  } catch (error) {
+    console.error('Error fetching user payment history:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch payment history',
+    };
+  }
+}
+
 export async function getUserKhairatContributions(
   userId: string,
   limit = 20,

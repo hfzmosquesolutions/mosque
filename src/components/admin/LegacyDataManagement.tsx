@@ -13,7 +13,9 @@ import {
   getLegacyRecordStats,
 } from '@/lib/api/legacy-records';
 import { getKariahMemberships } from '@/lib/api/kariah-memberships';
+import { getKhairatMembers } from '@/lib/api/khairat-members';
 import { getMosqueKhairatSettings, createKhairatContribution } from '@/lib/api';
+import { KhairatMember } from '@/types/database';
 import {
   Dialog,
   DialogContent,
@@ -119,13 +121,6 @@ interface MosqueMember {
   status: string;
 }
 
-interface ContributionProgram {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-}
-
 interface LegacyDataManagementProps {
   mosqueId: string;
 }
@@ -157,16 +152,11 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const [matchDialogOpen, setMatchDialogOpen] = useState(false);
   const [selectedRecordForMatch, setSelectedRecordForMatch] =
     useState<LegacyRecord | null>(null);
-  const [mosqueMembers, setMosqueMembers] = useState<MosqueMember[]>([]);
+  const [mosqueMembers, setMosqueMembers] = useState<KhairatMember[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [matching, setMatching] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
-
-  // Program selection state
-  const [programs, setPrograms] = useState<ContributionProgram[]>([]);
-  const [selectedProgramId, setSelectedProgramId] = useState<string>('');
-  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
   // Unmatch confirmation dialog state
   const [unmatchDialogOpen, setUnmatchDialogOpen] = useState(false);
@@ -180,8 +170,6 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const [bulkMatchDialogOpen, setBulkMatchDialogOpen] = useState(false);
   const [bulkMatching, setBulkMatching] = useState(false);
   const [bulkSelectedUserId, setBulkSelectedUserId] = useState<string>('');
-  const [bulkSelectedProgramId, setBulkSelectedProgramId] =
-    useState<string>('');
 
   // Bulk unmatch dialog state
   const [bulkUnmatchDialogOpen, setBulkUnmatchDialogOpen] = useState(false);
@@ -484,16 +472,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     setSelectedRecords(new Set(unmatchedRecords));
 
     setBulkSelectedUserId('');
-    setBulkSelectedProgramId('');
     setBulkMatchDialogOpen(true);
     loadMosqueMembers();
-    loadContributionPrograms();
   };
 
   const handleCloseBulkMatchDialog = () => {
     setBulkMatchDialogOpen(false);
     setBulkSelectedUserId('');
-    setBulkSelectedProgramId('');
   };
 
   const handleOpenBulkUnmatchDialog = () => {
@@ -520,12 +505,25 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
   const loadMosqueMembers = async () => {
     setLoadingMembers(true);
     try {
-      const data = await getKariahMemberships({
-        mosque_id: mosqueId,
-        status: 'active',
-        limit: 1000, // Get all active members
-      });
-      setMosqueMembers(data.memberships);
+      // Load approved and active khairat members
+      const [approvedMembers, activeMembers] = await Promise.all([
+        getKhairatMembers({
+          mosque_id: mosqueId,
+          status: 'approved',
+        }),
+        getKhairatMembers({
+          mosque_id: mosqueId,
+          status: 'active',
+        })
+      ]);
+      
+      // Combine and deduplicate members
+      const allMembers = [...approvedMembers, ...activeMembers];
+      const uniqueMembers = allMembers.filter((member, index, self) =>
+        index === self.findIndex((m) => m.id === member.id)
+      );
+      
+      setMosqueMembers(uniqueMembers);
     } catch (error) {
       console.error('Error loading mosque members:', error);
       toast.error(t('messages.failedToLoadMembers'));
@@ -534,27 +532,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     }
   };
 
-  const loadContributionPrograms = async () => {
-    setLoadingPrograms(true);
-    try {
-      // Programs removed; use placeholder program list with mosque name
-      setPrograms([]);
-    } catch (error) {
-      console.error('Error loading contribution programs:', error);
-      toast.error(t('messages.failedToLoadPrograms'));
-    } finally {
-      setLoadingPrograms(false);
-    }
-  };
 
   const handleOpenMatchDialog = (record: LegacyRecord) => {
     setSelectedRecordForMatch(record);
     setSelectedUserId('');
-    setSelectedProgramId('');
     setShowAllMembers(false);
     setMatchDialogOpen(true);
     loadMosqueMembers();
-    loadContributionPrograms();
   };
 
   const handleConfirmMatch = async () => {
@@ -563,15 +547,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       return;
     }
 
-    // Programs removed; skip program selection validation
-
     setMatching(true);
     try {
       // Match the legacy record and create contribution in one operation
       const result = await matchLegacyKhairatRecords({
         legacy_record_id: selectedRecordForMatch.id,
         user_id: selectedUserId,
-        program_id: selectedProgramId || 'default',
+        mosque_id: mosqueId,
       });
 
       toast.success(t('messages.recordMatchedSuccessfully'));
@@ -579,7 +561,6 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
       setMatchDialogOpen(false);
       setSelectedRecordForMatch(null);
       setSelectedUserId('');
-      setSelectedProgramId('');
       loadRecords();
       loadStats();
     } catch (error) {
@@ -594,7 +575,6 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
     setMatchDialogOpen(false);
     setSelectedRecordForMatch(null);
     setSelectedUserId('');
-    setSelectedProgramId('');
   };
 
   const formatCurrency = (amount: number) => {
@@ -1284,7 +1264,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                           ? mosqueMembers
                           : mosqueMembers.filter(
                               (member) =>
-                                member.user.ic_passport_number ===
+                                member.ic_passport_number ===
                                 selectedRecordForMatch.ic_passport_number
                             );
 
@@ -1292,16 +1272,16 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                         const sortedMembers = [...filteredMembers].sort(
                           (a, b) => {
                             const aIsMatch =
-                              a.user.ic_passport_number ===
+                              a.ic_passport_number ===
                               selectedRecordForMatch.ic_passport_number;
                             const bIsMatch =
-                              b.user.ic_passport_number ===
+                              b.ic_passport_number ===
                               selectedRecordForMatch.ic_passport_number;
 
                             if (aIsMatch && !bIsMatch) return -1;
                             if (!aIsMatch && bIsMatch) return 1;
-                            return a.user.full_name.localeCompare(
-                              b.user.full_name
+                            return (a.user?.full_name || '').localeCompare(
+                              b.user?.full_name || ''
                             );
                           }
                         );
@@ -1316,10 +1296,10 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                             </div>
                           );
                         }
-
+                    
                         return sortedMembers.map((member) => {
                           const isIcMatch =
-                            member.user.ic_passport_number ===
+                            member.ic_passport_number ===
                             selectedRecordForMatch.ic_passport_number;
                           return (
                             <div
@@ -1341,7 +1321,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                   {/* Name and IC Match Badge */}
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-semibold text-gray-900">
-                                      {member.user.full_name}
+                                      {member.user?.full_name}
                                     </h4>
                                     {isIcMatch && (
                                       <Badge className="bg-green-100 text-green-800 text-xs font-medium">
@@ -1351,7 +1331,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                   </div>
 
                                   {/* IC/Passport Number */}
-                                  {member.user.ic_passport_number && (
+                                  {member.ic_passport_number && (
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                         {t('table.icPassport')}:
@@ -1363,29 +1343,19 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                             : 'text-gray-700'
                                         }`}
                                       >
-                                        {member.user.ic_passport_number}
+                                        {member.ic_passport_number}
                                       </span>
                                     </div>
                                   )}
 
-                                  {/* Phone and Membership Info */}
+                                  {/* Phone Info */}
                                   <div className="flex items-center gap-4 text-sm text-gray-600">
-                                    {member.user.phone && (
+                                    {member.user?.phone && (
                                       <div className="flex items-center gap-1">
                                         <span className="text-xs font-medium text-gray-500">
                                           {t('match.phone')}:
                                         </span>
-                                        <span>{member.user.phone}</span>
-                                      </div>
-                                    )}
-                                    {member.membership_number && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-xs font-medium text-gray-500">
-                                          {t('match.memberNumber')}:
-                                        </span>
-                                        <span className="font-medium">
-                                          {member.membership_number}
-                                        </span>
+                                        <span>{member.user?.phone}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1397,55 +1367,6 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       })()}
                     </RadioGroup>
                   </div>
-                )}
-              </div>
-
-              {/* Program Selection */}
-              <div>
-                <h4 className="font-medium mb-3">{t('match.selectProgram')}</h4>
-                {loadingPrograms ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">{t('match.loadingPrograms')}</span>
-                  </div>
-                ) : programs.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    {t('match.noActivePrograms')}
-                  </div>
-                ) : (
-                  <Select
-                    value={selectedProgramId}
-                    onValueChange={setSelectedProgramId}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={t('match.chooseProgramPlaceholder')}
-                      >
-                        {selectedProgramId && (
-                          <span>
-                            {
-                              programs.find((p) => p.id === selectedProgramId)
-                                ?.name
-                            }
-                          </span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {programs.map((program) => (
-                        <SelectItem key={program.id} value={program.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{program.name}</span>
-                            {program.description && (
-                              <span className="text-sm text-muted-foreground">
-                                {program.description}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 )}
               </div>
 
@@ -1462,10 +1383,8 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   onClick={handleConfirmMatch}
                   disabled={
                     !selectedUserId ||
-                    !selectedProgramId ||
                     matching ||
-                    loadingMembers ||
-                    loadingPrograms
+                    loadingMembers
                   }
                 >
                   {matching && (
@@ -1606,7 +1525,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                             {
                               mosqueMembers.find(
                                 (m) => m.user_id === bulkSelectedUserId
-                              )?.user.full_name
+                              )?.user?.full_name
                             }
                           </span>
                         )}
@@ -1617,61 +1536,11 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                         <SelectItem key={member.id} value={member.user_id}>
                           <div className="flex flex-col">
                             <span className="font-medium">
-                              {member.user.full_name}
+                              {member.user?.full_name}
                             </span>
-                            {member.user.ic_passport_number && (
+                            {member.ic_passport_number && (
                               <span className="text-sm text-muted-foreground font-mono">
-                                {member.user.ic_passport_number}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              {/* Program Selection */}
-              <div>
-                <h4 className="font-medium mb-3">{t('match.selectProgram')}</h4>
-                {loadingPrograms ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">{t('match.loadingPrograms')}</span>
-                  </div>
-                ) : programs.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    {t('match.noActivePrograms')}
-                  </div>
-                ) : (
-                  <Select
-                    value={bulkSelectedProgramId}
-                    onValueChange={setBulkSelectedProgramId}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={t('match.chooseProgramPlaceholder')}
-                      >
-                        {bulkSelectedProgramId && (
-                          <span>
-                            {
-                              programs.find(
-                                (p) => p.id === bulkSelectedProgramId
-                              )?.name
-                            }
-                          </span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {programs.map((program) => (
-                        <SelectItem key={program.id} value={program.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{program.name}</span>
-                            {program.description && (
-                              <span className="text-sm text-muted-foreground">
-                                {program.description}
+                                {member.ic_passport_number}
                               </span>
                             )}
                           </div>
@@ -1693,14 +1562,14 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                 </Button>
                 <Button
                   onClick={async () => {
-                    if (!bulkSelectedUserId || !bulkSelectedProgramId) return;
+                    if (!bulkSelectedUserId) return;
 
                     setBulkMatching(true);
                     try {
                       await bulkMatchLegacyKhairatRecords({
                         legacy_record_ids: Array.from(selectedRecords),
                         user_id: bulkSelectedUserId,
-                        program_id: bulkSelectedProgramId,
+                        mosque_id: mosqueId,
                       });
 
                       toast.success(
@@ -1725,10 +1594,8 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                   }}
                   disabled={
                     !bulkSelectedUserId ||
-                    !bulkSelectedProgramId ||
                     bulkMatching ||
-                    loadingMembers ||
-                    loadingPrograms
+                    loadingMembers
                   }
                 >
                   {bulkMatching && (

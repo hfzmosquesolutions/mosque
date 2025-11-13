@@ -20,7 +20,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES, FEATURES } from '@/lib/utils';
@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const getNavigation = (hasAdminAccess: boolean, t: any) => {
+const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
   const baseNavigation = [
     {
       name: t('dashboard'),
@@ -128,10 +128,11 @@ export function AppSidebar() {
   const { mosqueId } = useUserMosque();
   const { user, signOut } = useAuth();
   const t = useTranslations('sidebar');
+  const locale = useLocale();
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [mosqueLoading, setMosqueLoading] = useState(false);
 
-  const navigation = getNavigation(hasAdminAccess, t);
+  const navigation = getNavigation(hasAdminAccess, t, locale);
 
   // Fetch mosque data when mosqueId is available
   useEffect(() => {

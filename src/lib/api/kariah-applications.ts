@@ -206,7 +206,7 @@ export async function submitKariahApplication(applicationData: {
 
   // Check if user is already a kariah member
   const { data: membership } = await supabase
-    .from('kariah_memberships')
+    .from('kariah_members')
     .select('id')
     .eq('user_id', user.user.id)
     .eq('mosque_id', mosque_id)
@@ -313,7 +313,7 @@ export async function reviewKariahApplication(reviewData: {
     });
 
     const { data: membershipData, error: membershipError } = await supabase
-      .from('kariah_memberships')
+      .from('kariah_members')
       .insert({
         user_id: application.user_id,
         mosque_id: application.mosque_id,
