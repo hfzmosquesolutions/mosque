@@ -425,7 +425,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                 <span>Joined {formatDate(application.created_at)}</span>
               </div>
               
-                {/* Action Button */}
+                {/* Action Buttons */}
                 <Button
                   size="sm"
                   variant="outline"
@@ -445,6 +445,26 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   {(application.status === 'approved' || application.status === 'active') ? 'Make Payment' : 'Pay Khairat'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
+                      window.open(`/mosques/${application.mosque.id}?openClaim=true`, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  disabled={
+                    application.status !== 'approved' && application.status !== 'active'
+                  }
+                  className={
+                    (application.status === 'approved' || application.status === 'active')
+                      ? "border-blue-300 text-blue-600 hover:bg-blue-50 w-full mt-2"
+                      : "border-gray-300 text-gray-400 cursor-not-allowed w-full mt-2"
+                  }
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {(application.status === 'approved' || application.status === 'active') ? 'Submit Claim' : 'Submit Claim'}
                 </Button>
                 <Button
                   size="sm"

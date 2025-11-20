@@ -152,82 +152,68 @@ export async function completeOnboarding(
       return { success: false, error: 'User ID mismatch' };
     }
 
-    // First, handle mosque creation or joining
+    // Handle mosque creation for admins
     let mosqueId: string | undefined;
 
-    if (onboardingData.accountType === 'admin') {
-      if (onboardingData.mosqueAction === 'create' && onboardingData.mosqueName) {
-        // Check if user already owns a mosque
-        const { data: existingMosque, error } = await supabase
-          .from('mosques')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
+    if (onboardingData.accountType === 'admin' && onboardingData.mosqueName) {
+      // Check if user already owns a mosque
+      const { data: existingMosque, error } = await supabase
+        .from('mosques')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error checking existing mosque:', error);
-          return { success: false, error: 'Failed to check existing mosque ownership' };
-        }
-
-        if (existingMosque) {
-          return { success: false, error: 'You can only create one mosque. You already own a mosque.' };
-        }
-
-        // Create new mosque with user_id as the owner
-        const { data: mosque, error: mosqueError } = await supabase
-          .from('mosques')
-          .insert({
-            name: onboardingData.mosqueName,
-            address: onboardingData.mosqueAddress,
-            address_line1: onboardingData.mosqueAddressData?.address_line1,
-            address_line2: onboardingData.mosqueAddressData?.address_line2,
-            city: onboardingData.mosqueAddressData?.city,
-            state: onboardingData.mosqueAddressData?.state,
-            postcode: onboardingData.mosqueAddressData?.postcode,
-            country: onboardingData.mosqueAddressData?.country,
-            user_id: userId, // Set the creator as the mosque owner
-            is_private: false, // Default to public profile
-            settings: {
-              enabled_services: [
-                'kariah_management',
-                'khairat_management', 
-                'organization_people',
-                'mosque_profile'
-              ],
-              kariah_registration: {
-                requirements: '',
-                benefits: '',
-                custom_message: ''
-              },
-              khairat_registration: {
-                requirements: '',
-                benefits: '',
-                custom_message: ''
-              }
-            }
-          })
-          .select()
-          .single();
-
-        if (mosqueError) {
-          console.error('Mosque creation error:', mosqueError);
-          return { success: false, error: `Failed to create mosque: ${mosqueError.message}` };
-        }
-
-        mosqueId = mosque.id;
-      } else if (onboardingData.mosqueAction === 'join' && onboardingData.existingMosqueId) {
-        mosqueId = onboardingData.existingMosqueId;
-
-        // Add user as admin of existing mosque
-        await supabase
-          .from('mosque_members')
-          .insert({
-            user_id: userId,
-            mosque_id: mosqueId,
-            role: 'admin',
-            assigned_by: userId,
-          });
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking existing mosque:', error);
+        return { success: false, error: 'Failed to check existing mosque ownership' };
       }
+
+      if (existingMosque) {
+        return { success: false, error: 'You can only create one mosque. You already own a mosque.' };
+      }
+
+      // Create new mosque with user_id as the owner
+      const { data: mosque, error: mosqueError } = await supabase
+        .from('mosques')
+        .insert({
+          name: onboardingData.mosqueName,
+          address: onboardingData.mosqueAddress,
+          address_line1: onboardingData.mosqueAddressData?.address_line1,
+          address_line2: onboardingData.mosqueAddressData?.address_line2,
+          city: onboardingData.mosqueAddressData?.city,
+          state: onboardingData.mosqueAddressData?.state,
+          postcode: onboardingData.mosqueAddressData?.postcode,
+          country: onboardingData.mosqueAddressData?.country,
+          user_id: userId, // Set the creator as the mosque owner
+          is_private: false, // Default to public profile
+          settings: {
+            enabled_services: [
+              'kariah_management',
+              'khairat_management', 
+              'organization_people',
+              'mosque_profile'
+            ],
+            kariah_registration: {
+              requirements: '',
+              benefits: '',
+              custom_message: ''
+            },
+            khairat_registration: {
+              requirements: '',
+              benefits: '',
+              custom_message: ''
+            }
+          }
+        })
+        .select()
+        .single();
+
+      if (mosqueError) {
+        console.error('Mosque creation error:', mosqueError);
+        return { success: false, error: `Failed to create mosque: ${mosqueError.message}` };
+      }
+
+      mosqueId = mosque.id;
     }
 
     // Update user profile with onboarding data (removed mosque_id)
@@ -514,6 +500,86 @@ export async function createKhairatContribution(
 /**
  * Get user's khairat contributions across all mosques
  */
+/**
+ * Get combined payment history including both legacy records and current contributions
+ */
+export async function getUserPaymentHistory(
+  userId: string,
+  mosqueId?: string
+): Promise<ApiResponse<any[]>> {
+  try {
+    // Fetch current contributions with mosque details (all statuses)
+    let contributionsQuery = supabase
+      .from('khairat_contributions')
+      .select(`
+        id,
+        amount,
+        contributed_at,
+        status,
+        payment_method,
+        payment_reference,
+        notes,
+        contributor_name,
+        mosque:mosques(
+          id,
+          name,
+          address
+        )
+      `)
+      .eq('contributor_id', userId);
+
+    if (mosqueId) {
+      contributionsQuery = contributionsQuery.eq('mosque_id', mosqueId);
+    }
+
+    const { data: contributions, error: contribError } = await contributionsQuery;
+
+    if (contribError) {
+      console.error('Error fetching contributions:', contribError);
+      throw new Error(contribError.message);
+    }
+
+    // Transform contributions and mark legacy records
+    const formattedContributions = (contributions || []).map((contrib: any) => {
+      const isLegacy = contrib.payment_method === 'legacy_record';
+      
+      return {
+        id: contrib.id,
+        amount: contrib.amount,
+        contributed_at: contrib.contributed_at,
+        status: contrib.status,
+        payment_method: contrib.payment_method,
+        payment_reference: contrib.payment_reference,
+        notes: contrib.notes,
+        contributor_name: contrib.contributor_name,
+        program: {
+          id: 'khairat',
+          name: isLegacy ? 'Legacy Khairat' : 'Khairat',
+          mosque: contrib.mosque,
+        },
+        mosque: contrib.mosque,
+        payment_type: isLegacy ? 'legacy' as const : 'current' as const,
+      };
+    });
+
+    // Sort by date
+    const sortedRecords = formattedContributions.sort(
+      (a, b) => new Date(b.contributed_at).getTime() - new Date(a.contributed_at).getTime()
+    );
+
+    return {
+      success: true,
+      data: sortedRecords,
+    };
+  } catch (error) {
+    console.error('Error fetching user payment history:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch payment history',
+    };
+  }
+}
+
 export async function getUserKhairatContributions(
   userId: string,
   limit = 20,

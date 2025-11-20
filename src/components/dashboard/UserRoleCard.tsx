@@ -17,10 +17,8 @@ interface UserProfile {
   phone: string;
   address: string;
   accountType: 'member' | 'admin';
-  mosqueAction?: string;
   mosqueName?: string;
   mosqueAddress?: string;
-  existingMosqueId?: string;
   email: string;
   completedAt: string;
 }
@@ -86,19 +84,6 @@ export function UserRoleCard() {
                 <Badge variant={getRoleBadgeVariant()}>{getRoleTitle()}</Badge>
               </div>
             </div>
-
-            {profile.accountType === 'admin' && profile.mosqueAction && (
-              <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Mosque Setup
-                </label>
-                <p className="text-slate-900 dark:text-slate-100 mt-1">
-                  {profile.mosqueAction === 'create'
-                    ? 'Created New Mosque'
-                    : 'Joined Existing Mosque'}
-                </p>
-              </div>
-            )}
 
             {profile.accountType === 'admin' && profile.mosqueName && (
               <div>

@@ -53,6 +53,12 @@ export default function Home() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const featuredMosques = useMemo(() => filteredMosques.slice(0, 6), [filteredMosques]);
+  const phrases = useMemo(
+    () => [t('heroPhrase1'), t('heroPhrase2'), t('heroPhrase3')],
+    [t]
+  );
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
     const fetchMosques = async () => {
@@ -73,6 +79,21 @@ export default function Home() {
     };
     fetchMosques();
   }, []);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const intervalId = setInterval(() => {
+      setIsFading(true);
+      timeoutId = setTimeout(() => {
+        setPhraseIndex((prev) => (prev + 1) % phrases.length);
+        setIsFading(false);
+      }, 200);
+    }, 3000);
+    return () => {
+      clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [phrases.length]);
 
   // Keep featured list static on homepage; searching redirects to listing page
 
@@ -101,7 +122,16 @@ export default function Home() {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link> */}
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              {t('heroTitle')}
+              <span
+                aria-live="polite"
+                className={[
+                  'inline-block min-h-[1.2em] transition-all duration-300 ease-out will-change-transform will-change-opacity',
+                  'motion-reduce:transition-none motion-reduce:transform-none',
+                  isFading ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0',
+                ].join(' ')}
+              >
+                {phrases[phraseIndex]}
+              </span>
             </h1>
             <p className="mt-2 text-base md:text-lg text-slate-600 dark:text-slate-400">
               {t('heroSubtitle')}
@@ -121,7 +151,7 @@ export default function Home() {
               role="search"
               aria-labelledby="search-label"
             >
-              <label id="search-label" htmlFor="hero-search" className="sr-only">Search mosques and services</label>
+              <label id="search-label" htmlFor="hero-search" className="sr-only">Search mosques/surau and services</label>
               <div className="relative" ref={searchContainerRef}>
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
                 <Input
@@ -224,7 +254,16 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
-              {/* Khairat */}
+              {/* Register Khairat */}
+              <Link href={`/${locale}/mosques?services=khairat_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-rose-50 text-rose-600 dark:bg-rose-900/30">
+                  <UserPlus className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-semibold">{t('registerKhairatShort')}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+              </Link>
+
+              {/* Pay Khairat */}
               <Link href={`/${locale}/mosques?services=khairat_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
                 <span className="rounded-full p-1 bg-purple-50 text-purple-600 dark:bg-purple-900/30">
                   <Heart className="h-3.5 w-3.5" />
@@ -239,6 +278,15 @@ export default function Home() {
                   <Building2 className="h-3.5 w-3.5" />
                 </span>
                 <span className="font-semibold">{t('mosqueInfo')}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+              </Link>
+
+              {/* Register Mosque */}
+              <Link href={`/${locale}/signup`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-semibold">{t('registerMosqueShort')}</span>
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
               </Link>
             </div>
@@ -382,15 +430,22 @@ export default function Home() {
             <Card className="border-slate-200/70 dark:border-slate-700/70">
               <CardHeader>
                 <div className="text-emerald-600 text-sm font-semibold">{t('step1')}</div>
-                <CardTitle>{t('signUp')}</CardTitle>
-                <CardDescription>{t('signUpDescription')}</CardDescription>
+                <CardTitle>{t('findMosque')}</CardTitle>
+                <CardDescription>{t('findMosqueDescription')}</CardDescription>
               </CardHeader>
             </Card>
             <Card className="border-slate-200/70 dark:border-slate-700/70">
               <CardHeader>
                 <div className="text-emerald-600 text-sm font-semibold">{t('step2')}</div>
-                <CardTitle>{t('useServices')}</CardTitle>
-                <CardDescription>{t('useServicesDescription')}</CardDescription>
+                <CardTitle>{t('registerKhairat')}</CardTitle>
+                <CardDescription>{t('registerKhairatDescription')}</CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="border-slate-200/70 dark:border-slate-700/70">
+              <CardHeader>
+                <div className="text-emerald-600 text-sm font-semibold">{t('step3')}</div>
+                <CardTitle>{t('makeKhairatPayment')}</CardTitle>
+                <CardDescription>{t('makeKhairatPaymentDescription')}</CardDescription>
               </CardHeader>
             </Card>
           </div>

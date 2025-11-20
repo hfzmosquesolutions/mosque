@@ -47,11 +47,9 @@ interface OnboardingData {
   accountType: 'member' | 'admin' | '';
 
   // Admin-specific fields
-  mosqueAction?: 'join' | 'create';
   mosqueName?: string;
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
-  existingMosqueId?: string;
 }
 
 function OnboardingContent() {
@@ -104,7 +102,6 @@ function OnboardingContent() {
                 const mosqueResponse = await getMosque(mosqueId);
                 if (mosqueResponse.success && mosqueResponse.data) {
                   const mosque = mosqueResponse.data;
-                  updatedData.mosqueAction = 'create'; // Assume they created it since they own it
                   updatedData.mosqueName = mosque.name;
                   updatedData.mosqueAddress = mosque.address || '';
                   
@@ -170,19 +167,13 @@ function OnboardingContent() {
         toast.error(t('selectAccountType'));
         return;
       }
-    } else if (step === 3) {
-      if (data.accountType === 'admin' && !data.mosqueAction) {
-        toast.error(t('selectMosqueOption'));
-        return;
-      }
-      if (
-        data.accountType === 'admin' &&
-        data.mosqueAction === 'create' &&
-        !data.mosqueName
-      ) {
-        toast.error(t('enterMosqueName'));
-        return;
-      }
+    } else if (
+      step === 3 &&
+      data.accountType === 'admin' &&
+      !data.mosqueName
+    ) {
+      toast.error(t('enterMosqueName'));
+      return;
     }
     setStep((prev) => prev + 1);
   };
@@ -207,15 +198,11 @@ function OnboardingContent() {
         address: data.address,
         icPassportNumber: data.icPassportNumber,
         accountType: data.accountType as 'member' | 'admin',
-        mosqueAction:
-          data.accountType === 'admin' ? data.mosqueAction : undefined,
         mosqueName: data.accountType === 'admin' ? data.mosqueName : undefined,
         mosqueAddress:
           data.accountType === 'admin' ? data.mosqueAddress : undefined,
         mosqueAddressData:
           data.accountType === 'admin' ? data.mosqueAddressData : undefined,
-        existingMosqueId:
-          data.accountType === 'admin' ? data.existingMosqueId : undefined,
       });
 
       if (result.success) {
@@ -362,92 +349,36 @@ function OnboardingContent() {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <Label>{t('whatWouldYouLikeToDo')}</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-              <Card
-                className={`cursor-pointer transition-all ${
-                  data.mosqueAction === 'join'
-                    ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
-                    : 'hover:shadow-md'
-                }`}
-                onClick={() => updateData('mosqueAction', 'join')}
-              >
-                <CardContent className="p-4 text-center">
-                  <Users className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
-                  <h4 className="font-medium mb-1">
-                    {t('joinExistingMosque')}
-                  </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    {t('joinExistingMosqueDescription')}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer transition-all ${
-                  data.mosqueAction === 'create'
-                    ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
-                    : 'hover:shadow-md'
-                }`}
-                onClick={() => updateData('mosqueAction', 'create')}
-              >
-                <CardContent className="p-4 text-center">
-                  <Building className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
-                  <h4 className="font-medium mb-1">{t('createNewMosque')}</h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    {t('createNewMosqueDescription')}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {data.mosqueAction === 'create' && (
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label htmlFor="mosqueName">{t('mosqueName')} *</Label>
-                <Input
-                  id="mosqueName"
-                  value={data.mosqueName || ''}
-                  onChange={(e) => updateData('mosqueName', e.target.value)}
-                  placeholder={t('enterMosqueName')}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <AddressForm
-                  value={data.mosqueAddressData || {
-                    address_line1: '',
-                    address_line2: '',
-                    city: '',
-                    state: '',
-                    postcode: '',
-                    country: 'Malaysia',
-                    full_address: '',
-                  }}
-                  onChange={updateMosqueAddressData}
-                  disabled={false}
-                  showFullAddress={false}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          )}
-
-          {data.mosqueAction === 'join' && (
-            <div className="mt-4">
-              <Label htmlFor="existingMosqueId">{t('mosqueId')}</Label>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="mosqueName">{t('mosqueName')} *</Label>
               <Input
-                id="existingMosqueId"
-                value={data.existingMosqueId || ''}
-                onChange={(e) => updateData('existingMosqueId', e.target.value)}
-                placeholder={t('enterMosqueId')}
+                id="mosqueName"
+                value={data.mosqueName || ''}
+                onChange={(e) => updateData('mosqueName', e.target.value)}
+                placeholder={t('enterMosqueName')}
                 className="mt-1"
               />
             </div>
-          )}
+
+            <div>
+              <AddressForm
+                value={data.mosqueAddressData || {
+                  address_line1: '',
+                  address_line2: '',
+                  city: '',
+                  state: '',
+                  postcode: '',
+                  country: 'Malaysia',
+                  full_address: '',
+                }}
+                onChange={updateMosqueAddressData}
+                disabled={false}
+                showFullAddress={false}
+                className="mt-1"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -498,7 +429,7 @@ function OnboardingContent() {
             <div>
               <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
-                {data.mosqueAction === 'create' && data.mosqueName && (
+                {data.mosqueName && (
                   <p>
                     <span className="text-slate-600 dark:text-slate-400">
                       {t('mosqueName')}:
@@ -506,15 +437,7 @@ function OnboardingContent() {
                     <span className="font-medium">{data.mosqueName}</span>
                   </p>
                 )}
-                {data.mosqueAction === 'join' && data.existingMosqueId && (
-                  <p>
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {t('mosqueId')}:
-                    </span>{' '}
-                    <span className="font-medium">{data.existingMosqueId}</span>
-                  </p>
-                )}
-                {data.mosqueAction === 'create' && data.mosqueAddressData && data.mosqueAddressData.address_line1 && (
+                {data.mosqueAddressData && data.mosqueAddressData.address_line1 && (
                   <div className="mt-2">
                     <p className="text-slate-600 dark:text-slate-400 mb-1">
                       {t('mosqueAddress')}:

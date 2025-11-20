@@ -62,6 +62,7 @@ import type {
 } from '@/types/database';
 import { ClaimsManagement } from '@/components/admin/ClaimsManagement';
 import { KhairatDataDashboard } from '@/components/admin/KhairatDataDashboard';
+import { LegacyDataManagement } from '@/components/admin/LegacyDataManagement';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
@@ -111,7 +112,7 @@ function KhairatContent() {
   // Handle URL tab parameter
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'applications', 'payments', 'claims'].includes(tabParam)) {
+    if (tabParam && ['overview', 'applications', 'payments', 'claims', 'legacy'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -307,6 +308,14 @@ function KhairatContent() {
           >
             Claims
           </TabsTrigger>
+          {hasAdminAccess && (
+            <TabsTrigger 
+              value="legacy" 
+              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+            >
+              Legacy Data
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" forceMount className="space-y-6 p-6">
@@ -723,8 +732,29 @@ function KhairatContent() {
           )}
         </TabsContent>
 
-      </Tabs>
+        {hasAdminAccess && (
+          <TabsContent value="legacy" forceMount className="space-y-6 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  Legacy Payment Records
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Import and manage historical payment records from previous systems
+                </p>
+              </div>
+            </div>
+            {mosqueId ? (
+              <LegacyDataManagement mosqueId={mosqueId} />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No mosque associated</p>
+              </div>
+            )}
+          </TabsContent>
+        )}
 
+      </Tabs>
 
       {!hasAdminAccess && (
         <KhairatContributionForm

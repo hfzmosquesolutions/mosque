@@ -22,7 +22,7 @@ import { UserApplicationsTable } from '@/components/khairat/UserApplicationsTabl
 import { Loading } from '@/components/ui/loading';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { KhairatContribution, Mosque, CreateKhairatClaim } from '@/types/database';
-import { getUserKhairatContributions, createClaim, searchMosques } from '@/lib/api';
+import { getUserPaymentHistory, createClaim, searchMosques } from '@/lib/api';
 import { getKariahMembers } from '@/lib/api/kariah-members';
 import { toast } from 'sonner';
 
@@ -33,9 +33,7 @@ function MyKhairatContent() {
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
   const [loading, setLoading] = useState(true);
-  const [userContributions, setUserContributions] = useState<
-    (KhairatContribution & { mosque: Mosque })[]
-  >([]);
+  const [userContributions, setUserContributions] = useState<any[]>([]);
   const [availableMosques, setAvailableMosques] = useState<Mosque[]>([]);
   const [loadingMosques, setLoadingMosques] = useState(false);
   const [activeTab, setActiveTab] = useState('my-mosques');
@@ -60,10 +58,10 @@ function MyKhairatContent() {
     if (!user) return;
     setLoading(true);
     try {
-      const contributionsResult = await getUserKhairatContributions(user.id);
-      setUserContributions(contributionsResult.data || []);
+      const paymentHistoryResult = await getUserPaymentHistory(user.id);
+      setUserContributions(paymentHistoryResult.data || []);
     } catch (e) {
-      console.error('Error fetching user khairat contributions', e);
+      console.error('Error fetching user payment history', e);
     } finally {
       setLoading(false);
     }

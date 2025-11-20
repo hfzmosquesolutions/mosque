@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
@@ -28,10 +28,6 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // Get the return URL from query parameters
-  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +35,7 @@ function LoginPageContent() {
     try {
       await signIn(email, password);
       toast.success(t('loginSuccess'));
-      router.push(returnUrl);
+      router.push('/dashboard');
     } catch (error: any) {
       toast.error(error?.message || t('loginError'));
     } finally {
@@ -49,7 +45,7 @@ function LoginPageContent() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const result = await signInWithGoogle(returnUrl);
+    const result = await signInWithGoogle();
     
     if (result.error) {
       toast.error(result.error);

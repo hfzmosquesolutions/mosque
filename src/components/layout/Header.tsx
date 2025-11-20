@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { locales, type Locale } from '@/i18n';
 
 export default function Header() {
@@ -30,10 +30,13 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const locale = useLocale() as Locale;
+  const tNavigation = useTranslations('navigation');
+  const tAuth = useTranslations('auth');
+  const tCommon = useTranslations('common');
 
   const languageNames: Record<Locale, string> = {
-    en: 'English',
-    ms: 'Bahasa Malaysia',
+    en: tCommon('english'),
+    ms: tCommon('malay'),
   };
 
   // Hide header on internal pages that have sidebar
@@ -91,7 +94,7 @@ export default function Header() {
                         href="/dashboard"
                         className={navigationMenuTriggerStyle()}
                       >
-                        Dashboard
+                        {tNavigation('dashboard')}
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                   </>
@@ -101,7 +104,15 @@ export default function Header() {
                     href="/mosques"
                     className={navigationMenuTriggerStyle()}
                   >
-                    Browse Mosques
+                    {tNavigation('browseMosques')}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href={`/${locale}/docs`}
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    {tNavigation('documentation')}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
@@ -150,7 +161,7 @@ export default function Header() {
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-sm text-slate-600 dark:text-slate-400 hidden lg:block">
-                        {user.email?.split('@')[0] || 'User'}
+                        {user.email?.split('@')[0] || tCommon('profile')}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
@@ -159,7 +170,7 @@ export default function Header() {
                       onClick={signOut}
                       className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                     >
-                      Sign Out
+                      {tAuth('signOut')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -167,7 +178,7 @@ export default function Header() {
                 <>
                   <Link href="/login">
                     <Button variant="ghost" size="sm">
-                      Login
+                      {tAuth('login')}
                     </Button>
                   </Link>
                   <Link href="/signup">
@@ -175,7 +186,7 @@ export default function Header() {
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700"
                     >
-                      Sign Up
+                      {tAuth('signup')}
                     </Button>
                   </Link>
                 </>
@@ -209,7 +220,15 @@ export default function Header() {
                   variant="ghost"
                   className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                 >
-                  Browse Mosques
+                  {tNavigation('browseMosques')}
+                </Button>
+              </Link>
+              <Link href={`/${locale}/docs`} onClick={() => setIsMobileMenuOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                >
+                  {tNavigation('documentation')}
                 </Button>
               </Link>
               {user && (
@@ -222,7 +241,7 @@ export default function Header() {
                       variant="ghost"
                       className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                     >
-                      Dashboard
+                      {tNavigation('dashboard')}
                     </Button>
                   </Link>
                 </>
@@ -285,14 +304,14 @@ export default function Header() {
                     size="sm"
                     className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                   >
-                    Sign Out
+                    {tAuth('signOut')}
                   </Button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" size="sm" className="w-full">
-                      Login
+                      {tAuth('login')}
                     </Button>
                   </Link>
                   <Link
@@ -303,7 +322,7 @@ export default function Header() {
                       size="sm"
                       className="w-full bg-emerald-600 hover:bg-emerald-700"
                     >
-                      Sign Up
+                      {tAuth('signup')}
                     </Button>
                   </Link>
                 </div>

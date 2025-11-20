@@ -575,7 +575,7 @@ export async function createLegacyKhairatRecords(data: {
 export async function matchLegacyKhairatRecords(data: {
   legacy_record_id: string;
   user_id: string;
-  program_id: string;
+  mosque_id: string;
 }) {
   const { data: user } = await supabase.auth.getUser();
   
@@ -583,10 +583,10 @@ export async function matchLegacyKhairatRecords(data: {
     throw new Error('User not authenticated');
   }
 
-  const { legacy_record_id, user_id, program_id } = data;
+  const { legacy_record_id, user_id, mosque_id } = data;
 
-  if (!legacy_record_id || !user_id || !program_id) {
-    throw new Error('Legacy record ID, user ID, and program ID are required');
+  if (!legacy_record_id || !user_id || !mosque_id) {
+    throw new Error('Legacy record ID, user ID, and mosque ID are required');
   }
 
   try {
@@ -599,7 +599,7 @@ export async function matchLegacyKhairatRecords(data: {
       body: JSON.stringify({
         legacy_record_id,
         user_id,
-        program_id
+        mosque_id
       })
     });
 
@@ -671,7 +671,7 @@ export async function unmatchLegacyKhairatRecords(data: {
 export async function bulkMatchLegacyKhairatRecords(data: {
   legacy_record_ids: string[];
   user_id: string;
-  program_id: string;
+  mosque_id: string;
 }) {
   const { data: user } = await supabase.auth.getUser();
   
@@ -679,10 +679,10 @@ export async function bulkMatchLegacyKhairatRecords(data: {
     throw new Error('User not authenticated');
   }
 
-  const { legacy_record_ids, user_id, program_id } = data;
+  const { legacy_record_ids, user_id, mosque_id } = data;
 
-  if (!legacy_record_ids || legacy_record_ids.length === 0 || !user_id || !program_id) {
-    throw new Error('Legacy record IDs, user ID, and program ID are required');
+  if (!legacy_record_ids || legacy_record_ids.length === 0 || !user_id || !mosque_id) {
+    throw new Error('Legacy record IDs, user ID, and mosque ID are required');
   }
 
   try {
@@ -695,7 +695,7 @@ export async function bulkMatchLegacyKhairatRecords(data: {
       body: JSON.stringify({
         legacy_record_ids,
         user_id,
-        program_id
+        mosque_id
       })
     });
 
