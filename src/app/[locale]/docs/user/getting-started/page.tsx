@@ -1,7 +1,6 @@
 'use client';
 
 import { DocsLayout } from '@/components/layout/DocsLayout';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DocLayout } from '@/components/docs/DocLayout';
 import { useTranslations } from 'next-intl';
 
@@ -9,8 +8,7 @@ export default function GettingStartedPage() {
   const t = useTranslations('docs.gettingStarted');
   
   return (
-    <ProtectedRoute>
-      <DocsLayout>
+    <DocsLayout>
         <DocLayout
           title={t('title')}
           description={t('description')}
@@ -130,7 +128,6 @@ export default function GettingStartedPage() {
           </div>
         </DocLayout>
       </DocsLayout>
-    </ProtectedRoute>
   );
 }
 

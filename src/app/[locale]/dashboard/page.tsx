@@ -67,7 +67,6 @@ function DashboardContent() {
   const [allContributions, setAllContributions] = useState<Contribution[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [followerCount, setFollowerCount] = useState<number>(0);
   const [membershipStats, setMembershipStats] = useState<any>(null);
   const [mosqueName, setMosqueName] = useState<string>('');
   const [mosqueData, setMosqueData] = useState<any>(null);
@@ -182,45 +181,36 @@ function DashboardContent() {
         setStats(statsData);
       }
 
-      // Fetch follower count based on user role
-      try {
-        if (isAdmin && mosqueId) {
-          // Fetch mosque data for admin users
-          try {
-            const mosqueResponse = await getMosque(mosqueId);
-            if (mosqueResponse.success && mosqueResponse.data) {
-              setMosqueData(mosqueResponse.data);
-              setMosqueName(mosqueResponse.data.name);
-            }
-          } catch (mosqueError) {
-            console.error('Error fetching mosque data:', mosqueError);
+      // Load mosque data and membership insights for admin users
+      if (isAdmin && mosqueId) {
+        // Fetch mosque data for admin users
+        try {
+          const mosqueResponse = await getMosque(mosqueId);
+          if (mosqueResponse.success && mosqueResponse.data) {
+            setMosqueData(mosqueResponse.data);
+            setMosqueName(mosqueResponse.data.name);
           }
-          
-          // Fetch membership statistics for admin users
-          try {
-            const membershipData = await getMembershipStatistics(mosqueId);
-            setMembershipStats(membershipData);
-          } catch (membershipError) {
-            console.error('Error fetching membership statistics:', membershipError);
-            setMembershipStats(null);
-          }
-
-          // Fetch khairat claims for admin users
-          try {
-            const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
-            setKhairatClaims(claimsData.data || []);
-          } catch (claimsError) {
-            console.error('Error fetching khairat claims:', claimsError);
-            setKhairatClaims([]);
-          }
-
-        } else if (user?.id) {
-          // For normal users, set follower count to 0
-          setFollowerCount(0);
+        } catch (mosqueError) {
+          console.error('Error fetching mosque data:', mosqueError);
         }
-      } catch (followerError) {
-        console.error('Error fetching follower count:', followerError);
-        setFollowerCount(0);
+        
+        // Fetch membership statistics for admin users
+        try {
+          const membershipData = await getMembershipStatistics(mosqueId);
+          setMembershipStats(membershipData);
+        } catch (membershipError) {
+          console.error('Error fetching membership statistics:', membershipError);
+          setMembershipStats(null);
+        }
+
+        // Fetch khairat claims for admin users
+        try {
+          const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
+          setKhairatClaims(claimsData.data || []);
+        } catch (claimsError) {
+          console.error('Error fetching khairat claims:', claimsError);
+          setKhairatClaims([]);
+        }
       }
 
     } catch (error) {
@@ -230,17 +220,31 @@ function DashboardContent() {
     }
   };
 
-  const totalContributed = (isAdmin ? allContributions : contributions)
-    .filter(contribution => contribution.status === 'completed')
-    .reduce((sum, contribution) => sum + contribution.amount, 0);
-  const recentContributions = (isAdmin ? allContributions : contributions)
-    .filter(contribution => contribution.status === 'completed')
-    .slice(0, 5);
+  const contributionSource = isAdmin ? allContributions : contributions;
+  const completedContributions = contributionSource.filter(
+    contribution => contribution.status === 'completed'
+  );
+  const totalContributed = completedContributions.reduce(
+    (sum, contribution) => sum + contribution.amount,
+    0
+  );
+  const completedContributionCount = completedContributions.length;
+  const recentContributions = completedContributions.slice(0, 5);
 
   // Calculate successful khairat claims count
   const successfulClaimsCount = khairatClaims.filter(claim => 
     claim.status === 'approved' || claim.status === 'paid'
   ).length;
+
+  const paymentSettings = (mosqueData?.settings || {}) as {
+    paymentsConfigured?: boolean;
+    paymentProvidersConfigured?: boolean;
+    hasPaymentProvider?: boolean;
+  };
+  const hasPaymentSetup =
+    Boolean(paymentSettings?.paymentsConfigured) ||
+    Boolean(paymentSettings?.paymentProvidersConfigured) ||
+    Boolean(paymentSettings?.hasPaymentProvider);
 
   // Handle notification click
   const handleNotificationClick = async (notification: any) => {
@@ -459,17 +463,17 @@ function DashboardContent() {
           />
 
           <StatsCard
-            title={t('followers')}
-            value={followerCount}
-            subtitle={t('mosqueFollowers')}
+            title={t('activeMembers')}
+            value={membershipStats?.active || 0}
+            subtitle={t('activeMembersSubtitle')}
             icon={Users}
             {...StatsCardColors.blue}
           />
 
           <StatsCard
-            title="Kariah Members"
+            title={t('totalMembers')}
             value={membershipStats?.total || 0}
-            subtitle="Registered kariah members"
+            subtitle={t('totalMembersSubtitle')}
             icon={Building2}
             {...StatsCardColors.purple}
           />
@@ -486,13 +490,11 @@ function DashboardContent() {
         {/* Admin Getting Started and Quick Actions - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AdminGettingStarted 
-            mosqueId={mosqueId}
-            totalMembers={membershipStats?.total || 0}
-            totalContributions={totalContributed}
-            totalClaims={successfulClaimsCount}
             hasMosqueProfile={!!mosqueData}
-            hasCreatedProgram={allContributions.length > 0}
-            hasPendingApplications={false} // TODO: Implement pending applications tracking
+            hasPaymentSetup={hasPaymentSetup}
+            applicationCount={membershipStats?.total || 0}
+            contributionCount={completedContributionCount}
+            claimCount={successfulClaimsCount}
           />
           <QuickActions />
         </div>

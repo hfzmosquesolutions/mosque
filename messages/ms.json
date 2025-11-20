@@ -75,7 +75,8 @@
     "dependents": "Tanggungan",
     "navigationLabel": "Navigasi",
     "systemLabel": "Sistem",
-    "websiteBrand": "Papan Pemuka"
+    "websiteBrand": "Papan Pemuka",
+    "documentation": "Dokumentasi"
   },
   "auth": {
     "login": "Log Masuk",
@@ -162,6 +163,9 @@
     "myProfile": "Profil Saya",
     "community": "Komuniti",
     "activeMembers": "Ahli Aktif",
+    "activeMembersSubtitle": "Ahli kariah yang aktif",
+    "totalMembers": "Jumlah Ahli",
+    "totalMembersSubtitle": "Ahli kariah berdaftar",
     "totalPayments": "Jumlah Pembayaran",
     "joinOurGrowingCommunity": "Sertai komuniti kami yang berkembang",
     "exploreMosques": "Terokai Masjid",
@@ -173,9 +177,48 @@
     "totalContributions": "Jumlah Sumbangan",
     "totalUsers": "Jumlah Pengguna",
     "totalMosques": "Jumlah Masjid",
+    "followers": "Pengikut",
+    "mosqueFollowers": "Pengikut Masjid",
     "viewAll": "Lihat Semua",
     "noData": "Tiada data tersedia",
     "loading": "Memuatkan data papan pemuka...",
+    "adminSetupGuideTitle": "Panduan Persediaan Admin",
+    "adminSetupGuideDescription": "Lengkapkan langkah ini untuk menyiapkan sistem pengurusan masjid anda sepenuhnya",
+    "stepsCompleted": "{completed}/{total} selesai",
+    "setupProgress": "Kemajuan Persediaan",
+    "adminSetupSteps": {
+      "setupMosqueProfile": {
+        "title": "Sediakan Profil Masjid",
+        "description": "Lengkapkan maklumat dan tetapan masjid anda"
+      },
+      "setupPayments": {
+        "title": "Konfigurasi Tetapan Pembayaran",
+        "description": "Tetapkan penyedia pembayaran dan tetapan bil"
+      },
+      "firstApplication": {
+        "title": "Terima Permohonan Pertama",
+        "description": "Lulus permohonan khairat pertama untuk bawa masuk ahli"
+      },
+      "firstPayment": {
+        "title": "Terima Bayaran Khairat Pertama",
+        "description": "Kutip sumbangan khairat pertama daripada komuniti"
+      },
+      "firstClaim": {
+        "title": "Proses Tuntutan Khairat Pertama",
+        "description": "Bantu ahli dengan meluluskan tuntutan khairat pertama"
+      }
+    },
+    "stepPriority": {
+      "high": "Kritis",
+      "medium": "Penting",
+      "low": "Pilihan"
+    },
+    "stepStatus": {
+      "completed": "Selesai",
+      "setupAction": "Sediakan"
+    },
+    "adminSetupCompletionTitle": "Hebat! Sistem pengurusan masjid anda telah siap sepenuhnya.",
+    "adminSetupCompletionDescription": "Anda kini bersedia untuk berkhidmat kepada komuniti dengan berkesan!",
     "manageKhairat": "Urus papan pemuka masjid dan program khairat anda",
     "accessDashboard": "Akses papan pemuka komuniti masjid anda",
     "admin": "Pentadbir",
@@ -209,7 +252,61 @@
     "customMessageLimitExceeded": "Mesej tersuai melebihi had 300 aksara",
     "maxCharacters": "Maksimum {limit} aksara",
     "serviceNotAvailable": "Perkhidmatan Tidak Tersedia",
-    "serviceRequiresAdmin": "Ciri ini memerlukan {serviceName} diaktifkan oleh pentadbir masjid."
+    "serviceRequiresAdmin": "Ciri ini memerlukan {serviceName} diaktifkan oleh pentadbir masjid.",
+    "quickActionsAdminDescription": "Urus masjid dan program komuniti anda",
+    "quickActionsMemberDescription": "Akses pantas ke tugas dan ciri lazim",
+    "newLabel": "Baru",
+    "quickActionsItems": {
+      "manageKhairat": {
+        "title": "Urus Khairat",
+        "description": "Urus sumbangan, tuntutan dan bayaran khairat"
+      },
+      "reviewClaims": {
+        "title": "Semak Tuntutan",
+        "description": "Proses dan luluskan tuntutan khairat",
+        "badge": "{count} baharu"
+      },
+      "updateMosqueProfile": {
+        "title": "Kemaskini Profil Masjid",
+        "description": "Pastikan maklumat masjid sentiasa terkini"
+      },
+      "manageOrganizationPeople": {
+        "title": "Urus Organisasi Masjid",
+        "description": "Tambah dan urus kakitangan, ahli jawatankuasa dan sukarelawan"
+      },
+      "viewAnalytics": {
+        "title": "Lihat Analitik",
+        "description": "Jejaki prestasi dan pandangan"
+      },
+      "accountSettings": {
+        "title": "Tetapan Akaun",
+        "description": "Konfigurasi tetapan pembayaran dan pemberitahuan"
+      },
+      "myMosque": {
+        "title": "Masjid Saya",
+        "description": "Lihat dan urus sambungan masjid anda"
+      },
+      "payKhairat": {
+        "title": "Bayar Khairat",
+        "description": "Lakukan sumbangan khairat untuk sokong komuniti"
+      },
+      "claimKhairat": {
+        "title": "Tuntut Khairat",
+        "description": "Hantar dan pantau tuntutan khairat anda"
+      },
+      "addDependents": {
+        "title": "Tambah Tanggungan",
+        "description": "Daftarkan ahli keluarga untuk perlindungan khairat"
+      },
+      "myProfile": {
+        "title": "Profil Saya",
+        "description": "Kemaskini maklumat peribadi dan tetapan anda"
+      },
+      "moreMosques": {
+        "title": "Masjid Lain",
+        "description": "Terokai masjid lain di kawasan anda"
+      }
+    }
   },
   "events": {
     "title": "Acara",
@@ -587,7 +684,7 @@
     "includesSurau": "Termasuk surau"
   },
   "onboarding": {
-    "fillRequiredFields": "Sila isi semua medan yang diperlukan",
+    "fillRequiredFields": "Sila isi semua butiran yang diperlukan",
     "selectAccountType": "Sila pilih jenis akaun",
     "selectMosqueOption": "Sila pilih pilihan masjid",
     "enterMosqueName": "Sila masukkan nama masjid",
@@ -626,6 +723,7 @@
     "createNewMosqueDescription": "Sediakan profil masjid baharu",
     "mosqueName": "Nama Masjid",
     "enterMosqueName": "Masukkan nama masjid",
+    "mosqueAddress": "Alamat Masjid",
     "mosqueAddressOptional": "Alamat Masjid (Pilihan)",
     "enterMosqueAddress": "Masukkan alamat masjid",
     "mosqueId": "ID Masjid",
@@ -641,7 +739,7 @@
     "logout": "Log Keluar",
     "welcomeToOurMosque": "Selamat Datang ke Masjid Kami",
     "stepOf": "Langkah {step} daripada {total}",
-    "setupAccount": "Mari sediakan akaun anda",
+    "setupAccount": "Sila tetapkan akaun anda",
     "back": "Kembali",
     "next": "Seterusnya",
     "completing": "Menyelesaikan...",
@@ -921,7 +1019,7 @@
       "urgent": "Mendesak"
     },
     "messages": {
-      "fillRequired": "Sila isi semua medan yang diperlukan",
+      "fillRequired": "Sila isi semua butiran yang diperlukan",
       "submitSuccess": "Tuntutan berjaya dihantar",
       "submitError": "Gagal menghantar tuntutan",
       "loadError": "Gagal memuatkan data tuntutan",
@@ -1848,6 +1946,31 @@
           "Analitik lanjutan",
           "Pilihan label putih",
           "Sokongan khusus"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "tagline": "Untuk masjid yang sedang berkembang",
+        "features": [
+          "Semua dalam Percuma",
+          "Pengurusan Khairat Kematian",
+          "Pengurusan ahli kariah",
+          "Acara & hebahan tanpa had",
+          "Penjejakan sumbangan lanjutan",
+          "Sokongan e-mel keutamaan"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Suite operasi lengkap",
+        "features": [
+          "Semua dalam Standard",
+          "Analitik & pelaporan lanjutan",
+          "Sokongan pelbagai masjid",
+          "Pemprosesan pembayaran terbina",
+          "Pengurus kejayaan khusus",
+          "Integrasi tersuai & akses API",
+          "Sokongan telefon keutamaan"
         ]
       }
     },

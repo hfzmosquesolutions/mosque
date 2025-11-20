@@ -1,7 +1,6 @@
 'use client';
 
 import { DocsLayout } from '@/components/layout/DocsLayout';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DocLayout } from '@/components/docs/DocLayout';
 import { useTranslations } from 'next-intl';
 
@@ -9,8 +8,7 @@ export default function KhairatPage() {
   const t = useTranslations('docs.khairat');
   
   return (
-    <ProtectedRoute>
-      <DocsLayout>
+    <DocsLayout>
         <DocLayout
           title={t('title')}
           description={t('description')}
@@ -135,6 +133,5 @@ export default function KhairatPage() {
           </div>
         </DocLayout>
       </DocsLayout>
-    </ProtectedRoute>
   );
 }

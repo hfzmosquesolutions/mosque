@@ -75,7 +75,8 @@
     "dependents": "Dependents",
     "navigationLabel": "Navigation",
     "systemLabel": "System",
-    "websiteBrand": "Dashboard"
+    "websiteBrand": "Dashboard",
+    "documentation": "Documentation"
   },
   "auth": {
     "login": "Login",
@@ -162,6 +163,9 @@
     "myProfile": "My Profile",
     "community": "Community",
     "activeMembers": "Active Members",
+    "activeMembersSubtitle": "Actively engaged kariah members",
+    "totalMembers": "Total Members",
+    "totalMembersSubtitle": "Registered kariah members",
     "totalPayments": "Total Payments",
     "joinOurGrowingCommunity": "Join our growing community",
     "exploreMosques": "Explore Mosques",
@@ -173,9 +177,48 @@
     "totalContributions": "Total Contributions",
     "totalUsers": "Total Users",
     "totalMosques": "Total Mosques",
+    "followers": "Followers",
+    "mosqueFollowers": "Mosque Followers",
     "viewAll": "View All",
     "noData": "No data available",
     "loading": "Loading dashboard data...",
+    "adminSetupGuideTitle": "Admin Setup Guide",
+    "adminSetupGuideDescription": "Complete these steps to fully set up your mosque management system",
+    "stepsCompleted": "{completed}/{total} completed",
+    "setupProgress": "Setup Progress",
+    "adminSetupSteps": {
+      "setupMosqueProfile": {
+        "title": "Setup Mosque Profile",
+        "description": "Complete your mosque information and settings"
+      },
+      "setupPayments": {
+        "title": "Configure Payment Settings",
+        "description": "Set up payment providers and billing settings"
+      },
+      "firstApplication": {
+        "title": "Receive First Application",
+        "description": "Approve your first khairat application to onboard members"
+      },
+      "firstPayment": {
+        "title": "Receive First Khairat Payment",
+        "description": "Collect your first khairat contribution from the community"
+      },
+      "firstClaim": {
+        "title": "Process First Khairat Claim",
+        "description": "Support members by approving your first khairat claim"
+      }
+    },
+    "stepPriority": {
+      "high": "Critical",
+      "medium": "Important",
+      "low": "Optional"
+    },
+    "stepStatus": {
+      "completed": "Completed",
+      "setupAction": "Setup"
+    },
+    "adminSetupCompletionTitle": "Excellent! Your mosque management system is fully set up.",
+    "adminSetupCompletionDescription": "You're now ready to serve your community effectively!",
     "serviceManagement": "Service Management",
     "enableServices": "Enable Services",
     "disableServices": "Disable Services",
@@ -193,7 +236,61 @@
     "customMessageLimitExceeded": "Custom message exceeds 300 character limit",
     "maxCharacters": "Maximum {limit} characters",
     "serviceNotAvailable": "Service Not Available",
-    "serviceRequiresAdmin": "This feature requires {serviceName} to be enabled by the mosque administrator."
+    "serviceRequiresAdmin": "This feature requires {serviceName} to be enabled by the mosque administrator.",
+    "quickActionsAdminDescription": "Manage your mosque and community programs",
+    "quickActionsMemberDescription": "Quick access to common tasks and features",
+    "newLabel": "New",
+    "quickActionsItems": {
+      "manageKhairat": {
+        "title": "Manage Khairat",
+        "description": "Oversee khairat contributions, claims, and payouts"
+      },
+      "reviewClaims": {
+        "title": "Review Claims",
+        "description": "Process and approve khairat claims",
+        "badge": "{count} new"
+      },
+      "updateMosqueProfile": {
+        "title": "Update Mosque Profile",
+        "description": "Keep your mosque information current"
+      },
+      "manageOrganizationPeople": {
+        "title": "Manage Organization People",
+        "description": "Add and manage mosque staff, board members, and volunteers"
+      },
+      "viewAnalytics": {
+        "title": "View Analytics",
+        "description": "Track performance and insights"
+      },
+      "accountSettings": {
+        "title": "Account Settings",
+        "description": "Configure payment and notification settings"
+      },
+      "myMosque": {
+        "title": "My Mosque",
+        "description": "View and manage your mosque connections"
+      },
+      "payKhairat": {
+        "title": "Pay Khairat",
+        "description": "Make khairat contributions to support your community"
+      },
+      "claimKhairat": {
+        "title": "Claim Khairat",
+        "description": "Submit and track your khairat claims"
+      },
+      "addDependents": {
+        "title": "Add Dependents",
+        "description": "Register family members for khairat coverage"
+      },
+      "myProfile": {
+        "title": "My Profile",
+        "description": "Update your personal information and settings"
+      },
+      "moreMosques": {
+        "title": "More Mosques",
+        "description": "Discover other mosques in your area"
+      }
+    }
   },
   "events": {
     "title": "Events",
@@ -598,6 +695,7 @@
     "createNewMosqueDescription": "Set up a new mosque profile",
     "mosqueName": "Mosque Name",
     "enterMosqueName": "Enter mosque name",
+    "mosqueAddress": "Mosque Address",
     "mosqueAddressOptional": "Mosque Address (Optional)",
     "enterMosqueAddress": "Enter mosque address",
     "mosqueId": "Mosque ID",
@@ -1806,6 +1904,31 @@
           "Advanced analytics",
           "White-label options",
           "Dedicated support"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "tagline": "Built for growing mosques",
+        "features": [
+          "Everything in Free",
+          "Khairat Kematian management",
+          "Kariah member management",
+          "Unlimited events & announcements",
+          "Advanced contribution tracking",
+          "Priority email support"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "Complete operations suite",
+        "features": [
+          "Everything in Standard",
+          "Advanced analytics & reporting",
+          "Multi-mosque support",
+          "Integrated payment processing",
+          "Dedicated success manager",
+          "Custom integrations & API access",
+          "Priority phone support"
         ]
       }
     },

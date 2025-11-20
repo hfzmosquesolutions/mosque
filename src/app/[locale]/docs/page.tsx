@@ -2,7 +2,6 @@
 
 import { useTranslations, useLocale } from 'next-intl';
 import { DocsLayout } from '@/components/layout/DocsLayout';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -93,8 +92,7 @@ export default function DocumentationPage() {
 
 
   return (
-    <ProtectedRoute>
-      <DocsLayout>
+    <DocsLayout>
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="space-y-2">
@@ -171,7 +169,6 @@ export default function DocumentationPage() {
           </Tabs>
         </div>
       </DocsLayout>
-    </ProtectedRoute>
   );
 }
 

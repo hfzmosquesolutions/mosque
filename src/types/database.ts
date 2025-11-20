@@ -416,11 +416,9 @@ export interface OnboardingData {
   address: string;
   icPassportNumber: string;
   accountType: UserAccountType | '';
-  mosqueAction?: 'join' | 'create';
   mosqueName?: string;
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
-  existingMosqueId?: string;
 }
 
 // Event creation/update form

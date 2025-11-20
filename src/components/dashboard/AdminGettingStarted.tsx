@@ -20,6 +20,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface Step {
   id: string;
@@ -32,60 +33,66 @@ interface Step {
 }
 
 interface AdminGettingStartedProps {
-  mosqueId: string | null;
-  totalMembers: number;
-  totalContributions: number;
-  totalClaims: number;
   hasMosqueProfile: boolean;
-  hasCreatedProgram: boolean;
-  hasPendingApplications: boolean;
+  hasPaymentSetup: boolean;
+  applicationCount: number;
+  contributionCount: number;
+  claimCount: number;
 }
 
 export function AdminGettingStarted({ 
-  mosqueId,
-  totalMembers,
-  totalContributions,
-  totalClaims,
   hasMosqueProfile = false,
-  hasCreatedProgram = false,
-  hasPendingApplications = false
+  hasPaymentSetup = false,
+  applicationCount = 0,
+  contributionCount = 0,
+  claimCount = 0,
 }: AdminGettingStartedProps) {
-  
+  const t = useTranslations('dashboard');
+
   const steps: Step[] = [
     {
       id: 'setup-mosque-profile',
-      title: 'Setup Mosque Profile',
-      description: 'Complete your mosque information and settings',
+      title: t('adminSetupSteps.setupMosqueProfile.title'),
+      description: t('adminSetupSteps.setupMosqueProfile.description'),
       icon: Building2,
       href: '/mosque-profile',
       completed: hasMosqueProfile,
       priority: 'high',
     },
     {
-      id: 'create-khairat-program',
-      title: 'Create Khairat Program',
-      description: 'Set up your first khairat program for the community',
-      icon: Heart,
-      href: '/khairat',
-      completed: hasCreatedProgram,
+      id: 'setup-payments',
+      title: t('adminSetupSteps.setupPayments.title'),
+      description: t('adminSetupSteps.setupPayments.description'),
+      icon: Settings,
+      href: '/settings',
+      completed: hasPaymentSetup,
       priority: 'high',
     },
     {
-      id: 'manage-claims',
-      title: 'Manage Khairat Claims',
-      description: 'Review and process khairat claims from members',
-      icon: FileText,
-      href: '/khairat?tab=claims',
-      completed: totalClaims === 0, // If no claims, consider it "completed" for now
+      id: 'first-application',
+      title: t('adminSetupSteps.firstApplication.title'),
+      description: t('adminSetupSteps.firstApplication.description'),
+      icon: Heart,
+      href: '/mosque-profile?tab=khairat-applications',
+      completed: applicationCount > 0,
       priority: 'medium',
     },
     {
-      id: 'setup-payments',
-      title: 'Configure Payment Settings',
-      description: 'Set up payment providers and billing settings',
-      icon: Settings,
-      href: '/settings',
-      completed: false, // This would need to be tracked
+      id: 'first-payment',
+      title: t('adminSetupSteps.firstPayment.title'),
+      description: t('adminSetupSteps.firstPayment.description'),
+      icon: DollarSign,
+      href: '/khairat',
+      completed: contributionCount > 0,
+      priority: 'medium',
+    },
+    {
+      id: 'first-claim',
+      title: t('adminSetupSteps.firstClaim.title'),
+      description: t('adminSetupSteps.firstClaim.description'),
+      icon: FileText,
+      href: '/khairat?tab=claims',
+      completed: claimCount > 0,
       priority: 'medium',
     },
     // events removed
@@ -111,11 +118,11 @@ export function AdminGettingStarted({
   const getPriorityText = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'Critical';
+        return t('stepPriority.high');
       case 'medium':
-        return 'Important';
+        return t('stepPriority.medium');
       case 'low':
-        return 'Optional';
+        return t('stepPriority.low');
       default:
         return '';
     }
@@ -127,21 +134,21 @@ export function AdminGettingStarted({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <CheckCircle className="h-4 w-4 text-emerald-600" />
-            Admin Setup Guide
+            {t('adminSetupGuideTitle')}
           </CardTitle>
           <Badge variant="outline" className="text-xs">
-            {completedSteps}/{totalSteps} completed
+            {t('stepsCompleted', { completed: completedSteps, total: totalSteps })}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Complete these steps to fully set up your mosque management system
+          {t('adminSetupGuideDescription')}
         </p>
       </CardHeader>
       <CardContent>
         {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-            <span>Setup Progress</span>
+            <span>{t('setupProgress')}</span>
             <span>{Math.round(progressPercentage)}%</span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -210,12 +217,12 @@ export function AdminGettingStarted({
                 <div className="flex-shrink-0">
                   {step.completed ? (
                     <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      Completed
+                      {t('stepStatus.completed')}
                     </Badge>
                   ) : (
                     <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
                       <Link href={step.href} className="flex items-center gap-1">
-                        Setup
+                        {t('stepStatus.setupAction')}
                         <ArrowRight className="h-3 w-3" />
                       </Link>
                     </Button>
@@ -232,10 +239,10 @@ export function AdminGettingStarted({
           <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
             <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
               <CheckCircle className="h-5 w-5" />
-              <span className="font-medium text-sm">Excellent! Your mosque management system is fully set up.</span>
+              <span className="font-medium text-sm">{t('adminSetupCompletionTitle')}</span>
             </div>
             <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
-              You're now ready to serve your community effectively!
+              {t('adminSetupCompletionDescription')}
             </p>
           </div>
         )}

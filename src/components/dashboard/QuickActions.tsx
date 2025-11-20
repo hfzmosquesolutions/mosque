@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useTranslations } from 'next-intl';
 
 interface QuickAction {
   id: string;
@@ -39,36 +40,38 @@ interface QuickAction {
 
 export function QuickActions() {
   const { isAdmin, mosqueId } = useUserRole();
+  const t = useTranslations('dashboard');
+
+  const getActionCopy = (key: string) => ({
+    title: t(`quickActionsItems.${key}.title`),
+    description: t(`quickActionsItems.${key}.description`),
+  });
 
   // Define quick actions based on user role
   const adminActions: QuickAction[] = [
     {
-      id: 'create-program',
-      title: 'Create Khairat Program',
-      description: 'Start a new khairat program for community members',
+      id: 'manage-khairat',
+      ...getActionCopy('manageKhairat'),
       icon: Heart,
       href: '/khairat',
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       iconColor: 'text-red-600 dark:text-red-400',
-      isNew: true,
     },
     {
       id: 'review-claims',
-      title: 'Review Claims',
-      description: 'Process and approve khairat claims',
+      ...getActionCopy('reviewClaims'),
       icon: FileText,
       href: '/khairat?tab=claims',
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       iconColor: 'text-green-600 dark:text-green-400',
-      badge: '5 new',
+      badge: t('quickActionsItems.reviewClaims.badge', { count: 5 }),
       badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     },
     {
       id: 'mosque-profile',
-      title: 'Update Mosque Profile',
-      description: 'Keep your mosque information current',
+      ...getActionCopy('updateMosqueProfile'),
       icon: Building2,
       href: '/mosque-profile',
       color: 'text-purple-600',
@@ -77,8 +80,7 @@ export function QuickActions() {
     },
     {
       id: 'organization-people',
-      title: 'Manage Organization People',
-      description: 'Add and manage mosque staff, board members, and volunteers',
+      ...getActionCopy('manageOrganizationPeople'),
       icon: Users,
       href: '/mosque-profile?tab=organization',
       color: 'text-indigo-600',
@@ -88,8 +90,7 @@ export function QuickActions() {
     },
     {
       id: 'analytics',
-      title: 'View Analytics',
-      description: 'Track performance and insights',
+      ...getActionCopy('viewAnalytics'),
       icon: TrendingUp,
       href: '/dashboard',
       color: 'text-orange-600',
@@ -98,8 +99,7 @@ export function QuickActions() {
     },
     {
       id: 'settings',
-      title: 'Account Settings',
-      description: 'Configure payment and notification settings',
+      ...getActionCopy('accountSettings'),
       icon: Settings,
       href: '/settings',
       color: 'text-gray-600',
@@ -111,8 +111,7 @@ export function QuickActions() {
   const memberActions: QuickAction[] = [
     {
       id: 'my-mosque',
-      title: 'My Mosque',
-      description: 'View and manage your mosque connections',
+      ...getActionCopy('myMosque'),
       icon: Building2,
       href: '/my-mosques',
       color: 'text-purple-600',
@@ -121,8 +120,7 @@ export function QuickActions() {
     },
     {
       id: 'pay-khairat',
-      title: 'Pay Khairat',
-      description: 'Make khairat contributions to support your community',
+      ...getActionCopy('payKhairat'),
       icon: Heart,
       href: '/my-mosques',
       color: 'text-red-600',
@@ -131,8 +129,7 @@ export function QuickActions() {
     },
     {
       id: 'claim-khairat',
-      title: 'Claim Khairat',
-      description: 'Submit and track your khairat claims',
+      ...getActionCopy('claimKhairat'),
       icon: FileText,
       href: '/my-mosques?tab=claims',
       color: 'text-orange-600',
@@ -141,8 +138,7 @@ export function QuickActions() {
     },
     {
       id: 'add-dependents',
-      title: 'Add Dependents',
-      description: 'Register family members for khairat coverage',
+      ...getActionCopy('addDependents'),
       icon: Users,
       href: '/dependents',
       color: 'text-blue-600',
@@ -151,8 +147,7 @@ export function QuickActions() {
     },
     {
       id: 'my-profile',
-      title: 'My Profile',
-      description: 'Update your personal information and settings',
+      ...getActionCopy('myProfile'),
       icon: UserCheck,
       href: '/profile',
       color: 'text-green-600',
@@ -161,8 +156,7 @@ export function QuickActions() {
     },
     {
       id: 'more-mosques',
-      title: 'More Mosques',
-      description: 'Discover other mosques in your area',
+      ...getActionCopy('moreMosques'),
       icon: Search,
       href: '/mosques',
       color: 'text-indigo-600',
@@ -178,12 +172,12 @@ export function QuickActions() {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Clock className="h-5 w-5 text-blue-600" />
-          Quick Actions
+          {t('quickActions')}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {isAdmin 
-            ? 'Manage your mosque and community programs' 
-            : 'Quick access to common tasks and features'
+            ? t('quickActionsAdminDescription') 
+            : t('quickActionsMemberDescription')
           }
         </p>
       </CardHeader>
@@ -202,7 +196,7 @@ export function QuickActions() {
                       variant="secondary" 
                       className="absolute -top-2 -right-2 text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 shadow-sm"
                     >
-                      New
+                      {t('newLabel')}
                     </Badge>
                   )}
                   
