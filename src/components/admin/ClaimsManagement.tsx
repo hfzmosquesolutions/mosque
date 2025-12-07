@@ -411,7 +411,64 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
           </div>
         </div>
       )}
-      {/* Summary cards removed to standardize with Payments tab visibility (overview only) */}
+
+      {/* Stats Cards - Matching Payments Design */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-900 dark:text-green-100">
+                Paid
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              {formatCurrency(
+                claims
+                  .filter(c => c.status === 'paid')
+                  .reduce((sum, c) => sum + (c.approved_amount || c.requested_amount), 0)
+              )}
+            </p>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              {stats.paid} {stats.paid === 1 ? 'claim' : 'claims'}
+            </p>
+          </div>
+
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <span className="font-medium text-yellow-900 dark:text-yellow-100">
+                Pending
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              {formatCurrency(
+                claims
+                  .filter(c => c.status === 'pending' || c.status === 'under_review')
+                  .reduce((sum, c) => sum + c.requested_amount, 0)
+              )}
+            </p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              {stats.pending + stats.under_review} {stats.pending + stats.under_review === 1 ? 'claim' : 'claims'}
+            </p>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                Total
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {stats.total}
+            </p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Total claims
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filters removed to standardize with payments table */}
 

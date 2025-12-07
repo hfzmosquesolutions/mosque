@@ -73,6 +73,7 @@ function DashboardContent() {
   const [khairatClaims, setKhairatClaims] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [pendingApplicationsCount, setPendingApplicationsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
@@ -203,6 +204,25 @@ function DashboardContent() {
           setMembershipStats(null);
         }
 
+        // Fetch pending membership applications count for admin users
+        try {
+          const { count: pendingCount, error: pendingError } = await supabase
+            .from('kariah_applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('mosque_id', mosqueId)
+            .eq('status', 'pending');
+
+          if (pendingError) {
+            console.error('Error fetching pending applications count:', pendingError);
+            setPendingApplicationsCount(0);
+          } else if (typeof pendingCount === 'number') {
+            setPendingApplicationsCount(pendingCount);
+          }
+        } catch (pendingError) {
+          console.error('Error fetching pending applications count:', pendingError);
+          setPendingApplicationsCount(0);
+        }
+
         // Fetch khairat claims for admin users
         try {
           const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
@@ -280,17 +300,17 @@ function DashboardContent() {
         // Fallback navigation based on type
         switch (notification.type) {
           case 'payment':
-            window.location.href = '/khairat';
+            window.location.href = '/payments';
             break;
           case 'application':
             if (isAdmin) {
               // Redirect to khairat applications
-              window.location.href = '/khairat?tab=applications';
+              window.location.href = '/applications';
             }
             break;
           case 'claim':
             if (isAdmin) {
-              window.location.href = '/khairat?tab=claims';
+              window.location.href = '/claims';
             }
             break;
           default:
@@ -463,9 +483,9 @@ function DashboardContent() {
           />
 
           <StatsCard
-            title={t('activeMembers')}
-            value={membershipStats?.active || 0}
-            subtitle={t('activeMembersSubtitle')}
+            title={t('newRegistrations')}
+            value={pendingApplicationsCount}
+            subtitle={t('newRegistrationsSubtitle')}
             icon={Users}
             {...StatsCardColors.blue}
           />

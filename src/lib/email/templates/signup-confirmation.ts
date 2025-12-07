@@ -139,7 +139,7 @@ export function generateSignupConfirmationTemplate({
   <div class="container">
     <div class="header">
       <h1>Confirm Your Signup</h1>
-      <p>Welcome to Kariah Masjid</p>
+      <p>Welcome to khairatkita</p>
     </div>
     
     <div class="content">
@@ -148,7 +148,7 @@ export function generateSignupConfirmationTemplate({
       </div>
       
       <div class="message">
-          <p>Thank you for joining Kariah Masjid! We're excited to have you as part of our digital ummah.</p>
+          <p>Thank you for joining khairatkita! We're excited to have you as part of our digital ummah.</p>
           
           <p>To complete your registration and start exploring all the features we offer, confirm your email address using the button below:</p>
         </div>
@@ -182,7 +182,7 @@ export function generateSignupConfirmationTemplate({
     <div class="footer">
         <p>If you have any questions, feel free to contact our support team.</p>
         <p style="margin-top: 10px;">Barakallahu feeki,<br><strong>${mosqueName} Team</strong></p>
-        <p style="margin-top: 15px; font-size: 12px; color: #94a3b8;">You're receiving this email because you recently created an account on kariahmasjid.com.</p>
+        <p style="margin-top: 15px; font-size: 12px; color: #94a3b8;">You're receiving this email because you recently created an account on khairatkita.com.</p>
       </div>
   </div>
 </body>

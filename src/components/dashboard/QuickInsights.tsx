@@ -55,7 +55,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
       title: 'Programs Need Attention',
       description: `${lowProgressPrograms.length} khairat programs have low contribution progress.`,
       action: 'Review Programs',
-      href: '/khairat',
+      href: '/applications',
       priority: 'medium' as const,
     });
   }
@@ -69,7 +69,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
         stats.monthly_khairat_contributions
       )} collected.`,
       action: 'View Programs',
-      href: '/khairat',
+      href: '/payments',
       priority: 'low' as const,
     });
   } else if (stats.monthly_khairat_contributions === 0) {
@@ -79,7 +79,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
       description:
         'No khairat contributions received this month. Consider promoting active programs.',
       action: 'Review Programs',
-      href: '/khairat',
+      href: '/payments',
       priority: 'high' as const,
     });
   }
@@ -91,7 +91,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
       title: 'Start Your First Khairat Program',
       description: 'Create khairat programs to help community members in need.',
       action: 'Create Program',
-      href: '/khairat',
+      href: '/applications',
       priority: 'medium' as const,
     });
   }

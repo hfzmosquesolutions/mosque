@@ -5,7 +5,7 @@ export interface ResetPasswordEmailData {
 
 export function generateResetPasswordEmail({
   confirmationUrl,
-  mosqueName = 'Kariah Masjid'
+  mosqueName = 'khairatkita'
 }: ResetPasswordEmailData): string {
   return `
 <!DOCTYPE html>
@@ -137,7 +137,7 @@ export function generateResetPasswordEmail({
   <div class="container">
     <div class="header">
       <h1>Reset Your Password</h1>
-      <p>Kariah Masjid</p>
+      <p>khairatkita</p>
     </div>
     
     <div class="content">
@@ -146,7 +146,7 @@ export function generateResetPasswordEmail({
       </div>
       
       <div class="message">
-        <p>We received a request to reset your password for your Kariah Masjid account.</p>
+        <p>We received a request to reset your password for your khairatkita account.</p>
         
         <p>To proceed with updating your password, use the secure link below:</p>
       </div>
@@ -180,7 +180,7 @@ export function generateResetPasswordEmail({
     <div class="footer">
       <p>If you have any questions, feel free to contact our support team.</p>
       <p style="margin-top: 10px;">Barakallahu feeki,<br><strong>${mosqueName} Team</strong></p>
-      <p style="margin-top: 15px; font-size: 12px; color: #94a3b8;">You're receiving this email because a password reset was requested for your account on kariahmasjid.com.</p>
+      <p style="margin-top: 15px; font-size: 12px; color: #94a3b8;">You're receiving this email because a password reset was requested for your account on khairatkita.com.</p>
     </div>
   </div>
 </body>

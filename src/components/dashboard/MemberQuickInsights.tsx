@@ -44,7 +44,7 @@ export function MemberQuickInsights({
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       action: 'Contribute Now',
-      href: '/khairat',
+      href: '/payments',
       show: contributionsCount === 0,
     },
     {

@@ -138,11 +138,11 @@ export function ShareProfileButton({
       ctx.fillStyle = '#374151';
       ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('www.kariahmasjid.com', canvasWidth / 2, qrY + qrSize + 30);
+      ctx.fillText('www.khairatkita.com', canvasWidth / 2, qrY + qrSize + 30);
 
       ctx.fillStyle = '#6B7280';
       ctx.font = '12px Arial';
-      ctx.fillText('Powered by Kariah Masjid', canvasWidth / 2, qrY + qrSize + 50);
+      ctx.fillText('Powered by khairatkita', canvasWidth / 2, qrY + qrSize + 50);
 
       const pngFile = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
@@ -228,10 +228,10 @@ export function ShareProfileButton({
               {/* Branding Text */}
               <div className="mt-3 sm:mt-4 text-center">
                 <p className="text-xs sm:text-sm font-medium text-gray-700">
-                  www.kariahmasjid.com
+                  www.khairatkita.com
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Powered by Kariah Masjid
+                  Powered by khairatkita
                 </p>
               </div>
             </div>

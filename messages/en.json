@@ -164,6 +164,8 @@
     "community": "Community",
     "activeMembers": "Active Members",
     "activeMembersSubtitle": "Actively engaged kariah members",
+    "newRegistrations": "New Registrations",
+    "newRegistrationsSubtitle": "Pending membership applications",
     "totalMembers": "Total Members",
     "totalMembersSubtitle": "Registered kariah members",
     "totalPayments": "Total Payments",
@@ -242,8 +244,12 @@
     "newLabel": "New",
     "quickActionsItems": {
       "manageKhairat": {
-        "title": "Manage Khairat",
-        "description": "Oversee khairat contributions, claims, and payouts"
+        "title": "Manage Registrations",
+        "description": "Review and approve khairat membership applications"
+      },
+      "managePayments": {
+        "title": "Payment Records",
+        "description": "View and track all khairat payment records"
       },
       "reviewClaims": {
         "title": "Review Claims",
@@ -575,7 +581,7 @@
     "ctaDescription": "We're currently in beta development focusing on khairat management. Contact us if you're interested in testing our platform",
     "ctaNoCredit": "Beta access • Paid service • Currently in development",
     "brandTagline": "Empowering mosques with modern digital solutions.",
-    "brandName": "Kariah Masjid",
+    "brandName": "khairatkita",
     "heroTitle": "Connect with Your Local Mosque",
     "heroSubtitle": "Find mosques and surau nearby. Manage khairat online.",
     "heroPhrase1": "Find your local mosque",
@@ -1793,6 +1799,9 @@
     "events": "Events",
     "contributions": "Contributions",
     "khairat": "Khairat",
+    "applications": "Applications",
+    "payments": "Payments",
+    "legacyData": "Legacy Data",
     "myMosques": "My Mosques",
     "kariahApplication": "Kariah Registration",
     "mosqueProfile": "Mosque Profile",
@@ -2051,10 +2060,10 @@
     "readGuide": "Read Guide",
     "backToDocs": "Back to Docs",
     "about": {
-      "title": "About KariahMasjid",
+      "title": "About khairatkita",
       "description": "Learn about the platform and its features",
-      "whatIs": "What is KariahMasjid?",
-      "whatIsContent1": "KariahMasjid is a modern digital platform designed to help mosques digitize their management operations and connect with their communities. The name \"Kariah Masjid\" refers to the mosque community - the congregation of members who regularly attend and support their local mosque.",
+      "whatIs": "What is khairatkita?",
+      "whatIsContent1": "khairatkita is a modern digital platform designed to help mosques digitize their management operations and connect with their communities. The name \"khairatkita\" refers to our collective welfare - the community of members who regularly contribute and support those in need.",
       "whatIsContent2": "Our platform provides comprehensive tools for mosque administrators to manage welfare programs (khairat), handle member registrations, process payments, and maintain accurate records - all in one centralized, easy-to-use system.",
       "mission": "Our Mission",
       "missionIntro": "We aim to modernize mosque operations by providing digital solutions that:",
@@ -2092,9 +2101,9 @@
       "understandingKhairat2": "Provides financial assistance to families facing difficulties",
       "understandingKhairat3": "Maintains transparency in fund management",
       "understandingKhairat4": "Keeps accurate records of all contributions and distributions",
-      "understandingKhairatContent2": "Through KariahMasjid, mosques can digitize their khairat programs, making it easier for members to contribute and for administrators to manage the funds.",
+      "understandingKhairatContent2": "Through khairatkita, mosques can digitize their khairat programs, making it easier for members to contribute and for administrators to manage the funds.",
       "platformStatus": "Platform Status",
-      "platformStatusContent1": "Beta Platform: KariahMasjid is currently in beta testing phase. We are continuously improving the platform based on feedback from mosques and community members.",
+      "platformStatusContent1": "Beta Platform: khairatkita is currently in beta testing phase. We are continuously improving the platform based on feedback from mosques and community members.",
       "platformStatusContent2": "Core features are being tested and refined. If you encounter any issues or have suggestions, please contact support.",
       "gettingStarted": "Getting Started",
       "forCommunityMembers": "For Community Members",
@@ -2150,7 +2159,7 @@
       "needHelpContent": "If you encounter any issues or have questions, please refer to the other documentation pages or contact support."
     },
     "guides": {
-      "aboutTitle": "About KariahMasjid",
+      "aboutTitle": "About khairatkita",
       "aboutDesc": "Learn about the platform and its features",
       "gettingStartedTitle": "Getting Started",
       "gettingStartedDesc": "Learn how to create an account and navigate the platform",

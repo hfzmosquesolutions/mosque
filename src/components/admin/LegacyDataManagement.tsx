@@ -51,7 +51,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import {
   Search,
@@ -820,36 +819,53 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Matching Payments Design */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatsCard
-            title={t('stats.totalRecords')}
-            value={stats.total_records}
-            subtitle={`${stats.matched_records} matched, ${stats.unmatched_records} unmatched`}
-            icon={FileText}
-            {...StatsCardColors.slate}
-          />
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-900 dark:text-green-100">
+                Total Amount
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              {formatCurrency(stats.total_amount)}
+            </p>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              {formatCurrency(stats.matched_amount)} matched
+            </p>
+          </div>
 
-          <StatsCard
-            title={t('stats.totalAmount')}
-            value={formatCurrency(stats.total_amount)}
-            subtitle={`${formatCurrency(stats.matched_amount)} matched`}
-            icon={DollarSign}
-            {...StatsCardColors.emerald}
-          />
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-yellow-600" />
+              <span className="font-medium text-yellow-900 dark:text-yellow-100">
+                Unmatched
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              {stats.unmatched_records}
+            </p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              {stats.unmatched_records} {stats.unmatched_records === 1 ? 'record' : 'records'}
+            </p>
+          </div>
 
-          <StatsCard
-            title={t('stats.matchRate')}
-            value={`${stats.total_records > 0
-              ? Math.round(
-                  (stats.matched_records / stats.total_records) * 100
-                )
-              : 0}%`}
-            subtitle={`${stats.matched_records} of ${stats.total_records} records`}
-            icon={Users}
-            {...StatsCardColors.blue}
-          />
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                Total
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {stats.total_records}
+            </p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Total records
+            </p>
+          </div>
         </div>
       )}
 
