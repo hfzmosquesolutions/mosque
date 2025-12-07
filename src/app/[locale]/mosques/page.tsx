@@ -596,7 +596,7 @@ export default function MosquesPage() {
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="h-10 w-10 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700 flex-shrink-0">
                                   <Image
-                                    src={(mosque.logo_url || '/icon-kariah-masjid.png') as string}
+                                    src={(mosque.logo_url || '/icon-khairatkita.png') as string}
                                     alt={`${mosque.name} logo`}
                                     width={40}
                                     height={40}

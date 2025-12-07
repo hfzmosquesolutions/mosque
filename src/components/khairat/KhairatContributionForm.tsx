@@ -635,26 +635,28 @@ export function KhairatContributionForm({
                     </div>
                   )}
 
-                  {/* Manual Payment Options */}
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label
-                      htmlFor="cash"
-                      className="flex items-center gap-3 cursor-pointer flex-1"
-                    >
-                      <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-                        <Banknote className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium">
-                          {t('makePaymentDialog.cashPayment')}
+                  {/* Manual Payment Options - Hide cash for public mosque */}
+                  {!isMosqueFixed && (
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label
+                        htmlFor="cash"
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                          <Banknote className="h-4 w-4 text-green-600" />
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {t('makePaymentDialog.cashPaymentDescription')}
+                        <div>
+                          <div className="font-medium">
+                            {t('makePaymentDialog.cashPayment')}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t('makePaymentDialog.cashPaymentDescription')}
+                          </div>
                         </div>
-                      </div>
-                    </Label>
-                  </div>
+                      </Label>
+                    </div>
+                  )}
                 </RadioGroup>
               )}
 

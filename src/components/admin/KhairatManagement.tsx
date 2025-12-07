@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/select';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -94,7 +93,6 @@ export function KhairatManagement({
   const [stats, setStats] = useState<ManagementStats | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all'); // 'all', 'applications', 'memberships'
   const [selectedMember, setSelectedMember] = useState<KhairatMember | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | null>(null);
@@ -412,15 +410,12 @@ export function KhairatManagement({
   ];
 
   const filteredMembers = members.filter(member => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch =
+      !searchTerm ||
       member.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.ic_passport_number?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = typeFilter === 'all' || 
-      (typeFilter === 'applications' && ['pending', 'approved', 'rejected', 'under_review', 'withdrawn'].includes(member.status)) ||
-      (typeFilter === 'memberships' && ['active', 'inactive', 'suspended'].includes(member.status));
 
-    return matchesSearch && matchesType;
+    return matchesSearch;
   });
 
   if (loading) {
@@ -431,39 +426,75 @@ export function KhairatManagement({
     );
   }
 
+  const totalApplications = stats ? stats.applications.pending + stats.applications.approved + stats.applications.rejected + stats.applications.withdrawn : 0;
+  const pendingApplications = stats?.applications.pending || 0;
+  const totalMembers = stats ? stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended : 0;
+  const activeMembers = stats?.memberships.active || 0;
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - Matching Payments Design */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Total Applications"
-            value={stats.applications.pending + stats.applications.approved + stats.applications.rejected + stats.applications.withdrawn}
-            icon={FileText}
-            subtitle="All applications"
-            {...StatsCardColors.blue}
-          />
-          <StatsCard
-            title="Pending"
-            value={stats.applications.pending.toString()}
-            icon={Clock}
-            subtitle="Awaiting review"
-            {...StatsCardColors.orange}
-          />
-          <StatsCard
-            title="Active Members"
-            value={stats.memberships.active.toString()}
-            icon={UserCheck}
-            subtitle="Active members"
-            {...StatsCardColors.emerald}
-          />
-          <StatsCard
-            title="Total Members"
-            value={stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended}
-            icon={Users}
-            subtitle="All members"
-            {...StatsCardColors.slate}
-          />
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                Total Applications
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              {totalApplications}
+            </p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              All applications
+            </p>
+          </div>
+
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <span className="font-medium text-yellow-900 dark:text-yellow-100">
+                Pending
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              {pendingApplications}
+            </p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              Awaiting review
+            </p>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-900 dark:text-green-100">
+                Active Members
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              {activeMembers}
+            </p>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              Active members
+            </p>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-900/20 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-slate-600" />
+              <span className="font-medium text-slate-900 dark:text-slate-100">
+                Total Members
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {totalMembers}
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              All members
+            </p>
+          </div>
         </div>
       )}
 
@@ -473,22 +504,12 @@ export function KhairatManagement({
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or IC/Passport..."
+              placeholder="Search by name or IC/Passport…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
             />
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Records</SelectItem>
-              <SelectItem value="applications">Applications</SelectItem>
-              <SelectItem value="memberships">Members</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />

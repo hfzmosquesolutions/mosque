@@ -373,7 +373,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700 flex-shrink-0">
                   <Image
-                    src={application.mosque?.logo_url || '/icon-kariah-masjid.png'}
+                    src={application.mosque?.logo_url || '/icon-khairatkita.png'}
                     alt={`${application.mosque?.name} logo`}
                     width={40}
                     height={40}
@@ -523,7 +523,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                      <div className="flex items-center gap-3">
                        <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
                          <Image
-                           src={selectedMember.mosque?.logo_url || '/icon-kariah-masjid.png'}
+                           src={selectedMember.mosque?.logo_url || '/icon-khairatkita.png'}
                            alt={`${selectedMember.mosque?.name} logo`}
                            width={48}
                            height={48}

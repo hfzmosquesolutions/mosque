@@ -60,11 +60,25 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
   // For admin users, only show the core features
   if (hasAdminAccess) {
     baseNavigation.push({
-      name: t('khairat'),
-      href: '/khairat',
-      icon: HandHeart,
+      name: t('applications'),
+      href: '/applications',
+      icon: FileText,
     });
-    // Claims are now managed inside Khairat page tabs
+    baseNavigation.push({
+      name: t('payments'),
+      href: '/payments',
+      icon: CreditCard,
+    });
+    baseNavigation.push({
+      name: t('claims.title'),
+      href: '/claims',
+      icon: FileText,
+    });
+    baseNavigation.push({
+      name: t('legacyData'),
+      href: '/legacy',
+      icon: Database,
+    });
     baseNavigation.push({
       name: t('mosqueProfile'),
       href: '/mosque-profile',
@@ -85,7 +99,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
     if (FEATURES.CONTRIBUTIONS_ENABLED) {
       baseNavigation.push({
         name: t('contributions'),
-        href: '/khairat',
+        href: '/payments',
         icon: HandHeart,
       });
     }
@@ -165,9 +179,9 @@ export function AppSidebar() {
           <div className="flex items-center gap-2 px-2 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors cursor-pointer">
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
               <Image
-                src={mosque?.logo_url || '/icon-kariah-masjid.png'}
+                src={mosque?.logo_url || '/icon-khairatkita.png'}
                 alt={
-                  mosque?.name ? `${mosque.name} Logo` : 'Kariah Masjid Logo'
+                  mosque?.name ? `${mosque.name} Logo` : 'khairatkita Logo'
                 }
                 width={32}
                 height={32}
@@ -176,7 +190,7 @@ export function AppSidebar() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold">
-                {mosqueLoading ? '...' : mosque?.name || 'Kariah Masjid'}
+                {mosqueLoading ? '...' : mosque?.name || 'khairatkita'}
               </span>
               <span className="truncate text-xs text-sidebar-foreground/70">
                 {adminLoading

@@ -361,7 +361,7 @@ export default function Home() {
                         {mosque ? (
                           <div className="h-9 w-9 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700">
                             <Image
-                              src={(mosque.logo_url || '/icon-kariah-masjid.png') as string}
+                              src={(mosque.logo_url || '/icon-khairatkita.png') as string}
                               alt={`${mosque.name} logo`}
                               width={36}
                               height={36}
@@ -710,8 +710,8 @@ export default function Home() {
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
               <Image
-                src="/logo-kariah-masjid.png"
-                alt="Kariah Masjid Logo"
+                src="/logo-khairatkita.png"
+                alt="khairatkita Logo"
                 width={128}
                 height={32}
                 className="rounded-md"

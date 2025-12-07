@@ -47,10 +47,10 @@ function MyKhairatContent() {
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
   });
 
-  // If admin, redirect them to the admin Khairat page
+  // If admin, redirect them to the admin Khairat applications page
   useEffect(() => {
     if (!adminLoading && hasAdminAccess) {
-      router.replace('/khairat');
+      router.replace('/applications');
     }
   }, [adminLoading, hasAdminAccess, router]);
 
@@ -265,7 +265,7 @@ function MyKhairatContent() {
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
                           <img
-                            src={mosque.logo_url || '/icon-kariah-masjid.png'}
+                            src={mosque.logo_url || '/icon-khairatkita.png'}
                             alt={`${mosque.name} logo`}
                             className="h-full w-full object-cover"
                           />

@@ -42,8 +42,10 @@ export default function Header() {
   // Hide header on internal pages that have sidebar
   const internalPages = [
     '/dashboard',
-    '/khairat',
+    '/applications',
+    '/payments',
     '/claims',
+    '/legacy',
     '/mosque-profile',
     '/billing',
     '/settings',
@@ -74,8 +76,8 @@ export default function Header() {
           <Link href="/" className="hover:opacity-80 transition-opacity">
             <span className="flex items-center">
               <Image
-                src="/logo-kariah-masjid.png"
-                alt="Kariah Masjid Logo"
+                src="/logo-khairatkita.png"
+                alt="khairatkita Logo"
                 width={160}
                 height={40}
                 className="rounded-md"

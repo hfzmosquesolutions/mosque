@@ -183,11 +183,11 @@ export default function MosqueProfilePage() {
   // Set page title immediately and update when mosque name loads
   useEffect(() => {
     if (loading) {
-      document.title = 'Loading... - Kariah Masjid';
+      document.title = 'Loading... - khairatkita';
     } else if (mosque?.name) {
-      document.title = `${mosque.name} - Kariah Masjid`;
+      document.title = `${mosque.name} - khairatkita`;
     } else if (error) {
-      document.title = 'Mosque Not Found - Kariah Masjid';
+      document.title = 'Mosque Not Found - khairatkita';
     }
   }, [loading, mosque?.name, error]);
 

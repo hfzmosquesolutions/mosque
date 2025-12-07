@@ -102,6 +102,7 @@
     "secureAndTrusted": "Platform Selamat & Dipercayai",
     "signIn": "Log Masuk",
     "emailAddress": "Alamat Emel",
+    "signingIn": "Sedang log masuk...",
     "signInToDashboard": "Log Masuk ke Papan Pemuka",
     "sslSecured": "Dilindungi SSL",
     "orContinueWith": "Atau teruskan dengan",
@@ -164,6 +165,8 @@
     "community": "Komuniti",
     "activeMembers": "Ahli Aktif",
     "activeMembersSubtitle": "Ahli kariah yang aktif",
+    "newRegistrations": "Pendaftaran Baru",
+    "newRegistrationsSubtitle": "Permohonan keahlian belum diproses",
     "totalMembers": "Jumlah Ahli",
     "totalMembersSubtitle": "Ahli kariah berdaftar",
     "totalPayments": "Jumlah Pembayaran",
@@ -258,8 +261,12 @@
     "newLabel": "Baru",
     "quickActionsItems": {
       "manageKhairat": {
-        "title": "Urus Khairat",
-        "description": "Urus sumbangan, tuntutan dan bayaran khairat"
+        "title": "Urus Pendaftaran",
+        "description": "Semak dan luluskan permohonan keahlian khairat"
+      },
+      "managePayments": {
+        "title": "Rekod Pembayaran",
+        "description": "Lihat dan jejak semua rekod pembayaran khairat"
       },
       "reviewClaims": {
         "title": "Semak Tuntutan",
@@ -280,7 +287,7 @@
       },
       "accountSettings": {
         "title": "Tetapan Akaun",
-        "description": "Konfigurasi tetapan pembayaran dan pemberitahuan"
+        "description": "Urus tetapan akaun, pembayaran dan pemberitahuan"
       },
       "myMosque": {
         "title": "Masjid Saya",
@@ -583,7 +590,7 @@
     "ctaTitle": "Berminat untuk Ujian Beta?",
     "ctaDescription": "Kami sedang dalam pembangunan beta yang memfokuskan pengurusan khairat. Hubungi kami jika berminat untuk menguji platform kami",
     "ctaNoCredit": "Akses beta • Perkhidmatan berbayar • Sedang dalam pembangunan",
-    "brandName": "Kariah Masjid",
+    "brandName": "khairatkita",
     "brandTagline": "Memperkasakan masjid dengan penyelesaian digital moden.",
     "featuresDescription": "Segala yang anda perlukan untuk mengurus masjid anda dengan cekap dan melibatkan komuniti anda secara berkesan",
     "roleBasedPermissions": "Kebenaran berdasarkan peranan",
@@ -1834,6 +1841,9 @@
     "events": "Acara",
     "contributions": "Sumbangan",
     "khairat": "Khairat",
+    "applications": "Permohonan",
+    "payments": "Pembayaran",
+    "legacyData": "Data Warisan",
     "myMosques": "Masjid Saya",
     "kariahApplication": "Pendaftaran Kariah",
     "mosqueProfile": "Profil Masjid",
@@ -2060,7 +2070,7 @@
     "readGuide": "Baca Panduan",
     "backToDocs": "Kembali ke Dokumentasi",
     "guides": {
-      "aboutTitle": "Mengenai KariahMasjid",
+      "aboutTitle": "Mengenai khairatkita",
       "aboutDesc": "Ketahui tentang platform dan ciri-cirinya",
       "gettingStartedTitle": "Mula Menggunakan",
       "gettingStartedDesc": "Pelajari cara membuat akaun dan menavigasi platform",
@@ -2086,10 +2096,10 @@
       "legacyDataDesc": "Import dan padankan rekod sejarah"
     },
     "about": {
-      "title": "Mengenai KariahMasjid",
+      "title": "Mengenai khairatkita",
       "description": "Ketahui tentang platform dan ciri-cirinya",
-      "whatIs": "Apakah KariahMasjid?",
-      "whatIsContent1": "KariahMasjid adalah platform digital moden yang direka untuk membantu masjid mendigitalkan operasi pengurusan mereka dan berhubung dengan komuniti mereka. Nama \"Kariah Masjid\" merujuk kepada komuniti masjid - jemaah ahli yang kerap menghadiri dan menyokong masjid tempatan mereka.",
+      "whatIs": "Apakah khairatkita?",
+      "whatIsContent1": "khairatkita adalah platform digital moden yang direka untuk membantu masjid mendigitalkan operasi pengurusan mereka dan berhubung dengan komuniti mereka. Nama \"khairatkita\" merujuk kepada kebajikan bersama kita - komuniti ahli yang kerap menyumbang dan menyokong mereka yang memerlukan.",
       "whatIsContent2": "Platform kami menyediakan alat komprehensif untuk pentadbir masjid untuk mengurus program kebajikan (khairat), mengendalikan pendaftaran ahli, memproses pembayaran, dan mengekalkan rekod yang tepat - semuanya dalam satu sistem terpusat yang mudah digunakan.",
       "mission": "Misi Kami",
       "missionIntro": "Kami bertujuan untuk memodenkan operasi masjid dengan menyediakan penyelesaian digital yang:",
@@ -2127,9 +2137,9 @@
       "understandingKhairat2": "Menyediakan bantuan kewangan kepada keluarga yang menghadapi kesukaran",
       "understandingKhairat3": "Mengekalkan ketelusan dalam pengurusan dana",
       "understandingKhairat4": "Mengekalkan rekod yang tepat tentang semua sumbangan dan pengagihan",
-      "understandingKhairatContent2": "Melalui KariahMasjid, masjid boleh mendigitalkan program khairat mereka, memudahkan ahli untuk menyumbang dan pentadbir untuk mengurus dana.",
+      "understandingKhairatContent2": "Melalui khairatkita, masjid boleh mendigitalkan program khairat mereka, memudahkan ahli untuk menyumbang dan pentadbir untuk mengurus dana.",
       "platformStatus": "Status Platform",
-      "platformStatusContent1": "Platform Beta: KariahMasjid sedang dalam fasa ujian beta. Kami sentiasa memperbaiki platform berdasarkan maklum balas daripada masjid dan ahli komuniti.",
+      "platformStatusContent1": "Platform Beta: khairatkita sedang dalam fasa ujian beta. Kami sentiasa memperbaiki platform berdasarkan maklum balas daripada masjid dan ahli komuniti.",
       "platformStatusContent2": "Ciri teras sedang diuji dan diperhalusi. Jika anda menghadapi sebarang masalah atau mempunyai cadangan, sila hubungi sokongan.",
       "gettingStarted": "Mula Menggunakan",
       "forCommunityMembers": "Untuk Ahli Komuniti",

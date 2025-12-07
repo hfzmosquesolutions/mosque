@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Kariah Masjid - Connect with Your Local Mosque',
+  title: 'khairatkita - Connect with Your Local Mosque',
   description:
     'Discover mosques in your area, stay updated with events, and strengthen your connection with the community.',
 };
