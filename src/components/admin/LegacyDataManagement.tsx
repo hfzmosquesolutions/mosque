@@ -1284,8 +1284,13 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                                 selectedRecordForMatch.ic_passport_number
                             );
 
+                        // Filter out members without user_id (can't match without user account)
+                        const membersWithUserId = filteredMembers.filter(
+                          (member) => member.user_id != null
+                        );
+
                         // Sort members with IC matches first
-                        const sortedMembers = [...filteredMembers].sort(
+                        const sortedMembers = [...membersWithUserId].sort(
                           (a, b) => {
                             const aIsMatch =
                               a.ic_passport_number ===
@@ -1325,7 +1330,7 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                               }`}
                             >
                               <RadioGroupItem
-                                value={member.user_id}
+                                value={member.user_id!}
                                 id={member.id}
                                 className="mt-1"
                               />
@@ -1548,8 +1553,10 @@ export function LegacyDataManagement({ mosqueId }: LegacyDataManagementProps) {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {mosqueMembers.map((member) => (
-                        <SelectItem key={member.id} value={member.user_id}>
+                      {mosqueMembers
+                        .filter((member) => member.user_id != null)
+                        .map((member) => (
+                        <SelectItem key={member.id} value={member.user_id!}>
                           <div className="flex flex-col">
                             <span className="font-medium">
                               {member.user?.full_name}
