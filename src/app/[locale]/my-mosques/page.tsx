@@ -30,10 +30,10 @@ function MyMosquesContent() {
     return tab === 'claims' || tab === 'payments' ? tab : 'my-mosques';
   });
 
-  // If admin, redirect them to the admin Khairat applications page
+  // If admin, redirect them to the admin Khairat members page
   useEffect(() => {
     if (!adminLoading && hasAdminAccess) {
-      router.replace('/applications');
+      router.replace('/members');
     }
   }, [adminLoading, hasAdminAccess, router]);
 

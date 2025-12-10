@@ -213,7 +213,7 @@ export interface MosqueKhairatSettings {
 
 export interface KhairatMember {
   id: string;
-  user_id: string;
+  user_id?: string | null; // Optional - can be NULL for members without accounts
   mosque_id: string;
   ic_passport_number?: string;
   application_reason?: string;
@@ -222,14 +222,20 @@ export interface KhairatMember {
   reviewed_by?: string;
   reviewed_at?: string;
   joined_date?: string;
+  membership_number?: string;
   notes?: string;
+  // Direct member data (used when user_id is NULL)
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   created_at: string;
   updated_at: string;
   user?: {
     id: string;
     full_name: string;
     phone?: string;
-  };
+  } | null;
   mosque?: {
     id: string;
     name: string;
@@ -767,7 +773,8 @@ export type ClaimPriority = 'low' | 'medium' | 'high' | 'urgent';
 // Khairat Claims interfaces
 export interface KhairatClaim {
   id: string;
-  claimant_id: string;
+  claimant_id?: string; // Optional for backward compatibility, prefer khairat_member_id
+  khairat_member_id?: string; // Reference to khairat_members table
   mosque_id: string;
   title: string;
   description: string;
@@ -799,7 +806,8 @@ export interface ClaimDocument {
 
 // Extended interfaces with relations
 export interface KhairatClaimWithDetails extends KhairatClaim {
-  claimant?: UserProfile;
+  khairat_member?: KhairatMember; // Primary source for member data
+  claimant?: UserProfile; // Fallback for backward compatibility
   mosque?: Mosque;
   program?: KhairatProgram;
   documents?: ClaimDocument[];

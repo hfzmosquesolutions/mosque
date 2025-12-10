@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -22,6 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const isInitialLoad = useRef(true);
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
     // Get initial session
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setSession(session);
         setUser(session?.user ?? null);
+        previousUserId.current = session?.user?.id ?? null;
       }
       setLoading(false);
     };
@@ -45,15 +48,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUserId = session?.user?.id ?? null;
+      const wasSignedIn = previousUserId.current !== null;
+      const isSignedIn = currentUserId !== null;
+      const isActualSignIn = !wasSignedIn && isSignedIn;
+      const isActualSignOut = wasSignedIn && !isSignedIn;
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      if (event === 'SIGNED_IN') {
+      // Mark initial load as complete after processing the first event
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false;
+        previousUserId.current = currentUserId;
+        return; // Don't show toast for initial session restoration
+      }
+
+      // Only show toast messages for actual auth events
+      if (event === 'SIGNED_IN' && isActualSignIn) {
         toast.success('Successfully signed in!');
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' && isActualSignOut) {
         toast.success('Successfully signed out!');
       }
+
+      previousUserId.current = currentUserId;
     });
 
     return () => {

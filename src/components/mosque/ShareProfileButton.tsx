@@ -38,6 +38,7 @@ interface ShareProfileButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg';
   className?: string;
+  iconOnly?: boolean;
 }
 
 export function ShareProfileButton({
@@ -45,6 +46,7 @@ export function ShareProfileButton({
   variant = 'outline',
   size = 'default',
   className = '',
+  iconOnly = false,
 }: ShareProfileButtonProps) {
   const t = useTranslations('mosqueProfile');
   const [copied, setCopied] = useState(false);
@@ -161,8 +163,8 @@ export function ShareProfileButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant={variant} size={size} className={className}>
-            <Share2 className="h-4 w-4 mr-2" />
-            {t('shareProfile')}
+            <Share2 className={`h-4 w-4 ${iconOnly ? '' : 'mr-2'}`} />
+            {!iconOnly && t('shareProfile')}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 sm:w-56">

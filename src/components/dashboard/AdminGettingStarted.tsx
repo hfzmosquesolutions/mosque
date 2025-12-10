@@ -64,7 +64,7 @@ export function AdminGettingStarted({
       title: t('adminSetupSteps.setupPayments.title'),
       description: t('adminSetupSteps.setupPayments.description'),
       icon: Settings,
-      href: '/settings',
+      href: '/payments?openModal=true',
       completed: hasPaymentSetup,
       priority: 'high',
     },

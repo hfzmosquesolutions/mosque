@@ -111,11 +111,15 @@ export async function POST(
       .eq('id', id)
       .select(`
         *,
-        claimant:user_profiles!claimant_id(
+        khairat_member:khairat_members!khairat_member_id(
           id,
           full_name,
           phone,
-          ic_passport_number
+          ic_passport_number,
+          email,
+          address,
+          membership_number,
+          status
         ),
         program:contribution_programs(
           id,

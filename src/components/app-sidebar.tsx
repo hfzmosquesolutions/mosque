@@ -3,7 +3,6 @@
 import {
   Calendar,
   Home,
-  Settings,
   HandHeart,
   User,
   Building,
@@ -16,6 +15,7 @@ import {
   FileText,
   CreditCard,
   UserCheck,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
+const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId?: string | null) => {
   const baseNavigation = [
     {
       name: t('dashboard'),
@@ -60,8 +60,8 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
   // For admin users, only show the core features
   if (hasAdminAccess) {
     baseNavigation.push({
-      name: t('applications'),
-      href: '/applications',
+      name: t('members'),
+      href: '/members',
       icon: FileText,
     });
     baseNavigation.push({
@@ -74,16 +74,25 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string) => {
       href: '/claims',
       icon: FileText,
     });
-    baseNavigation.push({
-      name: t('legacyData'),
-      href: '/legacy',
-      icon: Database,
-    });
+    // Legacy data page hidden for now
+    // baseNavigation.push({
+    //   name: t('legacyData'),
+    //   href: '/legacy',
+    //   icon: Database,
+    // });
     baseNavigation.push({
       name: t('mosqueProfile'),
       href: '/mosque-profile',
       icon: Building,
     });
+    // Add public mosque profile link for admin users
+    if (mosqueId) {
+      baseNavigation.push({
+        name: t('viewPublicProfile'),
+        href: `/mosques/${mosqueId}`,
+        icon: ExternalLink,
+      });
+    }
   } else {
     // For regular users, show community features
     // Events removed
@@ -146,7 +155,7 @@ export function AppSidebar() {
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [mosqueLoading, setMosqueLoading] = useState(false);
 
-  const navigation = getNavigation(hasAdminAccess, t, locale);
+  const navigation = getNavigation(hasAdminAccess, t, locale, mosqueId);
 
   // Fetch mosque data when mosqueId is available
   useEffect(() => {
@@ -246,42 +255,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>{t('system')}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminLoading ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton disabled>
-                    <span className="flex items-center gap-2">
-                      <div className="size-4 bg-sidebar-accent rounded animate-pulse" />
-                      <div className="h-4 w-16 bg-sidebar-accent rounded animate-pulse" />
-                    </span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.includes('/settings')}
-                    tooltip="Settings"
-                    className={pathname.includes('/settings') ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
-                  >
-                    <Link href="/settings">
-                      <span className="flex items-center gap-2">
-                        <Settings className="size-4" />
-                        <span>{t('settings')}</span>
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
@@ -325,12 +298,6 @@ export function AppSidebar() {
                   align="end"
                   sideOffset={4}
                 >
-                  <DropdownMenuItem asChild className="gap-2">
-                    <Link href="/settings">
-                      <Settings className="h-4 w-4" />
-                      <span>{t('settings')}</span>
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={signOut}
                     className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"

@@ -65,6 +65,7 @@ interface MosqueMembership {
   created_at: string;
   updated_at: string;
   admin_notes?: string;
+  membership_number?: string;
   mosque?: {
     id: string;
     name: string;
@@ -103,6 +104,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
         created_at: member.created_at,
         updated_at: member.updated_at,
         admin_notes: member.admin_notes,
+        membership_number: member.membership_number,
         mosque: member.mosque,
         type: 'khairat' as const
       })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -122,6 +124,59 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
 
   const getStatusBadge = (application: MosqueMembership) => {
     return getSingleStatusBadge(application.status);
+  };
+
+  const getStatusBadgeInline = (status: string) => {
+    switch (status) {
+      case 'active':
+        return (
+          <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50/80 dark:border-emerald-700 dark:text-emerald-200 dark:bg-emerald-900/40 text-xs">
+            Active
+          </Badge>
+        );
+      case 'approved':
+        return (
+          <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50/80 dark:border-green-700 dark:text-green-200 dark:bg-green-900/40 text-xs">
+            Approved
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="border-yellow-300 text-yellow-700 bg-yellow-50/80 dark:border-yellow-700 dark:text-yellow-200 dark:bg-yellow-900/40 text-xs">
+            Pending
+          </Badge>
+        );
+      case 'under_review':
+        return (
+          <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50/80 dark:border-blue-700 dark:text-blue-200 dark:bg-blue-900/40 text-xs">
+            Under Review
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50/80 dark:border-red-700 dark:text-red-200 dark:bg-red-900/40 text-xs">
+            Rejected
+          </Badge>
+        );
+      case 'withdrawn':
+        return (
+          <Badge variant="outline" className="border-gray-300 text-gray-700 bg-gray-50/80 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-900/40 text-xs">
+            Withdrawn
+          </Badge>
+        );
+      case 'inactive':
+        return (
+          <Badge variant="outline" className="border-gray-300 text-gray-700 bg-gray-50/80 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-900/40 text-xs">
+            Inactive
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="text-xs">
+            {status}
+          </Badge>
+        );
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -300,15 +355,15 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
   };
 
   const canWithdraw = (status: string) => {
-    return ['pending', 'under_review'].includes(status);
+    return ['under_review', 'approved', 'active'].includes(status);
   };
 
   const canDelete = (status: string) => {
-    return ['rejected', 'withdrawn'].includes(status);
+    return ['pending', 'rejected', 'withdrawn'].includes(status);
   };
 
   const canWithdrawMembership = (status: string) => {
-    return status === 'approved';
+    return false; // Merged into canWithdraw
   };
 
   const formatDate = (dateString: string) => {
@@ -414,15 +469,33 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                 </Button>
               </div>
               
-                {/* Status */}
-                <div className="mb-3">
-                  {getStatusBadge(application)}
+              {/* Application/Membership Status - Always show */}
+              <div 
+                className="mb-3 p-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md cursor-default"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                      {application.status === 'active' || application.status === 'approved' ? 'Member ID' : 'Application Status'}
+                    </span>
+                    {getStatusBadgeInline(application.status)}
+                  </div>
+                  {application.membership_number && (application.status === 'active' || application.status === 'approved') ? (
+                    <>
+                      <span className="text-base font-mono font-semibold text-emerald-700 dark:text-emerald-400 select-all">
+                        {application.membership_number}
+                      </span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400">
+                        Joined {formatDate(application.created_at)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                      Applied {formatDate(application.created_at)}
+                    </span>
+                  )}
                 </div>
-              
-              {/* Join Date */}
-              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-4">
-                <Calendar className="h-4 w-4 mr-2" />
-                <span>Joined {formatDate(application.created_at)}</span>
               </div>
               
                 {/* Action Buttons */}
@@ -543,20 +616,25 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</label>
-                        <div className="mt-1">
-                          {getStatusBadge(selectedMember)}
-                        </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Applied Date</label>
-                    <div className="mt-1 text-sm text-slate-900 dark:text-white">
-                      {formatDate(selectedMember.created_at)}
+                {/* Member ID - Show in modal for active/approved members */}
+                {selectedMember.membership_number && (selectedMember.status === 'active' || selectedMember.status === 'approved') && (
+                  <div className="p-3 bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-md cursor-default">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">Member ID</label>
+                        <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50/80 dark:border-emerald-700 dark:text-emerald-200 dark:bg-emerald-900/40">
+                          {selectedMember.status === 'active' ? 'Active' : 'Approved'}
+                        </Badge>
+                      </div>
+                      <div className="text-lg font-mono font-semibold text-emerald-700 dark:text-emerald-400 select-all">
+                        {selectedMember.membership_number}
+                      </div>
+                      <div className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                        Joined {formatDate(selectedMember.created_at)}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 {selectedMember.admin_notes && (
                   <div>
@@ -580,21 +658,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                     className="border-orange-300 text-orange-600 hover:bg-orange-50"
                   >
                     <X className="h-4 w-4 mr-2" />
-                    Withdraw Application
-                  </Button>
-                )}
-                
-                {canWithdrawMembership(selectedMember.status) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowManagementModal(false);
-                      setShowWithdrawDialog(true);
-                    }}
-                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Leave Khairat
+                    {(selectedMember.status === 'approved' || selectedMember.status === 'active') ? 'Leave Khairat' : 'Withdraw Application'}
                   </Button>
                 )}
                 

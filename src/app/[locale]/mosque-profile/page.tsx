@@ -643,7 +643,7 @@ function MosqueProfileContent() {
                       <div className="pt-4 border-t">
                         <Button variant="outline" className="w-full" asChild>
                           <a
-                            href="/applications"
+                            href="/members"
                             className="flex items-center gap-2"
                           >
                             <Settings className="h-4 w-4" />

@@ -42,13 +42,12 @@ export default function Header() {
   // Hide header on internal pages that have sidebar
   const internalPages = [
     '/dashboard',
-    '/applications',
+    '/members',
     '/payments',
     '/claims',
     '/legacy',
     '/mosque-profile',
     '/billing',
-    '/settings',
     '/profile',
     '/dependents',
     '/my-mosques',

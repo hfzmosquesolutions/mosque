@@ -12,6 +12,11 @@ export interface KhairatMemberCreateData {
   mosque_id: string;
   ic_passport_number?: string;
   application_reason?: string;
+  // Member data fields (collected for all users)
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 export interface KhairatMemberUpdateData {
@@ -34,10 +39,12 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
     .from('khairat_members')
     .select(`
       *,
-      user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
       mosque:mosques(id, name, logo_url, banner_url, address)
     `)
     .order('created_at', { ascending: false });
+  
+  // Using direct fields from khairat_members table (full_name, phone, email, address)
+  // instead of joining with user_profiles
 
   // Apply filters
   if (filters.mosque_id) {
@@ -72,7 +79,6 @@ export async function getKhairatMemberById(memberId: string) {
     .from('khairat_members')
     .select(`
       *,
-      user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
       mosque:mosques(id, name)
     `)
     .eq('id', memberId)
@@ -94,7 +100,15 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
     throw new Error('Authentication required');
   }
 
-  const { mosque_id, ic_passport_number, application_reason } = applicationData;
+  const { 
+    mosque_id, 
+    ic_passport_number, 
+    application_reason,
+    full_name,
+    phone,
+    email,
+    address
+  } = applicationData;
 
   // Get all existing records for this user and mosque
   const { data: existingRecords } = await supabase
@@ -135,6 +149,10 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
           status: 'pending',
           ic_passport_number: ic_passport_number || null,
           application_reason: application_reason || null,
+          full_name: full_name || null,
+          phone: phone || null,
+          email: email || null,
+          address: address || null,
           admin_notes: null, // Clear any admin notes from previous rejection
           reviewed_by: null, // Clear reviewer info
           reviewed_at: null, // Clear review date
@@ -161,6 +179,10 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
       mosque_id,
       ic_passport_number: ic_passport_number || null,
       application_reason: application_reason || null,
+      full_name: full_name || null,
+      phone: phone || null,
+      email: email || null,
+      address: address || null,
       status: 'pending'
     })
     .select(`
@@ -498,16 +520,10 @@ export async function deleteKhairatMember(memberId: string) {
     throw new Error('Authentication required');
   }
 
-  // Check if user is mosque admin or system admin
-  const { data: userProfile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.user.id)
-    .single();
-
+  // Get the member record to check ownership and status
   const { data: member } = await supabase
     .from('khairat_members')
-    .select('mosque_id')
+    .select('mosque_id, user_id, status')
     .eq('id', memberId)
     .single();
 
@@ -515,18 +531,44 @@ export async function deleteKhairatMember(memberId: string) {
     throw new Error('Khairat member not found');
   }
 
+  // Check if user is the owner of this record
+  const isOwner = member.user_id === user.user.id;
+  
+  // Check if user is mosque admin
   const { data: mosqueAdmin } = await supabase
     .from('mosques')
     .select('user_id')
     .eq('id', member.mosque_id)
     .single();
 
-  const isAdmin = userProfile?.role === 'admin';
   const isMosqueAdmin = mosqueAdmin?.user_id === user.user.id;
 
-  if (!isAdmin && !isMosqueAdmin) {
+  // Check if user is system admin
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.user.id)
+    .single();
+
+  const isSystemAdmin = userProfile?.role === 'admin';
+
+  // Allow deletion if:
+  // 1. User is the owner AND status is deletable (pending, rejected, withdrawn)
+  // 2. User is mosque admin
+  // 3. User is system admin
+  const deletableStatuses = ['pending', 'rejected', 'withdrawn'];
+  const canDeleteAsOwner = isOwner && deletableStatuses.includes(member.status);
+
+  if (!canDeleteAsOwner && !isMosqueAdmin && !isSystemAdmin) {
+    if (isOwner) {
+      throw new Error(`You can only delete applications with status: ${deletableStatuses.join(', ')}`);
+    }
     throw new Error('Forbidden: Only mosque admins or system admins can delete members');
   }
+
+  // Store user_id and mosque_id before deletion for notification
+  const memberUserId = member.user_id;
+  const memberMosqueId = member.mosque_id;
 
   const { error } = await supabase
     .from('khairat_members')
@@ -537,34 +579,106 @@ export async function deleteKhairatMember(memberId: string) {
     throw new Error(`Failed to delete khairat member: ${error.message}`);
   }
 
-  // Create notification for the user (we need to get user_id first)
-  try {
-    const { data: memberForNotification } = await supabase
-      .from('khairat_members')
-      .select('user_id, mosque_id')
-      .eq('id', memberId)
-      .single();
-
-    if (memberForNotification) {
+  // Create notification for the user (only if deleted by admin, not by owner)
+  if (!isOwner && memberUserId) {
+    try {
       await createNotification({
-        user_id: memberForNotification.user_id,
-        mosque_id: memberForNotification.mosque_id,
+        user_id: memberUserId,
+        mosque_id: memberMosqueId,
         title: 'Khairat Record Deleted',
         message: `Your Khairat record has been deleted by the mosque admin.`,
         type: 'error',
-        action_url: `/mosques/${memberForNotification.mosque_id}`,
+        action_url: `/mosques/${memberMosqueId}`,
         metadata: {
           khairat_member_id: memberId,
           action: 'record_deleted'
         }
       });
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError);
+      // Don't throw error for notification failure
     }
-  } catch (notificationError) {
-    console.error('Failed to create notification:', notificationError);
-    // Don't throw error for notification failure
   }
 
   return {
     message: 'Khairat member deleted successfully'
   };
+}
+
+/**
+ * Get khairat membership statistics for a mosque (admin only)
+ */
+export async function getKhairatStatistics(mosqueId: string) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  if (!mosqueId) {
+    throw new Error('Mosque ID is required');
+  }
+
+  // Check if user is admin of the mosque
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.user.id)
+    .single();
+
+  const { data: mosqueAdmin } = await supabase
+    .from('mosques')
+    .select('user_id')
+    .eq('id', mosqueId)
+    .single();
+
+  if (userProfile?.role !== 'admin' && mosqueAdmin?.user_id !== user.user.id) {
+    throw new Error('Forbidden: Not authorized to access mosque statistics');
+  }
+
+  // Only count actual memberships (exclude application statuses: pending, rejected, withdrawn, under_review)
+  // Membership statuses are: active, inactive, suspended
+  const membershipStatuses = ['active', 'inactive', 'suspended'];
+
+  // Get counts for each membership status using count queries
+  const [activeCount, inactiveCount, suspendedCount, totalCount] = await Promise.all([
+    supabase
+      .from('khairat_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'active'),
+    supabase
+      .from('khairat_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'inactive'),
+    supabase
+      .from('khairat_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'suspended'),
+    supabase
+      .from('khairat_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .in('status', membershipStatuses)
+  ]);
+
+  // Check for errors
+  if (activeCount.error || inactiveCount.error || suspendedCount.error || totalCount.error) {
+    const errors = [activeCount.error, inactiveCount.error, suspendedCount.error, totalCount.error]
+      .filter(Boolean)
+      .map(e => e?.message)
+      .join(', ');
+    throw new Error(`Failed to fetch khairat statistics: ${errors}`);
+  }
+
+  const statistics = {
+    total: totalCount.count || 0,
+    active: activeCount.count || 0,
+    inactive: inactiveCount.count || 0,
+    suspended: suspendedCount.count || 0
+  };
+
+  return statistics;
 }

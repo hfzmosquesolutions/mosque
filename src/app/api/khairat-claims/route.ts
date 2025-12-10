@@ -34,11 +34,15 @@ export async function GET(request: NextRequest) {
       .from('khairat_claims')
       .select(`
         *,
-        claimant:user_profiles!claimant_id(
+        khairat_member:khairat_members!khairat_member_id(
           id,
           full_name,
           phone,
-          ic_passport_number
+          ic_passport_number,
+          email,
+          address,
+          membership_number,
+          status
         ),
         reviewer:user_profiles!reviewed_by(
           id,
@@ -114,6 +118,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       claimantId,
+      khairatMemberId,
       mosqueId,
       claimAmount,
       reason,
@@ -139,7 +144,50 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Verify claimant exists and belongs to mosque
+    // Find the khairat_member record for this user and mosque
+    // This links the claim to the membership record
+    let resolvedKhairatMemberId: string | null = khairatMemberId || null;
+    
+    // If khairatMemberId not provided, try to find it
+    if (!resolvedKhairatMemberId && claimantId) {
+      const { data: khairatMembers, error: memberError } = await supabaseAdmin
+        .from('khairat_members')
+        .select('id, status')
+        .eq('user_id', claimantId)
+        .eq('mosque_id', mosqueId)
+        .in('status', ['active', 'approved'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!memberError && khairatMembers && khairatMembers.length > 0) {
+        resolvedKhairatMemberId = khairatMembers[0].id;
+      }
+    }
+
+    // Verify that user is an active or approved member of the mosque
+    if (!resolvedKhairatMemberId) {
+      // Check if user has any membership record (even if not active)
+      const { data: anyMembers, error: anyMemberError } = await supabaseAdmin
+        .from('khairat_members')
+        .select('id, status')
+        .eq('user_id', claimantId)
+        .eq('mosque_id', mosqueId)
+        .limit(1);
+
+      if (!anyMemberError && anyMembers && anyMembers.length > 0) {
+        return NextResponse.json(
+          { error: 'You must be an active or approved member of this mosque to submit a claim' },
+          { status: 403 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: 'You must be a member of this mosque to submit a claim. Please apply for membership first.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Verify claimant exists (for backward compatibility)
     const { data: claimant, error: claimantError } = await supabaseAdmin
       .from('user_profiles')
       .select('id')
@@ -155,13 +203,14 @@ export async function POST(request: NextRequest) {
 
     // No program validation needed - khairat claims are general assistance requests
 
-    // Create the claim
+    // Create the claim - prefer khairat_member_id if available
     const claimData: CreateKhairatClaim = {
-      claimant_id: claimantId,
+      khairat_member_id: resolvedKhairatMemberId || undefined,
+      claimant_id: claimantId, // Keep for backward compatibility
       mosque_id: mosqueId,
       requested_amount: claimAmount,
       title: reason,
-      description: description || null,
+      description: description || '', // description is NOT NULL, so use empty string if not provided
       priority
     };
 
@@ -170,19 +219,24 @@ export async function POST(request: NextRequest) {
       .insert(claimData)
       .select(`
         *,
-        claimant:user_profiles!claimant_id(
+        khairat_member:khairat_members!khairat_member_id(
           id,
           full_name,
           phone,
-          ic_passport_number
+          ic_passport_number,
+          email,
+          address,
+          membership_number,
+          status
         )
       `)
       .single();
 
     if (createError) {
       console.error('Error creating claim:', createError);
+      console.error('Claim data attempted:', claimData);
       return NextResponse.json(
-        { error: 'Failed to create claim' },
+        { error: `Failed to create claim: ${createError.message || 'Unknown error'}` },
         { status: 500 }
       );
     }

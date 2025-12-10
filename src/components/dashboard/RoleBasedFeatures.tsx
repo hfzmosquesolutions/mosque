@@ -18,7 +18,6 @@ import {
   Heart,
   Building,
   BookOpen,
-  Settings,
   Users,
   Shield,
 } from 'lucide-react';
@@ -59,24 +58,6 @@ const memberFeatures: FeatureCard[] = [
 
 const adminFeatures: FeatureCard[] = [
   // events removed
-
-  
-  {
-    title: 'Payment Settings',
-    description: 'Configure payment providers and mosque settings',
-    icon: <Building className="h-5 w-5" />,
-    href: '/settings?tab=payment-settings',
-    badge: 'Admin',
-    adminOnly: true,
-  },
-  {
-    title: 'System Settings',
-    description: 'Manage system configuration and permissions',
-    icon: <Settings className="h-5 w-5" />,
-    href: '/settings',
-    badge: 'Admin',
-    adminOnly: true,
-  },
 ];
 
 export function RoleBasedFeatures() {

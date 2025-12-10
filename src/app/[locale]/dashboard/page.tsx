@@ -39,6 +39,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
 import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
+import { getKhairatStatistics } from '@/lib/api/khairat-members';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -195,31 +196,31 @@ function DashboardContent() {
           console.error('Error fetching mosque data:', mosqueError);
         }
         
-        // Fetch membership statistics for admin users
+        // Fetch khairat membership statistics for admin users
         try {
-          const membershipData = await getMembershipStatistics(mosqueId);
+          const membershipData = await getKhairatStatistics(mosqueId);
           setMembershipStats(membershipData);
         } catch (membershipError) {
-          console.error('Error fetching membership statistics:', membershipError);
+          console.error('Error fetching khairat membership statistics:', membershipError);
           setMembershipStats(null);
         }
 
-        // Fetch pending membership applications count for admin users
+        // Fetch pending khairat membership applications count for admin users
         try {
           const { count: pendingCount, error: pendingError } = await supabase
-            .from('kariah_applications')
+            .from('khairat_members')
             .select('id', { count: 'exact', head: true })
             .eq('mosque_id', mosqueId)
             .eq('status', 'pending');
 
           if (pendingError) {
-            console.error('Error fetching pending applications count:', pendingError);
+            console.error('Error fetching pending khairat applications count:', pendingError);
             setPendingApplicationsCount(0);
           } else if (typeof pendingCount === 'number') {
             setPendingApplicationsCount(pendingCount);
           }
         } catch (pendingError) {
-          console.error('Error fetching pending applications count:', pendingError);
+          console.error('Error fetching pending khairat applications count:', pendingError);
           setPendingApplicationsCount(0);
         }
 
@@ -254,6 +255,11 @@ function DashboardContent() {
   // Calculate successful khairat claims count
   const successfulClaimsCount = khairatClaims.filter(claim => 
     claim.status === 'approved' || claim.status === 'paid'
+  ).length;
+
+  // Calculate unsettled claims count (only pending and under_review, excluding settled: paid, cancelled, rejected, approved)
+  const unsettledClaimsCount = khairatClaims.filter(claim => 
+    claim.status === 'pending' || claim.status === 'under_review'
   ).length;
 
   const paymentSettings = (mosqueData?.settings || {}) as {
@@ -304,8 +310,8 @@ function DashboardContent() {
             break;
           case 'application':
             if (isAdmin) {
-              // Redirect to khairat applications
-              window.location.href = '/applications';
+              // Redirect to khairat members
+              window.location.href = '/members';
             }
             break;
           case 'claim':
@@ -516,7 +522,7 @@ function DashboardContent() {
             contributionCount={completedContributionCount}
             claimCount={successfulClaimsCount}
           />
-          <QuickActions />
+          <QuickActions pendingClaimsCount={unsettledClaimsCount} pendingRegistrationsCount={pendingApplicationsCount} />
         </div>
 
       </div>

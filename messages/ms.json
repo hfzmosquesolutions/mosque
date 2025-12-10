@@ -199,8 +199,8 @@
         "description": "Tetapkan penyedia pembayaran dan tetapan bil"
       },
       "firstApplication": {
-        "title": "Terima Permohonan Pertama",
-        "description": "Lulus permohonan khairat pertama untuk bawa masuk ahli"
+        "title": "Lulus Pendaftaran Ahli Khairat Pertama",
+        "description": "Lulus pendaftaran ahli khairat pertama"
       },
       "firstPayment": {
         "title": "Terima Bayaran Khairat Pertama",
@@ -262,7 +262,8 @@
     "quickActionsItems": {
       "manageKhairat": {
         "title": "Urus Pendaftaran",
-        "description": "Semak dan luluskan permohonan keahlian khairat"
+        "description": "Semak dan luluskan permohonan keahlian khairat",
+        "badge": "BARU {count}"
       },
       "managePayments": {
         "title": "Rekod Pembayaran",
@@ -1164,6 +1165,7 @@
     "never": "Tidak Pernah",
     "quickStats": "Statistik Pantas",
     "quickActions": "Perkhidmatan Tersedia",
+    "availableServices": "Akses perkhidmatan dan program masjid",
     "people": "orang",
     "established": "Ditubuhkan",
     "services": "Perkhidmatan",
@@ -1190,6 +1192,7 @@
     "meetOurTeam": "Temui pasukan dan kakitangan utama kami",
     "noOrganizationPeople": "Tiada kakitangan organisasi disenaraikan lagi",
     "aboutMosque": "Tentang Masjid Ini",
+    "aboutMosqueDescription": "Ketahui lebih lanjut tentang masjid ini dan kemudahannya",
     "imam": "Imam",
     "servicesPrograms": "Perkhidmatan & Program",
     "activePrograms": "Program Aktif",
@@ -1206,6 +1209,7 @@
     "register": "Daftar",
     "allPrograms": "Semua Program",
     "contactInformation": "Maklumat Hubungan",
+    "contactInformationDescription": "Hubungi masjid",
     "phone": "Telefon",
     "email": "E-mel",
     "website": "Laman Web",
@@ -1842,11 +1846,13 @@
     "contributions": "Sumbangan",
     "khairat": "Khairat",
     "applications": "Permohonan",
+    "members": "Ahli",
     "payments": "Pembayaran",
     "legacyData": "Data Warisan",
     "myMosques": "Masjid Saya",
     "kariahApplication": "Pendaftaran Kariah",
     "mosqueProfile": "Profil Masjid",
+    "viewPublicProfile": "Lihat Profil Awam",
     "kariah": "Ahli Kariah",
     "organizationPeople": "Kakitangan Organisasi",
     "claims": {

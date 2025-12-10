@@ -8,7 +8,6 @@ import {
   Users,
   Plus,
   FileText,
-  Settings,
   Calendar,
   MapPin,
   DollarSign,
@@ -38,7 +37,12 @@ interface QuickAction {
   isNew?: boolean;
 }
 
-export function QuickActions() {
+interface QuickActionsProps {
+  pendingClaimsCount?: number;
+  pendingRegistrationsCount?: number;
+}
+
+export function QuickActions({ pendingClaimsCount = 0, pendingRegistrationsCount = 0 }: QuickActionsProps) {
   const { isAdmin, mosqueId } = useUserRole();
   const t = useTranslations('dashboard');
 
@@ -53,10 +57,12 @@ export function QuickActions() {
       id: 'manage-registrations',
       ...getActionCopy('manageKhairat'),
       icon: Heart,
-      href: '/applications',
+      href: '/members',
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950/20',
       iconColor: 'text-red-600 dark:text-red-400',
+      badge: pendingRegistrationsCount > 0 ? t('quickActionsItems.manageKhairat.badge', { count: pendingRegistrationsCount }) : undefined,
+      badgeColor: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     },
     {
       id: 'payment-records',
@@ -75,7 +81,7 @@ export function QuickActions() {
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950/20',
       iconColor: 'text-green-600 dark:text-green-400',
-      badge: t('quickActionsItems.reviewClaims.badge', { count: 5 }),
+      badge: pendingClaimsCount > 0 ? t('quickActionsItems.reviewClaims.badge', { count: pendingClaimsCount }) : undefined,
       badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     },
     {
@@ -86,15 +92,6 @@ export function QuickActions() {
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       iconColor: 'text-purple-600 dark:text-purple-400',
-    },
-    {
-      id: 'settings',
-      ...getActionCopy('accountSettings'),
-      icon: Settings,
-      href: '/settings',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50 dark:bg-gray-950/20',
-      iconColor: 'text-gray-600 dark:text-gray-400',
     },
   ];
 

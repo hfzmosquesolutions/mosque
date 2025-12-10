@@ -1336,6 +1336,7 @@ export async function createClaim(
       },
       body: JSON.stringify({
         claimantId: claimData.claimant_id,
+        khairatMemberId: claimData.khairat_member_id, // Pass khairat_member_id if available
         mosqueId: claimData.mosque_id,
         claimAmount: claimData.requested_amount,
         reason: claimData.title,

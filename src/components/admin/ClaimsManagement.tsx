@@ -50,10 +50,10 @@ import {
   Building,
   FileText,
   Plus,
-  Download
+  Download,
+  Edit
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import {
   getClaims,
@@ -67,16 +67,6 @@ import type {
   UpdateKhairatClaim,
   ClaimDocument
 } from '@/types/database';
-
-interface ClaimStats {
-  total: number;
-  pending: number;
-  under_review: number;
-  approved: number;
-  rejected: number;
-  paid: number;
-  cancelled: number;
-}
 
 interface ClaimsManagementProps {
   mosqueId: string;
@@ -116,6 +106,8 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
   });
   const [submitting, setSubmitting] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   
 
   const statusConfig = getStatusConfig(t);
@@ -198,28 +190,39 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
     }
   };
 
-  const getStats = (): ClaimStats => {
-    return claims.reduce(
-      (acc, claim) => {
-        acc.total++;
-        acc[claim.status]++;
-        return acc;
-      },
-      {
-        total: 0,
-        pending: 0,
-        under_review: 0,
-        approved: 0,
-        rejected: 0,
-        paid: 0,
-        cancelled: 0
-      }
-    );
+  // Helper function to get member data (only from khairat_member)
+  const getMemberData = (claim: KhairatClaimWithDetails) => {
+    return claim.khairat_member;
   };
 
-  const filteredClaims = claims;
+  const filterClaims = () => {
+    let filtered = claims;
 
-  const stats = getStats();
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (claim) => {
+          const member = getMemberData(claim);
+          return (
+            claim.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            member?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            claim.description?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(
+        (claim) => claim.status === statusFilter
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredClaims = filterClaims();
 
   const columns: ColumnDef<KhairatClaimWithDetails>[] = [
     {
@@ -229,15 +232,11 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
       ),
       cell: ({ row }) => {
         const claim = row.original as KhairatClaimWithDetails;
+        const member = getMemberData(claim);
         return (
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <div className="min-w-0">
-              <p className="font-medium truncate">{claim.claimant?.full_name}</p>
-              {claim.claimant?.phone && (
-                <p className="text-xs text-muted-foreground truncate">{claim.claimant.phone}</p>
-              )}
-            </div>
+            <span className="font-medium">{member?.full_name || 'Unknown'}</span>
           </div>
         );
       },
@@ -299,10 +298,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
         return (
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-sm">{formatDate(claim.created_at)}</p>
-              <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(claim.created_at), { addSuffix: true })}</p>
-            </div>
+            <span>{formatDate(claim.created_at)}</span>
           </div>
         );
       },
@@ -313,15 +309,15 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
       cell: ({ row }) => {
         const claim = row.original as KhairatClaimWithDetails;
         return (
-          <div className="flex justify-end">
+          <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
               size="sm"
+              variant="outline"
               onClick={() => handleReviewClaim(claim)}
-              className="h-8 px-3"
+              className="h-8 w-8 p-0"
+              title="Update"
             >
-              <Eye className="h-4 w-4 mr-1" />
-              {tc('review')}
+              <Edit className="h-4 w-4" />
             </Button>
           </div>
         );
@@ -345,15 +341,18 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
       'Submitted At',
     ];
 
-    const rows = filteredClaims.map((c) => [
-      c.claimant?.full_name || '',
-      c.title || '',
-      (c.requested_amount ?? 0).toString(),
-      (c.approved_amount ?? 0).toString(),
-      c.priority,
-      c.status,
-      formatDate(c.created_at),
-    ]);
+    const rows = filteredClaims.map((c) => {
+      const member = getMemberData(c);
+      return [
+        member?.full_name || '',
+        c.title || '',
+        (c.requested_amount ?? 0).toString(),
+        (c.approved_amount ?? 0).toString(),
+        c.priority,
+        c.status,
+        formatDate(c.created_at),
+      ];
+    });
 
     const csv = [headers, ...rows]
       .map((r) => r.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(','))
@@ -412,80 +411,38 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
         </div>
       )}
 
-      {/* Stats Cards - Matching Payments Design */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-900 dark:text-green-100">
-                Paid
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {formatCurrency(
-                claims
-                  .filter(c => c.status === 'paid')
-                  .reduce((sum, c) => sum + (c.approved_amount || c.requested_amount), 0)
-              )}
-            </p>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              {stats.paid} {stats.paid === 1 ? 'claim' : 'claims'}
-            </p>
-          </div>
-
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <span className="font-medium text-yellow-900 dark:text-yellow-100">
-                Pending
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-              {formatCurrency(
-                claims
-                  .filter(c => c.status === 'pending' || c.status === 'under_review')
-                  .reduce((sum, c) => sum + c.requested_amount, 0)
-              )}
-            </p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              {stats.pending + stats.under_review} {stats.pending + stats.under_review === 1 ? 'claim' : 'claims'}
-            </p>
-          </div>
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-blue-900 dark:text-blue-100">
-                Total
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {stats.total}
-            </p>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              Total claims
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Filters removed to standardize with payments table */}
-
       {/* Claims Table */}
-      {filteredClaims.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-muted-foreground">{t('noClaimsFound')}</p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filteredClaims as any}
-          searchKey="title"
-          searchPlaceholder={t('searchPlaceholder')}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filteredClaims as any}
+        customFilters={
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t('searchPlaceholder') || 'Search claims...'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">{t('status.pending')}</SelectItem>
+                <SelectItem value="under_review">{t('status.under_review')}</SelectItem>
+                <SelectItem value="approved">{t('status.approved')}</SelectItem>
+                <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
+                <SelectItem value="paid">{t('status.paid')}</SelectItem>
+                <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {/* Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
@@ -503,7 +460,22 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                 <div>
                   <p className="text-sm font-medium">{t('claimant')}</p>
-                  <p className="text-sm text-muted-foreground">{selectedClaim.claimant?.full_name}</p>
+                  {(() => {
+                    const member = getMemberData(selectedClaim);
+                    return (
+                      <>
+                        <p className="text-sm text-muted-foreground">{member?.full_name || 'Unknown'}</p>
+                        {member?.phone && (
+                          <p className="text-xs text-muted-foreground mt-1">{member.phone}</p>
+                        )}
+                        {selectedClaim.khairat_member?.membership_number && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Member ID: {selectedClaim.khairat_member.membership_number}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{t('claimAmount')}</p>
