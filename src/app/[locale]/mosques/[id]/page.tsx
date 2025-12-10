@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   MapPin,
   Phone,
@@ -22,7 +21,7 @@ import {
   Calendar,
   Users,
   CreditCard,
-  Target,
+  Grid3x3,
 } from 'lucide-react';
 import {
   getMosque,
@@ -42,6 +41,13 @@ import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
 import type { UserProfile, ClaimDocument } from '@/types/database';
 import { toast } from 'sonner';
 import { ShareProfileButton } from '@/components/mosque/ShareProfileButton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Share2, QrCode, Copy, Facebook, Twitter, MessageCircle, Check } from 'lucide-react';
 import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
 import { KhairatRegistrationDialog } from '@/components/mosque/KhairatRegistrationDialog';
@@ -63,7 +69,6 @@ export default function MosqueProfilePage() {
   const [contributionPrograms, setContributionPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
   const [isKhairatModalOpen, setIsKhairatModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isKhairatSuccessModalOpen, setIsKhairatSuccessModalOpen] = useState(false);
@@ -588,91 +593,102 @@ export default function MosqueProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.12] blur-3xl">
-          <div className="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-emerald-300/40" />
-          <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-teal-300/40" />
-        </div>
-        {/* Hero Section */}
-        <div className="relative bg-white/90 dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-8 backdrop-blur">
-          {/* Cover Image */}
-          <div
-            className="h-48 relative"
-            style={{
-              backgroundImage: mosque.banner_url
-                ? `url(${mosque.banner_url})`
-                : 'linear-gradient(to right, rgb(16, 185, 129), rgb(34, 197, 94))',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }}
-          >
-            <div className="absolute inset-0 bg-black/20"></div>
-            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
-              <div className="flex flex-col space-y-4 sm:flex-row sm:items-end sm:justify-between sm:space-y-0">
-                <div className="flex items-center space-x-3 sm:space-x-4">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {mosque.logo_url ? (
-                      <img
-                        src={mosque.logo_url}
-                        alt={`${mosque.name} logo`}
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                    ) : (
-                      <Building className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
-                    )}
+      {/* Hero Header with Full Background Image */}
+      <div
+        className="relative w-full h-56 sm:h-64 lg:h-72 mb-8"
+        style={{
+          backgroundImage: mosque.banner_url
+            ? `url(${mosque.banner_url})`
+            : 'linear-gradient(135deg, rgb(16, 185, 129) 0%, rgb(34, 197, 94) 50%, rgb(5, 150, 105) 100%)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60"></div>
+        
+        {/* Content Container */}
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-5 sm:pb-6 lg:pb-8">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-end sm:justify-between sm:space-y-0">
+            <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+              {/* Logo */}
+              <div className="w-20 h-20 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-white dark:bg-gray-800 rounded-xl shadow-2xl flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-white/20">
+                {mosque.logo_url ? (
+                  <img
+                    src={mosque.logo_url}
+                    alt={`${mosque.name} logo`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Building className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-emerald-600" />
+                )}
+              </div>
+              
+              {/* Mosque Name and Address */}
+              <div className="text-white min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1.5 leading-tight drop-shadow-lg">
+                  {mosque.name}
+                </h1>
+                {mosque.address && (
+                  <div className="flex items-start text-white/95 drop-shadow-md">
+                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm sm:text-base leading-tight font-medium">
+                      {mosque.address}
+                    </span>
                   </div>
-                  <div className="text-white min-w-0 flex-1">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 leading-tight">
-                      {mosque.name}
-                    </h1>
-                    {mosque.address && (
-                      <div className="flex items-start text-white/90">
-                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm sm:text-base leading-tight">
-                          {mosque.address}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center justify-end space-x-2 sm:space-x-3 flex-shrink-0">
-                  <ShareProfileButton mosque={mosque} />
-                </div>
+                )}
               </div>
             </div>
           </div>
-
+          
           {/* Stats Bar */}
-          <div className="px-6 py-4 bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
+          <div className="mt-5 pt-4 border-t border-white/20">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 {mosque.settings?.established_year != null && (
-                  <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span>
+                  <div className="flex items-center text-xs sm:text-sm text-white/95 drop-shadow-md">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                    <span className="font-medium">
                       {t('established')}{' '}
                       {String(mosque.settings.established_year)}
                     </span>
                   </div>
                 )}
                 {mosque.settings?.capacity != null && (
-                  <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                    <Building className="h-4 w-4 mr-2" />
-                    <span>
+                  <div className="flex items-center text-xs sm:text-sm text-white/95 drop-shadow-md">
+                    <Building className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                    <span className="font-medium">
                       {t('capacity')}: {String(mosque.settings.capacity)}
                     </span>
                   </div>
                 )}
               </div>
+              {/* Share Button - Icon only */}
+              <div className="flex items-center">
+                <ShareProfileButton 
+                  mosque={mosque} 
+                  variant="ghost"
+                  size="sm"
+                  iconOnly={true}
+                  className="text-white/95 hover:text-white hover:bg-white/10 h-8 w-8 p-0"
+                />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.12] blur-3xl">
+          <div className="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-emerald-300/40" />
+          <div className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-teal-300/40" />
+        </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2">
+          <div className="order-2 lg:order-1 lg:col-span-2">
             {/* About Section */}
             <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm mb-8 backdrop-blur">
               <CardHeader>
@@ -680,6 +696,7 @@ export default function MosqueProfilePage() {
                   <Building className="h-5 w-5 mr-2 text-emerald-600" />
                   {t('aboutMosque')}
                 </CardTitle>
+                <CardDescription>{t('aboutMosqueDescription', { fallback: 'Learn more about this mosque and its facilities' })}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mosque.description && (
@@ -699,159 +716,104 @@ export default function MosqueProfilePage() {
                     </p>
                   </div>
                 )}
-                {mosque.settings?.enabled_services != null &&
-                  Array.isArray(mosque.settings.enabled_services) &&
-                  mosque.settings.enabled_services.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
-                        {t('servicesPrograms')}
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {(mosque.settings.enabled_services as string[]).map(
-                          (service, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="bg-emerald-50 text-emerald-700 border-emerald-200"
-                            >
-                              {service.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </Badge>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
               </CardContent>
             </Card>
 
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
-                <TabsTrigger 
-                  value="overview" 
-                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                >
-                  {t('overview')}
-                </TabsTrigger>
-                {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
-                  <TabsTrigger 
-                    value="organization" 
-                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-                  >
-                    <Users className="h-4 w-4" />
+            {/* Organization People Card */}
+            {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
+              <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm mb-8 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-xl">
+                    <Users className="h-5 w-5 mr-2 text-emerald-600" />
                     {t('organizationPeople')}
-                  </TabsTrigger>
-                )}
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-6 mt-6">
-
-                {/* Activities Section */}
-                {/* activities removed */}
-
-                {/* events removed */}
-              </TabsContent>
-
-
-              {Array.isArray(mosque.settings?.enabled_services) && mosque.settings.enabled_services.includes('organization_people') && (
-              <TabsContent value="organization" className="space-y-6 mt-6">
-                <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-xl">
-                      <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                      {t('organizationPeople')}
-                    </CardTitle>
-                    <CardDescription>{t('meetOurTeam')}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {organizationPeopleLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-                      </div>
-                    ) : organizationPeople.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                          {t('noOrganizationPeople')}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {organizationPeople.map((person) => (
-                          <div
-                            key={person.id}
-                            className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
-                          >
-                            <div className="flex items-start space-x-3">
-                              {person.profile_picture_url ? (
-                                <img
-                                  src={person.profile_picture_url}
-                                  alt={person.full_name}
-                                  className="w-12 h-12 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                  <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  </CardTitle>
+                  <CardDescription>{t('meetOurTeam')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {organizationPeopleLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                    </div>
+                  ) : organizationPeople.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-slate-500 dark:text-slate-400">
+                        {t('noOrganizationPeople')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {organizationPeople.map((person) => (
+                        <div
+                          key={person.id}
+                          className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white/90 dark:bg-slate-800/70"
+                        >
+                          <div className="flex items-start space-x-3">
+                            {person.profile_picture_url ? (
+                              <img
+                                src={person.profile_picture_url}
+                                alt={person.full_name}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
+                                {person.full_name}
+                              </h4>
+                              <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                                {person.position}
+                              </p>
+                              {person.department && (
+                                <p className="text-slate-500 dark:text-slate-400 text-xs">
+                                  {person.department}
+                                </p>
+                              )}
+                              {person.bio && (
+                                <p className="text-slate-600 dark:text-slate-400 text-xs mt-2 line-clamp-2">
+                                  {person.bio}
+                                </p>
+                              )}
+                              {(person.email || person.phone) && (
+                                <div className="mt-2 space-y-1">
+                                  {person.email && (
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                      <Mail className="h-3 w-3 mr-1" />
+                                      {person.email}
+                                    </p>
+                                  )}
+                                  {person.phone && (
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                      <Phone className="h-3 w-3 mr-1" />
+                                      {person.phone}
+                                    </p>
+                                  )}
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
-                                  {person.full_name}
-                                </h4>
-                                <p className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
-                                  {person.position}
-                                </p>
-                                {person.department && (
-                                  <p className="text-slate-500 dark:text-slate-400 text-xs">
-                                    {person.department}
-                                  </p>
-                                )}
-                                {person.bio && (
-                                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-2 line-clamp-2">
-                                    {person.bio}
-                                  </p>
-                                )}
-                                {(person.email || person.phone) && (
-                                  <div className="mt-2 space-y-1">
-                                    {person.email && (
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
-                                        <Mail className="h-3 w-3 mr-1" />
-                                        {person.email}
-                                      </p>
-                                    )}
-                                    {person.phone && (
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center">
-                                        <Phone className="h-3 w-3 mr-1" />
-                                        {person.phone}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              )}
-            </Tabs>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right Column - Contact & Info */}
-          <div className="space-y-6">
+          <div className="order-1 lg:order-2 space-y-6">
             {/* Quick Actions */}
             <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 shadow-sm backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
-                  <Target className="h-5 w-5 mr-2 text-emerald-600" />
+                  <Grid3x3 className="h-5 w-5 mr-2 text-emerald-600" />
                   {t('quickActions', { fallback: 'Quick Actions' })}
                 </CardTitle>
+                <CardDescription>{t('availableServices', { fallback: 'Access mosque services and programs' })}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {adminCheckLoading ? (
@@ -863,25 +825,6 @@ export default function MosqueProfilePage() {
                   </div>
                 ) : (
                   <>
-                    {/* Admin Notice */}
-                    {isUserAnyMosqueAdmin && (
-                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-6 h-6 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <UserCheck className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
-                              {t('adminNotice', { fallback: 'You are a mosque administrator' })}
-                            </h4>
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                              {t('adminNoticeMessage', { fallback: 'As a mosque administrator, these member actions are not available to you. Use your dashboard to manage your mosque.' })}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     <div className="grid grid-cols-1 gap-2">
                       {/* Register for Khairat */}
                       <ServiceAwareButton
@@ -1052,6 +995,7 @@ export default function MosqueProfilePage() {
                   <Phone className="h-5 w-5 mr-2 text-emerald-600" />
                   {t('contactInformation')}
                 </CardTitle>
+                <CardDescription>{t('contactInformationDescription', { fallback: 'Get in touch with the mosque' })}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mosque.phone && (

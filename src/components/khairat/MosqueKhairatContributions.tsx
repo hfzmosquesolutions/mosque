@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   CheckCircle,
   XCircle,
@@ -32,6 +33,7 @@ import {
   Calendar,
   User,
   AlertTriangle,
+  Search,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -87,8 +89,8 @@ export function MosqueKhairatContributions({
         setContributions(response.data);
       }
     } catch (error) {
-      console.error('Error loading contributions:', error);
-      toast.error('Failed to load contributions');
+      console.error('Error loading payments:', error);
+      toast.error('Failed to load payments');
     } finally {
       setLoading(false);
     }
@@ -139,14 +141,14 @@ export function MosqueKhairatContributions({
     try {
       const response = await updateKhairatContributionStatus(contributionId, newStatus);
       if (response.success) {
-        toast.success('Contribution status updated successfully');
+        toast.success('Payment status updated successfully');
         loadContributions(); // Reload to get updated data
       } else {
         toast.error(response.error || 'Failed to update status');
       }
     } catch (error) {
-      console.error('Error updating contribution status:', error);
-      toast.error('Failed to update contribution status');
+      console.error('Error updating payment status:', error);
+      toast.error('Failed to update payment status');
     } finally {
       setUpdating(null);
     }
@@ -203,7 +205,7 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'contributor_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Contributor" />
+        <DataTableColumnHeader column={column} title="Name" />
       ),
       cell: ({ row }) => {
         const contributorName = row.getValue('contributor_name') as string;
@@ -280,6 +282,7 @@ export function MosqueKhairatContributions({
       cell: ({ row }) => {
         const contribution = row.original;
         const isUpdating = updating === contribution.id;
+        const isCashPayment = contribution.payment_method === 'cash';
 
         return (
           <DropdownMenu>
@@ -304,33 +307,38 @@ export function MosqueKhairatContributions({
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {contribution.status === 'pending' && (
+              {/* Only allow status changes for cash payments */}
+              {isCashPayment && (
                 <>
-                  <DropdownMenuItem
-                    onClick={() => handleStatusUpdate(contribution.id, 'completed')}
-                    disabled={isUpdating}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Completed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleStatusUpdate(contribution.id, 'cancelled')}
-                    disabled={isUpdating}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Cancel
-                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {contribution.status === 'pending' && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => handleStatusUpdate(contribution.id, 'completed')}
+                        disabled={isUpdating}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Mark as Completed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleStatusUpdate(contribution.id, 'cancelled')}
+                        disabled={isUpdating}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancel
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {contribution.status === 'completed' && (
+                    <DropdownMenuItem
+                      onClick={() => handleStatusUpdate(contribution.id, 'pending')}
+                      disabled={isUpdating}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Mark as Pending
+                    </DropdownMenuItem>
+                  )}
                 </>
-              )}
-              {contribution.status === 'completed' && (
-                <DropdownMenuItem
-                  onClick={() => handleStatusUpdate(contribution.id, 'pending')}
-                  disabled={isUpdating}
-                >
-                  <Clock className="mr-2 h-4 w-4" />
-                  Mark as Pending
-                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -339,14 +347,6 @@ export function MosqueKhairatContributions({
     },
   ];
 
-  const totalAmount = contributions
-    .filter(c => c.status === 'completed')
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const pendingAmount = contributions
-    .filter(c => c.status === 'pending')
-    .reduce((sum, c) => sum + c.amount, 0);
-
   return (
     <div className="space-y-6">
       {showHeader && (
@@ -354,101 +354,53 @@ export function MosqueKhairatContributions({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Khairat Contributions
+              Khairat Payments
             </CardTitle>
             <CardDescription>
-              Manage and track khairat contributions for this mosque
+              Manage and track khairat payments for this mosque
             </CardDescription>
           </CardHeader>
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="font-medium text-green-900 dark:text-green-100">
-              Completed
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-            {formatCurrency(totalAmount)}
-          </p>
-          <p className="text-sm text-green-700 dark:text-green-300">
-            {contributions.filter(c => c.status === 'completed').length} contributions
-          </p>
-        </div>
-
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-yellow-600" />
-            <span className="font-medium text-yellow-900 dark:text-yellow-100">
-              Pending
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-            {formatCurrency(pendingAmount)}
-          </p>
-          <p className="text-sm text-yellow-700 dark:text-yellow-300">
-            {contributions.filter(c => c.status === 'pending').length} contributions
-          </p>
-        </div>
-
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-600" />
-            <span className="font-medium text-blue-900 dark:text-blue-100">
-              Total
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-            {contributions.length}
-          </p>
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            Total contributions
-          </p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search contributions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Data Table */}
       <DataTable
         columns={columns}
         data={filteredContributions}
+        customFilters={
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search payments..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
       />
 
-      {/* Contribution Details Modal */}
+      {/* Payment Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Contribution Details</DialogTitle>
+            <DialogTitle>Payment Details</DialogTitle>
             <DialogDescription>
-              View detailed information about this contribution
+              View detailed information about this payment
             </DialogDescription>
           </DialogHeader>
           {selectedContribution && (
@@ -456,7 +408,7 @@ export function MosqueKhairatContributions({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Contributor
+                    Name
                   </label>
                   <p className="text-sm">{selectedContribution.contributor_name || 'Anonymous'}</p>
                 </div>

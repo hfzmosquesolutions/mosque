@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { KhairatManagement } from '@/components/admin/KhairatManagement';
 
-function KhairatMembersContent() {
-  const t = useTranslations('khairatManagement');
+function KhairatApplicationsContent() {
+  const t = useTranslations('khairat');
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
@@ -37,10 +37,10 @@ function KhairatMembersContent() {
       {/* Header with Title */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Khairat Members
+          Khairat applications
         </h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-          Manage khairat members, review applications, and maintain member records
+          Review and approve khairat applications from your mosque members in a single, simple view.
         </p>
       </div>
 
@@ -55,11 +55,11 @@ function KhairatMembersContent() {
   );
 }
 
-export default function KhairatMembersPage() {
+export default function KhairatApplicationsPage() {
   return (
     <ProtectedRoute>
-      <DashboardLayout title="Khairat Members">
-        <KhairatMembersContent />
+      <DashboardLayout title="Khairat Applications">
+        <KhairatApplicationsContent />
       </DashboardLayout>
     </ProtectedRoute>
   );

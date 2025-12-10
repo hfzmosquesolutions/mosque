@@ -55,7 +55,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
       title: 'Programs Need Attention',
       description: `${lowProgressPrograms.length} khairat programs have low contribution progress.`,
       action: 'Review Programs',
-      href: '/applications',
+      href: '/members',
       priority: 'medium' as const,
     });
   }
@@ -91,7 +91,7 @@ export function QuickInsights({ stats }: QuickInsightsProps) {
       title: 'Start Your First Khairat Program',
       description: 'Create khairat programs to help community members in need.',
       action: 'Create Program',
-      href: '/applications',
+      href: '/members',
       priority: 'medium' as const,
     });
   }

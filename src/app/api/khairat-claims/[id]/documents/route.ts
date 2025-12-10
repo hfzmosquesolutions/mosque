@@ -112,7 +112,7 @@ export async function POST(
     // Verify claim exists and user has permission
     const { data: claim, error: claimError } = await supabaseAdmin
       .from('khairat_claims')
-      .select('id, claimant_id, status')
+      .select('id, khairat_member_id, status')
       .eq('id', id)
       .single();
 
@@ -123,8 +123,18 @@ export async function POST(
       );
     }
 
-    // Check if user is the claimant or an admin
-    const isClaimant = claim.claimant_id === uploadedBy;
+    // Check if user is the member (via khairat_member_id only)
+    let isMember = false;
+    
+    if (claim.khairat_member_id) {
+      const { data: khairatMember } = await supabaseAdmin
+        .from('khairat_members')
+        .select('user_id')
+        .eq('id', claim.khairat_member_id)
+        .single();
+      
+      isMember = khairatMember?.user_id === uploadedBy;
+    }
     
     // Get user role to check if admin
     const { data: userProfile } = await supabaseAdmin
@@ -135,7 +145,7 @@ export async function POST(
 
     const isAdmin = userProfile?.role === 'admin';
 
-    if (!isClaimant && !isAdmin) {
+    if (!isMember && !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized to upload documents for this claim' },
         { status: 403 }
@@ -250,7 +260,7 @@ export async function DELETE(
         *,
         claim:khairat_claims!claim_id(
           id,
-          claimant_id,
+          khairat_member_id,
           status
         )
       `)
@@ -265,8 +275,18 @@ export async function DELETE(
       );
     }
 
-    // Check permissions
-    const isClaimant = document.claim.claimant_id === userId;
+    // Check permissions - only via khairat_member_id
+    let isMember = false;
+    
+    if (document.claim.khairat_member_id) {
+      const { data: khairatMember } = await supabaseAdmin
+        .from('khairat_members')
+        .select('user_id')
+        .eq('id', document.claim.khairat_member_id)
+        .single();
+      
+      isMember = khairatMember?.user_id === userId;
+    }
     const isUploader = document.uploaded_by === userId;
     
     // Get user role to check if admin
@@ -278,7 +298,7 @@ export async function DELETE(
 
     const isAdmin = userProfile?.role === 'admin';
 
-    if (!isClaimant && !isUploader && !isAdmin) {
+    if (!isMember && !isUploader && !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized to delete this document' },
         { status: 403 }

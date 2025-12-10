@@ -486,21 +486,48 @@ export async function getMembershipStatistics(mosqueId: string) {
     throw new Error('Forbidden: Not authorized to access mosque statistics');
   }
 
-  // Get membership counts by status
-  const { data: stats, error } = await supabase
-    .from('kariah_members')
-    .select('status')
-    .eq('mosque_id', mosqueId);
+  // Only count actual memberships (exclude application statuses: pending, rejected, withdrawn, under_review)
+  // Membership statuses are: active, inactive, suspended
+  const membershipStatuses = ['active', 'inactive', 'suspended'];
 
-  if (error) {
-    throw new Error(`Failed to fetch membership statistics: ${error.message}`);
+  // Get counts for each membership status using count queries
+  const [activeCount, inactiveCount, suspendedCount, totalCount] = await Promise.all([
+    supabase
+      .from('kariah_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'active'),
+    supabase
+      .from('kariah_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'inactive'),
+    supabase
+      .from('kariah_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .eq('status', 'suspended'),
+    supabase
+      .from('kariah_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('mosque_id', mosqueId)
+      .in('status', membershipStatuses)
+  ]);
+
+  // Check for errors
+  if (activeCount.error || inactiveCount.error || suspendedCount.error || totalCount.error) {
+    const errors = [activeCount.error, inactiveCount.error, suspendedCount.error, totalCount.error]
+      .filter(Boolean)
+      .map(e => e?.message)
+      .join(', ');
+    throw new Error(`Failed to fetch membership statistics: ${errors}`);
   }
 
   const statistics = {
-    total: stats?.length || 0,
-    active: stats?.filter(m => m.status === 'active').length || 0,
-    inactive: stats?.filter(m => m.status === 'inactive').length || 0,
-    suspended: stats?.filter(m => m.status === 'suspended').length || 0
+    total: totalCount.count || 0,
+    active: activeCount.count || 0,
+    inactive: inactiveCount.count || 0,
+    suspended: suspendedCount.count || 0
   };
 
   return statistics;

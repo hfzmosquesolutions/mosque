@@ -309,25 +309,16 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
               data={filteredContributions}
               onResetFilters={handleResetFilters}
               customFilters={
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative w-full sm:w-48">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder={t('searchPayments')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 w-full"
+                      className="pl-8"
                     />
                   </div>
-                  {searchTerm && (
-                    <Button
-                      variant="ghost"
-                      onClick={handleResetFilters}
-                      className="h-9 px-2"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               }
             />

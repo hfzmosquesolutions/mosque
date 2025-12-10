@@ -95,7 +95,7 @@ CREATE TABLE public.khairat_contributions (
 );
 CREATE TABLE public.khairat_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
+  user_id uuid,
   mosque_id uuid NOT NULL,
   ic_passport_number character varying,
   application_reason text,
@@ -107,6 +107,11 @@ CREATE TABLE public.khairat_members (
   notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  membership_number character varying,
+  full_name character varying,
+  phone character varying,
+  email character varying,
+  address text,
   CONSTRAINT khairat_members_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),

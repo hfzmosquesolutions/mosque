@@ -198,8 +198,8 @@
         "description": "Set up payment providers and billing settings"
       },
       "firstApplication": {
-        "title": "Receive First Application",
-        "description": "Approve your first khairat application to onboard members"
+        "title": "Approve First Khairat Member Registration",
+        "description": "Approve your first khairat member registration"
       },
       "firstPayment": {
         "title": "Receive First Khairat Payment",
@@ -245,7 +245,8 @@
     "quickActionsItems": {
       "manageKhairat": {
         "title": "Manage Registrations",
-        "description": "Review and approve khairat membership applications"
+        "description": "Review and approve khairat membership applications",
+        "badge": "NEW {count}"
       },
       "managePayments": {
         "title": "Payment Records",
@@ -1102,6 +1103,7 @@
     "imamName": "Imam Name",
     "imamNamePlaceholder": "e.g., Sheikh Abdullah Rahman",
     "contactInformation": "Contact Information",
+    "contactInformationDescription": "Get in touch with the mosque",
     "howPeopleCanReach": "How people can reach your mosque",
     "addressRequired": "Address *",
     "phoneNumber": "Phone Number",
@@ -1125,6 +1127,7 @@
     "never": "Never",
     "quickStats": "Quick Stats",
     "quickActions": "Available Services",
+    "availableServices": "Access mosque services and programs",
     "people": "people",
     "established": "Est.",
     "services": "services",
@@ -1145,6 +1148,7 @@
     "meetOurTeam": "Meet our team and key personnel",
     "noOrganizationPeople": "No organization people listed yet",
     "aboutMosque": "About This Mosque",
+    "aboutMosqueDescription": "Learn more about this mosque and its facilities",
     "imam": "Imam",
     "servicesPrograms": "Services & Programs",
     "activePrograms": "Active Programs",
@@ -1800,11 +1804,13 @@
     "contributions": "Contributions",
     "khairat": "Khairat",
     "applications": "Applications",
+    "members": "Members",
     "payments": "Payments",
     "legacyData": "Legacy Data",
     "myMosques": "My Mosques",
     "kariahApplication": "Kariah Registration",
     "mosqueProfile": "Mosque Profile",
+    "viewPublicProfile": "View Public Profile",
     "kariah": "Kariah Members",
     "organizationPeople": "Organization People",
     "claims": {

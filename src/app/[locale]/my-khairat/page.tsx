@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { KhairatContribution, Mosque, CreateKhairatClaim } from '@/types/database';
 import { getUserPaymentHistory, createClaim, searchMosques } from '@/lib/api';
 import { getKariahMembers } from '@/lib/api/kariah-members';
+import { getKhairatMembers } from '@/lib/api/khairat-members';
 import { toast } from 'sonner';
 
 function MyKhairatContent() {
@@ -47,10 +48,10 @@ function MyKhairatContent() {
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
   });
 
-  // If admin, redirect them to the admin Khairat applications page
+  // If admin, redirect them to the admin Khairat members page
   useEffect(() => {
     if (!adminLoading && hasAdminAccess) {
-      router.replace('/applications');
+      router.replace('/members');
     }
   }, [adminLoading, hasAdminAccess, router]);
 
@@ -82,10 +83,46 @@ function MyKhairatContent() {
       return;
     }
 
+    // Check if user is an active or approved member before allowing claim submission
+    try {
+      const members = await getKhairatMembers({ user_id: user.id, mosque_id: mosqueId });
+      const activeMember = members.find(m => m.status === 'active' || m.status === 'approved');
+      
+      if (!activeMember) {
+        const anyMember = members.find(m => m.status);
+        if (anyMember) {
+          toast.error('You must be an active or approved member of this mosque to submit a claim');
+        } else {
+          toast.error('You must be a member of this mosque to submit a claim. Please apply for membership first.');
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking membership status:', error);
+      toast.error('Unable to verify membership status. Please try again.');
+      return;
+    }
+    
     setSubmittingClaim(true);
     try {
+      // Find the khairat_member record for this user and mosque
+      let khairatMemberId: string | undefined = undefined;
+      try {
+        const members = await getKhairatMembers({ user_id: user.id, mosque_id: mosqueId });
+        const activeMember = members.find(m => m.status === 'active' || m.status === 'approved');
+        if (activeMember) {
+          khairatMemberId = activeMember.id;
+        }
+      } catch (error) {
+        console.error('Error fetching khairat member:', error);
+        toast.error('Unable to verify membership. Please try again.');
+        setSubmittingClaim(false);
+        return;
+      }
+      
       const claimData: CreateKhairatClaim = {
         claimant_id: user.id,
+        khairat_member_id: khairatMemberId,
         mosque_id: mosqueId,
         requested_amount: claimForm.requested_amount,
         title: claimForm.title.trim(),

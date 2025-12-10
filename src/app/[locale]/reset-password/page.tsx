@@ -63,7 +63,33 @@ function ResetPasswordContent() {
       const refreshToken = searchParams.get('refresh_token');
 
       if (accessToken && refreshToken) {
-        setIsValidSession(true);
+        // Set the session using the tokens from the reset link
+        const setSessionFromTokens = async () => {
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (error) {
+              console.error('Error setting session:', error);
+              toast.error(t('invalidResetLink'));
+              setTimeout(() => {
+                router.push('/forgot-password');
+              }, 3000);
+            } else if (data.session) {
+              setIsValidSession(true);
+            }
+          } catch (error) {
+            console.error('Error setting session:', error);
+            toast.error(t('invalidResetLink'));
+            setTimeout(() => {
+              router.push('/forgot-password');
+            }, 3000);
+          }
+        };
+
+        setSessionFromTokens();
       } else {
         // Invalid or expired link
         toast.error(t('invalidResetLink'));

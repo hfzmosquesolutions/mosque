@@ -51,6 +51,8 @@ import {
   UserX,
   FileText,
   Trash2,
+  Edit,
+  Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,34 +65,23 @@ import {
   deleteKhairatMember,
 } from '@/lib/api/khairat-members';
 import { KhairatMember } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
 interface KhairatManagementProps {
   mosqueId: string;
-}
-
-interface ManagementStats {
-  total: number;
-  applications: {
-    pending: number;
-    approved: number;
-    rejected: number;
-    withdrawn: number;
-  };
-  memberships: {
-    active: number;
-    inactive: number;
-    suspended: number;
-  };
+  createDialogOpen?: boolean;
+  onCreateDialogChange?: (open: boolean) => void;
 }
 
 export function KhairatManagement({
   mosqueId,
+  createDialogOpen: externalCreateDialogOpen,
+  onCreateDialogChange,
 }: KhairatManagementProps) {
   const { user } = useAuth();
   const t = useTranslations('khairatManagement');
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<KhairatMember[]>([]);
-  const [stats, setStats] = useState<ManagementStats | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedMember, setSelectedMember] = useState<KhairatMember | null>(null);
@@ -99,6 +90,23 @@ export function KhairatManagement({
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [internalCreateDialogOpen, setInternalCreateDialogOpen] = useState(false);
+  
+  // Use external dialog state if provided, otherwise use internal state
+  const createDialogOpen = externalCreateDialogOpen !== undefined 
+    ? externalCreateDialogOpen 
+    : internalCreateDialogOpen;
+  const setCreateDialogOpen = onCreateDialogChange || setInternalCreateDialogOpen;
+  const [createForm, setCreateForm] = useState({
+    user_id: '',
+    full_name: '',
+    ic_passport_number: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+    useDirectData: false, // Toggle between user_id or direct data
+  });
 
   const loadMembers = async () => {
     if (!user) return;
@@ -111,29 +119,6 @@ export function KhairatManagement({
       });
 
       setMembers(allMembers);
-
-      // Calculate stats
-      const applications = allMembers.filter(member => 
-        ['pending', 'approved', 'rejected', 'under_review', 'withdrawn'].includes(member.status)
-      );
-      const memberships = allMembers.filter(member => 
-        ['active', 'inactive', 'suspended'].includes(member.status)
-      );
-
-      setStats({
-        total: allMembers.length,
-        applications: {
-          pending: applications.filter(app => app.status === 'pending').length,
-          approved: applications.filter(app => app.status === 'approved').length,
-          rejected: applications.filter(app => app.status === 'rejected').length,
-          withdrawn: applications.filter(app => app.status === 'withdrawn').length,
-        },
-        memberships: {
-          active: memberships.filter(m => m.status === 'active').length,
-          inactive: memberships.filter(m => m.status === 'inactive').length,
-          suspended: memberships.filter(m => m.status === 'suspended').length,
-        },
-      });
     } catch (error) {
       console.error('Error loading khairat members:', error);
       toast.error('Failed to load khairat data');
@@ -256,6 +241,123 @@ export function KhairatManagement({
     }
   };
 
+  const handleCreateMember = async () => {
+    // Validate based on mode
+    if (!createForm.useDirectData) {
+      // Using user_id mode
+      if (!createForm.user_id) {
+        toast.error('User ID is required');
+        return;
+      }
+    } else {
+      // Using direct data mode
+      if (!createForm.full_name || !createForm.ic_passport_number) {
+        toast.error('Full name and IC number are required');
+        return;
+      }
+    }
+
+    setProcessing(true);
+    try {
+      if (!createForm.useDirectData) {
+        // Check if user exists
+        const { data: userProfile, error: userError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name')
+          .eq('id', createForm.user_id)
+          .single();
+
+        if (userError || !userProfile) {
+          toast.error('User not found. Please check the User ID.');
+          setProcessing(false);
+          return;
+        }
+
+        // Check if member already exists
+        const { data: existingMember } = await supabase
+          .from('khairat_members')
+          .select('id, status')
+          .eq('user_id', createForm.user_id)
+          .eq('mosque_id', mosqueId)
+          .single();
+
+        if (existingMember) {
+          toast.error(`User already has a ${existingMember.status} membership`);
+          setProcessing(false);
+          return;
+        }
+      } else {
+        // Check if member with same IC already exists for this mosque
+        const { data: existingMember } = await supabase
+          .from('khairat_members')
+          .select('id, status')
+          .eq('ic_passport_number', createForm.ic_passport_number)
+          .eq('mosque_id', mosqueId)
+          .is('user_id', null)
+          .single();
+
+        if (existingMember) {
+          toast.error(`A member with this IC number already exists with ${existingMember.status} status`);
+          setProcessing(false);
+          return;
+        }
+      }
+
+      // Create the member directly as active
+      const insertData: any = {
+        mosque_id: mosqueId,
+        ic_passport_number: createForm.ic_passport_number || null,
+        notes: createForm.notes || null,
+        status: 'active',
+        joined_date: new Date().toISOString().split('T')[0],
+      };
+
+      if (createForm.useDirectData) {
+        // Direct data mode - no user_id
+        insertData.full_name = createForm.full_name;
+        insertData.phone = createForm.phone || null;
+        insertData.email = createForm.email || null;
+        insertData.address = createForm.address || null;
+      } else {
+        // User account mode
+        insertData.user_id = createForm.user_id;
+      }
+
+      const { data: newMember, error: createError } = await supabase
+        .from('khairat_members')
+        .insert(insertData)
+        .select(`
+          *,
+          user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
+          mosque:mosques(id, name)
+        `)
+        .single();
+
+      if (createError) {
+        throw new Error(createError.message);
+      }
+
+      toast.success('Member registered successfully');
+      setCreateDialogOpen(false);
+      setCreateForm({ 
+        user_id: '', 
+        full_name: '',
+        ic_passport_number: '', 
+        phone: '',
+        email: '',
+        address: '',
+        notes: '',
+        useDirectData: false,
+      });
+      loadMembers();
+    } catch (error: any) {
+      console.error('Error creating member:', error);
+      toast.error(error?.message || 'Failed to register member');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       // Application statuses
@@ -324,18 +426,15 @@ export function KhairatManagement({
 
   const columns: ColumnDef<KhairatMember>[] = [
     {
-      accessorKey: 'user.full_name',
+      accessorKey: 'full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Member" />
+        <DataTableColumnHeader column={column} title="Name" />
       ),
       cell: ({ row }) => {
         const member = row.original;
         return (
-          <div className="space-y-1">
-            <div className="font-medium">{member.user?.full_name || 'Unknown User'}</div>
-            <div className="text-sm text-muted-foreground">
-              {member.user?.phone || 'No contact info'}
-            </div>
+          <div className="font-medium">
+            {member.full_name || 'Unknown User'}
           </div>
         );
       },
@@ -343,13 +442,41 @@ export function KhairatManagement({
     {
       accessorKey: 'ic_passport_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="IC/Passport" />
+        <DataTableColumnHeader column={column} title="IC No" />
       ),
       cell: ({ row }) => {
         const member = row.original;
         return (
           <div className="text-sm font-mono">
             {member.ic_passport_number || 'Not provided'}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'phone',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Phone" />
+      ),
+      cell: ({ row }) => {
+        const member = row.original;
+        return (
+          <div className="text-sm">
+            {member.phone || 'No contact info'}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'membership_number',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Member ID" />
+      ),
+      cell: ({ row }) => {
+        const member = row.original;
+        return (
+          <div className="text-sm font-mono">
+            {member.membership_number || '-'}
           </div>
         );
       },
@@ -364,21 +491,6 @@ export function KhairatManagement({
         return (
           <div className="flex items-center gap-2">
             {getStatusBadge(member.status)}
-            {getTypeBadge(member.status)}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'created_at',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date" />
-      ),
-      cell: ({ row }) => {
-        const member = row.original;
-        return (
-          <div className="text-sm">
-            {formatDistanceToNow(new Date(member.created_at), { addSuffix: true })}
           </div>
         );
       },
@@ -393,15 +505,15 @@ export function KhairatManagement({
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant="ghost"
+              variant="outline"
               onClick={() => {
                 setSelectedMember(member);
                 setReviewDialogOpen(true);
               }}
-              className="h-8"
-              title="View details"
+              className="h-8 w-8 p-0"
+              title="Update"
             >
-              <Eye className="h-3 w-3" />
+              <Edit className="h-4 w-4" />
             </Button>
           </div>
         );
@@ -412,8 +524,10 @@ export function KhairatManagement({
   const filteredMembers = members.filter(member => {
     const matchesSearch =
       !searchTerm ||
-      member.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.ic_passport_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      member.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.ic_passport_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.membership_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.phone?.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
   });
@@ -426,112 +540,40 @@ export function KhairatManagement({
     );
   }
 
-  const totalApplications = stats ? stats.applications.pending + stats.applications.approved + stats.applications.rejected + stats.applications.withdrawn : 0;
-  const pendingApplications = stats?.applications.pending || 0;
-  const totalMembers = stats ? stats.memberships.active + stats.memberships.inactive + stats.memberships.suspended : 0;
-  const activeMembers = stats?.memberships.active || 0;
-
   return (
     <div className="space-y-6">
-      {/* Stats Cards - Matching Payments Design */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span className="font-medium text-blue-900 dark:text-blue-100">
-                Total Applications
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {totalApplications}
-            </p>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              All applications
-            </p>
-          </div>
-
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <span className="font-medium text-yellow-900 dark:text-yellow-100">
-                Pending
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-              {pendingApplications}
-            </p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              Awaiting review
-            </p>
-          </div>
-
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-900 dark:text-green-100">
-                Active Members
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {activeMembers}
-            </p>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              Active members
-            </p>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-slate-600" />
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                Total Members
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {totalMembers}
-            </p>
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              All members
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or IC/Passport…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="withdrawn">Withdrawn</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       {/* Data Table */}
       <DataTable
         columns={columns}
         data={filteredMembers}
+        customFilters={
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, IC, or Member ID…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
       />
 
       {/* Member Details Dialog */}
@@ -549,10 +591,9 @@ export function KhairatManagement({
 
           {selectedMember && (
             <div className="space-y-6">
-              {/* Status and Type Badge */}
+              {/* Status Badge */}
               <div className="flex items-center gap-3">
                 {getStatusBadge(selectedMember.status)}
-                {getTypeBadge(selectedMember.status)}
               </div>
 
               {/* Member Details Grid */}
@@ -560,16 +601,38 @@ export function KhairatManagement({
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Member Name</label>
-                    <p className="font-medium text-lg">{selectedMember.user?.full_name || 'Unknown User'}</p>
+                    <p className="font-medium text-lg">
+                      {selectedMember.full_name || 'Unknown User'}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <p className="text-sm">{selectedMember.user?.phone || 'No contact info'}</p>
+                    <p className="text-sm">
+                      {selectedMember.phone || 'No contact info'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">IC/Passport Number</label>
+                    <label className="text-sm font-medium text-muted-foreground">IC Number</label>
                     <p className="font-mono text-sm">{selectedMember.ic_passport_number || 'Not provided'}</p>
                   </div>
+                  {selectedMember.address && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Address</label>
+                      <p className="text-sm">{selectedMember.address}</p>
+                    </div>
+                  )}
+                  {selectedMember.email && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Email</label>
+                      <p className="text-sm">{selectedMember.email}</p>
+                    </div>
+                  )}
+                  {selectedMember.membership_number && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Member ID</label>
+                      <p className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">{selectedMember.membership_number}</p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
@@ -668,29 +731,6 @@ export function KhairatManagement({
                   </>
                 )}
 
-                {/* Active members */}
-                {selectedMember.status === 'active' && (
-                  <Button
-                    onClick={() => handleInactivateMember(selectedMember.id)}
-                    disabled={processing}
-                    variant="outline"
-                  >
-                    <UserX className="h-4 w-4 mr-2" />
-                    Inactivate
-                  </Button>
-                )}
-
-                {/* Inactive members */}
-                {selectedMember.status === 'inactive' && (
-                  <Button
-                    onClick={() => handleReactivateMember(selectedMember.id)}
-                    disabled={processing}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Reactivate
-                  </Button>
-                )}
 
                 {/* Delete button - available for all statuses */}
                 <Button
@@ -773,6 +813,167 @@ export function KhairatManagement({
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Member Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Register New Member</DialogTitle>
+            <DialogDescription>
+              Register a new khairat member directly. The member will be created with active status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Toggle between user account and direct data */}
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <input
+                type="checkbox"
+                id="useDirectData"
+                checked={createForm.useDirectData}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, useDirectData: e.target.checked })
+                }
+                className="h-4 w-4"
+              />
+              <label htmlFor="useDirectData" className="text-sm font-medium cursor-pointer">
+                Register without user account (direct data entry)
+              </label>
+            </div>
+
+            {createForm.useDirectData ? (
+              /* Direct Data Mode - No user account required */
+              <>
+                <div>
+                  <label className="text-sm font-medium">Full Name *</label>
+                  <Input
+                    placeholder="Enter full name"
+                    value={createForm.full_name}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, full_name: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">IC Number *</label>
+                  <Input
+                    placeholder="Enter IC number"
+                    value={createForm.ic_passport_number}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, ic_passport_number: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Phone (Optional)</label>
+                  <Input
+                    placeholder="Enter phone number"
+                    value={createForm.phone}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, phone: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Email (Optional)</label>
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={createForm.email}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, email: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Address (Optional)</label>
+                  <Textarea
+                    placeholder="Enter address"
+                    value={createForm.address}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, address: e.target.value })
+                    }
+                    className="mt-1"
+                    rows={2}
+                  />
+                </div>
+              </>
+            ) : (
+              /* User Account Mode */
+              <>
+                <div>
+                  <label className="text-sm font-medium">User ID *</label>
+                  <Input
+                    placeholder="Enter user ID"
+                    value={createForm.user_id}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, user_id: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The user must already exist in the system
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">IC Number (Optional)</label>
+                  <Input
+                    placeholder="Enter IC number"
+                    value={createForm.ic_passport_number}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, ic_passport_number: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="text-sm font-medium">Notes (Optional)</label>
+              <Textarea
+                placeholder="Add notes about this membership"
+                value={createForm.notes}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, notes: e.target.value })
+                }
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCreateDialogOpen(false);
+                  setCreateForm({ 
+                    user_id: '', 
+                    full_name: '',
+                    ic_passport_number: '', 
+                    phone: '',
+                    email: '',
+                    address: '',
+                    notes: '',
+                    useDirectData: false,
+                  });
+                }}
+                disabled={processing}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCreateMember} disabled={processing}>
+                {processing && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Register Member
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

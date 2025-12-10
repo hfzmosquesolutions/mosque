@@ -27,12 +27,15 @@ export async function GET(
     
     let selectQuery = `
       *,
-      claimant:user_profiles!claimant_id(
+      khairat_member:khairat_members!khairat_member_id(
         id,
         full_name,
         phone,
         ic_passport_number,
-        email
+        email,
+        address,
+        membership_number,
+        status
       ),
       mosque:mosques(
         id,
@@ -123,7 +126,7 @@ export async function PUT(
     // Get current claim to check permissions and status
     const { data: currentClaim, error: fetchError } = await supabaseAdmin
       .from('khairat_claims')
-      .select('*')
+      .select('id, khairat_member_id, status')
       .eq('id', id)
       .single();
 
@@ -142,8 +145,18 @@ export async function PUT(
       );
     }
 
-    // Check if user is the claimant or an admin
-    const isClaimant = currentClaim.claimant_id === userId;
+    // Check if user is the member (via khairat_member_id) or an admin
+    let isMember = false;
+    
+    if (currentClaim.khairat_member_id) {
+      const { data: khairatMember } = await supabaseAdmin
+        .from('khairat_members')
+        .select('user_id')
+        .eq('id', currentClaim.khairat_member_id)
+        .single();
+      
+      isMember = khairatMember?.user_id === userId;
+    }
     
     // Get user role to check if admin
     const { data: userProfile } = await supabaseAdmin
@@ -154,7 +167,7 @@ export async function PUT(
 
     const isAdmin = userProfile?.role === 'admin';
 
-    if (!isClaimant && !isAdmin) {
+    if (!isMember && !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized to update this claim' },
         { status: 403 }
@@ -186,11 +199,15 @@ export async function PUT(
       .eq('id', id)
       .select(`
         *,
-        claimant:user_profiles!claimant_id(
+        khairat_member:khairat_members!khairat_member_id(
           id,
           full_name,
           phone,
-          ic_passport_number
+          ic_passport_number,
+          email,
+          address,
+          membership_number,
+          status
         ),
         program:contribution_programs(
           id,
@@ -245,7 +262,7 @@ export async function DELETE(
     // Get current claim to check permissions and status
     const { data: currentClaim, error: fetchError } = await supabaseAdmin
       .from('khairat_claims')
-      .select('*')
+      .select('id, khairat_member_id, status')
       .eq('id', id)
       .single();
 
@@ -264,8 +281,18 @@ export async function DELETE(
       );
     }
 
-    // Check if user is the claimant or an admin
-    const isClaimant = currentClaim.claimant_id === userId;
+    // Check if user is the member (via khairat_member_id) or an admin
+    let isMember = false;
+    
+    if (currentClaim.khairat_member_id) {
+      const { data: khairatMember } = await supabaseAdmin
+        .from('khairat_members')
+        .select('user_id')
+        .eq('id', currentClaim.khairat_member_id)
+        .single();
+      
+      isMember = khairatMember?.user_id === userId;
+    }
     
     // Get user role to check if admin
     const { data: userProfile } = await supabaseAdmin
@@ -276,7 +303,7 @@ export async function DELETE(
 
     const isAdmin = userProfile?.role === 'admin';
 
-    if (!isClaimant && !isAdmin) {
+    if (!isMember && !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized to cancel this claim' },
         { status: 403 }
@@ -288,7 +315,7 @@ export async function DELETE(
       .from('khairat_claims')
       .update({ 
         status: 'cancelled',
-        admin_notes: `Cancelled by ${isClaimant ? 'claimant' : 'admin'} on ${new Date().toISOString()}`
+        admin_notes: `Cancelled by ${isMember ? 'member' : 'admin'} on ${new Date().toISOString()}`
       })
       .eq('id', id);
 

@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { CheckCircle, Clock, Heart, X } from 'lucide-react';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserProfile } from '@/lib/api';
+import { UserProfile } from '@/types/database';
 
 export interface KhairatRegistrationDialogProps {
 	isOpen: boolean;
@@ -16,7 +22,14 @@ export interface KhairatRegistrationDialogProps {
 	isWithdrawingApplication: boolean;
 	isDeletingApplication: boolean;
 	isWithdrawingMembership: boolean;
-	onApply: () => void;
+	onApply: (data: {
+		full_name: string;
+		ic_passport_number: string;
+		phone?: string;
+		email?: string;
+		address?: string;
+		application_reason?: string;
+	}) => void;
 	onWithdrawApplication: () => void;
 	onDeleteApplication: () => void;
 	onWithdrawMembership: () => void;
@@ -41,9 +54,74 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 	} = props;
 
 	const t = useTranslations('mosqueProfile');
+	const { user } = useAuth();
+	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
 	// Inline confirmation toggles
 	const [confirming, setConfirming] = useState<null | 'withdrawApp' | 'deleteApp'>(null);
+	
+	// Form state for application
+	const [formData, setFormData] = useState({
+		full_name: '',
+		ic_passport_number: '',
+		phone: '',
+		email: '',
+		address: '',
+		application_reason: '',
+	});
+
+	// Fetch user profile and initialize form when dialog opens
+	useEffect(() => {
+		if (isOpen && user?.id && !status) {
+			let isMounted = true;
+			
+			const fetchProfileAndInitialize = async () => {
+				// Fetch profile
+				const response = await getUserProfile(user.id);
+				if (!isMounted) return;
+				
+				if (response.success && response.data) {
+					setUserProfile(response.data);
+					// Initialize form with fetched data
+					setFormData({
+						full_name: response.data.full_name || '',
+						ic_passport_number: response.data.ic_passport_number || '',
+						phone: response.data.phone || '',
+						email: user.email || '',
+						address: response.data.address || '',
+						application_reason: '',
+					});
+				} else {
+					// Even if profile fetch fails, initialize with user email
+					setFormData({
+						full_name: '',
+						ic_passport_number: '',
+						phone: '',
+						email: user.email || '',
+						address: '',
+						application_reason: '',
+					});
+				}
+			};
+			
+			fetchProfileAndInitialize();
+			
+			return () => {
+				isMounted = false;
+			};
+		} else if (!isOpen) {
+			// Reset form when dialog closes
+			setFormData({
+				full_name: '',
+				ic_passport_number: '',
+				phone: '',
+				email: '',
+				address: '',
+				application_reason: '',
+			});
+			setUserProfile(null);
+		}
+	}, [isOpen, user?.id, user?.email, status]);
 
 	const renderStatusBadge = () => {
 		const getStatusInfo = () => {
@@ -165,21 +243,100 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 			return null;
 		}
 
-		// No application yet
+		// No application yet - show form
 		return (
-			<Button onClick={onApply} disabled={isApplying} className="w-full bg-emerald-600 hover:bg-emerald-700">
-				{isApplying ? (
-					<>
-						<Clock className="h-4 w-4 mr-2 animate-spin" />
-						{t('submitting')}
-					</>
-				) : (
-					<>
-						<Heart className="h-4 w-4 mr-2" />
-						{t('applyKhairat')}
-					</>
-				)}
-			</Button>
+			<div className="space-y-4">
+				<div className="space-y-3">
+					<div>
+						<Label htmlFor="full_name">Full Name *</Label>
+						<Input
+							id="full_name"
+							value={formData.full_name}
+							onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+							placeholder="Enter your full name"
+							className="mt-1"
+							required
+						/>
+					</div>
+					<div>
+						<Label htmlFor="ic_passport_number">IC Number *</Label>
+						<Input
+							id="ic_passport_number"
+							value={formData.ic_passport_number}
+							onChange={(e) => setFormData({ ...formData, ic_passport_number: e.target.value })}
+							placeholder="Enter IC number"
+							className="mt-1"
+							required
+						/>
+					</div>
+					<div>
+						<Label htmlFor="phone">Phone Number</Label>
+						<Input
+							id="phone"
+							type="tel"
+							value={formData.phone}
+							onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+							placeholder="Enter phone number"
+							className="mt-1"
+						/>
+					</div>
+					<div>
+						<Label htmlFor="email">Email</Label>
+						<Input
+							id="email"
+							type="email"
+							value={formData.email}
+							disabled
+							className="mt-1 bg-slate-50 dark:bg-slate-800 cursor-not-allowed"
+							placeholder="Email from your account"
+						/>
+					</div>
+					<div>
+						<Label htmlFor="address">Address</Label>
+						<Textarea
+							id="address"
+							value={formData.address}
+							onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+							placeholder="Enter your address"
+							className="mt-1"
+							rows={2}
+						/>
+					</div>
+					<div>
+						<Label htmlFor="application_reason">Application Reason (Optional)</Label>
+						<Textarea
+							id="application_reason"
+							value={formData.application_reason}
+							onChange={(e) => setFormData({ ...formData, application_reason: e.target.value })}
+							placeholder="Why do you want to join the khairat program?"
+							className="mt-1"
+							rows={3}
+						/>
+					</div>
+				</div>
+				<Button 
+					onClick={() => {
+						if (!formData.full_name || !formData.ic_passport_number) {
+							return;
+						}
+						onApply(formData);
+					}} 
+					disabled={isApplying || !formData.full_name || !formData.ic_passport_number} 
+					className="w-full bg-emerald-600 hover:bg-emerald-700"
+				>
+					{isApplying ? (
+						<>
+							<Clock className="h-4 w-4 mr-2 animate-spin" />
+							{t('submitting')}
+						</>
+					) : (
+						<>
+							<Heart className="h-4 w-4 mr-2" />
+							{t('applyKhairat')}
+						</>
+					)}
+				</Button>
+			</div>
 		);
 	};
 
