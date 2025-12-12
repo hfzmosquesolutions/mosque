@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -18,6 +18,7 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading) {
@@ -26,10 +27,26 @@ export function ProtectedRoute({
         router.push(redirectTo);
       } else if (!requireAuth && user) {
         // Redirect authenticated users away from auth pages
-        router.push('/dashboard');
+        // Check for returnUrl in sessionStorage first, then query params, then default to dashboard
+        const returnUrl = 
+          (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) ||
+          searchParams.get('returnUrl') ||
+          '/dashboard';
+        
+        // Clear the returnUrl from sessionStorage after reading it
+        if (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) {
+          sessionStorage.removeItem('returnUrl');
+        }
+        
+        // Use window.location.href to ensure a full page reload and prevent redirect loops
+        if (returnUrl && returnUrl !== '/dashboard') {
+          window.location.href = returnUrl;
+        } else {
+          router.push('/dashboard');
+        }
       }
     }
-  }, [user, loading, router, redirectTo, requireAuth]);
+  }, [user, loading, router, redirectTo, requireAuth, searchParams]);
 
   // Show loading spinner while checking authentication
   if (loading) {

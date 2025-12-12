@@ -49,6 +49,15 @@ export function useOnboardingRedirect() {
     if (!isLoading && user && !isCompleted) {
       // Only redirect if we're not already on the onboarding page
       if (window.location.pathname !== '/onboarding') {
+        // Store current path for return after onboarding (if not already stored)
+        const currentPath = window.location.pathname;
+        if (currentPath && currentPath !== '/dashboard' && currentPath !== '/onboarding') {
+          const existingPendingUrl = sessionStorage.getItem('pendingReturnUrl');
+          // Only set if there's no existing pending URL or if current path is more specific (mosque page)
+          if (!existingPendingUrl || currentPath.includes('/mosques/')) {
+            sessionStorage.setItem('pendingReturnUrl', currentPath);
+          }
+        }
         router.push('/onboarding');
       }
     }

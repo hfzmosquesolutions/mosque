@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck, Heart } from 'lucide-react';
+import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck, Heart, UserPlus } from 'lucide-react';
 import { createClaim, uploadClaimDocument } from '@/lib/api';
 import { submitKhairatApplication, getKhairatMembers, deleteKhairatMember, withdrawKhairatMembership } from '@/lib/api/khairat-members';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
@@ -48,7 +48,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Share2, QrCode, Copy, Facebook, Twitter, MessageCircle, Check } from 'lucide-react';
-import { ServiceAwareButton } from '@/components/mosque/ServiceAwareButton';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
 import { KhairatRegistrationDialog } from '@/components/mosque/KhairatRegistrationDialog';
 import { Mosque } from '@/types/database';
@@ -56,14 +55,53 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
+import { checkOnboardingStatus } from '@/lib/api';
 
 export default function MosqueProfilePage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const mosqueId = params.id as string;
+  const locale = params.locale as string;
   const { user } = useAuth();
   const t = useTranslations('mosqueProfile');
+  
+  // Get the current page URL for return redirect
+  const currentPath = `/${locale}/mosques/${mosqueId}`;
+  
+  // Check onboarding status for logged-in users (same pattern as login/signup)
+  useEffect(() => {
+    const checkOnboardingAndRedirect = async () => {
+      // Only check for logged-in users
+      if (!user?.id) {
+        return;
+      }
+
+      try {
+        // Check if user needs onboarding
+        const onboardingCompleted = await checkOnboardingStatus(user.id);
+        
+        if (!onboardingCompleted) {
+          // Store returnUrl for after onboarding completion (same as login/signup)
+          if (currentPath && currentPath !== '/dashboard') {
+            sessionStorage.setItem('pendingReturnUrl', currentPath);
+          }
+          // Redirect to onboarding
+          router.push('/onboarding');
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+        // Don't redirect on error, let user continue viewing the page
+      }
+    };
+
+    // Wait a bit for auth state to stabilize
+    const timer = setTimeout(() => {
+      checkOnboardingAndRedirect();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [user?.id, currentPath, router]);
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [contributionPrograms, setContributionPrograms] = useState<any[]>([]);
@@ -256,7 +294,7 @@ export default function MosqueProfilePage() {
 
   const handleContributeToProgram = (programId: string) => {
     if (!user?.id) {
-      router.push(`/login`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
     setSelectedProgramId(programId);
@@ -265,7 +303,7 @@ export default function MosqueProfilePage() {
 
   const handleOpenKhairatClaim = () => {
     if (!user?.id) {
-      router.push(`/login`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
     setIsKhairatClaimDialogOpen(true);
@@ -419,7 +457,7 @@ export default function MosqueProfilePage() {
 
   const handleApplyKhairat = async () => {
     if (!user?.id) {
-      router.push(`/login`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
     if (!mosque) return;
@@ -815,7 +853,7 @@ export default function MosqueProfilePage() {
                 </CardTitle>
                 <CardDescription>{t('availableServices', { fallback: 'Access mosque services and programs' })}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {adminCheckLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
@@ -825,165 +863,113 @@ export default function MosqueProfilePage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 gap-2">
-                      {/* Register for Khairat */}
-                      <ServiceAwareButton
-                        serviceId="khairat_management"
-                        enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                        disabledMessage="Khairat registrations are not currently available for this mosque."
-                        className={`w-full justify-start p-3 h-auto ${isUserAnyMosqueAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        variant="ghost"
-                        disabled={isUserAnyMosqueAdmin}
-                        onClick={() => {
-                          if (isUserAnyMosqueAdmin) return;
-                          if (!user?.id) {
-                            router.push(`/login`);
-                            return;
-                          }
-                          handleApplyKhairat();
-                        }}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                          isUserAnyMosqueAdmin
-                            ? 'bg-gray-200 dark:bg-gray-700'
-                            : !user?.id || isApplyingKhairat
-                            ? 'bg-gray-200 dark:bg-gray-700' 
-                            : 'bg-emerald-100 dark:bg-emerald-800'
-                        }`}>
-                          {isApplyingKhairat ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-gray-400 dark:text-gray-500" />
-                          ) : (
-                            <Heart className={`h-5 w-5 ${
-                              isUserAnyMosqueAdmin
-                                ? 'text-gray-400 dark:text-gray-500'
-                                : !user?.id 
-                                ? 'text-gray-400 dark:text-gray-500' 
-                                : 'text-emerald-600 dark:text-emerald-400'
-                            }`} />
-                          )}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-medium text-slate-900 dark:text-white text-sm">
-                            {isApplyingKhairat ? t('submitting') : t('applyKhairat')}
-                          </h3>
-                          {isUserAnyMosqueAdmin && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
-                            </p>
-                          )}
-                        </div>
-                      </ServiceAwareButton>
+                    {(() => {
+                      const enabledServices = Array.isArray(mosque.settings?.enabled_services) 
+                        ? mosque.settings.enabled_services 
+                        : [];
+                      const isKhairatEnabled = enabledServices.includes('khairat_management');
+                      const isDisabled = isUserAnyMosqueAdmin || !isKhairatEnabled;
 
-                      {/* Pay Khairat */}
-                      <ServiceAwareButton
-                        serviceId="khairat_management"
-                        enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                        disabledMessage="Khairat payments are not currently available for this mosque."
-                        className={`w-full justify-start p-3 h-auto ${isUserAnyMosqueAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        variant="ghost"
-                        disabled={isUserAnyMosqueAdmin}
-                        onClick={() => {
-                          if (isUserAnyMosqueAdmin) return;
-                          if (!user?.id) {
-                            router.push(`/login`);
-                            return;
-                          }
-                          setIsKhairatModalOpen(true);
-                        }}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                          isUserAnyMosqueAdmin
-                            ? 'bg-gray-200 dark:bg-gray-700'
-                            : !user?.id 
-                            ? 'bg-gray-200 dark:bg-gray-700' 
-                            : 'bg-emerald-100 dark:bg-emerald-800'
-                        }`}>
-                          <HandCoins className={`h-5 w-5 ${
-                            isUserAnyMosqueAdmin
-                              ? 'text-gray-400 dark:text-gray-500'
-                              : !user?.id 
-                              ? 'text-gray-400 dark:text-gray-500' 
-                              : 'text-emerald-600 dark:text-emerald-400'
-                          }`} />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-medium text-slate-900 dark:text-white text-sm">
-                            {t('payKhairat')}
-                          </h3>
-                          {isUserAnyMosqueAdmin && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
-                            </p>
-                          )}
-                        </div>
-                      </ServiceAwareButton>
+                      const actions = [
+                        {
+                          id: 'apply-khairat',
+                          title: isApplyingKhairat ? t('submitting') : t('applyKhairat'),
+                          icon: UserPlus,
+                          bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-blue-600 dark:text-blue-400',
+                          onClick: () => {
+                            if (isDisabled) return;
+                            if (!user?.id) {
+                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+                              return;
+                            }
+                            handleApplyKhairat();
+                          },
+                          isLoading: isApplyingKhairat,
+                        },
+                        {
+                          id: 'pay-khairat',
+                          title: t('payKhairat'),
+                          icon: HandCoins,
+                          bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-orange-600 dark:text-orange-400',
+                          onClick: () => {
+                            if (isDisabled) return;
+                            if (!user?.id) {
+                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+                              return;
+                            }
+                            setIsKhairatModalOpen(true);
+                          },
+                        },
+                        {
+                          id: 'submit-claim',
+                          title: t('submitKhairatClaim'),
+                          icon: FileText,
+                          bgColor: 'bg-green-50 dark:bg-green-950/20',
+                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-green-600 dark:text-green-400',
+                          onClick: () => {
+                            if (isDisabled) return;
+                            if (!user?.id) {
+                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+                              return;
+                            }
+                            handleOpenKhairatClaim();
+                          },
+                        },
+                      ];
 
-                      {/* Submit Khairat Claim */}
-                      <ServiceAwareButton
-                        serviceId="khairat_management"
-                        enabledServices={Array.isArray(mosque.settings?.enabled_services) ? mosque.settings.enabled_services : []}
-                        disabledMessage="Khairat claims are not currently available for this mosque."
-                        className={`w-full justify-start p-3 h-auto ${isUserAnyMosqueAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        variant="ghost"
-                        disabled={isUserAnyMosqueAdmin}
-                        onClick={() => {
-                          if (isUserAnyMosqueAdmin) return;
-                          if (!user?.id) {
-                            router.push(`/login`);
-                            return;
-                          }
-                          handleOpenKhairatClaim();
-                        }}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                          isUserAnyMosqueAdmin
-                            ? 'bg-gray-200 dark:bg-gray-700'
-                            : !user?.id 
-                            ? 'bg-gray-200 dark:bg-gray-700' 
-                            : 'bg-rose-100 dark:bg-rose-800'
-                        }`}>
-                          <HeartHandshake className={`h-5 w-5 ${
-                            isUserAnyMosqueAdmin
-                              ? 'text-gray-400 dark:text-gray-500'
-                              : !user?.id 
-                              ? 'text-gray-400 dark:text-gray-500' 
-                              : 'text-rose-600 dark:text-rose-400'
-                          }`} />
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          {actions.map((action) => {
+                            const IconComponent = action.icon;
+                            const isActionDisabled = isDisabled || action.isLoading;
+                            
+                            return (
+                              <div
+                                key={action.id}
+                                onClick={isActionDisabled ? undefined : action.onClick}
+                                className={`group relative p-4 rounded-xl border transition-all duration-200 ${
+                                  isActionDisabled 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
+                                } ${action.bgColor} border-transparent ${!isActionDisabled ? 'hover:border-current/30' : ''} text-center`}
+                              >
+                                <div className="flex flex-col items-center gap-3">
+                                  <div className={`p-3 rounded-xl ${action.bgColor} shadow-sm`}>
+                                    {action.isLoading ? (
+                                      <Loader2 className={`h-6 w-6 animate-spin ${action.iconColor}`} />
+                                    ) : (
+                                      <IconComponent className={`h-6 w-6 ${action.iconColor}`} />
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={`font-semibold text-sm ${
+                                      isActionDisabled
+                                        ? 'text-gray-500 dark:text-gray-400'
+                                        : 'text-gray-900 dark:text-gray-100 group-hover:text-gray-700 dark:group-hover:text-gray-300'
+                                    } leading-tight`}>
+                                      {action.title}
+                                    </h4>
+                                    {isUserAnyMosqueAdmin && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
+                                      </p>
+                                    )}
+                                    {!isKhairatEnabled && !isUserAnyMosqueAdmin && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {t('serviceNotEnabled', { fallback: 'Service not available' })}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-medium text-slate-900 dark:text-white text-sm">
-                            {t('submitKhairatClaim')}
-                          </h3>
-                          {isUserAnyMosqueAdmin && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
-                            </p>
-                          )}
-                        </div>
-                      </ServiceAwareButton>
-                    </div>
-                    {!user && (
-                      <div className="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                          {t('loginRequiredForActions', { fallback: 'Please log in to access these actions' })}
-                        </p>
-                        <div className="space-y-2">
-                          <Button
-                            onClick={() => window.open(`/login`, '_blank', 'noopener,noreferrer')}
-                            className="w-full"
-                          >
-                            {t('signInToContinue', { fallback: 'Sign In to Continue' })}
-                          </Button>
-                          <Button
-                            onClick={() => window.open(`/signup`, '_blank', 'noopener,noreferrer')}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            {t('createNewAccount', { fallback: 'Create New Account' })}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </>
                 )}
               </CardContent>
