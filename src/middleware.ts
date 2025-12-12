@@ -13,12 +13,26 @@ export default function middleware(request: NextRequest) {
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true';
   const pathname = request.nextUrl.pathname;
 
-  // Allow static assets, API routes and special paths to bypass maintenance
+  // Allow static assets, API routes, auth routes and special paths to bypass maintenance and locale
   const isAssetRequest =
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/auth') ||
     pathname.startsWith('/_vercel') ||
     /\.[^/]+$/.test(pathname);
+
+  // If it's an auth route or asset, bypass locale middleware
+  if (pathname.startsWith('/auth') || pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.startsWith('/_vercel') || /\.[^/]+$/.test(pathname)) {
+    // Still check maintenance mode for these paths
+    if (isMaintenanceMode && !isAssetRequest) {
+      const localeMatch = pathname.match(/^\/(ms|en)(\/|$)/);
+      const locale = localeMatch ? localeMatch[1] : 'ms';
+      const url = new URL(`/${locale}/maintenance`, request.url);
+      return NextResponse.redirect(url);
+    }
+    // Return response without locale processing
+    return NextResponse.next();
+  }
 
   // Localized maintenance path e.g. /ms/maintenance or /en/maintenance
   const isMaintenancePath = /^\/(ms|en)\/maintenance\/?$/.test(pathname);
@@ -37,6 +51,6 @@ export const config = {
   matcher: [
     '/',
     '/(ms|en)/:path*',
-    '/((?!api|_next|_vercel|.*\\..*).*)',
+    '/((?!api|auth|_next|_vercel|.*\\..*).*)',
   ]
 };

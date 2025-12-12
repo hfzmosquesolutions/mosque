@@ -16,7 +16,13 @@ export async function GET(request: NextRequest) {
     
     if (!error) {
       // Redirect to returnUrl if provided, otherwise dashboard
-      const redirectTo = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+      let redirectTo = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+      
+      // Ensure redirectTo has locale prefix (default to 'ms' if missing)
+      if (!redirectTo.startsWith('/ms/') && !redirectTo.startsWith('/en/')) {
+        redirectTo = `/ms${redirectTo.startsWith('/') ? redirectTo : '/' + redirectTo}`;
+      }
+      
       const response = NextResponse.redirect(`${requestUrl.origin}${redirectTo}`);
       // Store returnUrl in a cookie as backup (expires in 5 minutes)
       if (returnUrl) {
@@ -30,6 +36,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If there's an error or no code, redirect to login
-  return NextResponse.redirect(`${requestUrl.origin}/login`);
+  // If there's an error or no code, redirect to login (with locale prefix)
+  return NextResponse.redirect(`${requestUrl.origin}/ms/login`);
 }
