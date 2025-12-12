@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,9 +16,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { checkOnboardingStatus } from '@/lib/api';
 
 function LoginPageContent() {
   const t = useTranslations('auth');
@@ -28,24 +29,83 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+
+  // Store returnUrl in sessionStorage so ProtectedRoute can access it
+  useEffect(() => {
+    if (returnUrl && returnUrl !== '/dashboard') {
+      sessionStorage.setItem('returnUrl', returnUrl);
+    }
+  }, [returnUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(email, password);
+      const result = await signIn(email, password);
+      if (result?.error) {
+        toast.error(result.error);
+        setLoading(false);
+        return;
+      }
+      
       toast.success(t('loginSuccess'));
-      router.push('/dashboard');
+      
+      // Get the returnUrl from sessionStorage or query params
+      const storedReturnUrl = sessionStorage.getItem('returnUrl') || returnUrl;
+      
+      // Wait a bit for auth state to update, then check onboarding status
+      setTimeout(async () => {
+        try {
+          // Get the user ID from the auth context
+          const { supabase } = await import('@/lib/supabase');
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          
+          if (authUser?.id) {
+            // Check if user needs onboarding
+            const onboardingCompleted = await checkOnboardingStatus(authUser.id);
+            
+            if (!onboardingCompleted) {
+              // Store returnUrl for after onboarding completion
+              if (storedReturnUrl && storedReturnUrl !== '/dashboard') {
+                sessionStorage.setItem('pendingReturnUrl', storedReturnUrl);
+              }
+              // Clear the regular returnUrl since we're using pendingReturnUrl
+              if (sessionStorage.getItem('returnUrl')) {
+                sessionStorage.removeItem('returnUrl');
+              }
+              // Redirect to onboarding
+              window.location.href = '/onboarding';
+              return;
+            }
+          }
+          
+          // Clear sessionStorage
+          if (sessionStorage.getItem('returnUrl')) {
+            sessionStorage.removeItem('returnUrl');
+          }
+          
+          // Onboarding completed, redirect to returnUrl
+          window.location.href = storedReturnUrl;
+        } catch (error) {
+          console.error('Error checking onboarding:', error);
+          // Fallback: just redirect to returnUrl
+          if (sessionStorage.getItem('returnUrl')) {
+            sessionStorage.removeItem('returnUrl');
+          }
+          window.location.href = storedReturnUrl;
+        }
+      }, 200);
     } catch (error: any) {
       toast.error(error?.message || t('loginError'));
-    } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const result = await signInWithGoogle();
+    const result = await signInWithGoogle(returnUrl);
     
     if (result.error) {
       toast.error(result.error);
@@ -130,7 +190,7 @@ function LoginPageContent() {
                 className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                 disabled={loading}
               >
-                {loading ? t('signingIn') : t('signInToDashboard')}
+                {loading ? t('signingIn') : t('signIn')}
               </Button>
 
               {/* Forgot Password & SSL Badge */}
@@ -191,7 +251,7 @@ function LoginPageContent() {
                 {t('dontHaveAccount')}{' '}
               </span>
               <Link
-                href="/signup"
+                href={`/signup${returnUrl !== '/dashboard' ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
                >
                 {t('createAccount')}

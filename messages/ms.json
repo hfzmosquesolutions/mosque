@@ -299,7 +299,7 @@
         "description": "Lakukan sumbangan khairat untuk sokong komuniti"
       },
       "claimKhairat": {
-        "title": "Tuntut Khairat",
+        "title": "Hantar Tuntutan",
         "description": "Hantar dan pantau tuntutan khairat anda"
       },
       "addDependents": {
@@ -1240,15 +1240,15 @@
     "paymentSuccess": "Pembayaran Berjaya!",
     "paymentSuccessMessage": "Pembayaran khairat anda telah berjaya direkodkan!",
     "viewMyPayments": "Lihat Pembayaran Saya",
-    "submitKhairatClaim": "Hantar Tuntutan Khairat",
+    "submitKhairatClaim": "Hantar Tuntutan",
     "khairatClaimTitle": "Tajuk Tuntutan",
     "khairatClaimTitlePlaceholder": "Contoh: Bantuan pengebumian, Perbelanjaan perubatan",
     "khairatClaimDescriptionPlaceholder": "Terangkan situasi anda dan keperluan bantuan kewangan",
     "khairatClaimSubmitted": "Tuntutan khairat berjaya dihantar!",
     "errorSubmittingKhairatClaim": "Gagal menghantar tuntutan khairat",
-    "applyKariah": "Daftar Ahli Kariah",
-    "applyKhairat": "Daftar untuk Khairat (Kematian)",
-    "payKhairat": "Bayar Khairat (Kematian)",
+    "applyKariah": "Daftar Kariah",
+    "applyKhairat": "Daftar Khairat",
+    "payKhairat": "Bayar Khairat",
     "submitting": "Menghantar...",
     "applicationSubmitted": "Permohonan kariah berjaya dihantar!",
     "errorSubmittingApplication": "Gagal menghantar permohonan kariah",

@@ -207,7 +207,20 @@ function OnboardingContent() {
 
       if (result.success) {
         toast.success(t('onboardingCompleted'));
-        router.push('/dashboard');
+        
+        // Check for pending returnUrl (from login/signup flow)
+        const pendingReturnUrl = typeof window !== 'undefined' 
+          ? sessionStorage.getItem('pendingReturnUrl') 
+          : null;
+        
+        // Clear pendingReturnUrl from sessionStorage
+        if (typeof window !== 'undefined' && sessionStorage.getItem('pendingReturnUrl')) {
+          sessionStorage.removeItem('pendingReturnUrl');
+        }
+        
+        // Redirect to pendingReturnUrl if available, otherwise dashboard
+        const redirectTo = pendingReturnUrl || '/dashboard';
+        router.push(redirectTo);
       } else {
         toast.error(result.error || t('onboardingFailed'));
       }
