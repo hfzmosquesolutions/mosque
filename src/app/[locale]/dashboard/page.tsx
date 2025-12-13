@@ -115,8 +115,8 @@ function DashboardContent() {
       } catch (error) {
         if (!abortController.signal.aborted && isMounted()) {
           console.error('Error fetching notifications:', error);
-          safeSetState(setNotifications, []);
-          safeSetState(setUnreadCount, 0);
+          safeSetState(setNotifications, [] as any[]);
+          safeSetState(setUnreadCount, 0 as number);
         }
       }
     };
@@ -136,7 +136,7 @@ function DashboardContent() {
     const signal = abortControllerRef.current.signal;
 
     try {
-      safeSetState(setLoading, true);
+      safeSetState(setLoading, true as boolean);
 
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -187,7 +187,7 @@ function DashboardContent() {
               name: item.program?.name || t('unknownProgram'),
             },
           })) || [];
-        safeSetState(setContributions, formattedContributions);
+        safeSetState(setContributions, formattedContributions as Contribution[]);
       }
 
       if (signal.aborted || !isMounted()) return;
@@ -197,12 +197,12 @@ function DashboardContent() {
         try {
           const mosqueContributions = await getMosqueKhairatContributions(mosqueId);
           if (!signal.aborted && isMounted()) {
-            safeSetState(setAllContributions, mosqueContributions.data || []);
+            safeSetState(setAllContributions, (mosqueContributions.data || []) as Contribution[]);
           }
         } catch (error) {
           if (!signal.aborted && isMounted()) {
             console.error('Error fetching mosque contributions:', error);
-            safeSetState(setAllContributions, []);
+            safeSetState(setAllContributions, [] as Contribution[]);
           }
         }
       }
@@ -269,7 +269,7 @@ function DashboardContent() {
           if (!signal.aborted && isMounted()) {
             if (pendingError) {
               console.error('Error fetching pending khairat applications count:', pendingError);
-              safeSetState(setPendingApplicationsCount, 0);
+              safeSetState(setPendingApplicationsCount, 0 as number);
             } else if (typeof pendingCount === 'number') {
               safeSetState(setPendingApplicationsCount, pendingCount);
             }
@@ -277,7 +277,7 @@ function DashboardContent() {
         } catch (pendingError) {
           if (!signal.aborted && isMounted()) {
             console.error('Error fetching pending khairat applications count:', pendingError);
-            safeSetState(setPendingApplicationsCount, 0);
+            safeSetState(setPendingApplicationsCount, 0 as number);
           }
         }
 
@@ -292,7 +292,7 @@ function DashboardContent() {
         } catch (claimsError) {
           if (!signal.aborted && isMounted()) {
             console.error('Error fetching khairat claims:', claimsError);
-            safeSetState(setKhairatClaims, []);
+            safeSetState(setKhairatClaims, [] as any[]);
           }
         }
       }
@@ -303,7 +303,7 @@ function DashboardContent() {
       }
     } finally {
       if (!signal.aborted && isMounted()) {
-        safeSetState(setLoading, false);
+        safeSetState(setLoading, false as boolean);
       }
     }
   };

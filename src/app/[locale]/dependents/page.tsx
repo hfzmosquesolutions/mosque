@@ -101,15 +101,15 @@ function DependentsContent() {
     async function fetchDependents() {
       if (!user?.id || isAdmin || abortController.signal.aborted) return;
 
-      safeSetState(setLoading, true);
-      safeSetState(setError, null);
+      safeSetState(setLoading, true as boolean);
+      safeSetState(setError, null as string | null);
 
       try {
         const dependentsRes = await getUserDependents(user.id);
         if (abortController.signal.aborted || !isMounted()) return;
 
         if (dependentsRes.success) {
-          safeSetState(setDependents, dependentsRes.data || []);
+          safeSetState(setDependents, (dependentsRes.data || []) as UserDependent[]);
         } else {
           throw new Error(dependentsRes.error || t('failedToLoadDependents'));
         }
@@ -118,11 +118,11 @@ function DependentsContent() {
         safeSetState(setDependentForm, (prev) => ({ ...prev, user_id: user.id }));
       } catch (e) {
         if (!abortController.signal.aborted && isMounted()) {
-          safeSetState(setError, e instanceof Error ? e.message : t('failedToLoadDependents'));
+          safeSetState(setError, (e instanceof Error ? e.message : t('failedToLoadDependents')) as string | null);
         }
       } finally {
         if (!abortController.signal.aborted && isMounted()) {
-          safeSetState(setLoading, false);
+          safeSetState(setLoading, false as boolean);
         }
       }
     }

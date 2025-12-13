@@ -55,17 +55,17 @@ function ProfileContent() {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    safeSetState(setLoading, true);
+    safeSetState(setLoading, true as boolean);
     const response = await getUserProfile(user.id);
 
     if (abortController.signal.aborted || !isMounted()) return;
 
     if (response.success && response.data) {
-      safeSetState(setProfile, response.data);
+      safeSetState(setProfile, response.data as UserProfile | null);
     } else {
-      safeSetState(setError, response.error || 'Failed to load profile');
+      safeSetState(setError, (response.error || 'Failed to load profile') as string | null);
     }
-    safeSetState(setLoading, false);
+    safeSetState(setLoading, false as boolean);
   }, [user?.id, safeSetState, isMounted]);
 
   useEffect(() => {

@@ -49,13 +49,13 @@ function KhairatPaymentsContent() {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
     
-    safeSetState(setLoading, true);
+    safeSetState(setLoading, true as boolean);
     try {
       if (!hasAdminAccess) {
         // Fetch user's combined payment history (legacy + current)
         const paymentHistoryResult = await getUserPaymentHistory(user.id);
         if (!signal.aborted && isMounted()) {
-          safeSetState(setUserContributions, paymentHistoryResult.data || []);
+          safeSetState(setUserContributions, (paymentHistoryResult.data || []) as KhairatContribution[]);
         }
       }
     } catch (error) {
@@ -64,7 +64,7 @@ function KhairatPaymentsContent() {
       }
     } finally {
       if (!signal.aborted && isMounted()) {
-        safeSetState(setLoading, false);
+        safeSetState(setLoading, false as boolean);
       }
     }
   }, [user, hasAdminAccess, safeSetState, isMounted]);

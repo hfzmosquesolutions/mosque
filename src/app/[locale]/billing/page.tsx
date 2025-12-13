@@ -62,15 +62,15 @@ function BillingContent() {
           } else if (mosqueId) {
             const mosqueSub = await getMosqueSubscription(mosqueId);
             if (!abortController.signal.aborted && isMounted()) {
-              safeSetState(setSubscription, mosqueSub);
+              safeSetState(setSubscription, mosqueSub as MosqueSubscription | UserSubscription | null);
             }
           } else {
-            safeSetState(setSubscription, null);
+            safeSetState(setSubscription, null as MosqueSubscription | UserSubscription | null);
           }
         } else if (mosqueId) {
           const mosqueSub = await getMosqueSubscription(mosqueId);
           if (!abortController.signal.aborted && isMounted()) {
-            safeSetState(setSubscription, mosqueSub);
+            safeSetState(setSubscription, mosqueSub as MosqueSubscription | UserSubscription | null);
           }
         }
       } catch (error) {
@@ -79,7 +79,7 @@ function BillingContent() {
         }
       } finally {
         if (!abortController.signal.aborted && isMounted()) {
-          safeSetState(setLoading, false);
+          safeSetState(setLoading, false as boolean);
         }
       }
     };
