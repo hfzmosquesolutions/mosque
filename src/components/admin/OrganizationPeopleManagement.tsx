@@ -63,6 +63,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { supabase } from '@/lib/supabase';
 import { 
@@ -111,6 +112,7 @@ const DEPARTMENT_OPTIONS = [
 ];
 
 export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleManagementProps) {
+  const t = useTranslations('mosquePage.organizationPeople');
   const [people, setPeople] = useState<OrganizationPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -131,6 +133,37 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
     end_date: ''
   });
 
+  const getPositionOptions = () => [
+    t('positions.imam'),
+    t('positions.deputyImam'),
+    t('positions.boardMember'),
+    t('positions.president'),
+    t('positions.vicePresident'),
+    t('positions.secretary'),
+    t('positions.treasurer'),
+    t('positions.volunteerCoordinator'),
+    t('positions.activitiesCoordinator'),
+    t('positions.educationCoordinator'),
+    t('positions.youthCoordinator'),
+    t('positions.womensCoordinator'),
+    t('positions.maintenanceStaff'),
+    t('positions.securityStaff'),
+    t('positions.other')
+  ];
+
+  const getDepartmentOptions = () => [
+    t('departments.administration'),
+    t('departments.finance'),
+    t('departments.education'),
+    t('departments.activities'),
+    t('departments.youth'),
+    t('departments.womensAffairs'),
+    t('departments.maintenance'),
+    t('departments.security'),
+    t('departments.volunteerServices'),
+    t('departments.other')
+  ];
+
   useEffect(() => {
     fetchPeople();
   }, [mosqueId]);
@@ -142,11 +175,11 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
       if (response.success && response.data) {
         setPeople(response.data);
       } else {
-        toast.error(response.error || 'Failed to fetch organization people');
+        toast.error(response.error || t('failedToFetch'));
       }
     } catch (error) {
       console.error('Error fetching people:', error);
-      toast.error('Failed to fetch organization people');
+      toast.error(t('failedToFetch'));
     } finally {
       setLoading(false);
     }
@@ -155,22 +188,22 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
   const handleCreate = async () => {
     try {
       if (!formData.full_name.trim() || !formData.position.trim()) {
-        toast.error('Full name and position are required');
+        toast.error(t('fullNameAndPositionRequired'));
         return;
       }
 
       const response = await createOrganizationPerson(formData);
       if (response.success) {
-        toast.success('Organization person added successfully');
+        toast.success(t('personAdded'));
         setIsCreateDialogOpen(false);
         resetForm();
         fetchPeople();
       } else {
-        toast.error(response.error || 'Failed to create organization person');
+        toast.error(response.error || t('failedToCreate'));
       }
     } catch (error) {
       console.error('Error creating person:', error);
-      toast.error('Failed to create organization person');
+      toast.error(t('failedToCreate'));
     }
   };
 
@@ -198,7 +231,7 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
 
     try {
       if (!formData.full_name.trim() || !formData.position.trim()) {
-        toast.error('Full name and position are required');
+        toast.error(t('fullNameAndPositionRequired'));
         return;
       }
 
@@ -218,17 +251,17 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
 
       const response = await updateOrganizationPerson(editingPerson.id, updateData);
       if (response.success) {
-        toast.success('Organization person updated successfully');
+        toast.success(t('personUpdated'));
         setIsEditDialogOpen(false);
         setEditingPerson(null);
         resetForm();
         fetchPeople();
       } else {
-        toast.error(response.error || 'Failed to update organization person');
+        toast.error(response.error || t('failedToUpdate'));
       }
     } catch (error) {
       console.error('Error updating person:', error);
-      toast.error('Failed to update organization person');
+      toast.error(t('failedToUpdate'));
     }
   };
 
@@ -236,14 +269,14 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
     try {
       const response = await deleteOrganizationPerson(id);
       if (response.success) {
-        toast.success('Organization person deleted successfully');
+        toast.success(t('personDeleted'));
         fetchPeople();
       } else {
-        toast.error(response.error || 'Failed to delete organization person');
+        toast.error(response.error || t('failedToDelete'));
       }
     } catch (error) {
       console.error('Error deleting person:', error);
-      toast.error('Failed to delete organization person');
+      toast.error(t('failedToDelete'));
     }
   };
 
@@ -309,13 +342,13 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Organization People
+            {t('title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage mosque staff, volunteers, and organizational structure
+            {t('description')}
           </p>
         </div>
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t('loading')}</div>
       </div>
     );
   }
@@ -325,47 +358,47 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Organization People
+            {t('title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage mosque staff, volunteers, and organizational structure
+            {t('description')}
           </p>
         </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogClose}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Person
+                {t('addPerson')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add Organization Person</DialogTitle>
+                <DialogTitle>{t('addOrganizationPerson')}</DialogTitle>
                 <DialogDescription>
-                  Add a new person to your mosque organization (staff, board members, volunteers, etc.)
+                  {t('addOrganizationPersonDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name *</Label>
+                  <Label htmlFor="full_name">{t('fullNameRequired')}</Label>
                   <Input
                     id="full_name"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="Enter full name"
+                    placeholder={t('fullNamePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="position">Position *</Label>
+                  <Label htmlFor="position">{t('positionRequired')}</Label>
                   <Select
                     value={formData.position}
                     onValueChange={(value) => setFormData({ ...formData, position: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select position" />
+                      <SelectValue placeholder={t('selectPosition')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {POSITION_OPTIONS.map((position) => (
+                      {getPositionOptions().map((position) => (
                         <SelectItem key={position} value={position}>
                           {position}
                         </SelectItem>
@@ -374,16 +407,16 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
+                  <Label htmlFor="department">{t('department')}</Label>
                   <Select
                     value={formData.department}
                     onValueChange={(value) => setFormData({ ...formData, department: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder={t('selectDepartment')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {DEPARTMENT_OPTIONS.map((dept) => (
+                      {getDepartmentOptions().map((dept) => (
                         <SelectItem key={dept} value={dept}>
                           {dept}
                         </SelectItem>
@@ -392,26 +425,26 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="Enter email address"
+                    placeholder={t('emailPlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('phone')}</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Enter phone number"
+                    placeholder={t('phonePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="start_date">Start Date</Label>
+                  <Label htmlFor="start_date">{t('startDate')}</Label>
                   <Input
                     id="start_date"
                     type="date"
@@ -420,7 +453,7 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="end_date">End Date (Optional)</Label>
+                  <Label htmlFor="end_date">{t('endDate')}</Label>
                   <Input
                     id="end_date"
                     type="date"
@@ -429,29 +462,29 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t('address')}</Label>
                   <Textarea
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Enter address"
+                    placeholder={t('addressPlaceholder')}
                     rows={2}
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">{t('bio')}</Label>
                   <Textarea
                     id="bio"
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="Enter bio or description"
+                    placeholder={t('bioPlaceholder')}
                     rows={3}
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <ImageUpload
-                    label="Profile Picture"
-                    description="Upload a profile picture for this organization person"
+                    label={t('profilePicture')}
+                    description={t('profilePictureDescription')}
                     currentImageUrl={formData.profile_picture_url || null}
                     onImageUpload={(url) => setFormData({ ...formData, profile_picture_url: url })}
                     onImageRemove={() => setFormData({ ...formData, profile_picture_url: '' })}
@@ -475,14 +508,14 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                     checked={formData.is_public}
                     onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
                   />
-                  <Label htmlFor="is_public">Show in public mosque profile</Label>
+                  <Label htmlFor="is_public">{t('showInPublicPage')}</Label>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
-                <Button onClick={handleCreate}>Add Person</Button>
+                <Button onClick={handleCreate}>{t('addPerson')}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -490,22 +523,22 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
         {people.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No organization people added yet.</p>
-            <p className="text-sm">Click "Add Person" to get started.</p>
+            <p>{t('noPeopleYet')}</p>
+            <p className="text-sm">{t('clickToGetStarted')}</p>
           </div>
         ) : (
           <div className="space-y-4">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px]">Photo</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Visibility</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="w-[60px]">{t('photo')}</TableHead>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('position')}</TableHead>
+                  <TableHead>{t('department')}</TableHead>
+                  <TableHead>{t('contact')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
+                  <TableHead>{t('visibility')}</TableHead>
+                  <TableHead className="w-[50px]">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -560,7 +593,7 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                     </TableCell>
                     <TableCell>
                       <Badge variant={isActive(person) ? 'default' : 'secondary'}>
-                        {isActive(person) ? 'Active' : 'Inactive'}
+                        {isActive(person) ? t('active') : t('inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -571,7 +604,7 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                           <EyeOff className="h-4 w-4 text-gray-400" />
                         )}
                         <span className="text-sm">
-                          {person.is_public ? 'Public' : 'Private'}
+                          {person.is_public ? t('public') : t('private')}
                         </span>
                       </div>
                     </TableCell>
@@ -585,29 +618,29 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(person)}>
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit
+                            {t('edit')}
                           </DropdownMenuItem>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                                {t('delete')}
                               </DropdownMenuItem>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Organization Person</AlertDialogTitle>
+                                <AlertDialogTitle>{t('deletePerson')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete {person.full_name}? This action cannot be undone.
+                                  {t('deletePersonDescription')}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(person.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Delete
+                                  {t('delete')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -626,32 +659,32 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Organization Person</DialogTitle>
+              <DialogTitle>{t('editOrganizationPerson')}</DialogTitle>
               <DialogDescription>
-                Update the information for this organization person.
+                {t('addOrganizationPersonDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit_full_name">Full Name *</Label>
+                <Label htmlFor="edit_full_name">{t('fullNameRequired')}</Label>
                 <Input
                   id="edit_full_name"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  placeholder="Enter full name"
+                  placeholder={t('fullNamePlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_position">Position *</Label>
+                <Label htmlFor="edit_position">{t('positionRequired')}</Label>
                 <Select
                   value={formData.position}
                   onValueChange={(value) => setFormData({ ...formData, position: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select position" />
+                    <SelectValue placeholder={t('selectPosition')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {POSITION_OPTIONS.map((position) => (
+                    {getPositionOptions().map((position) => (
                       <SelectItem key={position} value={position}>
                         {position}
                       </SelectItem>
@@ -660,16 +693,16 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_department">Department</Label>
+                <Label htmlFor="edit_department">{t('department')}</Label>
                 <Select
                   value={formData.department}
                   onValueChange={(value) => setFormData({ ...formData, department: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder={t('selectDepartment')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENT_OPTIONS.map((dept) => (
+                    {getDepartmentOptions().map((dept) => (
                       <SelectItem key={dept} value={dept}>
                         {dept}
                       </SelectItem>
@@ -678,17 +711,17 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_email">Email</Label>
+                <Label htmlFor="edit_email">{t('email')}</Label>
                 <Input
                   id="edit_email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter email address"
+                  placeholder={t('emailPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_phone">Phone</Label>
+                <Label htmlFor="edit_phone">{t('phone')}</Label>
                 <Input
                   id="edit_phone"
                   value={formData.phone}
@@ -804,15 +837,15 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
                   checked={formData.is_public}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
                 />
-                <Label htmlFor="edit_is_public">Show in public mosque profile</Label>
+                  <Label htmlFor="edit_is_public">{t('showInPublicPage')}</Label>
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdate}>Update Person</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  {t('cancel')}
+                </Button>
+                <Button onClick={handleUpdate}>{t('updatePerson')}</Button>
+              </DialogFooter>
           </DialogContent>
         </Dialog>
     </div>

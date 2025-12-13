@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loading } from '@/components/ui/loading';
+import { useSafeAsync } from '@/hooks/useSafeAsync';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,38 +81,62 @@ function DashboardContent() {
   const tCommon = useTranslations('common');
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const { isAdmin, mosqueId, loading: roleLoading } = useUserRole();
+  const { safeSetState, isMounted } = useSafeAsync();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!onboardingLoading && !roleLoading && isCompleted && user) {
       fetchDashboardData();
     }
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [user, onboardingLoading, roleLoading, isCompleted, isAdmin, mosqueId]);
 
   // Fetch notifications from database
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchNotifications = async () => {
+      if (!user || abortController.signal.aborted) return;
+      
       try {
         const notificationsData = await getUserNotifications(1, 5);
-        setNotifications(notificationsData.data);
-        
-        // Calculate unread count from the fetched notifications only
-        const unreadCountFromFetched = notificationsData.data.filter(n => !n.is_read).length;
-        setUnreadCount(unreadCountFromFetched);
+        if (!abortController.signal.aborted && isMounted()) {
+          safeSetState(setNotifications, notificationsData.data);
+          
+          // Calculate unread count from the fetched notifications only
+          const unreadCountFromFetched = notificationsData.data.filter(n => !n.is_read).length;
+          safeSetState(setUnreadCount, unreadCountFromFetched);
+        }
       } catch (error) {
-        console.error('Error fetching notifications:', error);
-        setNotifications([]);
-        setUnreadCount(0);
+        if (!abortController.signal.aborted && isMounted()) {
+          console.error('Error fetching notifications:', error);
+          safeSetState(setNotifications, [] as any[]);
+          safeSetState(setUnreadCount, 0 as number);
+        }
       }
     };
 
     if (user) {
       fetchNotifications();
     }
-  }, [user]);
+
+    return () => {
+      abortController.abort();
+    };
+  }, [user, safeSetState, isMounted]);
 
   const fetchDashboardData = async () => {
+    // Create new abort controller for this fetch
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
-      setLoading(true);
+      safeSetState(setLoading, true as boolean);
 
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -120,8 +145,10 @@ function DashboardContent() {
         .eq('id', user?.id)
         .single();
 
+      if (signal.aborted || !isMounted()) return;
+
       if (!profileError && profileData) {
-        setUserProfile(profileData);
+        safeSetState(setUserProfile, profileData);
       }
 
       // Fetch user's contributions
@@ -145,6 +172,8 @@ function DashboardContent() {
           .order('contributed_at', { ascending: false })
           .limit(10);
 
+      if (signal.aborted || !isMounted()) return;
+
       if (contributionsError) {
         console.error('Error fetching contributions:', contributionsError);
       } else {
@@ -158,52 +187,76 @@ function DashboardContent() {
               name: item.program?.name || t('unknownProgram'),
             },
           })) || [];
-        setContributions(formattedContributions);
+        safeSetState(setContributions, formattedContributions as Contribution[]);
       }
+
+      if (signal.aborted || !isMounted()) return;
 
       // Fetch mosque-wide contributions for admin users
       if (isAdmin && mosqueId) {
         try {
           const mosqueContributions = await getMosqueKhairatContributions(mosqueId);
-          setAllContributions(mosqueContributions.data || []);
+          if (!signal.aborted && isMounted()) {
+            safeSetState(setAllContributions, (mosqueContributions.data || []) as Contribution[]);
+          }
         } catch (error) {
-          console.error('Error fetching mosque contributions:', error);
-          setAllContributions([]);
+          if (!signal.aborted && isMounted()) {
+            console.error('Error fetching mosque contributions:', error);
+            safeSetState(setAllContributions, [] as Contribution[]);
+          }
         }
       }
+
+      if (signal.aborted || !isMounted()) return;
 
       // Fetch community stats
       const { data: statsData, error: statsError } = await supabase.rpc(
         'get_community_stats'
       );
 
+      if (signal.aborted || !isMounted()) return;
+
       if (statsError) {
         console.error('Error fetching stats:', statsError);
       } else {
-        setStats(statsData);
+        safeSetState(setStats, statsData);
       }
+
+      if (signal.aborted || !isMounted()) return;
 
       // Load mosque data and membership insights for admin users
       if (isAdmin && mosqueId) {
         // Fetch mosque data for admin users
         try {
           const mosqueResponse = await getMosque(mosqueId);
-          if (mosqueResponse.success && mosqueResponse.data) {
-            setMosqueData(mosqueResponse.data);
-            setMosqueName(mosqueResponse.data.name);
+          if (!signal.aborted && isMounted()) {
+            if (mosqueResponse.success && mosqueResponse.data) {
+              safeSetState(setMosqueData, mosqueResponse.data);
+              safeSetState(setMosqueName, mosqueResponse.data.name);
+            }
           }
         } catch (mosqueError) {
-          console.error('Error fetching mosque data:', mosqueError);
+          if (!signal.aborted && isMounted()) {
+            console.error('Error fetching mosque data:', mosqueError);
+          }
         }
         
+        if (signal.aborted || !isMounted()) return;
+
         // Fetch khairat membership statistics for admin users
         try {
           const membershipData = await getKhairatStatistics(mosqueId);
-          setMembershipStats(membershipData);
+          if (!signal.aborted && isMounted()) {
+            safeSetState(setMembershipStats, membershipData);
+          }
         } catch (membershipError) {
-          console.error('Error fetching khairat membership statistics:', membershipError);
-          setMembershipStats(null);
+          if (!signal.aborted && isMounted()) {
+            console.error('Error fetching khairat membership statistics:', membershipError);
+            safeSetState(setMembershipStats, null);
+          }
         }
+
+        if (signal.aborted || !isMounted()) return;
 
         // Fetch pending khairat membership applications count for admin users
         try {
@@ -213,31 +266,45 @@ function DashboardContent() {
             .eq('mosque_id', mosqueId)
             .eq('status', 'pending');
 
-          if (pendingError) {
-            console.error('Error fetching pending khairat applications count:', pendingError);
-            setPendingApplicationsCount(0);
-          } else if (typeof pendingCount === 'number') {
-            setPendingApplicationsCount(pendingCount);
+          if (!signal.aborted && isMounted()) {
+            if (pendingError) {
+              console.error('Error fetching pending khairat applications count:', pendingError);
+              safeSetState(setPendingApplicationsCount, 0 as number);
+            } else if (typeof pendingCount === 'number') {
+              safeSetState(setPendingApplicationsCount, pendingCount);
+            }
           }
         } catch (pendingError) {
-          console.error('Error fetching pending khairat applications count:', pendingError);
-          setPendingApplicationsCount(0);
+          if (!signal.aborted && isMounted()) {
+            console.error('Error fetching pending khairat applications count:', pendingError);
+            safeSetState(setPendingApplicationsCount, 0 as number);
+          }
         }
+
+        if (signal.aborted || !isMounted()) return;
 
         // Fetch khairat claims for admin users
         try {
           const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
-          setKhairatClaims(claimsData.data || []);
+          if (!signal.aborted && isMounted()) {
+            safeSetState(setKhairatClaims, claimsData.data || []);
+          }
         } catch (claimsError) {
-          console.error('Error fetching khairat claims:', claimsError);
-          setKhairatClaims([]);
+          if (!signal.aborted && isMounted()) {
+            console.error('Error fetching khairat claims:', claimsError);
+            safeSetState(setKhairatClaims, [] as any[]);
+          }
         }
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      if (!signal.aborted && isMounted()) {
+        console.error('Error fetching dashboard data:', error);
+      }
     } finally {
-      setLoading(false);
+      if (!signal.aborted && isMounted()) {
+        safeSetState(setLoading, false as boolean);
+      }
     }
   };
 
@@ -328,11 +395,7 @@ function DashboardContent() {
     }
   };
 
-  if (onboardingLoading || !isCompleted) {
-    return null;
-  }
-
-  if (userLoading || loading || roleLoading) {
+  if (onboardingLoading || !isCompleted || userLoading || loading || roleLoading) {
     return (
       <DashboardLayout>
         <Loading 
@@ -459,7 +522,7 @@ function DashboardContent() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* View Public Profile Button */}
+                {/* View Public Page Button */}
                 {mosqueId && (
                   <Button
                     variant="outline"

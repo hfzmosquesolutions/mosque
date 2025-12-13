@@ -18,6 +18,7 @@ import {
   Clock,
   CheckCircle,
   Search,
+  CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -92,6 +93,15 @@ export function QuickActions({ pendingClaimsCount = 0, pendingRegistrationsCount
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-950/20',
       iconColor: 'text-purple-600 dark:text-purple-400',
+    },
+    {
+      id: 'billing',
+      ...getActionCopy('billing'),
+      icon: CreditCard,
+      href: '/billing',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
     },
   ];
 

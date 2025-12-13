@@ -47,44 +47,13 @@ interface ServiceManagementProps {
   onServicesUpdate?: (services: string[]) => void;
 }
 
-const AVAILABLE_SERVICES: Service[] = [
-  {
-    id: 'khairat_management',
-    name: 'Khairat Management',
-    description: 'Enable welfare assistance programs and contributions',
-    icon: HandHeart,
-    enabled: false,
-    category: 'financial'
-  },
-  {
-    id: 'kariah_management',
-    name: 'Kariah Management',
-    description: 'Enable member registration and management',
-    icon: Users,
-    enabled: false,
-    category: 'management'
-  },
-  {
-    id: 'organization_people',
-    name: 'Organization People',
-    description: 'Show mosque organization people on public profile and enable management',
-    icon: Users,
-    enabled: false,
-    category: 'management'
-  }
-];
-
-const CATEGORY_LABELS = {
-  financial: 'Financial Services',
-  management: 'Management Services'
-};
-
 const CATEGORY_ICONS = {
   financial: Banknote,
   management: Settings
 };
 
 export function ServiceManagement({ mosqueId, currentServices = [], onServicesUpdate }: ServiceManagementProps) {
+  const t = useTranslations('mosquePage.serviceManagement');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,17 +87,48 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
   
   // Collapsible state for settings sections
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  
-  const t = useTranslations('dashboard');
+
+  const getAvailableServices = (): Service[] => [
+    {
+      id: 'khairat_management',
+      name: t('khairatManagement'),
+      description: t('khairatManagementDescription'),
+      icon: HandHeart,
+      enabled: false,
+      category: 'financial'
+    },
+    {
+      id: 'kariah_management',
+      name: t('kariahManagement'),
+      description: t('kariahManagementDescription'),
+      icon: Users,
+      enabled: false,
+      category: 'management'
+    },
+    {
+      id: 'organization_people',
+      name: t('organizationPeople'),
+      description: t('organizationPeopleDescription'),
+      icon: Users,
+      enabled: false,
+      category: 'management'
+    }
+  ];
+
+  const getCategoryLabels = () => ({
+    financial: t('financialServices'),
+    management: t('managementServices')
+  });
 
   useEffect(() => {
     // Initialize services with current state
-    const initializedServices = AVAILABLE_SERVICES.map(service => ({
+    const availableServices = getAvailableServices();
+    const initializedServices = availableServices.map(service => ({
       ...service,
       enabled: currentServices.includes(service.id)
     }));
     setServices(initializedServices);
-  }, [currentServices]);
+  }, [currentServices, t]);
 
   useEffect(() => {
     loadKariahSettings();
@@ -171,13 +171,13 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       const result = await updateKariahRegistrationSettings(mosqueId, kariahSettings);
       
       if (result.success) {
-        toast.success('Kariah registration settings saved successfully');
+        toast.success(t('settingsSaved'));
       } else {
-        toast.error(result.error || 'Failed to save kariah registration settings');
+        toast.error(result.error || t('failedToSave'));
       }
     } catch (error) {
       console.error('Error saving kariah settings:', error);
-      toast.error('Failed to save kariah registration settings');
+      toast.error(t('failedToSave'));
     } finally {
       setSavingKariahSettings(false);
     }
@@ -233,13 +233,13 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       const result = await updateKhairatRegistrationSettings(mosqueId, khairatRegistrationSettings);
       
       if (result.success) {
-        toast.success('Khairat registration settings saved successfully');
+        toast.success(t('settingsSaved'));
       } else {
-        toast.error(result.error || 'Failed to save khairat registration settings');
+        toast.error(result.error || t('failedToSave'));
       }
     } catch (error) {
       console.error('Error saving khairat settings:', error);
-      toast.error('Failed to save khairat registration settings');
+      toast.error(t('failedToSave'));
     } finally {
       setSavingKhairatRegistrationSettings(false);
     }
@@ -251,13 +251,13 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       const result = await updateMosqueKhairatSettings(mosqueId, khairatSystemSettings);
       
       if (result.success) {
-        toast.success('Khairat system settings saved successfully');
+        toast.success(t('settingsSaved'));
       } else {
-        toast.error(result.error || 'Failed to save khairat system settings');
+        toast.error(result.error || t('failedToSave'));
       }
     } catch (error) {
       console.error('Error saving khairat system settings:', error);
-      toast.error('Failed to save khairat system settings');
+      toast.error(t('failedToSave'));
     } finally {
       setSavingKhairatSystemSettings(false);
     }
@@ -293,7 +293,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
       });
 
       if (response.success) {
-        toast.success(`Service ${enabled ? 'enabled' : 'disabled'} successfully`);
+        toast.success(enabled ? t('serviceEnabled') : t('serviceDisabled'));
         onServicesUpdate?.(enabledServiceIds);
         
         // Auto-expand settings section if service was enabled
@@ -312,7 +312,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
               : service
           )
         );
-        toast.error('Failed to update service settings');
+        toast.error(t('failedToUpdate'));
       }
     } catch (error) {
       console.error('Error updating service:', error);
@@ -324,17 +324,17 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
             : service
         )
       );
-      toast.error('Failed to update service settings');
+      toast.error(t('failedToUpdate'));
     } finally {
       setSaving(false);
     }
   };
 
-  const getCategoryServices = (category: keyof typeof CATEGORY_LABELS) => {
+  const getCategoryServices = (category: 'financial' | 'management') => {
     return services.filter(service => service.category === category);
   };
 
-  const getEnabledCount = (category: keyof typeof CATEGORY_LABELS) => {
+  const getEnabledCount = (category: 'financial' | 'management') => {
     return getCategoryServices(category).filter(service => service.enabled).length;
   };
 
@@ -349,25 +349,27 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
     }));
   };
 
+  const categoryLabels = getCategoryLabels();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Service Management
+            {t('title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Enable or disable services for your mosque. Disabled services will not be visible on your public profile.
+            {t('description')}
           </p>
         </div>
         <Badge variant="outline" className="text-sm">
-          {getTotalEnabledCount()} of {services.length} enabled
+          {getTotalEnabledCount()} {t('of')} {services.length} {t('enabled')}
         </Badge>
       </div>
-        {Object.entries(CATEGORY_LABELS).map(([categoryKey, categoryLabel]) => {
+        {Object.entries(categoryLabels).map(([categoryKey, categoryLabel]) => {
           const categoryIcon = CATEGORY_ICONS[categoryKey as keyof typeof CATEGORY_ICONS];
-          const categoryServices = getCategoryServices(categoryKey as keyof typeof CATEGORY_LABELS);
-          const enabledCount = getEnabledCount(categoryKey as keyof typeof CATEGORY_LABELS);
+          const categoryServices = getCategoryServices(categoryKey as 'financial' | 'management');
+          const enabledCount = getEnabledCount(categoryKey as 'financial' | 'management');
 
           return (
             <div key={categoryKey} className="space-y-4">
@@ -377,7 +379,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                   <h3 className="font-medium">{categoryLabel}</h3>
                 </div>
                 <Badge variant="secondary" className="text-xs">
-                  {enabledCount}/{categoryServices.length} enabled
+                  {enabledCount}/{categoryServices.length} {t('enabled')}
                 </Badge>
               </div>
               
@@ -444,10 +446,10 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                             <div className="flex items-center justify-between">
                               <div>
                                 <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                  Kariah Registration Settings
+                                  {t('kariahRegistrationSettings')}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
-                                  Configure registration requirements and benefits for new ahli kariah
+                                  {t('kariahRegistrationSettingsDescription')}
                                 </p>
                               </div>
                               <Button 
@@ -455,7 +457,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                                 disabled={savingKariahSettings}
                                 size="sm"
                               >
-                                {savingKariahSettings ? 'Saving...' : 'Save Settings'}
+                                {savingKariahSettings ? t('saving') : t('saveSettings')}
                               </Button>
                             </div>
 
@@ -464,11 +466,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                               <div className="space-y-2">
                                 <Label htmlFor="requirements" className="flex items-center gap-2">
                                   <FileText className="h-4 w-4" />
-                                  Registration Requirements
+                                  {t('registrationRequirements')}
                                 </Label>
                                 <Textarea
                                   id="requirements"
-                                  placeholder="e.g., Valid IC/Passport, Proof of residence in the area, Emergency contact information..."
+                                  placeholder={t('requirementsPlaceholder')}
                                   value={kariahSettings.requirements}
                                   onChange={(e) => 
                                     setKariahSettings(prev => ({ ...prev, requirements: e.target.value }))
@@ -488,11 +490,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                               <div className="space-y-2">
                                 <Label htmlFor="benefits" className="flex items-center gap-2">
                                   <CheckCircle className="h-4 w-4" />
-                                  Membership Benefits
+                                  {t('membershipBenefits')}
                                 </Label>
                                 <Textarea
                                   id="benefits"
-                                  placeholder="e.g., Access to khairat programs, Community support, Voting rights in mosque decisions..."
+                                  placeholder={t('benefitsPlaceholder')}
                                   value={kariahSettings.benefits}
                                   onChange={(e) => 
                                     setKariahSettings(prev => ({ ...prev, benefits: e.target.value }))
@@ -512,11 +514,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                               <div className="space-y-2">
                                 <Label htmlFor="custom-message" className="flex items-center gap-2">
                                   <MessageSquare className="h-4 w-4" />
-                                  Custom Welcome Message
+                                  {t('customMessage')}
                                 </Label>
                                 <Textarea
                                   id="custom-message"
-                                  placeholder="e.g., Welcome to our mosque community! We're excited to have you join us..."
+                                  placeholder={t('customMessagePlaceholder')}
                                   value={kariahSettings.custom_message}
                                   onChange={(e) => 
                                     setKariahSettings(prev => ({ ...prev, custom_message: e.target.value }))
@@ -551,10 +553,10 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                               <div className="flex items-center justify-between">
                                 <div>
                                   <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                    Khairat Registration Settings
+                                    {t('khairatRegistrationSettings')}
                                   </h4>
                                   <p className="text-sm text-muted-foreground">
-                                    Configure registration requirements and benefits for new khairat members
+                                    {t('khairatRegistrationSettingsDescription')}
                                   </p>
                                 </div>
                                 <Button 
@@ -562,7 +564,7 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                                   disabled={savingKhairatRegistrationSettings}
                                   size="sm"
                                 >
-                                  {savingKhairatRegistrationSettings ? 'Saving...' : 'Save Settings'}
+                                  {savingKhairatRegistrationSettings ? t('saving') : t('saveSettings')}
                                 </Button>
                               </div>
 
@@ -571,11 +573,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                                 <div className="space-y-2">
                                   <Label htmlFor="khairat-requirements" className="flex items-center gap-2">
                                     <FileText className="h-4 w-4" />
-                                    Registration Requirements
+                                    {t('registrationRequirements')}
                                   </Label>
                                   <Textarea
                                     id="khairat-requirements"
-                                    placeholder="e.g., Valid IC/Passport, Proof of residence in the area, Emergency contact information..."
+                                    placeholder={t('requirementsPlaceholder')}
                                     value={khairatRegistrationSettings.requirements}
                                     onChange={(e) => 
                                       setKhairatRegistrationSettings(prev => ({ ...prev, requirements: e.target.value }))
@@ -595,11 +597,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                                 <div className="space-y-2">
                                   <Label htmlFor="khairat-benefits" className="flex items-center gap-2">
                                     <CheckCircle className="h-4 w-4" />
-                                    Membership Benefits
+                                    {t('membershipBenefits')}
                                   </Label>
                                   <Textarea
                                     id="khairat-benefits"
-                                    placeholder="e.g., Access to khairat programs, Community support, Voting rights in mosque decisions..."
+                                    placeholder={t('benefitsPlaceholder')}
                                     value={khairatRegistrationSettings.benefits}
                                     onChange={(e) => 
                                       setKhairatRegistrationSettings(prev => ({ ...prev, benefits: e.target.value }))
@@ -619,11 +621,11 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
                                 <div className="space-y-2">
                                   <Label htmlFor="khairat-custom-message" className="flex items-center gap-2">
                                     <MessageSquare className="h-4 w-4" />
-                                    Custom Welcome Message
+                                    {t('customMessage')}
                                   </Label>
                                   <Textarea
                                     id="khairat-custom-message"
-                                    placeholder="e.g., Welcome to our khairat community! We're excited to have you join us in supporting our mosque and community..."
+                                    placeholder={t('customMessagePlaceholder')}
                                     value={khairatRegistrationSettings.custom_message}
                                     onChange={(e) => 
                                       setKhairatRegistrationSettings(prev => ({ ...prev, custom_message: e.target.value }))
@@ -764,11 +766,10 @@ export function ServiceManagement({ mosqueId, currentServices = [], onServicesUp
             <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
               <p className="font-medium text-blue-900 dark:text-blue-100">
-                Service Visibility
+                {t('serviceVisibility')}
               </p>
               <p className="text-muted-foreground mt-1">
-                Disabled services will not appear on your public mosque profile. 
-                Users won't be able to access features for disabled services.
+                {t('serviceVisibilityDescription')}
               </p>
             </div>
           </div>

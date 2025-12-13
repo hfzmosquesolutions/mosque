@@ -27,7 +27,7 @@ const SERVICE_LABELS: Record<string, string> = {
   daily_prayers: 'Daily Prayers',
   khairat_management: 'Khairat Management',
   kariah_management: 'Kariah Management',
-  mosque_profile: 'Public Profile'
+  mosque_profile: 'Public Page'
 };
 
 export function ServiceAwareButton({

@@ -53,7 +53,7 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 		onWithdrawMembership,
 	} = props;
 
-	const t = useTranslations('mosqueProfile');
+	const t = useTranslations('mosquePage');
 	const { user } = useAuth();
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 

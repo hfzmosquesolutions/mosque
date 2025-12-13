@@ -7,6 +7,7 @@ import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from "@/lib/supabase";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface ImageUploadProps {
   label: string;
@@ -32,6 +33,7 @@ export function ImageUpload({
   maxSizeInMB = 5,
 }: ImageUploadProps) {
   const { user } = useAuth();
+  const t = useTranslations('imageUpload');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,13 +41,13 @@ export function ImageUpload({
   const validateFile = (file: File): string | null => {
     // Check file type
     if (!file.type.startsWith('image/')) {
-      return 'Please select an image file';
+      return t('pleaseSelectImageFile');
     }
 
     // Check file size
     const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
     if (file.size > maxSizeInBytes) {
-      return `File size must be less than ${maxSizeInMB}MB`;
+      return t('fileSizeMustBeLessThan', { maxSize: maxSizeInMB });
     }
 
     // Check image dimensions (optional)
@@ -54,7 +56,7 @@ export function ImageUpload({
 
   const uploadImage = async (file: File) => {
     if (!user) {
-      toast.error('You must be logged in to upload images');
+      toast.error(t('mustBeLoggedIn'));
       return;
     }
 
@@ -118,15 +120,15 @@ export function ImageUpload({
           await onImageChange(urlData.publicUrl);
         } catch (error) {
           console.error('Error updating database:', error);
-          toast.error('Image uploaded but failed to save to database');
+          toast.error(t('uploadedButFailedToSave'));
           return;
         }
       }
       
-      toast.success('Image uploaded successfully');
+      toast.success(t('uploadedSuccessfully'));
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image. Please try again.');
+      toast.error(t('failedToUpload'));
     } finally {
       setIsUploading(false);
     }
@@ -179,15 +181,15 @@ export function ImageUpload({
             await onImageChange(null);
           } catch (error) {
             console.error('Error updating database:', error);
-            toast.error('Image removed but failed to update database');
+            toast.error(t('removedButFailedToUpdate'));
             return;
           }
         }
         
-        toast.success('Image removed successfully');
+        toast.success(t('removedSuccessfully'));
       } catch (error) {
         console.error('Error removing image:', error);
-        toast.error('Failed to remove image');
+        toast.error(t('failedToRemove'));
       }
     }
   };
@@ -200,7 +202,7 @@ export function ImageUpload({
       <Label>{label}</Label>
       {description && (
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          {description} Recommended size: {recommendedSize}
+          {description} {t('recommendedSize')}: {recommendedSize}
         </p>
       )}
       
@@ -221,7 +223,7 @@ export function ImageUpload({
                   disabled={isUploading}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Replace
+                  {t('replace')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -230,7 +232,7 @@ export function ImageUpload({
                   disabled={isUploading}
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Remove
+                  {t('remove')}
                 </Button>
               </div>
             </div>
@@ -248,13 +250,13 @@ export function ImageUpload({
           >
             <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <p className="text-sm text-gray-600 mb-2">
-              Drop your image here, or{" "}
+              {t('dropImageHere')}{" "}
               <span className="text-blue-600 hover:text-blue-700 font-medium">
-                browse
+                {t('browse')}
               </span>
             </p>
             <p className="text-xs text-gray-500">
-              {description || "PNG, JPG, GIF up to 5MB"}
+              {description || t('defaultFileTypes', { maxSize: maxSizeInMB })}
             </p>
           </div>
         )}

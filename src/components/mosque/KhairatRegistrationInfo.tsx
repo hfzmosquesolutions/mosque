@@ -16,7 +16,7 @@ interface KhairatRegistrationSettings {
 }
 
 export function KhairatRegistrationInfo({ mosqueId }: KhairatRegistrationInfoProps) {
-  const t = useTranslations('mosqueProfile');
+  const t = useTranslations('mosquePage');
   const [settings, setSettings] = useState<KhairatRegistrationSettings | null>(null);
   const [loading, setLoading] = useState(true);
 

@@ -35,6 +35,8 @@ import {
   TrendingUp,
   UserPlus,
   Megaphone,
+  FileText,
+  CreditCard,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
@@ -391,16 +393,6 @@ export default function Home() {
                       {mosque.description}
                     </p>
                   )}
-                  {mosque && (
-                    <>
-                      <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          <span>Community</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </CardContent>
               </Card>
             ))}
@@ -521,37 +513,45 @@ export default function Home() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16">
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-4">
-                <Heart className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-14 h-14 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center mb-4">
+                <UserPlus className="h-7 w-7 text-rose-600 dark:text-rose-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('digitalKhairat')}</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('digitalKhairatDescription')}</p>
-            </div>
-            
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
-                <TrendingUp className="h-7 w-7 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('onlinePayments')}</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('onlinePaymentsDescription')}</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('registerKhairatFeature')}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('registerKhairatFeatureDescription')}</p>
             </div>
             
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
               <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4">
-                <Building2 className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+                <Heart className="h-7 w-7 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('mosqueProfiles')}</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('mosqueProfilesDescription')}</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('payKhairatFeature')}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('payKhairatFeatureDescription')}</p>
             </div>
             
             <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mb-4">
-                <Users className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-4">
+                <FileText className="h-7 w-7 text-orange-600 dark:text-orange-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('community')}</h3>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('communityDescription')}</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('claimKhairatFeature')}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('claimKhairatFeatureDescription')}</p>
+            </div>
+            
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
+                <CreditCard className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('onlinePaymentFeature')}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('onlinePaymentFeatureDescription')}</p>
+            </div>
+            
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-4">
+                <Building2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{t('mosquePageFeature')}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">{t('mosquePageFeatureDescription')}</p>
             </div>
           </div>
 

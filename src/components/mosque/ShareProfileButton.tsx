@@ -48,7 +48,7 @@ export function ShareProfileButton({
   className = '',
   iconOnly = false,
 }: ShareProfileButtonProps) {
-  const t = useTranslations('mosqueProfile');
+  const t = useTranslations('mosquePage');
   const [copied, setCopied] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);

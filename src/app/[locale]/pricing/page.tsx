@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Star } from "lucide-react";
+import { PricingPlanCard } from "@/components/subscription/PricingPlanCard";
 
 type BillingPeriod = "monthly" | "annual";
 
@@ -70,113 +71,35 @@ export default function PricingPage() {
 
         {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Free */}
-          <Card className="border-emerald-100 dark:border-slate-700 flex flex-col">
-            <CardHeader>
-              <CardTitle>{t('free')}</CardTitle>
-              <CardDescription>{t('mosqueSizeDescriptions.free')}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-grow">
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].free}</div>
-                <div className="text-slate-500 text-sm">{periodSuffix}</div>
-              </div>
-              <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('upToMembers', { count: 50 })}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('publicMosqueProfile')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('communityDirectory')}</li>
-              </ul>
-              <div className="mt-auto pt-6">
-                <Link href="/signup">
-                  <Button className="w-full">{t('getStarted')}</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Standard (Recommended) */}
-          <Card className="relative border-emerald-300 ring-2 ring-emerald-300/60 dark:border-emerald-700/60 flex flex-col">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs rounded-full bg-emerald-600 text-white shadow">
-              {t('recommended')}
-            </div>
-            <CardHeader>
-              <CardTitle>{t('standard')}</CardTitle>
-              <CardDescription>{t('mosqueSizeDescriptions.standard')}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-grow">
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].standard}</div>
-                <div className="text-slate-500 text-sm">{periodSuffix}</div>
-              </div>
-              <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('upToMembers', { count: 500 })}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('everythingInFree')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('memberManagement')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('programManagement')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('priorityEmailSupport')}</li>
-              </ul>
-              <div className="mt-auto pt-6">
-                <Link href="/signup">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">{t('startStandard')}</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Pro */}
-          <Card className="border-emerald-100 dark:border-slate-700 flex flex-col">
-            <CardHeader>
-              <CardTitle>{t('pro')}</CardTitle>
-              <CardDescription>{t('mosqueSizeDescriptions.pro')}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-grow">
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">RM{prices[billing].pro}</div>
-                <div className="text-slate-500 text-sm">{periodSuffix}</div>
-              </div>
-              <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('unlimitedMembers')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('everythingInStandard')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('advancedAnalytics')}</li>
-                <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" /> {t('prioritySupport')}</li>
-              </ul>
-              <div className="mt-auto pt-6">
-                <Link href="/signup">
-                  <Button className="w-full" variant="outline">{t('startPro')}</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Feature comparison */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="rounded-xl border border-emerald-100/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 overflow-hidden">
-          <div className="px-6 py-4 border-b border-emerald-100/60 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-semibold">
-            {t('compareFeatures')}
-          </div>
-          <div className="grid grid-cols-4 px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-            <div className="font-medium">{t('feature')}</div>
-            <div className="text-center">{t('free')}</div>
-            <div className="text-center">{t('standard')}</div>
-            <div className="text-center">{t('pro')}</div>
-          </div>
-            {[
-            { label: t('mosqueProfile'), f: true, s: true, p: true },
-            { label: t('memberManagement'), f: false, s: true, p: true },
-            { label: t('programManagement'), f: false, s: true, p: true },
-            { label: t('memberCount'), f: t('upToMembers', { count: 50 }), s: t('upToMembers', { count: 500 }), p: t('unlimitedMembers') },
-            { label: t('advancedAnalytics'), f: false, s: false, p: true },
-            { label: t('prioritySupport'), f: false, s: true, p: true },
-          ].map((row) => (
-            <div key={row.label} className="grid grid-cols-4 px-6 py-3 border-t border-emerald-100/50 dark:border-slate-800 text-sm">
-              <div className="text-slate-700 dark:text-slate-300">{row.label}</div>
-              <div className="text-center">{typeof row.f === 'boolean' ? (row.f ? "✔" : "—") : row.f}</div>
-              <div className="text-center">{typeof row.s === 'boolean' ? (row.s ? "✔" : "—") : row.s}</div>
-              <div className="text-center">{typeof row.p === 'boolean' ? (row.p ? "✔" : "—") : row.p}</div>
-            </div>
-          ))}
+          <PricingPlanCard
+            plan="free"
+            billing={billing}
+            buttonText={t('getStarted')}
+            buttonClassName="w-full"
+            onSelectPlan={(plan) => {
+              window.location.href = '/signup';
+            }}
+          />
+          <PricingPlanCard
+            plan="standard"
+            billing={billing}
+            showRecommended={true}
+            buttonText={t('startStandard')}
+            buttonClassName="w-full bg-emerald-600 hover:bg-emerald-700"
+            onSelectPlan={(plan) => {
+              window.location.href = '/signup';
+            }}
+          />
+          <PricingPlanCard
+            plan="pro"
+            billing={billing}
+            buttonText={t('startPro')}
+            buttonVariant="outline"
+            buttonClassName="w-full"
+            onSelectPlan={(plan) => {
+              window.location.href = '/signup';
+            }}
+          />
         </div>
       </section>
 
@@ -190,8 +113,20 @@ export default function PricingPage() {
             q: t('faqs.annualDiscounts'),
             a: t('faqs.annualDiscountsAnswer'),
           }, {
-            q: t('faqs.freeTrial'),
-            a: t('faqs.freeTrialAnswer'),
+            q: t('faqs.paymentMethods'),
+            a: t('faqs.paymentMethodsAnswer'),
+          }, {
+            q: t('faqs.cancelSubscription'),
+            a: t('faqs.cancelSubscriptionAnswer'),
+          }, {
+            q: t('faqs.dataSecurity'),
+            a: t('faqs.dataSecurityAnswer'),
+          }, {
+            q: t('faqs.multipleMosques'),
+            a: t('faqs.multipleMosquesAnswer'),
+          }, {
+            q: t('faqs.exceedMemberLimit'),
+            a: t('faqs.exceedMemberLimitAnswer'),
           }].map((f) => (
             <Card key={f.q} className="border-emerald-100 dark:border-slate-700">
               <CardHeader>

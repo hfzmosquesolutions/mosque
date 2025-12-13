@@ -64,7 +64,7 @@ export default function MosqueProfilePage() {
   const mosqueId = params.id as string;
   const locale = params.locale as string;
   const { user } = useAuth();
-  const t = useTranslations('mosqueProfile');
+  const t = useTranslations('mosquePage');
   
   // Get the current page URL for return redirect
   const currentPath = `/${locale}/mosques/${mosqueId}`;
@@ -763,7 +763,7 @@ export default function MosqueProfilePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
                     <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                    {t('organizationPeople')}
+                    {t('organizationPeople.title')}
                   </CardTitle>
                   <CardDescription>{t('meetOurTeam')}</CardDescription>
                 </CardHeader>

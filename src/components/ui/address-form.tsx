@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 // Malaysian states
 const MALAYSIAN_STATES = [
@@ -57,6 +58,7 @@ export function AddressForm({
   showFullAddress = true,
   className = '',
 }: AddressFormProps) {
+  const t = useTranslations('addressForm');
   const [address, setAddress] = useState<AddressData>({
     address_line1: value.address_line1 || '',
     address_line2: value.address_line2 || '',
@@ -105,61 +107,61 @@ export function AddressForm({
   return (
     <div className={`space-y-4 ${className}`}>
         <div className="space-y-2">
-          <Label htmlFor="address_line1">Address Line 1 *</Label>
+          <Label htmlFor="address_line1">{t('addressLine1')}</Label>
           <Input
             id="address_line1"
             value={address.address_line1}
             onChange={(e) => handleFieldChange('address_line1', e.target.value)}
             disabled={disabled}
-            placeholder="Street address, building name, etc."
+            placeholder={t('addressLine1Placeholder')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="address_line2">Address Line 2</Label>
+          <Label htmlFor="address_line2">{t('addressLine2')}</Label>
           <Input
             id="address_line2"
             value={address.address_line2}
             onChange={(e) => handleFieldChange('address_line2', e.target.value)}
             disabled={disabled}
-            placeholder="Apartment, suite, unit, etc. (optional)"
+            placeholder={t('addressLine2Placeholder')}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="city">City *</Label>
+            <Label htmlFor="city">{t('city')}</Label>
             <Input
               id="city"
               value={address.city}
               onChange={(e) => handleFieldChange('city', e.target.value)}
               disabled={disabled}
-              placeholder="City name"
+              placeholder={t('cityPlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="postcode">Postcode *</Label>
+            <Label htmlFor="postcode">{t('postcode')}</Label>
             <Input
               id="postcode"
               value={address.postcode}
               onChange={(e) => handleFieldChange('postcode', e.target.value)}
               disabled={disabled}
-              placeholder="Postal code"
+              placeholder={t('postcodePlaceholder')}
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="state">State *</Label>
+            <Label htmlFor="state">{t('state')}</Label>
             <Select
               value={address.state}
               onValueChange={(value) => handleFieldChange('state', value)}
               disabled={disabled}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select state" />
+                <SelectValue placeholder={t('selectState')} />
               </SelectTrigger>
               <SelectContent>
                 {MALAYSIAN_STATES.map((state) => (
@@ -172,20 +174,20 @@ export function AddressForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="country">Country</Label>
+            <Label htmlFor="country">{t('country')}</Label>
             <Input
               id="country"
               value={address.country}
               onChange={(e) => handleFieldChange('country', e.target.value)}
               disabled={disabled}
-              placeholder="Country"
+              placeholder={t('countryPlaceholder')}
             />
           </div>
         </div>
 
         {showFullAddress && (
           <div className="space-y-2">
-            <Label htmlFor="full_address">Full Address (Auto-generated)</Label>
+            <Label htmlFor="full_address">{t('fullAddress')}</Label>
             <Textarea
               id="full_address"
               value={address.full_address}
