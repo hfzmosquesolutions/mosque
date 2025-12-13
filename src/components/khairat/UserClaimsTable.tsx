@@ -7,6 +7,14 @@ import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -15,12 +23,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
   Clock,
   AlertCircle,
   CheckCircle,
@@ -28,21 +30,17 @@ import {
   Eye,
   FileText,
   Calendar,
-  Building,
-  DollarSign,
+  User,
   Loader2,
-  Plus,
   Download,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
 import { formatCurrency, formatDate } from '@/utils/formatters';
-import { getUserClaims, createClaim, getClaimDocuments } from '@/lib/api';
+import { getUserClaims, getClaimDocuments } from '@/lib/api';
 import type {
   KhairatClaimWithDetails,
-  ClaimStatus,
   ClaimPriority,
-  CreateKhairatClaim,
   ClaimDocument,
 } from '@/types/database';
 
@@ -51,12 +49,12 @@ interface UserClaimsTableProps {
 }
 
 const getStatusConfig = (t: any) => ({
-  pending: { icon: Clock, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', label: t('status.pending') },
-  under_review: { icon: AlertCircle, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', label: t('status.under_review') },
-  approved: { icon: CheckCircle, color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: t('status.approved') },
-  rejected: { icon: XCircle, color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: t('status.rejected') },
-  paid: { icon: CheckCircle, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400', label: t('status.paid') },
-  cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400', label: t('status.cancelled') }
+  pending: { icon: Clock, color: 'bg-yellow-100 text-yellow-800', label: t('status.pending') },
+  under_review: { icon: AlertCircle, color: 'bg-blue-100 text-blue-800', label: t('status.under_review') },
+  approved: { icon: CheckCircle, color: 'bg-green-100 text-green-800', label: t('status.approved') },
+  rejected: { icon: XCircle, color: 'bg-red-100 text-red-800', label: t('status.rejected') },
+  paid: { icon: CheckCircle, color: 'bg-emerald-100 text-emerald-800', label: t('status.paid') },
+  cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-800', label: t('status.cancelled') }
 });
 
 export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
@@ -70,13 +68,15 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const [selectedClaimDocuments, setSelectedClaimDocuments] = useState<ClaimDocument[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const statusConfig = getStatusConfig(t);
   const priorityConfig: Record<ClaimPriority, { label: string; color: string }> = {
-    low: { label: tc('priority.low') || 'Low', color: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300' },
-    medium: { label: tc('priority.medium') || 'Medium', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
-    high: { label: tc('priority.high') || 'High', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
-    urgent: { label: tc('priority.urgent') || 'Urgent', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+    low: { label: tc('priority.low') || 'Low', color: 'bg-gray-100 text-gray-800' },
+    medium: { label: tc('priority.medium') || 'Medium', color: 'bg-yellow-100 text-yellow-800' },
+    high: { label: tc('priority.high') || 'High', color: 'bg-red-100 text-red-800' },
+    urgent: { label: tc('priority.urgent') || 'Urgent', color: 'bg-purple-100 text-purple-800' },
   };
 
   useEffect(() => {
@@ -119,21 +119,45 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
     }
   };
 
+  const filterClaims = () => {
+    let filtered = claims;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (claim) =>
+          claim.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          claim.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          claim.mosque?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(
+        (claim) => claim.status === statusFilter
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredClaims = filterClaims();
+
   const columns: ColumnDef<KhairatClaimWithDetails>[] = [
     {
-      accessorKey: 'title',
+      accessorKey: 'mosque.name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('reason')} />
+        <DataTableColumnHeader column={column} title={t('mosque')} />
       ),
       cell: ({ row }) => {
         const claim = row.original;
         return (
-          <div className="space-y-1">
-            <div className="font-medium text-slate-900 dark:text-slate-100">
-              {claim.title}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {claim.mosque?.name || 'Unknown Mosque'}
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <div className="space-y-1">
+              <div className="font-medium">{claim.mosque?.name || t('unknownMosque')}</div>
+              <div className="text-sm text-muted-foreground">{claim.title}</div>
             </div>
           </div>
         );
@@ -148,19 +172,25 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
         const claim = row.original;
         return (
           <div>
-            {claim.approved_amount ? (
-              <p className="font-semibold text-green-600 text-lg">
-                {formatCurrency(claim.approved_amount)}
-              </p>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                  {t('status.pending') || 'Pending'}
-                </Badge>
-              </div>
+            <p className="font-medium">{formatCurrency(claim.requested_amount)}</p>
+            {claim.approved_amount && claim.approved_amount !== claim.requested_amount && (
+              <p className="text-xs text-green-600">{t('approvedAmount')}: {formatCurrency(claim.approved_amount)}</p>
             )}
           </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'priority',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc('priority')} />
+      ),
+      cell: ({ row }) => {
+        const claim = row.original;
+        return (
+          <Badge className={priorityConfig[claim.priority].color}>
+            {priorityConfig[claim.priority].label}
+          </Badge>
         );
       },
     },
@@ -173,12 +203,10 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
         const claim = row.original;
         const StatusIcon = statusConfig[claim.status].icon;
         return (
-          <div className="flex items-center gap-2">
-            <StatusIcon className="h-4 w-4" />
-            <Badge className={statusConfig[claim.status].color}>
-              {statusConfig[claim.status].label}
-            </Badge>
-          </div>
+          <Badge className={statusConfig[claim.status].color}>
+            <StatusIcon className="h-3 w-3 mr-1" />
+            {statusConfig[claim.status].label}
+          </Badge>
         );
       },
     },
@@ -192,10 +220,7 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
         return (
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-sm">{formatDate(claim.created_at)}</p>
-              <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(claim.created_at), { addSuffix: true })}</p>
-            </div>
+            <span>{formatDate(claim.created_at)}</span>
           </div>
         );
       },
@@ -206,17 +231,15 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
       cell: ({ row }) => {
         const claim = row.original;
         return (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleViewDetails(claim)}
-              className="h-8 px-3"
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              {tc('view')}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleViewDetails(claim)}
+            className="h-8 px-3"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            {t('view')}
+          </Button>
         );
       },
     },
@@ -233,209 +256,147 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
 
   return (
     <div className="space-y-6">
-      {showHeader && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {t('myClaims') || 'My Claims'}
-              </h2>
-              <p className="text-muted-foreground mt-1">
-                {t('viewMyClaimsDescription') || 'View and track your khairat claims'}
-              </p>
+      {/* Claims Table */}
+      <DataTable
+        columns={columns}
+        data={filteredClaims as any}
+        customFilters={
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t('searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-sm">
-                {claims.length} records
-              </Badge>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('filterByStatus')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allStatus')}</SelectItem>
+                <SelectItem value="pending">{t('status.pending')}</SelectItem>
+                <SelectItem value="under_review">{t('status.under_review')}</SelectItem>
+                <SelectItem value="approved">{t('status.approved')}</SelectItem>
+                <SelectItem value="rejected">{t('status.rejected')}</SelectItem>
+                <SelectItem value="paid">{t('status.paid')}</SelectItem>
+                <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
-
-      {claims.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <FileText className="h-12 w-12 text-blue-600" />
-          </div>
-          <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
-            {t('noClaimsYet') || 'No Claims Yet'}
-          </h3>
-          <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
-            {t('noClaimsDescription') || 'You haven\'t submitted any khairat claims yet. Contact your mosque admin to submit a claim.'}
-          </p>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={claims}
-          searchKey="title"
-          searchPlaceholder={t('searchClaims') || 'Search claims...'}
-        />
-      )}
+        }
+      />
 
       {/* Claim Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] min-h-[60vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {t('claimDetails') || 'Claim Details'}
-            </DialogTitle>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('claimDetails')}</DialogTitle>
             <DialogDescription>
-              {t('completeInformationAboutClaim') || 'Complete information about your claim'}
+              {t('claimDetailsDescription')}
             </DialogDescription>
           </DialogHeader>
 
           {selectedClaim && (
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {t('mosque') || 'Mosque'}
-                    </label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">
-                        {selectedClaim.mosque?.name || 'Unknown Mosque'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {t('amount') || 'Amount'}
-                    </label>
-                    <p className="text-2xl font-bold text-emerald-600">
-                      {formatCurrency(selectedClaim.requested_amount)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {tc('status') || 'Status'}
-                    </label>
-                    <div className="flex items-center gap-2 mt-1">
-                      {(() => {
-                        const StatusIcon = statusConfig[selectedClaim.status].icon;
-                        return <StatusIcon className="h-4 w-4" />;
-                      })()}
-                      <Badge className={statusConfig[selectedClaim.status].color}>
-                        {statusConfig[selectedClaim.status].label}
-                      </Badge>
-                    </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('mosque')}
+                  </label>
+                  <p className="text-sm">{selectedClaim.mosque?.name || t('unknownMosque')}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('title')}
+                  </label>
+                  <p className="text-sm">{selectedClaim.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('requestedAmount')}
+                  </label>
+                  <p className="text-sm font-medium">{formatCurrency(selectedClaim.requested_amount)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {tc('status')}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const StatusIcon = statusConfig[selectedClaim.status].icon;
+                      return <StatusIcon className="h-4 w-4" />;
+                    })()}
+                    <Badge className={statusConfig[selectedClaim.status].color}>
+                      {statusConfig[selectedClaim.status].label}
+                    </Badge>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {tc('priority') || 'Priority'}
-                    </label>
-                    <div className="mt-1">
-                      <Badge className={priorityConfig[selectedClaim.priority].color}>
-                        {priorityConfig[selectedClaim.priority].label}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {t('submitted') || 'Submitted'}
-                    </label>
-                    <p className="font-medium">
-                      {formatDate(selectedClaim.created_at)}
-                    </p>
-                  </div>
-
-                  {selectedClaim.approved_amount && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        {t('approvedAmount') || 'Approved Amount'}
-                      </label>
-                      <p className="text-xl font-bold text-green-600">
-                        {formatCurrency(selectedClaim.approved_amount)}
-                      </p>
-                    </div>
-                  )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {tc('priority')}
+                  </label>
+                  <Badge className={priorityConfig[selectedClaim.priority].color}>
+                    {priorityConfig[selectedClaim.priority].label}
+                  </Badge>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('date')}
+                  </label>
+                  <p className="text-sm">{formatDate(selectedClaim.created_at)}</p>
+                </div>
+                {selectedClaim.approved_amount && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('approvedAmount')}
+                    </label>
+                    <p className="text-sm font-medium text-green-600">{formatCurrency(selectedClaim.approved_amount)}</p>
+                  </div>
+                )}
               </div>
-
-              {/* Claim Information */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">
-                  {t('claimInformation') || 'Claim Information'}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {t('reason') || 'Reason'}
-                    </label>
-                    <p className="font-medium">
-                      {selectedClaim.title}
-                    </p>
-                  </div>
-
-                  {selectedClaim.description && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        {t('description') || 'Description'}
-                      </label>
-                      <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg mt-1">
-                        <p className="text-sm leading-relaxed">
-                          {selectedClaim.description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Admin Notes */}
-              {selectedClaim.admin_notes && (
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {t('adminNotes') || 'Admin Notes'}
-                  </h3>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <p className="text-sm leading-relaxed">
-                      {selectedClaim.admin_notes}
-                    </p>
-                  </div>
+              {selectedClaim.description && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('description')}
+                  </label>
+                  <p className="text-sm">{selectedClaim.description}</p>
                 </div>
               )}
-
-              {/* Rejection Reason */}
+              {selectedClaim.admin_notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('adminNotes')}
+                  </label>
+                  <p className="text-sm">{selectedClaim.admin_notes}</p>
+                </div>
+              )}
               {selectedClaim.rejection_reason && (
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-red-600">
-                    {t('rejectionReason') || 'Rejection Reason'}
-                  </h3>
-                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                    <p className="text-sm leading-relaxed">
-                      {selectedClaim.rejection_reason}
-                    </p>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('rejectionReason')}
+                  </label>
+                  <p className="text-sm">{selectedClaim.rejection_reason}</p>
                 </div>
               )}
 
               {/* Supporting Documents */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold mb-4">
-                  Supporting Documents
+                  {t('supportingDocuments')}
                 </h3>
                 {loadingDocuments ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                    <span className="ml-2 text-muted-foreground">Loading documents...</span>
+                    <span className="ml-2 text-muted-foreground">{t('loadingDocuments')}</span>
                   </div>
                 ) : selectedClaimDocuments.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      No supporting documents uploaded
+                      {t('noDocumentsUploaded')}
                     </p>
                   </div>
                 ) : (

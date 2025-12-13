@@ -619,7 +619,7 @@ export default function MosquesPage() {
                                 {mosque.description}
                               </CardDescription>
                             )}
-                            {/* Available services (from mosque public profile settings) */}
+                            {/* Available services (from mosque public page settings) */}
                             {(() => {
                               let enabledServices = Array.isArray((mosque as any).settings?.enabled_services)
                                 ? ((mosque as any).settings.enabled_services as string[])
@@ -635,7 +635,7 @@ export default function MosquesPage() {
                                 organization_people: { label: t('organization'), Icon: Users, cls: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
                                 friday_prayers: { label: 'Friday', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
                                 daily_prayers: { label: 'Daily', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
-                                mosque_profile: { label: 'Profile', Icon: Globe2, cls: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+                                mosque_profile: { label: 'Page', Icon: Globe2, cls: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
                               };
 
                               return (

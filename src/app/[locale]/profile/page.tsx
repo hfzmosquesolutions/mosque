@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSafeAsync } from '@/hooks/useSafeAsync';
 import {
   Card,
   CardContent,
@@ -21,12 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import {
   User,
   Save,
-  Eye,
-  EyeOff,
   Calendar,
   Briefcase,
   Users,
@@ -48,25 +46,38 @@ function ProfileContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const { safeSetState, isMounted } = useSafeAsync();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
 
-    setLoading(true);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    safeSetState(setLoading, true);
     const response = await getUserProfile(user.id);
 
+    if (abortController.signal.aborted || !isMounted()) return;
+
     if (response.success && response.data) {
-      setProfile(response.data);
+      safeSetState(setProfile, response.data);
     } else {
-      setError(response.error || 'Failed to load profile');
+      safeSetState(setError, response.error || 'Failed to load profile');
     }
-    setLoading(false);
-  }, [user?.id]);
+    safeSetState(setLoading, false);
+  }, [user?.id, safeSetState, isMounted]);
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isCompleted && !onboardingLoading) {
       fetchProfile();
     }
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [user?.id, fetchProfile, isCompleted, onboardingLoading]);
 
   const handleSave = async () => {
@@ -118,11 +129,7 @@ function ProfileContent() {
     return publicFields.includes(fieldName);
   };
 
-  if (onboardingLoading || !isCompleted) {
-    return null;
-  }
-
-  if (loading) {
+  if (onboardingLoading || !isCompleted || loading) {
     return (
       <DashboardLayout>
         <Loading 
@@ -162,62 +169,45 @@ function ProfileContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Title */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             My Profile
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             Manage your profile information
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/users/${profile.username || user?.id}`} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="gap-2">
-              <Eye className="h-4 w-4" />
-              {t('viewPublicProfile')}
-            </Button>
-          </Link>
-          {hasUnsavedChanges && (
-            <Button 
-              onClick={handleSave} 
-              disabled={saving} 
-              className="gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )}
-        </div>
+        {hasUnsavedChanges && (
+          <Button 
+            onClick={handleSave} 
+            disabled={saving} 
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        )}
       </div>
 
         {/* Profile Form */}
         <div className="space-y-6">
 
           {/* Basic Information */}
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                  <Briefcase className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Briefcase className="h-4 w-4 text-emerald-600" />
                 {t('basicInformation')}
               </CardTitle>
-              <CardDescription>
+              <p className="text-sm text-muted-foreground">
                 {t('updatePersonalDetails')}
-              </CardDescription>
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="fullName">{t('fullName')}</Label>
-                    <Badge variant="outline" className="text-xs">
-                      <Eye className="h-3 w-3 mr-1" />
-                      Public
-                    </Badge>
-                  </div>
+                  <Label htmlFor="fullName">{t('fullName')}</Label>
                   <Input
                     id="fullName"
                     value={profile.full_name}
@@ -288,13 +278,7 @@ function ProfileContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="phone">{t('phoneNumber')}</Label>
-                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                        <EyeOff className="h-3 w-3 mr-1" />
-                        Private
-                      </Badge>
-                    </div>
+                    <Label htmlFor="phone">{t('phoneNumber')}</Label>
                     <Input
                       id="phone"
                       value={profile.phone || ''}
@@ -303,13 +287,7 @@ function ProfileContent() {
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="address">{t('address')}</Label>
-                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                        <EyeOff className="h-3 w-3 mr-1" />
-                        Private
-                      </Badge>
-                    </div>
+                    <Label htmlFor="address">{t('address')}</Label>
                     <Textarea
                       id="address"
                       value={profile.address || ''}

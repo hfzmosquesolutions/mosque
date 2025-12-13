@@ -236,7 +236,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
         return (
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{member?.full_name || 'Unknown'}</span>
+            <span className="font-medium">{member?.full_name || t('unknown')}</span>
           </div>
         );
       },
@@ -261,7 +261,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
     {
       accessorKey: 'priority',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc('priority')} />
+        <DataTableColumnHeader column={column} title={t('priorityLabel')} />
       ),
       cell: ({ row }) => {
         const claim = row.original as KhairatClaimWithDetails;
@@ -332,13 +332,13 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
     }
 
     const headers = [
-      'Claimant Name',
-      'Title',
-      'Requested Amount (RM)',
-      'Approved Amount (RM)',
-      'Priority',
-      'Status',
-      'Submitted At',
+      t('exportHeaders.claimantName'),
+      t('exportHeaders.title'),
+      t('exportHeaders.requestedAmount'),
+      t('exportHeaders.approvedAmount'),
+      t('exportHeaders.priority'),
+      t('exportHeaders.status'),
+      t('exportHeaders.submittedAt'),
     ];
 
     const rows = filteredClaims.map((c) => {
@@ -368,7 +368,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
     link.click();
     document.body.removeChild(link);
 
-    toast.success(`Exported ${filteredClaims.length} claim records`);
+    toast.success(t('messages.exportSuccess', { count: filteredClaims.length }));
   };
 
   if (loading) {
@@ -390,12 +390,12 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                 {t('title')}
               </h2>
               <p className="text-muted-foreground mt-1">
-                {t('manageDescription', { fallback: 'View and manage khairat claims' })}
+                {t('manageDescription')}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm">
-                {filteredClaims.length} records
+                {filteredClaims.length} {t('records')}
               </Badge>
               <Button
                 variant="outline"
@@ -404,7 +404,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                 className="hover:bg-emerald-50 hover:border-emerald-200"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Export Data
+                {t('exportData')}
               </Button>
             </div>
           </div>
@@ -420,7 +420,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={t('searchPlaceholder') || 'Search claims...'}
+                placeholder={t('searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -428,10 +428,10 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="all">{t('allStatus')}</SelectItem>
                 <SelectItem value="pending">{t('status.pending')}</SelectItem>
                 <SelectItem value="under_review">{t('status.under_review')}</SelectItem>
                 <SelectItem value="approved">{t('status.approved')}</SelectItem>
@@ -464,13 +464,13 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                     const member = getMemberData(selectedClaim);
                     return (
                       <>
-                        <p className="text-sm text-muted-foreground">{member?.full_name || 'Unknown'}</p>
+                        <p className="text-sm text-muted-foreground">{member?.full_name || t('unknown')}</p>
                         {member?.phone && (
                           <p className="text-xs text-muted-foreground mt-1">{member.phone}</p>
                         )}
                         {selectedClaim.khairat_member?.membership_number && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Member ID: {selectedClaim.khairat_member.membership_number}
+                            {t('memberId')}: {selectedClaim.khairat_member.membership_number}
                           </p>
                         )}
                       </>
@@ -482,7 +482,7 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                   <p className="text-sm text-muted-foreground">{formatCurrency(selectedClaim.requested_amount)}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{tc('priority')}</p>
+                  <p className="text-sm font-medium">{t('priorityLabel')}</p>
                   <Badge className={priorityConfig[selectedClaim.priority].color}>
                     {priorityConfig[selectedClaim.priority].label}
                   </Badge>
@@ -547,17 +547,17 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
 
                 {/* Supporting Documents */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Supporting Documents</label>
+                  <label className="text-sm font-medium">{t('supportingDocuments')}</label>
                   {loadingDocuments ? (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
-                      <span className="ml-2 text-sm text-muted-foreground">Loading documents...</span>
+                      <span className="ml-2 text-sm text-muted-foreground">{t('loadingDocuments')}</span>
                     </div>
                   ) : selectedClaimDocuments.length === 0 ? (
                     <div className="text-center py-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
                       <FileText className="h-8 w-8 text-slate-400 mx-auto mb-2" />
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        No supporting documents uploaded
+                        {t('noDocumentsUploaded')}
                       </p>
                     </div>
                   ) : (

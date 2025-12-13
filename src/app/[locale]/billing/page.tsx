@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { useSafeAsync } from '@/hooks/useSafeAsync';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, Settings, FileText } from 'lucide-react';
+import { Settings, FileText } from 'lucide-react';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { SubscriptionStatus } from '@/components/subscription/SubscriptionStatus';
+import { PricingPlanCard } from '@/components/subscription/PricingPlanCard';
 import { getMosqueSubscription, getUserSubscription, getFeaturesForPlan } from '@/lib/subscription';
 import { MosqueSubscription, UserSubscription } from '@/lib/subscription';
 import { SubscriptionPlan, SubscriptionFeatures } from '@/lib/stripe';
@@ -20,6 +22,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loading } from '@/components/ui/loading';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -27,9 +30,9 @@ function BillingContent() {
   const t = useTranslations('billing');
   const tNav = useTranslations();
   const { user } = useAuth();
-  const { mosqueId } = useUserMosque();
-  const { isAdmin } = useUserRole();
-  const { isCompleted, isLoading } = useOnboardingRedirect();
+  const { mosqueId, loading: mosqueLoading } = useUserMosque();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   
   // All hooks must be called before any conditional returns
   const [subscription, setSubscription] = useState<MosqueSubscription | UserSubscription | null>(null);
@@ -38,49 +41,78 @@ function BillingContent() {
   const searchParams = useSearchParams();
   const isSuccess = searchParams?.get('success') === 'true';
   const isCanceled = searchParams?.get('canceled') === 'true';
+  const { safeSetState, isMounted } = useSafeAsync();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     const fetchSubscription = async () => {
-      if (!user?.id && !mosqueId) return;
+      if (!user?.id && !mosqueId || abortController.signal.aborted) return;
       
       try {
         // Prefer user-linked subscription, fallback to mosque-linked
         if (user?.id) {
           const userSub = await getUserSubscription(user.id);
+          if (abortController.signal.aborted || !isMounted()) return;
+          
           if (userSub) {
-            setSubscription(userSub as any);
+            safeSetState(setSubscription, userSub as any);
           } else if (mosqueId) {
             const mosqueSub = await getMosqueSubscription(mosqueId);
-            setSubscription(mosqueSub);
+            if (!abortController.signal.aborted && isMounted()) {
+              safeSetState(setSubscription, mosqueSub);
+            }
           } else {
-            setSubscription(null);
+            safeSetState(setSubscription, null);
           }
         } else if (mosqueId) {
           const mosqueSub = await getMosqueSubscription(mosqueId);
-          setSubscription(mosqueSub);
+          if (!abortController.signal.aborted && isMounted()) {
+            safeSetState(setSubscription, mosqueSub);
+          }
         }
       } catch (error) {
-        console.error('Error fetching subscription:', error);
+        if (!abortController.signal.aborted && isMounted()) {
+          console.error('Error fetching subscription:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted && isMounted()) {
+          safeSetState(setLoading, false);
+        }
       }
     };
 
-    if (isCompleted && !isLoading) {
+    if (isCompleted && !onboardingLoading) {
       fetchSubscription();
     }
-  }, [user?.id, mosqueId, isCompleted, isLoading]);
+
+    return () => {
+      abortController.abort();
+    };
+  }, [user?.id, mosqueId, isCompleted, onboardingLoading, safeSetState, isMounted]);
   
+  if (onboardingLoading || !isCompleted || roleLoading || mosqueLoading || loading) {
+    return (
+      <Loading 
+        message={t('loadingMessage')} 
+        size="lg"
+        className="py-12"
+      />
+    );
+  }
+
   // Redirect non-admin users
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Access Denied
+            {t('accessDenied')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            This page is only available to mosque administrators.
+            {t('accessDeniedDescription')}
           </p>
         </div>
       </div>
@@ -176,17 +208,6 @@ function BillingContent() {
     }
   };
 
-  if (isLoading || !isCompleted) {
-    return null;
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
-    );
-  }
 
   const currentPlan = subscription?.plan || 'free';
   const features = getFeaturesForPlan(currentPlan);
@@ -215,15 +236,8 @@ function BillingContent() {
         </h1>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="invoices" className="space-y-6">
         <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
-          <TabsTrigger 
-            value="overview" 
-            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-          >
-            <CreditCard className="h-4 w-4" />
-            {t('tabs.overview')}
-          </TabsTrigger>
           <TabsTrigger 
             value="plans" 
             className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
@@ -240,23 +254,6 @@ function BillingContent() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" forceMount className="space-y-6 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                {t('tabs.overview')}
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                View your current subscription status and billing information
-              </p>
-            </div>
-          </div>
-          <SubscriptionStatus 
-            userId={user?.id || ''} 
-            onManageBilling={handleManageBilling}
-          />
-        </TabsContent>
-
         <TabsContent value="plans" forceMount className="space-y-6 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -270,29 +267,26 @@ function BillingContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <SubscriptionCard
+            <PricingPlanCard
               plan="free"
               currentPlan={currentPlan}
-              features={getFeaturesForPlan('free')}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'free'}
-              isCurrentPlan={currentPlan === 'free'}
+              showRecommended={false}
             />
-            <SubscriptionCard
+            <PricingPlanCard
               plan="standard"
               currentPlan={currentPlan}
-              features={getFeaturesForPlan('standard')}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'standard'}
-              isCurrentPlan={currentPlan === 'standard'}
+              showRecommended={true}
             />
-            <SubscriptionCard
+            <PricingPlanCard
               plan="pro"
               currentPlan={currentPlan}
-              features={getFeaturesForPlan('pro')}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'pro'}
-              isCurrentPlan={currentPlan === 'pro'}
+              showRecommended={false}
             />
           </div>
         </TabsContent>
@@ -304,7 +298,7 @@ function BillingContent() {
                 {t('tabs.invoices')}
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                View and manage your billing history and invoices
+                {t('invoicesSubtitle')}
               </p>
             </div>
           </div>

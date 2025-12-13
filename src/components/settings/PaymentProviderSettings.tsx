@@ -28,6 +28,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface PaymentProvider {
   id: string;
@@ -65,6 +66,7 @@ type ProviderType = 'billplz' | 'toyyibpay';
 export function PaymentProviderSettings() {
   const { user } = useAuth();
   const { isAdmin, mosqueId } = useUserRole();
+  const t = useTranslations('khairat');
 
   const [selectedProvider, setSelectedProvider] =
     useState<ProviderType>('toyyibpay');
@@ -102,12 +104,12 @@ export function PaymentProviderSettings() {
 
   useEffect(() => {
     if (!isAdmin || !mosqueId) {
-      setError('Access denied. Admin privileges required.');
+      setError(t('paymentProviderSettings.accessDeniedDescription'));
       setLoading(false);
       return;
     }
     loadPaymentProviders();
-  }, [isAdmin, mosqueId]);
+  }, [isAdmin, mosqueId, t]);
 
   const loadPaymentProviders = async () => {
     try {
@@ -121,7 +123,7 @@ export function PaymentProviderSettings() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load payment providers');
+        throw new Error(data.error || t('paymentProviderSettings.failedToLoadPaymentProviders'));
       }
 
       if (data.billplz) {
@@ -180,18 +182,18 @@ export function PaymentProviderSettings() {
             !billplzFormData.billplz_api_key ||
             !billplzFormData.billplz_collection_id
           ) {
-            throw new Error(
-              'Please provide API Key and Collection ID before enabling the payment provider'
-            );
+        throw new Error(
+          t('paymentProviderSettings.pleaseProvideApiKeyAndCollectionId')
+        );
           }
         } else {
           if (
             !toyyibPayFormData.toyyibpay_secret_key ||
             !toyyibPayFormData.toyyibpay_category_code
           ) {
-            throw new Error(
-              'Please provide Secret Key and Category Code before enabling the payment provider'
-            );
+        throw new Error(
+          t('paymentProviderSettings.pleaseProvideSecretKeyAndCategoryCode')
+        );
           }
         }
 
@@ -225,14 +227,16 @@ export function PaymentProviderSettings() {
         const testData_result = await testResponse.json();
 
         if (!testResponse.ok) {
-          throw new Error(
-            testData_result.error ||
-              `Connection test failed. Please verify your ${selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'} credentials and try again.`
-          );
+        throw new Error(
+          testData_result.error ||
+              t('paymentProviderSettings.connectionTestFailedWithProvider', {
+                provider: selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'
+              })
+        );
         }
 
         toast.success(
-          `Connection test successful! Proceeding to save settings...`
+          t('paymentProviderSettings.connectionTestSuccessful')
         );
 
         // If enabling this provider, disable other active providers first
@@ -272,9 +276,11 @@ export function PaymentProviderSettings() {
 
           if (!disableResponse.ok) {
             const disableData = await disableResponse.json();
-            throw new Error(
-              disableData.error || `Failed to disable ${otherProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'} provider`
-            );
+        throw new Error(
+          disableData.error || t('paymentProviderSettings.failedToDisableProvider', { 
+            provider: otherProvider === 'billplz' ? 'Billplz' : 'ToyyibPay' 
+          })
+        );
           }
         }
       }
@@ -297,15 +303,15 @@ export function PaymentProviderSettings() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save payment provider');
+        throw new Error(data.error || t('paymentProviderSettings.failedToSavePaymentProvider'));
       }
 
       // Refresh the data after successful save
       await loadPaymentProviders();
-      toast.success('Payment provider settings saved successfully!');
+      toast.success(t('paymentProviderSettings.settingsSaved'));
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to save payment provider';
+        err instanceof Error ? err.message : t('paymentProviderSettings.failedToSavePaymentProvider');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -323,7 +329,7 @@ export function PaymentProviderSettings() {
         !billplzFormData.billplz_collection_id
       ) {
         toast.error(
-          'Please provide API Key and Collection ID to test connection'
+          t('paymentProviderSettings.pleaseProvideApiKeyAndCollectionIdToTest')
         );
         return;
       }
@@ -333,7 +339,7 @@ export function PaymentProviderSettings() {
         !toyyibPayFormData.toyyibpay_category_code
       ) {
         toast.error(
-          'Please provide Secret Key and Category Code to test connection'
+          t('paymentProviderSettings.pleaseProvideSecretKeyAndCategoryCodeToTest')
         );
         return;
       }
@@ -375,13 +381,13 @@ export function PaymentProviderSettings() {
       }
 
       toast.success(
-        `Connection test successful! ${
-          selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'
-        } API is working correctly.`
+        t('paymentProviderSettings.connectionTestSuccessfulWithProvider', {
+          provider: selectedProvider === 'billplz' ? 'Billplz' : 'ToyyibPay'
+        })
       );
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Connection test failed';
+        err instanceof Error ? err.message : t('paymentProviderSettings.connectionTestFailed');
       toast.error(errorMessage);
     } finally {
       setTesting(false);
@@ -393,9 +399,9 @@ export function PaymentProviderSettings() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('paymentProviderSettings.accessDenied')}</h3>
           <p className="text-muted-foreground">
-            You need administrator privileges to access payment settings.
+            {t('paymentProviderSettings.accessDeniedDescription')}
           </p>
         </div>
       </div>
@@ -407,7 +413,7 @@ export function PaymentProviderSettings() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading payment settings...</p>
+          <p className="text-muted-foreground">{t('paymentProviderSettings.loadingPaymentSettings')}</p>
         </div>
       </div>
     );
@@ -419,7 +425,7 @@ export function PaymentProviderSettings() {
         <div className="flex justify-end">
           <Badge variant="default" className="bg-green-100 text-green-800">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Active
+            {t('paymentProviderSettings.active')}
           </Badge>
         </div>
       )}
@@ -431,7 +437,7 @@ export function PaymentProviderSettings() {
         )}
         {/* Provider Selection */}
         <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-          <Label className="text-sm font-medium">Payment Provider:</Label>
+          <Label className="text-sm font-medium">{t('paymentProviderSettings.paymentProvider')}:</Label>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2">
               <input
@@ -464,16 +470,15 @@ export function PaymentProviderSettings() {
             />
             <div>
               <Label className="text-sm font-medium">
-                Enable Online Donations
+                {t('paymentProviderSettings.enableOnlineDonations')}
               </Label>
               <p className="text-xs text-muted-foreground">
-                Allow members to donate and pay contributions online to your
-                mosque
+                {t('paymentProviderSettings.enableOnlineDonationsDescription')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-sm">Sandbox Mode</Label>
+            <Label className="text-sm">{t('paymentProviderSettings.sandboxMode')}</Label>
             <Switch
               checked={
                 selectedProvider === 'billplz'
@@ -492,7 +497,7 @@ export function PaymentProviderSettings() {
           {selectedProvider === 'billplz' ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="apiKey">API Key *</Label>
+                <Label htmlFor="apiKey">{t('paymentProviderSettings.apiKey')} *</Label>
                 <div className="relative">
                   <Input
                     id="apiKey"
@@ -501,7 +506,7 @@ export function PaymentProviderSettings() {
                     onChange={(e) =>
                       updateFormData('billplz_api_key', e.target.value)
                     }
-                    placeholder="Enter your Billplz API Key"
+                    placeholder={t('paymentProviderSettings.enterBillplzApiKey')}
                     className="pr-10"
                   />
                   <Button
@@ -521,7 +526,7 @@ export function PaymentProviderSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signatureKey">X-Signature Key *</Label>
+                <Label htmlFor="signatureKey">{t('paymentProviderSettings.xSignatureKey')} *</Label>
                 <div className="relative">
                   <Input
                     id="signatureKey"
@@ -530,7 +535,7 @@ export function PaymentProviderSettings() {
                     onChange={(e) =>
                       updateFormData('billplz_x_signature_key', e.target.value)
                     }
-                    placeholder="Enter your X-Signature Key"
+                    placeholder={t('paymentProviderSettings.enterXSignatureKey')}
                     className="pr-10"
                   />
                   <Button
@@ -550,21 +555,21 @@ export function PaymentProviderSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="collectionId">Collection ID *</Label>
+                <Label htmlFor="collectionId">{t('paymentProviderSettings.collectionId')} *</Label>
                 <Input
                   id="collectionId"
                   value={billplzFormData.billplz_collection_id}
                   onChange={(e) =>
                     updateFormData('billplz_collection_id', e.target.value)
                   }
-                  placeholder="Enter your Billplz Collection ID"
+                  placeholder={t('paymentProviderSettings.enterBillplzCollectionId')}
                 />
               </div>
             </>
           ) : (
             <>
               <div className="space-y-2">
-                <Label htmlFor="secretKey">Secret Key *</Label>
+                <Label htmlFor="secretKey">{t('paymentProviderSettings.secretKey')} *</Label>
                 <div className="relative">
                   <Input
                     id="secretKey"
@@ -573,7 +578,7 @@ export function PaymentProviderSettings() {
                     onChange={(e) =>
                       updateFormData('toyyibpay_secret_key', e.target.value)
                     }
-                    placeholder="Enter your ToyyibPay Secret Key"
+                    placeholder={t('paymentProviderSettings.enterToyyibPaySecretKey')}
                     className="pr-10"
                   />
                   <Button
@@ -593,14 +598,14 @@ export function PaymentProviderSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="categoryCode">Category Code *</Label>
+                <Label htmlFor="categoryCode">{t('paymentProviderSettings.categoryCode')} *</Label>
                 <Input
                   id="categoryCode"
                   value={toyyibPayFormData.toyyibpay_category_code}
                   onChange={(e) =>
                     updateFormData('toyyibpay_category_code', e.target.value)
                   }
-                  placeholder="Enter your ToyyibPay Category Code"
+                  placeholder={t('paymentProviderSettings.enterToyyibPayCategoryCode')}
                 />
               </div>
             </>
@@ -615,22 +620,19 @@ export function PaymentProviderSettings() {
           <AlertDescription>
             <div className="space-y-3">
               <div>
-                <p className="font-medium mb-2">Setup Instructions:</p>
+                <p className="font-medium mb-2">{t('paymentProviderSettings.setupInstructions')}</p>
                 {selectedProvider === 'billplz' ? (
                   <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Sign up for a Billplz account at billplz.com</li>
-                    <li>Go to Settings → API Keys to get your API Key</li>
-                    <li>
-                      Go to Settings → X-Signature Key to get your X-Signature
-                      Key
-                    </li>
-                    <li>Create a Collection and copy the Collection ID</li>
+                    <li>{t('paymentProviderSettings.billplzInstructions1')}</li>
+                    <li>{t('paymentProviderSettings.billplzInstructions2')}</li>
+                    <li>{t('paymentProviderSettings.billplzInstructions3')}</li>
+                    <li>{t('paymentProviderSettings.billplzInstructions4')}</li>
                   </ol>
                 ) : (
                   <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Sign up for a ToyyibPay account at toyyibpay.com</li>
-                    <li>Go to Settings → API to get your Secret Key</li>
-                    <li>Create a Category and copy the Category Code</li>
+                    <li>{t('paymentProviderSettings.toyyibpayInstructions1')}</li>
+                    <li>{t('paymentProviderSettings.toyyibpayInstructions2')}</li>
+                    <li>{t('paymentProviderSettings.toyyibpayInstructions3')}</li>
                   </ol>
                 )}
               </div>
@@ -645,7 +647,7 @@ export function PaymentProviderSettings() {
                         className="flex items-center gap-1"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        API Documentation
+                        {t('paymentProviderSettings.apiDocumentation')}
                       </a>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
@@ -656,7 +658,7 @@ export function PaymentProviderSettings() {
                         className="flex items-center gap-1"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        Billplz Dashboard
+                        {t('paymentProviderSettings.billplzDashboard')}
                       </a>
                     </Button>
                   </>
@@ -670,7 +672,7 @@ export function PaymentProviderSettings() {
                         className="flex items-center gap-1"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        API Documentation
+                        {t('paymentProviderSettings.apiDocumentation')}
                       </a>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
@@ -681,7 +683,7 @@ export function PaymentProviderSettings() {
                         className="flex items-center gap-1"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        ToyyibPay Dashboard
+                        {t('paymentProviderSettings.toyyibPayDashboard')}
                       </a>
                     </Button>
                   </>
@@ -697,12 +699,12 @@ export function PaymentProviderSettings() {
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                {t('paymentProviderSettings.saving')}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Settings
+                {t('paymentProviderSettings.saveSettings')}
               </>
             )}
           </Button>
@@ -723,10 +725,10 @@ export function PaymentProviderSettings() {
             {testing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Testing...
+                {t('paymentProviderSettings.testing')}
               </>
             ) : (
-              'Test Connection'
+              t('paymentProviderSettings.testConnection')
             )}
           </Button>
         </div>

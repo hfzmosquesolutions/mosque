@@ -102,32 +102,6 @@ export function AdminGettingStarted({
   const totalSteps = steps.length;
   const progressPercentage = (completedSteps / totalSteps) * 100;
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400';
-      case 'medium':
-        return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'low':
-        return 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400';
-      default:
-        return 'text-gray-600 bg-gray-100 dark:bg-gray-900/30 dark:text-gray-400';
-    }
-  };
-
-  const getPriorityText = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return t('stepPriority.high');
-      case 'medium':
-        return t('stepPriority.medium');
-      case 'low':
-        return t('stepPriority.low');
-      default:
-        return '';
-    }
-  };
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -197,12 +171,6 @@ export function AdminGettingStarted({
                     }`}>
                       {step.title}
                     </h4>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs px-2 py-0 ${getPriorityColor(step.priority)}`}
-                    >
-                      {getPriorityText(step.priority)}
-                    </Badge>
                   </div>
                   <p className={`text-xs ${
                     step.completed 

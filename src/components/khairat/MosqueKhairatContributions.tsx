@@ -90,7 +90,7 @@ export function MosqueKhairatContributions({
       }
     } catch (error) {
       console.error('Error loading payments:', error);
-      toast.error('Failed to load payments');
+      toast.error(t('paymentsTable.failedToLoadPayments'));
     } finally {
       setLoading(false);
     }
@@ -141,14 +141,14 @@ export function MosqueKhairatContributions({
     try {
       const response = await updateKhairatContributionStatus(contributionId, newStatus);
       if (response.success) {
-        toast.success('Payment status updated successfully');
+        toast.success(t('paymentsTable.paymentStatusUpdated'));
         loadContributions(); // Reload to get updated data
       } else {
-        toast.error(response.error || 'Failed to update status');
+        toast.error(response.error || t('paymentsTable.failedToUpdateStatus'));
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
-      toast.error('Failed to update payment status');
+      toast.error(t('paymentsTable.failedToUpdatePaymentStatus'));
     } finally {
       setUpdating(null);
     }
@@ -177,9 +177,16 @@ export function MosqueKhairatContributions({
       failed: 'destructive',
     } as const;
 
+    const statusLabels: Record<string, string> = {
+      completed: t('paymentsTable.completed'),
+      pending: t('paymentsTable.pending'),
+      cancelled: t('paymentsTable.cancelled'),
+      failed: t('paymentsTable.failed'),
+    };
+
     return (
       <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -205,14 +212,14 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'contributor_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.name')} />
       ),
       cell: ({ row }) => {
         const contributorName = row.getValue('contributor_name') as string;
         return (
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{contributorName || 'Anonymous'}</span>
+            <span className="font-medium">{contributorName || t('paymentsTable.anonymous')}</span>
           </div>
         );
       },
@@ -220,7 +227,7 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'amount',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Amount" />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.amount')} />
       ),
       cell: ({ row }) => {
         const amount = row.getValue('amount') as number;
@@ -235,7 +242,7 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.status')} />
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
@@ -250,13 +257,13 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'payment_method',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Payment Method" />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.paymentMethod')} />
       ),
       cell: ({ row }) => {
         const method = row.getValue('payment_method') as string;
         return (
           <Badge variant="outline" className="capitalize">
-            {method?.replace('_', ' ') || 'N/A'}
+            {method?.replace('_', ' ') || t('paymentsTable.notAvailable')}
           </Badge>
         );
       },
@@ -264,7 +271,7 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'contributed_at',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Date" />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.date')} />
       ),
       cell: ({ row }) => {
         const date = row.getValue('contributed_at') as string;
@@ -278,7 +285,7 @@ export function MosqueKhairatContributions({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('paymentsTable.actions'),
       cell: ({ row }) => {
         const contribution = row.original;
         const isUpdating = updating === contribution.id;
@@ -288,7 +295,7 @@ export function MosqueKhairatContributions({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{t('paymentsTable.openMenu')}</span>
                 {isUpdating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -297,7 +304,7 @@ export function MosqueKhairatContributions({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('paymentsTable.actions')}</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedContribution(contribution);
@@ -305,7 +312,7 @@ export function MosqueKhairatContributions({
                 }}
               >
                 <Eye className="mr-2 h-4 w-4" />
-                View Details
+                {t('paymentsTable.viewDetails')}
               </DropdownMenuItem>
               {/* Only allow status changes for cash payments */}
               {isCashPayment && (
@@ -318,14 +325,14 @@ export function MosqueKhairatContributions({
                         disabled={isUpdating}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
-                        Mark as Completed
+                        {t('paymentsTable.markAsCompleted')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleStatusUpdate(contribution.id, 'cancelled')}
                         disabled={isUpdating}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
-                        Cancel
+                        {t('paymentsTable.cancel')}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -335,7 +342,7 @@ export function MosqueKhairatContributions({
                       disabled={isUpdating}
                     >
                       <Clock className="mr-2 h-4 w-4" />
-                      Mark as Pending
+                      {t('paymentsTable.markAsPending')}
                     </DropdownMenuItem>
                   )}
                 </>
@@ -354,10 +361,10 @@ export function MosqueKhairatContributions({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Khairat Payments
+              {t('paymentsTable.khairatPayments')}
             </CardTitle>
             <CardDescription>
-              Manage and track khairat payments for this mosque
+              {t('paymentsTable.manageAndTrackPayments')}
             </CardDescription>
           </CardHeader>
         </div>
@@ -372,7 +379,7 @@ export function MosqueKhairatContributions({
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search payments..."
+                placeholder={t('paymentsTable.searchPayments')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -380,14 +387,14 @@ export function MosqueKhairatContributions({
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('paymentsTable.filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all">{t('paymentsTable.allStatus')}</SelectItem>
+                <SelectItem value="pending">{t('paymentsTable.pending')}</SelectItem>
+                <SelectItem value="completed">{t('paymentsTable.completed')}</SelectItem>
+                <SelectItem value="cancelled">{t('paymentsTable.cancelled')}</SelectItem>
+                <SelectItem value="failed">{t('paymentsTable.failed')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -398,9 +405,9 @@ export function MosqueKhairatContributions({
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Payment Details</DialogTitle>
+            <DialogTitle>{t('paymentsTable.paymentDetails')}</DialogTitle>
             <DialogDescription>
-              View detailed information about this payment
+              {t('paymentsTable.paymentDetailsDescription')}
             </DialogDescription>
           </DialogHeader>
           {selectedContribution && (
@@ -408,19 +415,19 @@ export function MosqueKhairatContributions({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Name
+                    {t('paymentsTable.name')}
                   </label>
-                  <p className="text-sm">{selectedContribution.contributor_name || 'Anonymous'}</p>
+                  <p className="text-sm">{selectedContribution.contributor_name || t('paymentsTable.anonymous')}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Amount
+                    {t('paymentsTable.amount')}
                   </label>
                   <p className="text-sm font-medium">{formatCurrency(selectedContribution.amount)}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Status
+                    {t('paymentsTable.status')}
                   </label>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(selectedContribution.status)}
@@ -429,29 +436,29 @@ export function MosqueKhairatContributions({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Payment Method
+                    {t('paymentsTable.paymentMethod')}
                   </label>
                   <p className="text-sm capitalize">
-                    {selectedContribution.payment_method?.replace('_', ' ') || 'N/A'}
+                    {selectedContribution.payment_method?.replace('_', ' ') || t('paymentsTable.notAvailable')}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Date
+                    {t('paymentsTable.date')}
                   </label>
                   <p className="text-sm">{formatDate(selectedContribution.contributed_at)}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Reference
+                    {t('paymentsTable.reference')}
                   </label>
-                  <p className="text-sm">{selectedContribution.payment_reference || 'N/A'}</p>
+                  <p className="text-sm">{selectedContribution.payment_reference || t('paymentsTable.notAvailable')}</p>
                 </div>
               </div>
               {selectedContribution.notes && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Notes
+                    {t('paymentsTable.notes')}
                   </label>
                   <p className="text-sm">{selectedContribution.notes}</p>
                 </div>

@@ -40,7 +40,7 @@ export function KariahRegistrationDialog(props: KariahRegistrationDialogProps) {
 		onWithdrawMembership,
 	} = props;
 
-	const t = useTranslations('mosqueProfile');
+	const t = useTranslations('mosquePage');
 
 	// Inline confirmation toggles
 	const [confirming, setConfirming] = useState<null | 'withdrawApp' | 'deleteApp' | 'withdrawMember'>(null);

@@ -15,7 +15,6 @@ import {
   FileText,
   CreditCard,
   UserCheck,
-  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -81,18 +80,10 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
     //   icon: Database,
     // });
     baseNavigation.push({
-      name: t('mosqueProfile'),
+      name: t('mosquePage'),
       href: '/mosque-profile',
       icon: Building,
     });
-    // Add public mosque profile link for admin users
-    if (mosqueId) {
-      baseNavigation.push({
-        name: t('viewPublicProfile'),
-        href: `/mosques/${mosqueId}`,
-        icon: ExternalLink,
-      });
-    }
   } else {
     // For regular users, show community features
     // Events removed
@@ -104,19 +95,22 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
       icon: HandHeart,
     });
 
-    // Only include Contributions if enabled for regular users
-    if (FEATURES.CONTRIBUTIONS_ENABLED) {
-      baseNavigation.push({
-        name: t('contributions'),
-        href: '/payments',
-        icon: HandHeart,
-      });
-    }
+    // Payment History for regular users
+    baseNavigation.push({
+      name: t('paymentHistory'),
+      href: '/payments',
+      icon: CreditCard,
+    });
+
+    // Claims for regular users
+    baseNavigation.push({
+      name: t('claims.title'),
+      href: '/claims',
+      icon: FileText,
+    });
 
     // Khairat page is not available to regular users
     // Kariah applications are now handled through My Mosques page
-
-    // Claims are now managed inside Khairat page tabs
 
     // Dependents management for regular users only
     baseNavigation.push({

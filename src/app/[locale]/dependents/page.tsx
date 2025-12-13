@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSafeAsync } from '@/hooks/useSafeAsync';
 import {
   Card,
   CardContent,
@@ -82,6 +83,8 @@ function DependentsContent() {
     emergency_contact: false,
     notes: '',
   });
+  const { safeSetState, isMounted } = useSafeAsync();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Redirect admin users away from this page
   useEffect(() => {
@@ -89,34 +92,49 @@ function DependentsContent() {
       router.push('/dashboard');
       toast.error(t('adminNotAllowed'));
     }
-  }, [isAdmin, router]);
+  }, [isAdmin, router, t]);
 
   useEffect(() => {
-    async function fetchDependents() {
-      if (!user?.id || isAdmin) return;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
-      setLoading(true);
-      setError(null);
+    async function fetchDependents() {
+      if (!user?.id || isAdmin || abortController.signal.aborted) return;
+
+      safeSetState(setLoading, true);
+      safeSetState(setError, null);
 
       try {
         const dependentsRes = await getUserDependents(user.id);
+        if (abortController.signal.aborted || !isMounted()) return;
+
         if (dependentsRes.success) {
-          setDependents(dependentsRes.data || []);
+          safeSetState(setDependents, dependentsRes.data || []);
         } else {
           throw new Error(dependentsRes.error || t('failedToLoadDependents'));
         }
 
         // Initialize dependent form with user_id
-        setDependentForm((prev) => ({ ...prev, user_id: user.id }));
+        safeSetState(setDependentForm, (prev) => ({ ...prev, user_id: user.id }));
       } catch (e) {
-        setError(e instanceof Error ? e.message : t('failedToLoadDependents'));
+        if (!abortController.signal.aborted && isMounted()) {
+          safeSetState(setError, e instanceof Error ? e.message : t('failedToLoadDependents'));
+        }
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted && isMounted()) {
+          safeSetState(setLoading, false);
+        }
       }
     }
 
-    fetchDependents();
-  }, [user?.id, isAdmin, isCompleted, onboardingLoading]);
+    if (isCompleted && !onboardingLoading) {
+      fetchDependents();
+    }
+
+    return () => {
+      abortController.abort();
+    };
+  }, [user?.id, isAdmin, isCompleted, onboardingLoading, safeSetState, isMounted, t]);
 
   const updateDependentForm = (
     field: keyof CreateUserDependent,
@@ -226,11 +244,7 @@ function DependentsContent() {
     }
   };
 
-  if (onboardingLoading || !isCompleted) {
-    return null;
-  }
-
-  if (loading) {
+  if (onboardingLoading || !isCompleted || loading) {
     return (
       <Loading 
         message="Loading dependents..." 
@@ -241,7 +255,13 @@ function DependentsContent() {
   }
 
   if (isAdmin) {
-    return null; // This will be handled by the redirect in useEffect
+    return (
+      <Loading 
+        message="Redirecting..." 
+        size="lg"
+        className="py-12"
+      />
+    );
   }
 
   return (

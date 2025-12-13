@@ -362,43 +362,43 @@ export function KhairatManagement({
     const statusConfig = {
       // Application statuses
       pending: { 
-        label: 'Pending', 
+        label: t('pending'), 
         className: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800', 
         icon: Clock 
       },
       under_review: { 
-        label: 'Under Review', 
+        label: t('under_review'), 
         className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800', 
         icon: Eye 
       },
       approved: { 
-        label: 'Approved', 
+        label: t('approved'), 
         className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800', 
         icon: CheckCircle 
       },
       rejected: { 
-        label: 'Rejected', 
+        label: t('rejected'), 
         className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', 
         icon: XCircle 
       },
       withdrawn: { 
-        label: 'Withdrawn', 
+        label: t('withdrawn'), 
         className: 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800', 
         icon: X 
       },
       // Membership statuses
       active: { 
-        label: 'Active', 
+        label: t('active'), 
         className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800', 
         icon: CheckCircle 
       },
       inactive: { 
-        label: 'Inactive', 
+        label: t('inactive'), 
         className: 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800', 
         icon: UserX 
       },
       suspended: { 
-        label: 'Suspended', 
+        label: t('suspended'), 
         className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', 
         icon: XCircle 
       },
@@ -419,7 +419,7 @@ export function KhairatManagement({
     const isApplication = ['pending', 'approved', 'rejected', 'under_review', 'withdrawn'].includes(status);
     return (
       <Badge variant={isApplication ? 'outline' : 'secondary'} className="text-xs">
-        {isApplication ? 'Application' : 'Member'}
+        {isApplication ? t('table.application') : t('table.member')}
       </Badge>
     );
   };
@@ -428,13 +428,13 @@ export function KhairatManagement({
     {
       accessorKey: 'full_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={t('table.name')} />
       ),
       cell: ({ row }) => {
         const member = row.original;
         return (
           <div className="font-medium">
-            {member.full_name || 'Unknown User'}
+            {member.full_name || t('table.unknownUser')}
           </div>
         );
       },
@@ -442,13 +442,13 @@ export function KhairatManagement({
     {
       accessorKey: 'ic_passport_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="IC No" />
+        <DataTableColumnHeader column={column} title={t('table.icNo')} />
       ),
       cell: ({ row }) => {
         const member = row.original;
         return (
           <div className="text-sm font-mono">
-            {member.ic_passport_number || 'Not provided'}
+            {member.ic_passport_number || t('table.notProvided')}
           </div>
         );
       },
@@ -456,13 +456,13 @@ export function KhairatManagement({
     {
       accessorKey: 'phone',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Phone" />
+        <DataTableColumnHeader column={column} title={t('table.phone')} />
       ),
       cell: ({ row }) => {
         const member = row.original;
         return (
           <div className="text-sm">
-            {member.phone || 'No contact info'}
+            {member.phone || t('table.noContactInfo')}
           </div>
         );
       },
@@ -470,7 +470,7 @@ export function KhairatManagement({
     {
       accessorKey: 'membership_number',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Member ID" />
+        <DataTableColumnHeader column={column} title={t('table.memberId')} />
       ),
       cell: ({ row }) => {
         const member = row.original;
@@ -484,7 +484,7 @@ export function KhairatManagement({
     {
       accessorKey: 'status',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={t('table.status')} />
       ),
       cell: ({ row }) => {
         const member = row.original;
@@ -497,7 +497,7 @@ export function KhairatManagement({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('table.actions'),
       cell: ({ row }) => {
         const member = row.original;
 
@@ -551,7 +551,7 @@ export function KhairatManagement({
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, IC, or Member ID…"
+                placeholder={t('table.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -559,17 +559,17 @@ export function KhairatManagement({
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('table.filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="withdrawn">Withdrawn</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="all">{t('table.allStatuses')}</SelectItem>
+                <SelectItem value="pending">{t('pending')}</SelectItem>
+                <SelectItem value="approved">{t('approved')}</SelectItem>
+                <SelectItem value="rejected">{t('rejected')}</SelectItem>
+                <SelectItem value="withdrawn">{t('withdrawn')}</SelectItem>
+                <SelectItem value="active">{t('active')}</SelectItem>
+                <SelectItem value="inactive">{t('inactive')}</SelectItem>
+                <SelectItem value="suspended">{t('suspended')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -582,10 +582,10 @@ export function KhairatManagement({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              Member Details
+              {t('memberDetails.title')}
             </DialogTitle>
             <DialogDescription>
-              View and manage member information and status
+              {t('memberDetails.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -600,36 +600,36 @@ export function KhairatManagement({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Member Name</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberName')}</label>
                     <p className="font-medium text-lg">
-                      {selectedMember.full_name || 'Unknown User'}
+                      {selectedMember.full_name || t('table.unknownUser')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.phoneNumber')}</label>
                     <p className="text-sm">
-                      {selectedMember.phone || 'No contact info'}
+                      {selectedMember.phone || t('table.noContactInfo')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">IC Number</label>
-                    <p className="font-mono text-sm">{selectedMember.ic_passport_number || 'Not provided'}</p>
+                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.icNumber')}</label>
+                    <p className="font-mono text-sm">{selectedMember.ic_passport_number || t('table.notProvided')}</p>
                   </div>
                   {selectedMember.address && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Address</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.address')}</label>
                       <p className="text-sm">{selectedMember.address}</p>
                     </div>
                   )}
                   {selectedMember.email && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.email')}</label>
                       <p className="text-sm">{selectedMember.email}</p>
                     </div>
                   )}
                   {selectedMember.membership_number && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Member ID</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberId')}</label>
                       <p className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">{selectedMember.membership_number}</p>
                     </div>
                   )}
@@ -637,18 +637,18 @@ export function KhairatManagement({
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Applied Date</label>
+                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.appliedDate')}</label>
                     <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.created_at), { addSuffix: true })}</p>
                   </div>
                   {selectedMember.joined_date && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.joinedDate')}</label>
                       <p className="text-sm">{new Date(selectedMember.joined_date).toLocaleDateString()}</p>
                     </div>
                   )}
                   {selectedMember.reviewed_at && (
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Last Reviewed</label>
+                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.lastReviewed')}</label>
                       <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.reviewed_at), { addSuffix: true })}</p>
                     </div>
                   )}
@@ -658,7 +658,7 @@ export function KhairatManagement({
               {/* Application Reason */}
               {selectedMember.application_reason && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Application Reason</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.applicationReason')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
                     {selectedMember.application_reason}
                   </p>
@@ -668,7 +668,7 @@ export function KhairatManagement({
               {/* Admin Notes */}
               {selectedMember.admin_notes && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Admin Notes</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.adminNotes')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
                     {selectedMember.admin_notes}
                   </p>
@@ -678,7 +678,7 @@ export function KhairatManagement({
               {/* General Notes */}
               {selectedMember.notes && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                  <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.notes')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
                     {selectedMember.notes}
                   </p>
@@ -715,7 +715,7 @@ export function KhairatManagement({
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Check className="h-4 w-4 mr-2" />
-                      Approve
+                      {t('memberDetails.approve')}
                     </Button>
                     <Button
                       onClick={() => {
@@ -726,7 +726,7 @@ export function KhairatManagement({
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Reject
+                      {t('memberDetails.reject')}
                     </Button>
                   </>
                 )}
@@ -739,7 +739,7 @@ export function KhairatManagement({
                   variant="destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {t('memberDetails.delete')}
                 </Button>
 
                 {/* Close button */}
@@ -748,7 +748,7 @@ export function KhairatManagement({
                   onClick={() => setReviewDialogOpen(false)}
                   disabled={processing}
                 >
-                  Close
+                  {t('memberDetails.close')}
                 </Button>
               </div>
             </div>
@@ -762,23 +762,23 @@ export function KhairatManagement({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <X className="h-5 w-5 text-amber-600" />
-              Reject Application
+              {t('rejectDialog.title')}
             </DialogTitle>
             <DialogDescription>
-              You can optionally provide a reason for rejecting this application. The user will see this feedback if provided.
+              {t('rejectDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="admin-notes" className="text-sm font-medium">
-                Reason for rejection (optional)
+                {t('rejectDialog.reasonForRejection')}
               </label>
               <textarea
                 id="admin-notes"
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Please explain why this application is being rejected (optional)..."
+                placeholder={t('rejectDialog.rejectionPlaceholder')}
                 className="w-full min-h-[100px] p-3 border border-slate-300 dark:border-slate-600 rounded-md resize-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
@@ -793,7 +793,7 @@ export function KhairatManagement({
               }}
               disabled={processing}
             >
-              Cancel
+              {t('rejectDialog.cancel')}
             </Button>
             <Button
               onClick={handleRejectWithNotes}
@@ -803,12 +803,12 @@ export function KhairatManagement({
               {processing ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-spin" />
-                  Rejecting...
+                  {t('rejectDialog.rejecting')}
                 </>
               ) : (
                 <>
                   <X className="h-4 w-4 mr-2" />
-                  Reject Application
+                  {t('rejectDialog.rejectApplication')}
                 </>
               )}
             </Button>
@@ -820,9 +820,9 @@ export function KhairatManagement({
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Register New Member</DialogTitle>
+            <DialogTitle>{t('registerDialog.title')}</DialogTitle>
             <DialogDescription>
-              Register a new khairat member directly. The member will be created with active status.
+              {t('registerDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -838,7 +838,7 @@ export function KhairatManagement({
                 className="h-4 w-4"
               />
               <label htmlFor="useDirectData" className="text-sm font-medium cursor-pointer">
-                Register without user account (direct data entry)
+                {t('registerDialog.registerWithoutAccount')}
               </label>
             </div>
 
@@ -846,9 +846,9 @@ export function KhairatManagement({
               /* Direct Data Mode - No user account required */
               <>
                 <div>
-                  <label className="text-sm font-medium">Full Name *</label>
+                  <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
                   <Input
-                    placeholder="Enter full name"
+                    placeholder={t('registerDialog.enterFullName')}
                     value={createForm.full_name}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, full_name: e.target.value })
@@ -857,9 +857,9 @@ export function KhairatManagement({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">IC Number *</label>
+                  <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
                   <Input
-                    placeholder="Enter IC number"
+                    placeholder={t('registerDialog.enterIcNumber')}
                     value={createForm.ic_passport_number}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, ic_passport_number: e.target.value })
@@ -868,9 +868,9 @@ export function KhairatManagement({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Phone (Optional)</label>
+                  <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
                   <Input
-                    placeholder="Enter phone number"
+                    placeholder={t('registerDialog.enterPhoneNumber')}
                     value={createForm.phone}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, phone: e.target.value })
@@ -879,10 +879,10 @@ export function KhairatManagement({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Email (Optional)</label>
+                  <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
                   <Input
                     type="email"
-                    placeholder="Enter email address"
+                    placeholder={t('registerDialog.enterEmailAddress')}
                     value={createForm.email}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, email: e.target.value })
@@ -891,9 +891,9 @@ export function KhairatManagement({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Address (Optional)</label>
+                  <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
                   <Textarea
-                    placeholder="Enter address"
+                    placeholder={t('registerDialog.enterAddress')}
                     value={createForm.address}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, address: e.target.value })
@@ -907,9 +907,9 @@ export function KhairatManagement({
               /* User Account Mode */
               <>
                 <div>
-                  <label className="text-sm font-medium">User ID *</label>
+                  <label className="text-sm font-medium">{t('registerDialog.userIdRequired')}</label>
                   <Input
-                    placeholder="Enter user ID"
+                    placeholder={t('registerDialog.enterUserId')}
                     value={createForm.user_id}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, user_id: e.target.value })
@@ -917,13 +917,13 @@ export function KhairatManagement({
                     className="mt-1"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    The user must already exist in the system
+                    {t('registerDialog.userIdHint')}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">IC Number (Optional)</label>
+                  <label className="text-sm font-medium">{t('registerDialog.icNumberOptional')}</label>
                   <Input
-                    placeholder="Enter IC number"
+                    placeholder={t('registerDialog.enterIcNumber')}
                     value={createForm.ic_passport_number}
                     onChange={(e) =>
                       setCreateForm({ ...createForm, ic_passport_number: e.target.value })
@@ -935,9 +935,9 @@ export function KhairatManagement({
             )}
 
             <div>
-              <label className="text-sm font-medium">Notes (Optional)</label>
+              <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
               <Textarea
-                placeholder="Add notes about this membership"
+                placeholder={t('registerDialog.addNotesAboutMembership')}
                 value={createForm.notes}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, notes: e.target.value })
@@ -964,13 +964,13 @@ export function KhairatManagement({
                 }}
                 disabled={processing}
               >
-                Cancel
+                {t('registerDialog.cancel')}
               </Button>
               <Button onClick={handleCreateMember} disabled={processing}>
                 {processing && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                Register Member
+                {t('registerDialog.registerMember')}
               </Button>
             </div>
           </div>

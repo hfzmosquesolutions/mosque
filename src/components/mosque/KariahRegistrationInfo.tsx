@@ -16,7 +16,7 @@ interface KariahRegistrationSettings {
 }
 
 export function KariahRegistrationInfo({ mosqueId }: KariahRegistrationInfoProps) {
-  const t = useTranslations('mosqueProfile');
+  const t = useTranslations('mosquePage');
   const [settings, setSettings] = useState<KariahRegistrationSettings | null>(null);
   const [loading, setLoading] = useState(true);
 

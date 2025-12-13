@@ -30,7 +30,6 @@ import {
   Star,
   Target,
   Award,
-  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -334,17 +333,6 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
                   </div>
                  </DropdownMenuContent>
                </DropdownMenu>
-
-               {/* View Public Profile Button */}
-               <Button
-                 variant="outline"
-                 size="sm"
-                 onClick={() => window.open(`/users/${user?.id}`, '_blank')}
-                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
-               >
-                 <ExternalLink className="h-4 w-4" />
-                 View Public Profile
-               </Button>
              </div>
            </div>
          </div>

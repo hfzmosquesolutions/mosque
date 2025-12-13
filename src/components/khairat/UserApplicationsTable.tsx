@@ -441,7 +441,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                       <button
                         onClick={() => application.mosque?.id && window.open(`/mosques/${application.mosque?.id}`, '_blank', 'noopener,noreferrer')}
                         className="text-slate-900 dark:text-slate-100 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
-                        title="View mosque profile"
+                        title="View mosque page"
                       >
                         {application.mosque?.name}
                       </button>
