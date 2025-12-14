@@ -73,12 +73,7 @@ export async function POST(
       );
     }
 
-    if (!uploadedBy) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
+    // uploadedBy is optional for anonymous claims
 
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -112,7 +107,7 @@ export async function POST(
     // Verify claim exists and user has permission
     const { data: claim, error: claimError } = await supabaseAdmin
       .from('khairat_claims')
-      .select('id, khairat_member_id, status')
+      .select('id, khairat_member_id, claimant_id, status')
       .eq('id', id)
       .single();
 
@@ -123,29 +118,44 @@ export async function POST(
       );
     }
 
-    // Check if user is the member (via khairat_member_id only)
-    let isMember = false;
+    // Check permissions
+    // For anonymous claims (no claimant_id), allow upload if claim was just created
+    // For logged-in users, check if they are the claimant, member, or admin
+    let hasPermission = false;
     
-    if (claim.khairat_member_id) {
-      const { data: khairatMember } = await supabaseAdmin
-        .from('khairat_members')
-        .select('user_id')
-        .eq('id', claim.khairat_member_id)
-        .single();
+    if (!claim.claimant_id) {
+      // Anonymous claim - allow upload if no claimant_id (claim was just created)
+      hasPermission = true;
+    } else if (uploadedBy) {
+      // Check if user is the claimant (primary check)
+      const isClaimant = claim.claimant_id === uploadedBy;
+
+      // Check if user is the member (via khairat_member_id)
+      let isMember = false;
       
-      isMember = khairatMember?.user_id === uploadedBy;
+      if (claim.khairat_member_id) {
+        const { data: khairatMember } = await supabaseAdmin
+          .from('khairat_members')
+          .select('user_id')
+          .eq('id', claim.khairat_member_id)
+          .single();
+        
+        isMember = khairatMember?.user_id === uploadedBy;
+      }
+      
+      // Get user role to check if admin
+      const { data: userProfile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('role')
+        .eq('id', uploadedBy)
+        .single();
+
+      const isAdmin = userProfile?.role === 'admin';
+
+      hasPermission = isClaimant || isMember || isAdmin;
     }
-    
-    // Get user role to check if admin
-    const { data: userProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('role')
-      .eq('id', uploadedBy)
-      .single();
 
-    const isAdmin = userProfile?.role === 'admin';
-
-    if (!isMember && !isAdmin) {
+    if (!hasPermission) {
       return NextResponse.json(
         { error: 'Unauthorized to upload documents for this claim' },
         { status: 403 }
@@ -195,7 +205,7 @@ export async function POST(
         file_url: urlData.publicUrl,
         file_type: file.type,
         file_size: file.size,
-        uploaded_by: uploadedBy
+        uploaded_by: uploadedBy || null // Allow null for anonymous claims
       })
       .select(`
         *,

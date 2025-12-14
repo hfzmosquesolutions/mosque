@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { KhairatContribution, Mosque } from '@/types/database';
+import { PaymentReceiptView } from '@/components/khairat/PaymentReceiptView';
 
 interface UserPaymentsTableProps {
   contributions: (KhairatContribution & { mosque?: Mosque; program?: { name?: string; mosque?: Mosque } })[];
@@ -67,6 +68,9 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
       filtered = filtered.filter(
         (contribution) =>
           contribution.contributor_name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.payment_id
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           contribution.payment_reference
@@ -231,6 +235,20 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
       },
     },
     {
+      accessorKey: 'payment_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('userPaymentsTable.paymentId')} />
+      ),
+      cell: ({ row }) => {
+        const paymentId = row.getValue('payment_id') as string;
+        return paymentId ? (
+          <span className="font-mono text-sm">{paymentId}</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        );
+      },
+    },
+    {
       accessorKey: 'contributed_at',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('userPaymentsTable.date')} />
@@ -311,6 +329,14 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
           {selectedContribution && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                {selectedContribution.payment_id && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('userPaymentsTable.paymentId')}:
+                    </label>
+                    <p className="text-sm font-medium font-mono">{selectedContribution.payment_id}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     {t('userPaymentsTable.mosque')}
@@ -375,6 +401,14 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
                     {t('userPaymentsTable.notes')}
                   </label>
                   <p className="text-sm">{selectedContribution.notes}</p>
+                </div>
+              )}
+              {(selectedContribution.payment_method === 'bank_transfer' || selectedContribution.payment_method === 'cash') && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Payment Receipts
+                  </label>
+                  <PaymentReceiptView contributionId={selectedContribution.id} />
                 </div>
               )}
             </div>

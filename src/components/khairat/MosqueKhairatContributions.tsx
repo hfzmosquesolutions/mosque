@@ -54,6 +54,7 @@ import { getMosqueKhairatContributions, updateKhairatContributionStatus } from '
 import type { KhairatContribution, UserProfile } from '@/types/database';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { PaymentReceiptView } from '@/components/khairat/PaymentReceiptView';
 
 interface MosqueKhairatContributionsProps {
   mosqueId: string;
@@ -104,6 +105,9 @@ export function MosqueKhairatContributions({
       filtered = filtered.filter(
         (contribution) =>
           contribution.contributor_name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.payment_id
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           contribution.payment_reference
@@ -269,6 +273,20 @@ export function MosqueKhairatContributions({
       },
     },
     {
+      accessorKey: 'payment_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('paymentsTable.paymentId')} />
+      ),
+      cell: ({ row }) => {
+        const paymentId = row.getValue('payment_id') as string;
+        return paymentId ? (
+          <span className="font-mono text-sm">{paymentId}</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        );
+      },
+    },
+    {
       accessorKey: 'contributed_at',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('paymentsTable.date')} />
@@ -413,6 +431,14 @@ export function MosqueKhairatContributions({
           {selectedContribution && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                {selectedContribution.payment_id && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.paymentId')}:
+                    </label>
+                    <p className="text-sm font-medium font-mono">{selectedContribution.payment_id}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     {t('paymentsTable.name')}
@@ -461,6 +487,14 @@ export function MosqueKhairatContributions({
                     {t('paymentsTable.notes')}
                   </label>
                   <p className="text-sm">{selectedContribution.notes}</p>
+                </div>
+              )}
+              {(selectedContribution.payment_method === 'bank_transfer' || selectedContribution.payment_method === 'cash') && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Payment Receipts
+                  </label>
+                  <PaymentReceiptView contributionId={selectedContribution.id} />
                 </div>
               )}
             </div>

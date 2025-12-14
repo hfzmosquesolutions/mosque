@@ -4,12 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Clock, Heart, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card } from '@/components/ui/card';
+import { CheckCircle, Clock, Heart, X, Plus, Users } from 'lucide-react';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserProfile } from '@/lib/api';
-import { UserProfile } from '@/types/database';
+import { getUserProfile, getUserDependents } from '@/lib/api';
+import { UserProfile, UserDependent } from '@/types/database';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface KhairatRegistrationDialogProps {
 	isOpen: boolean;
@@ -29,6 +38,16 @@ export interface KhairatRegistrationDialogProps {
 		email?: string;
 		address?: string;
 		application_reason?: string;
+		dependents?: Array<{
+			full_name: string;
+			relationship: string;
+			ic_passport_number?: string;
+			date_of_birth?: string;
+			gender?: string;
+			phone?: string;
+			email?: string;
+			address?: string;
+		}>;
 	}) => void;
 	onWithdrawApplication: () => void;
 	onDeleteApplication: () => void;
@@ -56,6 +75,19 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 	const t = useTranslations('mosquePage');
 	const { user } = useAuth();
 	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+	const [userDependents, setUserDependents] = useState<UserDependent[]>([]);
+	const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
+	const [showAddDependent, setShowAddDependent] = useState(false);
+	const [newDependent, setNewDependent] = useState({
+		full_name: '',
+		relationship: '',
+		ic_passport_number: '',
+		date_of_birth: '',
+		gender: 'male',
+		phone: '',
+		email: '',
+		address: '',
+	});
 
 	// Inline confirmation toggles
 	const [confirming, setConfirming] = useState<null | 'withdrawApp' | 'deleteApp'>(null);
@@ -70,25 +102,29 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 		application_reason: '',
 	});
 
-	// Fetch user profile and initialize form when dialog opens
+	// Fetch user profile and dependents when dialog opens
 	useEffect(() => {
 		if (isOpen && user?.id && !status) {
 			let isMounted = true;
 			
 			const fetchProfileAndInitialize = async () => {
 				// Fetch profile
-				const response = await getUserProfile(user.id);
+				const profileResponse = await getUserProfile(user.id);
 				if (!isMounted) return;
 				
-				if (response.success && response.data) {
-					setUserProfile(response.data);
+				// Fetch dependents
+				const dependentsResponse = await getUserDependents(user.id);
+				if (!isMounted) return;
+				
+				if (profileResponse.success && profileResponse.data) {
+					setUserProfile(profileResponse.data);
 					// Initialize form with fetched data
 					setFormData({
-						full_name: response.data.full_name || '',
-						ic_passport_number: response.data.ic_passport_number || '',
-						phone: response.data.phone || '',
+						full_name: profileResponse.data.full_name || '',
+						ic_passport_number: profileResponse.data.ic_passport_number || '',
+						phone: profileResponse.data.phone || '',
 						email: user.email || '',
-						address: response.data.address || '',
+						address: profileResponse.data.address || '',
 						application_reason: '',
 					});
 				} else {
@@ -101,6 +137,10 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 						address: '',
 						application_reason: '',
 					});
+				}
+				
+				if (dependentsResponse.success && dependentsResponse.data) {
+					setUserDependents(dependentsResponse.data);
 				}
 			};
 			
@@ -120,6 +160,19 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 				application_reason: '',
 			});
 			setUserProfile(null);
+			setUserDependents([]);
+			setSelectedDependentIds(new Set());
+			setShowAddDependent(false);
+			setNewDependent({
+				full_name: '',
+				relationship: '',
+				ic_passport_number: '',
+				date_of_birth: '',
+				gender: 'male',
+				phone: '',
+				email: '',
+				address: '',
+			});
 		}
 	}, [isOpen, user?.id, user?.email, status]);
 
@@ -314,12 +367,68 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 						/>
 					</div>
 				</div>
+				{/* Dependents Section */}
+				{userDependents.length > 0 && (
+					<div className="space-y-3 pt-4 border-t">
+						<Label className="text-base font-semibold flex items-center gap-2">
+							<Users className="h-4 w-4" />
+							{t('includeDependents') || 'Include Tanggungan (Dependents)'}
+						</Label>
+						<p className="text-sm text-muted-foreground">
+							{t('selectDependentsToInclude') || 'Select which dependents to include in your khairat registration'}
+						</p>
+						<div className="space-y-2 max-h-48 overflow-y-auto">
+							{userDependents.map((dependent) => (
+								<Card key={dependent.id} className="p-3">
+									<div className="flex items-start gap-3">
+										<Checkbox
+											checked={selectedDependentIds.has(dependent.id)}
+											onCheckedChange={(checked) => {
+												const newSet = new Set(selectedDependentIds);
+												if (checked) {
+													newSet.add(dependent.id);
+												} else {
+													newSet.delete(dependent.id);
+												}
+												setSelectedDependentIds(newSet);
+											}}
+										/>
+										<div className="flex-1">
+											<p className="font-medium text-sm">{dependent.full_name}</p>
+										<p className="text-xs text-muted-foreground">
+											{dependent.relationship}
+										</p>
+										</div>
+									</div>
+								</Card>
+							))}
+						</div>
+					</div>
+				)}
+
 				<Button 
 					onClick={() => {
 						if (!formData.full_name || !formData.ic_passport_number) {
 							return;
 						}
-						onApply(formData);
+						
+						// Prepare dependents data
+						const selectedDependents = userDependents
+							.filter(dep => selectedDependentIds.has(dep.id))
+							.map(dep => ({
+								full_name: dep.full_name,
+								relationship: dep.relationship,
+								date_of_birth: dep.date_of_birth || undefined,
+								gender: dep.gender || undefined,
+								phone: dep.phone || undefined,
+								email: dep.email || undefined,
+								address: dep.address || undefined,
+							}));
+						
+						onApply({
+							...formData,
+							dependents: selectedDependents.length > 0 ? selectedDependents : undefined,
+						});
 					}} 
 					disabled={isApplying || !formData.full_name || !formData.ic_passport_number} 
 					className="w-full bg-emerald-600 hover:bg-emerald-700"

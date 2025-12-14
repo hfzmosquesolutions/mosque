@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, CreditCard, Building2, Banknote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { SubscriptionPlan } from '@/lib/stripe';
 
@@ -99,6 +99,12 @@ export function PricingPlanCard({
             <CheckCircle className="h-4 w-4 text-emerald-600" /> {getMemberCount()}
           </li>
           <li className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-emerald-600" /> {t('mosquePage')}
+          </li>
+          <li className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-emerald-600" /> {t('emailNotifications')}
+          </li>
+          <li className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-emerald-600" /> {t('khairatRegistration')}
           </li>
           <li className="flex items-center gap-2">
@@ -107,10 +113,44 @@ export function PricingPlanCard({
           <li className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-emerald-600" /> {t('claimKhairat')}
           </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-emerald-600" /> {t('mosquePage')}
-          </li>
         </ul>
+        
+        {/* Payment Methods Section */}
+        {plan !== 'free' && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+              {t('paymentMethodsSupported')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                <CreditCard className="h-3.5 w-3.5" />
+                <span>{t('onlinePayment')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                <Building2 className="h-3.5 w-3.5" />
+                <span>{t('bankTransfer')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                <Banknote className="h-3.5 w-3.5" />
+                <span>{t('cash')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        {plan === 'free' && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">
+              {t('paymentMethodsSupported')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                <CreditCard className="h-3.5 w-3.5" />
+                <span>{t('onlinePayment')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="mt-auto pt-6">
           <Button
             onClick={onSelectPlan ? () => onSelectPlan(plan) : undefined}

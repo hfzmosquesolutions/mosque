@@ -96,6 +96,37 @@ export interface UserDependent {
   updated_at: string;
 }
 
+export interface KhairatMemberDependent {
+  id: string;
+  khairat_member_id: string;
+  full_name: string;
+  relationship: string; // e.g., 'spouse', 'child', 'parent', 'sibling'
+  ic_passport_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  emergency_contact: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateKhairatMemberDependent {
+  khairat_member_id: string;
+  full_name: string;
+  relationship: string;
+  ic_passport_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  emergency_contact?: boolean;
+  notes?: string;
+}
+
 
 // =============================================
 // EVENTS MODULE
@@ -178,6 +209,7 @@ export interface KhairatContribution {
   amount: number;
   payment_method?: string;
   payment_reference?: string;
+  payment_id?: string;
   status: ContributionStatus;
   notes?: string;
   contributed_at: string;
@@ -240,6 +272,7 @@ export interface KhairatMember {
     id: string;
     name: string;
   };
+  dependents?: KhairatMemberDependent[];
 }
 
 // Legacy interfaces for backward compatibility (deprecated)
@@ -773,6 +806,7 @@ export type ClaimPriority = 'low' | 'medium' | 'high' | 'urgent';
 // Khairat Claims interfaces
 export interface KhairatClaim {
   id: string;
+  claim_id?: string; // Unique claim reference ID in format CLM-XXXXX-XXXXX
   claimant_id?: string; // Optional for backward compatibility, prefer khairat_member_id
   khairat_member_id?: string; // Reference to khairat_members table
   mosque_id: string;
@@ -790,6 +824,17 @@ export interface KhairatClaim {
   approved_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PaymentReceipt {
+  id: string;
+  contribution_id: string;
+  file_name: string;
+  file_url: string;
+  file_type?: string;
+  file_size?: number;
+  uploaded_by?: string | null;
+  uploaded_at: string;
 }
 
 export interface ClaimDocument {

@@ -6,6 +6,7 @@ export interface KhairatMemberFilters {
   mosque_id?: string;
   status?: string;
   user_id?: string;
+  ic_passport_number?: string;
 }
 
 export interface KhairatMemberCreateData {
@@ -28,10 +29,93 @@ export interface KhairatMemberUpdateData {
 
 /**
  * Get khairat members with optional filters
+ * Can be used with or without authentication
  */
 export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
-  if (!user.user) {
+  const isAuthenticated = !!user.user;
+
+  // If checking by IC number, allow without authentication or with authentication
+  // SECURITY: This is only for anonymous registrations (user_id = NULL)
+  // Registered users should use their account to access their records
+  // We limit what data is returned to prevent information gathering attacks
+  if (filters.ic_passport_number) {
+    let query = supabase
+      .from('khairat_members')
+      .select(`
+        id,
+        mosque_id,
+        ic_passport_number,
+        status,
+        membership_number,
+        full_name,
+        phone,
+        email,
+        created_at,
+        updated_at
+      `) // Limited fields - exclude sensitive data like address, admin_notes, etc.
+      .eq('ic_passport_number', filters.ic_passport_number)
+      .is('user_id', null); // SECURITY: Only query anonymous registrations
+    
+    if (filters.mosque_id) {
+      query = query.eq('mosque_id', filters.mosque_id);
+    }
+    
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch khairat members: ${error.message}`);
+    }
+
+    // Additional security check: If user is authenticated, also check their own records
+    // This allows logged-in users to verify their own membership even if they registered anonymously
+    const { data: authUser } = await supabase.auth.getUser();
+    if (authUser.user) {
+      // Also check for records belonging to the authenticated user
+      let userQuery = supabase
+        .from('khairat_members')
+        .select(`
+          id,
+          mosque_id,
+          ic_passport_number,
+          status,
+          membership_number,
+          full_name,
+          phone,
+          email,
+          created_at,
+          updated_at
+        `)
+        .eq('ic_passport_number', filters.ic_passport_number)
+        .eq('user_id', authUser.user.id); // Only their own records
+      
+      if (filters.mosque_id) {
+        userQuery = userQuery.eq('mosque_id', filters.mosque_id);
+      }
+      
+      if (filters.status) {
+        userQuery = userQuery.eq('status', filters.status);
+      }
+
+      const { data: userData } = await userQuery;
+      
+      // Combine results (anonymous + own records)
+      if (userData && userData.length > 0) {
+        return [...(data || []), ...userData] as KhairatMember[];
+      }
+    }
+
+    return data as KhairatMember[];
+  }
+
+  // For authenticated requests without IC filter, require auth
+  if (!isAuthenticated) {
     throw new Error('Authentication required');
   }
 
@@ -39,7 +123,8 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
     .from('khairat_members')
     .select(`
       *,
-      mosque:mosques(id, name, logo_url, banner_url, address)
+      mosque:mosques(id, name, logo_url, banner_url, address),
+      dependents:khairat_member_dependents(*)
     `)
     .order('created_at', { ascending: false });
   
@@ -79,7 +164,8 @@ export async function getKhairatMemberById(memberId: string) {
     .from('khairat_members')
     .select(`
       *,
-      mosque:mosques(id, name)
+      mosque:mosques(id, name),
+      dependents:khairat_member_dependents(*)
     `)
     .eq('id', memberId)
     .single();
@@ -96,9 +182,7 @@ export async function getKhairatMemberById(memberId: string) {
  */
 export async function submitKhairatApplication(applicationData: KhairatMemberCreateData) {
   const { data: user } = await supabase.auth.getUser();
-  if (!user.user) {
-    throw new Error('Authentication required');
-  }
+  const userId = user.user?.id || null; // Allow null for non-logged in users
 
   const { 
     mosque_id, 
@@ -110,13 +194,33 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
     address
   } = applicationData;
 
-  // Get all existing records for this user and mosque
-  const { data: existingRecords } = await supabase
+  // Validate IC number is provided (required for uniqueness check)
+  if (!ic_passport_number || ic_passport_number.trim() === '') {
+    throw new Error('IC / Passport number is required');
+  }
+
+  // Check for existing records by IC number and mosque (more important than user_id)
+  const { data: existingByIC } = await supabase
     .from('khairat_members')
-    .select('id, status')
-    .eq('user_id', user.user.id)
+    .select('id, status, user_id')
+    .eq('ic_passport_number', ic_passport_number.trim())
     .eq('mosque_id', mosque_id)
     .order('created_at', { ascending: false });
+
+  // If user is logged in, also check by user_id
+  let existingByUser: any[] = [];
+  if (userId) {
+    const { data: userRecords } = await supabase
+      .from('khairat_members')
+      .select('id, status')
+      .eq('user_id', userId)
+      .eq('mosque_id', mosque_id)
+      .order('created_at', { ascending: false });
+    existingByUser = userRecords || [];
+  }
+
+  // Use IC-based check as primary (since IC is unique identifier)
+  const existingRecords = existingByIC || [];
 
   if (existingRecords && existingRecords.length > 0) {
     // Check for active/pending/approved records
@@ -175,7 +279,7 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
   const { data: member, error } = await supabase
     .from('khairat_members')
     .insert({
-      user_id: user.user.id,
+      user_id: userId, // Can be null for non-logged in users
       mosque_id,
       ic_passport_number: ic_passport_number || null,
       application_reason: application_reason || null,
@@ -193,35 +297,43 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
     .single();
 
   if (error) {
-    // Handle unique constraint violation
-    if (error.code === '23505' && error.message.includes('khairat_members_user_mosque_unique')) {
-      throw new Error('You already have a khairat record for this mosque. Please check your existing application or membership.');
+    // Handle unique constraint violations
+    if (error.code === '23505') {
+      if (error.message.includes('khairat_members_user_mosque_unique')) {
+        throw new Error('You already have a khairat record for this mosque. Please check your existing application or membership.');
+      }
+      if (error.message.includes('khairat_members_ic_mosque_unique') || error.message.includes('ic_passport_number')) {
+        throw new Error('This IC / Passport number is already registered for this mosque. Please use a different IC number or contact the mosque administrator.');
+      }
     }
     throw new Error(`Failed to submit registration: ${error.message}`);
   }
 
-  // Create notification for the user
-  try {
-    await createNotification({
-      user_id: user.user.id,
-      mosque_id: mosque_id,
-      title: 'Khairat Application Submitted',
-      message: `Your Khairat application for ${member.mosque?.name} has been submitted and is pending review.`,
-      type: 'info',
-      action_url: `/mosques/${mosque_id}`,
-      metadata: {
-        khairat_member_id: member.id,
-        action: 'application_submitted'
-      }
-    });
-  } catch (notificationError) {
-    console.error('Failed to create notification:', notificationError);
-    // Don't throw error for notification failure
+  // Create notification for the user (only if logged in)
+  if (userId) {
+    try {
+      await createNotification({
+        user_id: userId,
+        mosque_id: mosque_id,
+        title: 'Khairat Application Submitted',
+        message: `Your Khairat application for ${member.mosque?.name} has been submitted and is pending review.`,
+        type: 'info',
+        action_url: `/mosques/${mosque_id}`,
+        metadata: {
+          khairat_member_id: member.id,
+          action: 'application_submitted'
+        }
+      });
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError);
+      // Don't throw error for notification failure
+    }
   }
 
   return {
     message: 'Registration submitted successfully',
-    member
+    member,
+    memberId: member.id
   };
 }
 

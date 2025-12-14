@@ -15,6 +15,7 @@ import {
   FileText,
   CreditCard,
   UserCheck,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -249,6 +250,81 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Mosque Public Page Preview Card - Only for admins */}
+        {hasAdminAccess && mosqueId && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70 mb-2">
+              {t('publicPage')}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {mosqueLoading ? (
+                <div className="relative rounded-xl overflow-hidden border border-sidebar-border min-h-[140px] bg-sidebar-accent animate-pulse">
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60"></div>
+                  <div className="relative p-5 flex flex-col gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-xl"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-32 bg-white/20 rounded"></div>
+                      <div className="h-3 w-24 bg-white/20 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : mosque ? (
+                <Link 
+                  href={`/${locale}/mosques/${mosqueId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block group/mosque-card"
+                >
+                  <div
+                    className="relative rounded-xl overflow-hidden border border-sidebar-border/50 bg-sidebar-accent/50 hover:border-sidebar-accent hover:shadow-lg hover:shadow-black/10 transition-all duration-300 ease-out cursor-pointer group-hover/mosque-card:scale-[1.02]"
+                    style={{
+                      backgroundImage: mosque.banner_url
+                        ? `url(${mosque.banner_url})`
+                        : 'linear-gradient(135deg, rgb(16, 185, 129) 0%, rgb(34, 197, 94) 50%, rgb(5, 150, 105) 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      minHeight: '140px',
+                    }}
+                  >
+                    {/* Overlay Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70 group-hover/mosque-card:from-black/60 group-hover/mosque-card:via-black/50 group-hover/mosque-card:to-black/80 transition-all duration-300"></div>
+                    
+                    {/* Content */}
+                    <div className="relative p-5 flex flex-col gap-4">
+                      {/* Logo with better styling */}
+                      <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-xl shadow-xl flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-white/40 group-hover/mosque-card:ring-white/60 transition-all duration-300 group-hover/mosque-card:scale-105">
+                        {mosque.logo_url ? (
+                          <Image
+                            src={mosque.logo_url}
+                            alt={`${mosque.name} logo`}
+                            width={56}
+                            height={56}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Building className="h-7 w-7 text-emerald-600" />
+                        )}
+                      </div>
+                      
+                      {/* Mosque Name and Action */}
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold leading-snug text-white drop-shadow-md line-clamp-2 group-hover/mosque-card:text-white transition-colors">
+                          {mosque.name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs font-medium text-white/95 group-hover/mosque-card:text-white transition-colors">
+                          <ExternalLink className="h-3.5 w-3.5 group-hover/mosque-card:translate-x-0.5 group-hover/mosque-card:-translate-y-0.5 transition-transform duration-300" />
+                          <span>{t('viewPublicPage')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ) : null}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

@@ -53,7 +53,7 @@ CREATE TABLE public.khairat_claim_documents (
 CREATE TABLE public.khairat_claims (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   mosque_id uuid NOT NULL,
-  claimant_id uuid NOT NULL,
+  claimant_id uuid,
   title character varying NOT NULL,
   description text NOT NULL,
   requested_amount numeric NOT NULL CHECK (requested_amount > 0::numeric),
@@ -68,11 +68,14 @@ CREATE TABLE public.khairat_claims (
   approved_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  khairat_member_id uuid,
+  claim_id character varying UNIQUE,
   CONSTRAINT khairat_claims_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_claims_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
-  CONSTRAINT khairat_claims_claimant_id_fkey FOREIGN KEY (claimant_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_claims_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id),
-  CONSTRAINT khairat_claims_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.user_profiles(id)
+  CONSTRAINT khairat_claims_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.user_profiles(id),
+  CONSTRAINT khairat_claims_claimant_id_fkey FOREIGN KEY (claimant_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT khairat_claims_khairat_member_id_fkey FOREIGN KEY (khairat_member_id) REFERENCES public.khairat_members(id)
 );
 CREATE TABLE public.khairat_contributions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -89,9 +92,28 @@ CREATE TABLE public.khairat_contributions (
   updated_at timestamp with time zone DEFAULT now(),
   bill_id text,
   mosque_id uuid NOT NULL,
+  payment_id character varying UNIQUE,
   CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_contributions_contributor_id_fkey1 FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_contributions_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
+);
+CREATE TABLE public.khairat_member_dependents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  khairat_member_id uuid NOT NULL,
+  full_name character varying NOT NULL,
+  relationship character varying NOT NULL,
+  ic_passport_number character varying,
+  date_of_birth date,
+  gender character varying,
+  phone character varying,
+  email character varying,
+  address text,
+  emergency_contact boolean DEFAULT false,
+  notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT khairat_member_dependents_pkey PRIMARY KEY (id),
+  CONSTRAINT khairat_member_dependents_khairat_member_id_fkey FOREIGN KEY (khairat_member_id) REFERENCES public.khairat_members(id)
 );
 CREATE TABLE public.khairat_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -116,6 +138,19 @@ CREATE TABLE public.khairat_members (
   CONSTRAINT khairat_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
   CONSTRAINT khairat_members_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id)
+);
+CREATE TABLE public.khairat_payment_receipts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  contribution_id uuid NOT NULL,
+  file_name character varying NOT NULL,
+  file_url text NOT NULL,
+  file_type character varying,
+  file_size integer,
+  uploaded_by uuid,
+  uploaded_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT khairat_payment_receipts_pkey PRIMARY KEY (id),
+  CONSTRAINT khairat_payment_receipts_contribution_id_fkey FOREIGN KEY (contribution_id) REFERENCES public.khairat_contributions(id),
+  CONSTRAINT khairat_payment_receipts_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.user_profiles(id)
 );
 CREATE TABLE public.legacy_khairat_records (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
