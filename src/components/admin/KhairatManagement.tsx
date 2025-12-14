@@ -685,6 +685,52 @@ export function KhairatManagement({
                 </div>
               )}
 
+              {/* Dependents Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('memberDetails.dependents') || 'Tanggungan (Dependents)'}
+                  </label>
+                  <Badge variant="secondary">
+                    {selectedMember.dependents?.length || 0}
+                  </Badge>
+                </div>
+                {selectedMember.dependents && selectedMember.dependents.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedMember.dependents.map((dependent: any) => (
+                      <Card key={dependent.id} className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-sm font-medium">{dependent.full_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {dependent.relationship}
+                              {dependent.ic_passport_number && ` • ${dependent.ic_passport_number}`}
+                            </p>
+                          </div>
+                          <div className="text-sm space-y-1">
+                            {dependent.date_of_birth && (
+                              <p className="text-xs text-muted-foreground">
+                                DOB: {new Date(dependent.date_of_birth).toLocaleDateString()}
+                              </p>
+                            )}
+                            {dependent.phone && (
+                              <p className="text-xs text-muted-foreground">Phone: {dependent.phone}</p>
+                            )}
+                            {dependent.emergency_contact && (
+                              <Badge variant="outline" className="text-xs">Emergency Contact</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {t('memberDetails.noDependents') || 'No dependents registered'}
+                  </p>
+                )}
+              </div>
+
               {/* Action Buttons based on status */}
               <div className="flex flex-wrap gap-3 pt-4 border-t">
                 {/* Pending applications */}

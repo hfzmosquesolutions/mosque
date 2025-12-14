@@ -43,6 +43,7 @@ import type {
   ClaimPriority,
   ClaimDocument,
 } from '@/types/database';
+import { ClaimDocumentView } from '@/components/khairat/ClaimDocumentView';
 
 interface UserClaimsTableProps {
   showHeader?: boolean;
@@ -65,18 +66,16 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const [claims, setClaims] = useState<KhairatClaimWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClaim, setSelectedClaim] = useState<KhairatClaimWithDetails | null>(null);
-  const [selectedClaimDocuments, setSelectedClaimDocuments] = useState<ClaimDocument[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const statusConfig = getStatusConfig(t);
   const priorityConfig: Record<ClaimPriority, { label: string; color: string }> = {
-    low: { label: tc('priority.low') || 'Low', color: 'bg-gray-100 text-gray-800' },
-    medium: { label: tc('priority.medium') || 'Medium', color: 'bg-yellow-100 text-yellow-800' },
-    high: { label: tc('priority.high') || 'High', color: 'bg-red-100 text-red-800' },
-    urgent: { label: tc('priority.urgent') || 'Urgent', color: 'bg-purple-100 text-purple-800' },
+    low: { label: t('priority.low') || 'Low', color: 'bg-gray-100 text-gray-800' },
+    medium: { label: t('priority.medium') || 'Medium', color: 'bg-yellow-100 text-yellow-800' },
+    high: { label: t('priority.high') || 'High', color: 'bg-red-100 text-red-800' },
+    urgent: { label: t('priority.urgent') || 'Urgent', color: 'bg-purple-100 text-purple-800' },
   };
 
   useEffect(() => {
@@ -103,20 +102,6 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
   const handleViewDetails = async (claim: KhairatClaimWithDetails) => {
     setSelectedClaim(claim);
     setIsModalOpen(true);
-    
-    // Load documents for this claim
-    try {
-      setLoadingDocuments(true);
-      const response = await getClaimDocuments(claim.id);
-      if (response.success) {
-        setSelectedClaimDocuments(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading claim documents:', error);
-      setSelectedClaimDocuments([]);
-    } finally {
-      setLoadingDocuments(false);
-    }
   };
 
   const filterClaims = () => {
@@ -128,7 +113,8 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
         (claim) =>
           claim.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           claim.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          claim.mosque?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+          claim.mosque?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          claim.claim_id?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -183,7 +169,7 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
     {
       accessorKey: 'priority',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc('priority')} />
+        <DataTableColumnHeader column={column} title={t('priorityLabel')} />
       ),
       cell: ({ row }) => {
         const claim = row.original;
@@ -207,6 +193,20 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusConfig[claim.status].label}
           </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'claim_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('userClaimsTable.claimId')} />
+      ),
+      cell: ({ row }) => {
+        const claimId = row.getValue('claim_id') as string;
+        return claimId ? (
+          <span className="font-mono text-sm">{claimId}</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
         );
       },
     },
@@ -302,6 +302,14 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
           {selectedClaim && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                {selectedClaim.claim_id && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('userClaimsTable.claimId')}:
+                    </label>
+                    <p className="text-sm font-medium font-mono">{selectedClaim.claim_id}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     {t('mosque')}
@@ -336,7 +344,7 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    {tc('priority')}
+                    {t('priorityLabel')}
                   </label>
                   <Badge className={priorityConfig[selectedClaim.priority].color}>
                     {priorityConfig[selectedClaim.priority].label}
@@ -387,60 +395,8 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
                 <h3 className="text-lg font-semibold mb-4">
                   {t('supportingDocuments')}
                 </h3>
-                {loadingDocuments ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                    <span className="ml-2 text-muted-foreground">{t('loadingDocuments')}</span>
-                  </div>
-                ) : selectedClaimDocuments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {t('noDocumentsUploaded')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedClaimDocuments.map((document) => (
-                      <div
-                        key={document.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">
-                            {document.file_type?.startsWith('image/') ? '🖼️' : 
-                             document.file_type === 'application/pdf' ? '📄' : 
-                             document.file_type?.includes('word') ? '📝' : '📎'}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium">
-                              {document.file_name}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB` : ''} • 
-                              {new Date(document.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => window.open(document.file_url, '_blank')}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => window.open(document.file_url, '_blank')}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {selectedClaim && (
+                  <ClaimDocumentView claimId={selectedClaim.id} />
                 )}
               </div>
             </div>

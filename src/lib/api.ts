@@ -315,7 +315,6 @@ export async function resetOnboardingStatus(userId: string): Promise<ApiResponse
  */
 export async function getMosque(mosqueId: string): Promise<ApiResponse<Mosque>> {
   try {
-    console.log('[API] getMosque - Starting request for mosqueId:', mosqueId);
     const { data, error } = await supabase
       .from('mosques')
       .select('*')
@@ -323,13 +322,11 @@ export async function getMosque(mosqueId: string): Promise<ApiResponse<Mosque>> 
       .single();
 
     if (error) {
-      console.error('[API] getMosque - Supabase error:', error);
       return { success: false, error: error.message };
     }
 
     return { success: true, data };
   } catch (error) {
-    console.error('[API] getMosque - Catch error:', error);
     return { success: false, error: 'Failed to fetch mosque' };
   }
 }
@@ -518,6 +515,7 @@ export async function getUserPaymentHistory(
         status,
         payment_method,
         payment_reference,
+        payment_id,
         notes,
         contributor_name,
         mosque:mosques(
@@ -550,6 +548,7 @@ export async function getUserPaymentHistory(
         status: contrib.status,
         payment_method: contrib.payment_method,
         payment_reference: contrib.payment_reference,
+        payment_id: contrib.payment_id,
         notes: contrib.notes,
         contributor_name: contrib.contributor_name,
         program: {
@@ -1549,12 +1548,14 @@ export async function getClaimDocuments(
 export async function uploadClaimDocument(
   claimId: string,
   file: File,
-  uploadedBy: string
+  uploadedBy: string | null
 ): Promise<ApiResponse<any>> {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('uploadedBy', uploadedBy);
+    if (uploadedBy) {
+      formData.append('uploadedBy', uploadedBy);
+    }
 
     const response = await fetch(`/api/khairat-claims/${claimId}/documents`, {
       method: 'POST',
@@ -1597,6 +1598,86 @@ export async function deleteClaimDocument(
   } catch (error) {
     console.error('Error deleting claim document:', error);
     return { success: false, error: 'Failed to delete document' };
+  }
+}
+
+/**
+ * Get payment receipts for a contribution
+ */
+export async function getPaymentReceipts(
+  contributionId: string
+): Promise<ApiResponse<any[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('khairat_payment_receipts')
+      .select('*')
+      .eq('contribution_id', contributionId)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch receipts' };
+  }
+}
+
+/**
+ * Upload a payment receipt
+ */
+export async function uploadPaymentReceipt(
+  contributionId: string,
+  file: File,
+  uploadedBy: string
+): Promise<ApiResponse<any>> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('uploadedBy', uploadedBy);
+
+    const response = await fetch(`/api/khairat-contributions/${contributionId}/receipts`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to upload receipt' };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error uploading payment receipt:', error);
+    return { success: false, error: 'Failed to upload receipt' };
+  }
+}
+
+/**
+ * Delete a payment receipt
+ */
+export async function deletePaymentReceipt(
+  contributionId: string,
+  receiptId: string,
+  userId: string
+): Promise<ApiResponse<{ success: true }>> {
+  try {
+    const response = await fetch(`/api/khairat-contributions/${contributionId}/receipts/${receiptId}?userId=${userId}`, {
+      method: 'DELETE',
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to delete receipt' };
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    console.error('Error deleting payment receipt:', error);
+    return { success: false, error: 'Failed to delete receipt' };
   }
 }
 

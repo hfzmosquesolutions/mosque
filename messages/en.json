@@ -1010,6 +1010,13 @@
       "urgent": "Urgent"
     },
     "claimant": "Claimant",
+    "claimId": "Claim ID",
+    "claimsTable": {
+      "claimId": "Claim ID"
+    },
+    "userClaimsTable": {
+      "claimId": "Claim ID"
+    },
     "khairatClaims": "Khairat Claims",
     "claimHistory": "Claim History",
     "khairatClaimsDescription": "Review and decide on khairat claims from your mosque members in one clear view.",
@@ -1525,6 +1532,7 @@
       "amount": "Amount",
       "status": "Status",
       "paymentMethod": "Payment Method",
+      "paymentId": "Payment ID",
       "date": "Date",
       "actions": "Actions",
       "anonymous": "Anonymous",
@@ -1558,6 +1566,7 @@
       "amount": "Amount",
       "status": "Status",
       "paymentMethod": "Payment Method",
+      "paymentId": "Payment ID",
       "date": "Date",
       "actions": "Actions",
       "view": "View",
@@ -2150,6 +2159,8 @@
     "paymentHistory": "Payment History",
     "kariahApplication": "Kariah Registration",
     "mosquePage": "Mosque Page",
+    "viewPublicPage": "View Public Page",
+    "publicPage": "Public Page",
     "kariah": "Kariah Members",
     "organizationPeople": "Organization People",
     "claims": {
@@ -2327,6 +2338,11 @@
       "khairatPayment": "Khairat Payment",
       "claimKhairat": "Claim Khairat",
       "mosquePage": "Mosque Page",
+      "emailNotifications": "Email notifications",
+      "paymentMethodsSupported": "Payment methods supported",
+      "onlinePayment": "Online Payment",
+      "bankTransfer": "Bank Transfer",
+      "cash": "Cash",
       "faqs": {
         "canSwitchPlans": "Can I switch plans later?",
         "canSwitchPlansAnswer": "Yes. You can upgrade or downgrade at any time from your settings.",

@@ -139,46 +139,25 @@ export default function MosqueProfilePage() {
 
   const fetchMosqueData = useCallback(async () => {
     try {
-      console.log(
-        '[PAGE] MosqueProfilePage - Starting to fetch mosque data for ID:',
-        mosqueId
-      );
       setLoading(true);
 
       // Fetch mosque details
-      console.log('[PAGE] MosqueProfilePage - Fetching mosque details');
       const mosqueResponse = await getMosque(mosqueId);
-      console.log(
-        '[PAGE] MosqueProfilePage - getMosque response:',
-        mosqueResponse
-      );
 
       if (!mosqueResponse.success || !mosqueResponse.data) {
-        console.error(
-          '[PAGE] MosqueProfilePage - Failed to fetch mosque:',
-          mosqueResponse.error
-        );
         setError(mosqueResponse.error || t('notFound'));
         return;
       }
 
-      console.log(
-        '[PAGE] MosqueProfilePage - Successfully fetched mosque data'
-      );
       setMosque(mosqueResponse.data);
 
 
       // Fetch khairat settings
-      console.log('[PAGE] MosqueProfilePage - Fetching khairat settings');
       const settingsResponse = await getMosqueKhairatSettings(mosqueId);
       if (settingsResponse.success && settingsResponse.data) {
         // Check if khairat is enabled
         const khairatEnabled = settingsResponse.data.enabled;
         setContributionPrograms(khairatEnabled ? [settingsResponse.data] : []);
-        console.log(
-          '[PAGE] MosqueProfilePage - Khairat enabled:',
-          khairatEnabled
-        );
       }
 
       // Fetch organization people only if service enabled (public only)
@@ -186,22 +165,17 @@ export default function MosqueProfilePage() {
         ? (mosqueResponse.data.settings.enabled_services as string[])
         : [];
       if (enabledServices.includes('organization_people')) {
-        console.log('[PAGE] MosqueProfilePage - Fetching organization people');
         setOrganizationPeopleLoading(true);
         const organizationResponse = await getOrganizationPeople(mosqueId, true);
         if (organizationResponse.success && organizationResponse.data) {
           setOrganizationPeople(organizationResponse.data);
-          console.log(
-            '[PAGE] MosqueProfilePage - Organization people count:',
-            organizationResponse.data.length
-          );
         }
         setOrganizationPeopleLoading(false);
       }
 
       // Check if user is following this mosque (only if user is logged in)
     } catch (err) {
-      console.error('[PAGE] MosqueProfilePage - Catch error:', err);
+      console.error('Error fetching mosque data:', err);
       setError(t('errorFetchingData'));
     } finally {
       setLoading(false);
@@ -558,16 +532,62 @@ export default function MosqueProfilePage() {
     }
   };
 
-  const handleSubmitKhairatApplication = async () => {
-    if (!user?.id || !mosque || !userProfile?.ic_passport_number) return;
+  const handleSubmitKhairatApplication = async (data: {
+    full_name: string;
+    ic_passport_number: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    application_reason?: string;
+    dependents?: Array<{
+      full_name: string;
+      relationship: string;
+      ic_passport_number?: string;
+      date_of_birth?: string;
+      gender?: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+    }>;
+  }) => {
+    if (!user?.id || !mosque) return;
     
     setIsApplyingKhairat(true);
     try {
       const result = await submitKhairatApplication({
         mosque_id: String(mosque.id),
-        ic_passport_number: userProfile.ic_passport_number,
-        application_reason: '',
+        ic_passport_number: data.ic_passport_number,
+        application_reason: data.application_reason || '',
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email,
+        address: data.address,
       });
+      
+      // If dependents are provided and member was created/reactivated, add dependents
+      const memberId = result.member?.id || (result as any).memberId;
+      if (data.dependents && data.dependents.length > 0 && memberId) {
+        const { bulkCreateKhairatMemberDependents } = await import('@/lib/api/khairat-member-dependents');
+        try {
+          await bulkCreateKhairatMemberDependents(
+            memberId,
+            data.dependents.map(dep => ({
+              full_name: dep.full_name,
+              relationship: dep.relationship,
+              ic_passport_number: dep.ic_passport_number,
+              date_of_birth: dep.date_of_birth,
+              gender: dep.gender,
+              phone: dep.phone,
+              email: dep.email,
+              address: dep.address,
+            }))
+          );
+        } catch (depError: any) {
+          console.error('Error adding dependents:', depError);
+          // Don't fail the whole application if dependents fail
+          toast.warning('Application submitted but some dependents could not be added');
+        }
+      }
       
       // Check if it's a reactivation or new application
       const isReactivation = result.message?.includes('reactivated');
@@ -868,24 +888,22 @@ export default function MosqueProfilePage() {
                         ? mosque.settings.enabled_services 
                         : [];
                       const isKhairatEnabled = enabledServices.includes('khairat_management');
-                      const isDisabled = isUserAnyMosqueAdmin || !isKhairatEnabled;
+                      // Always enable buttons for mosque admins, only disable if khairat is not enabled
+                      const isDisabled = !isKhairatEnabled;
 
                       const actions = [
                         {
                           id: 'apply-khairat',
-                          title: isApplyingKhairat ? t('submitting') : t('applyKhairat'),
+                          title: t('applyKhairat'),
                           icon: UserPlus,
                           bgColor: 'bg-blue-50 dark:bg-blue-950/20',
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-blue-600 dark:text-blue-400',
                           onClick: () => {
                             if (isDisabled) return;
-                            if (!user?.id) {
-                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
-                              return;
-                            }
-                            handleApplyKhairat();
+                            // Navigate to registration page (no login required)
+                            router.push(`/${locale}/khairat/register/${mosqueId}`);
                           },
-                          isLoading: isApplyingKhairat,
+                          isLoading: false,
                         },
                         {
                           id: 'pay-khairat',
@@ -895,11 +913,8 @@ export default function MosqueProfilePage() {
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-orange-600 dark:text-orange-400',
                           onClick: () => {
                             if (isDisabled) return;
-                            if (!user?.id) {
-                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
-                              return;
-                            }
-                            setIsKhairatModalOpen(true);
+                            // Navigate to payment page - no login required
+                            router.push(`/${locale}/khairat/pay/${mosqueId}`);
                           },
                         },
                         {
@@ -910,11 +925,8 @@ export default function MosqueProfilePage() {
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-green-600 dark:text-green-400',
                           onClick: () => {
                             if (isDisabled) return;
-                            if (!user?.id) {
-                              router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
-                              return;
-                            }
-                            handleOpenKhairatClaim();
+                            // Navigate to claim page - no login required
+                            router.push(`/${locale}/khairat/claim/${mosqueId}`);
                           },
                         },
                       ];
@@ -952,12 +964,7 @@ export default function MosqueProfilePage() {
                                     } leading-tight`}>
                                       {action.title}
                                     </h4>
-                                    {isUserAnyMosqueAdmin && (
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {t('notAvailableForAdmin', { fallback: 'Not available for mosque administrators' })}
-                                      </p>
-                                    )}
-                                    {!isKhairatEnabled && !isUserAnyMosqueAdmin && (
+                                    {!isKhairatEnabled && (
                                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         {t('serviceNotEnabled', { fallback: 'Service not available' })}
                                       </p>

@@ -67,6 +67,7 @@ import type {
   UpdateKhairatClaim,
   ClaimDocument
 } from '@/types/database';
+import { ClaimDocumentView } from '@/components/khairat/ClaimDocumentView';
 
 interface ClaimsManagementProps {
   mosqueId: string;
@@ -97,7 +98,6 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
   const [claims, setClaims] = useState<KhairatClaimWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClaim, setSelectedClaim] = useState<KhairatClaimWithDetails | null>(null);
-  const [selectedClaimDocuments, setSelectedClaimDocuments] = useState<ClaimDocument[]>([]);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [reviewData, setReviewData] = useState({
     status: '' as ClaimStatus,
@@ -105,7 +105,6 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
     approved_amount: 0
   });
   const [submitting, setSubmitting] = useState(false);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
@@ -138,20 +137,6 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
       approved_amount: claim.approved_amount || claim.requested_amount
     });
     setShowReviewDialog(true);
-    
-    // Load documents for this claim
-    try {
-      setLoadingDocuments(true);
-      const response = await getClaimDocuments(claim.id);
-      if (response.success) {
-        setSelectedClaimDocuments(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading claim documents:', error);
-      setSelectedClaimDocuments([]);
-    } finally {
-      setLoadingDocuments(false);
-    }
   };
 
   const handleSubmitReview = async () => {
@@ -206,7 +191,8 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
           return (
             claim.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             member?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            claim.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            claim.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            claim.claim_id?.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
       );
@@ -285,6 +271,20 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusConfig[claim.status].label}
           </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'claim_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('claimsTable.claimId')} />
+      ),
+      cell: ({ row }) => {
+        const claimId = row.getValue('claim_id') as string;
+        return claimId ? (
+          <span className="font-mono text-sm">{claimId}</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
         );
       },
     },
@@ -458,6 +458,12 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
             <div className="space-y-6">
               {/* Claim Details */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                {selectedClaim.claim_id && (
+                  <div className="col-span-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                    <p className="text-sm font-medium">{t('claimsTable.claimId')}</p>
+                    <p className="text-sm font-medium font-mono">{selectedClaim.claim_id}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium">{t('claimant')}</p>
                   {(() => {
@@ -548,60 +554,8 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                 {/* Supporting Documents */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('supportingDocuments')}</label>
-                  {loadingDocuments ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
-                      <span className="ml-2 text-sm text-muted-foreground">{t('loadingDocuments')}</span>
-                    </div>
-                  ) : selectedClaimDocuments.length === 0 ? (
-                    <div className="text-center py-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                      <FileText className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {t('noDocumentsUploaded')}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {selectedClaimDocuments.map((document) => (
-                        <div
-                          key={document.id}
-                          className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded-lg"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">
-                              {document.file_type?.startsWith('image/') ? '🖼️' : 
-                               document.file_type === 'application/pdf' ? '📄' : 
-                               document.file_type?.includes('word') ? '📝' : '📎'}
-                            </span>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {document.file_name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {document.file_size ? `${(document.file_size / 1024).toFixed(1)} KB` : ''} • 
-                                {new Date(document.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => window.open(document.file_url, '_blank')}
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => window.open(document.file_url, '_blank')}
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  {selectedClaim && (
+                    <ClaimDocumentView claimId={selectedClaim.id} />
                   )}
                 </div>
               </div>

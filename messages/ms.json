@@ -1041,6 +1041,13 @@
       "urgent": "Mendesak"
     },
     "claimant": "Pemohon",
+    "claimId": "ID Tuntutan",
+    "claimsTable": {
+      "claimId": "ID Tuntutan"
+    },
+    "userClaimsTable": {
+      "claimId": "ID Tuntutan"
+    },
     "khairatClaims": "Tuntutan Khairat",
     "claimHistory": "Sejarah Tuntutan",
     "khairatClaimsDescription": "Semak dan buat keputusan mengenai tuntutan khairat daripada ahli masjid anda dalam satu pandangan yang jelas.",
@@ -1572,6 +1579,7 @@
       "amount": "Jumlah",
       "status": "Status",
       "paymentMethod": "Kaedah Pembayaran",
+      "paymentId": "ID Pembayaran",
       "date": "Tarikh",
       "actions": "Tindakan",
       "anonymous": "Tanpa Nama",
@@ -1605,6 +1613,7 @@
       "amount": "Jumlah",
       "status": "Status",
       "paymentMethod": "Kaedah Pembayaran",
+      "paymentId": "ID Pembayaran",
       "date": "Tarikh",
       "actions": "Tindakan",
       "view": "Lihat",
@@ -2190,6 +2199,8 @@
     "paymentHistory": "Sejarah Pembayaran",
     "kariahApplication": "Pendaftaran Kariah",
     "mosquePage": "Halaman Masjid",
+    "viewPublicPage": "Lihat Halaman",
+    "publicPage": "Pratonton",
     "kariah": "Ahli Kariah",
     "organizationPeople": "Kakitangan Organisasi",
     "claims": {
@@ -2368,6 +2379,11 @@
       "khairatPayment": "Pembayaran Khairat",
       "claimKhairat": "Tuntut Khairat",
       "mosquePage": "Halaman Masjid",
+      "emailNotifications": "Notifikasi e-mel",
+      "paymentMethodsSupported": "Kaedah pembayaran yang disokong",
+      "onlinePayment": "Pembayaran Dalam Talian",
+      "bankTransfer": "Pemindahan Bank",
+      "cash": "Tunai",
       "faqs": {
         "canSwitchPlans": "Bolehkah saya menukar pelan kemudian?",
         "canSwitchPlansAnswer": "Ya. Anda boleh menaik taraf atau menurun taraf pada bila-bila masa dari tetapan anda.",

@@ -44,6 +44,10 @@ export async function GET(request: NextRequest) {
           membership_number,
           status
         ),
+        claimant:user_profiles!khairat_claims_claimant_id_fkey(
+          id,
+          full_name
+        ),
         reviewer:user_profiles!reviewed_by(
           id,
           full_name
@@ -126,10 +130,18 @@ export async function POST(request: NextRequest) {
       priority = 'medium'
     } = body;
 
-    // Validate required fields
-    if (!claimantId || !mosqueId || !claimAmount || !reason) {
+    // Validate required fields (claimantId is now optional for anonymous submissions)
+    if (!mosqueId || !claimAmount || !reason) {
       return NextResponse.json(
-        { error: 'Missing required fields: claimantId, mosqueId, claimAmount, reason' },
+        { error: 'Missing required fields: mosqueId, claimAmount, reason' },
+        { status: 400 }
+      );
+    }
+    
+    // If khairatMemberId is provided, we can proceed without claimantId
+    if (!claimantId && !khairatMemberId) {
+      return NextResponse.json(
+        { error: 'Either claimantId or khairatMemberId must be provided' },
         { status: 400 }
       );
     }
@@ -146,10 +158,26 @@ export async function POST(request: NextRequest) {
 
     // Find the khairat_member record for this user and mosque
     // This links the claim to the membership record
-    let resolvedKhairatMemberId: string | null = khairatMemberId || null;
+    let resolvedKhairatMemberId: string | null = null;
     
-    // If khairatMemberId not provided, try to find it
+    // If khairatMemberId is provided, validate it first
+    if (khairatMemberId) {
+      const { data: member, error: memberError } = await supabaseAdmin
+        .from('khairat_members')
+        .select('id, status, mosque_id')
+        .eq('id', khairatMemberId)
+        .eq('mosque_id', mosqueId)
+        .in('status', ['active', 'approved'])
+        .single();
+
+      if (!memberError && member) {
+        resolvedKhairatMemberId = member.id;
+      }
+    }
+    
+    // If khairatMemberId not provided or not valid, try to find it
     if (!resolvedKhairatMemberId && claimantId) {
+      // First try to find by user_id
       const { data: khairatMembers, error: memberError } = await supabaseAdmin
         .from('khairat_members')
         .select('id, status')
@@ -161,44 +189,80 @@ export async function POST(request: NextRequest) {
 
       if (!memberError && khairatMembers && khairatMembers.length > 0) {
         resolvedKhairatMemberId = khairatMembers[0].id;
+      } else {
+        // If not found by user_id, try to find by IC number from user profile
+        // This handles cases where user registered anonymously but later logged in
+        const { data: userProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('ic_passport_number')
+          .eq('id', claimantId)
+          .single();
+
+        if (userProfile?.ic_passport_number) {
+          const { data: icMembers, error: icError } = await supabaseAdmin
+            .from('khairat_members')
+            .select('id, status')
+            .eq('ic_passport_number', userProfile.ic_passport_number)
+            .eq('mosque_id', mosqueId)
+            .in('status', ['active', 'approved'])
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!icError && icMembers && icMembers.length > 0) {
+            resolvedKhairatMemberId = icMembers[0].id;
+          }
+        }
       }
     }
+    
+    // If still no resolved member ID and no claimantId, we must have khairatMemberId
+    // This handles anonymous submissions where membership was verified by IC
 
     // Verify that user is an active or approved member of the mosque
     if (!resolvedKhairatMemberId) {
-      // Check if user has any membership record (even if not active)
-      const { data: anyMembers, error: anyMemberError } = await supabaseAdmin
-        .from('khairat_members')
-        .select('id, status')
-        .eq('user_id', claimantId)
-        .eq('mosque_id', mosqueId)
-        .limit(1);
+      if (claimantId) {
+        // Check if user has any membership record (even if not active)
+        const { data: anyMembers, error: anyMemberError } = await supabaseAdmin
+          .from('khairat_members')
+          .select('id, status')
+          .eq('user_id', claimantId)
+          .eq('mosque_id', mosqueId)
+          .limit(1);
 
-      if (!anyMemberError && anyMembers && anyMembers.length > 0) {
-        return NextResponse.json(
-          { error: 'You must be an active or approved member of this mosque to submit a claim' },
-          { status: 403 }
-        );
+        if (!anyMemberError && anyMembers && anyMembers.length > 0) {
+          return NextResponse.json(
+            { error: 'You must be an active or approved member of this mosque to submit a claim' },
+            { status: 403 }
+          );
+        } else {
+          return NextResponse.json(
+            { error: 'You must be a member of this mosque to submit a claim. Please apply for membership first.' },
+            { status: 403 }
+          );
+        }
       } else {
+        // For anonymous submissions, khairatMemberId must be provided
         return NextResponse.json(
-          { error: 'You must be a member of this mosque to submit a claim. Please apply for membership first.' },
+          { error: 'You must be a member of this mosque to submit a claim. Please verify your membership first.' },
           { status: 403 }
         );
       }
     }
 
-    // Verify claimant exists (for backward compatibility)
-    const { data: claimant, error: claimantError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id')
-      .eq('id', claimantId)
-      .single();
+    // Verify claimant exists (only if claimantId is provided)
+    if (claimantId) {
+      const { data: claimant, error: claimantError } = await supabaseAdmin
+        .from('user_profiles')
+        .select('id')
+        .eq('id', claimantId)
+        .single();
 
-    if (claimantError || !claimant) {
-      return NextResponse.json(
-        { error: 'Claimant not found' },
-        { status: 404 }
-      );
+      if (claimantError || !claimant) {
+        return NextResponse.json(
+          { error: 'Claimant not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // No program validation needed - khairat claims are general assistance requests
@@ -206,7 +270,7 @@ export async function POST(request: NextRequest) {
     // Create the claim - prefer khairat_member_id if available
     const claimData: CreateKhairatClaim = {
       khairat_member_id: resolvedKhairatMemberId || undefined,
-      claimant_id: claimantId, // Keep for backward compatibility
+      claimant_id: claimantId || undefined, // Optional for anonymous submissions
       mosque_id: mosqueId,
       requested_amount: claimAmount,
       title: reason,
