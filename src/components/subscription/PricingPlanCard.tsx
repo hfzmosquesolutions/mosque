@@ -144,8 +144,12 @@ export function PricingPlanCard({
             </p>
             <div className="flex flex-wrap gap-2">
               <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
-                <CreditCard className="h-3.5 w-3.5" />
-                <span>{t('onlinePayment')}</span>
+                <Building2 className="h-3.5 w-3.5" />
+                <span>{t('bankTransfer')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                <Banknote className="h-3.5 w-3.5" />
+                <span>{t('cash')}</span>
               </div>
             </div>
           </div>

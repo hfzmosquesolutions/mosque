@@ -1517,6 +1517,45 @@ export async function getMosqueClaims(
   return getClaims(claimFilters, limit, offset);
 }
 
+/**
+ * Get claim counts for a mosque (optimized for dashboard)
+ * This is much faster than fetching all claims and counting them
+ */
+export async function getMosqueClaimCounts(mosqueId: string): Promise<{
+  successful: number;
+  unsettled: number;
+  total: number;
+}> {
+  try {
+    // Fetch counts in parallel using head queries (much faster)
+    const [successfulResult, unsettledResult, totalResult] = await Promise.all([
+      supabase
+        .from('khairat_claims')
+        .select('id', { count: 'exact', head: true })
+        .eq('mosque_id', mosqueId)
+        .in('status', ['approved', 'paid']),
+      supabase
+        .from('khairat_claims')
+        .select('id', { count: 'exact', head: true })
+        .eq('mosque_id', mosqueId)
+        .in('status', ['pending', 'under_review']),
+      supabase
+        .from('khairat_claims')
+        .select('id', { count: 'exact', head: true })
+        .eq('mosque_id', mosqueId)
+    ]);
+
+    return {
+      successful: successfulResult.count || 0,
+      unsettled: unsettledResult.count || 0,
+      total: totalResult.count || 0
+    };
+  } catch (error) {
+    console.error('Error fetching claim counts:', error);
+    return { successful: 0, unsettled: 0, total: 0 };
+  }
+}
+
 // =============================================
 // CLAIM DOCUMENTS OPERATIONS
 // =============================================

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
 export interface KhairatRegistrationDialogProps {
 	isOpen: boolean;
@@ -121,7 +122,9 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 					// Initialize form with fetched data
 					setFormData({
 						full_name: profileResponse.data.full_name || '',
-						ic_passport_number: profileResponse.data.ic_passport_number || '',
+						ic_passport_number: profileResponse.data.ic_passport_number 
+              ? normalizeMalaysiaIc(profileResponse.data.ic_passport_number).slice(0, 12)
+              : '',
 						phone: profileResponse.data.phone || '',
 						email: user.email || '',
 						address: profileResponse.data.address || '',
@@ -316,9 +319,13 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 						<Input
 							id="ic_passport_number"
 							value={formData.ic_passport_number}
-							onChange={(e) => setFormData({ ...formData, ic_passport_number: e.target.value })}
+							onChange={(e) => {
+								const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+								setFormData({ ...formData, ic_passport_number: normalized });
+							}}
 							placeholder="Enter IC number"
 							className="mt-1"
+							maxLength={12}
 							required
 						/>
 					</div>
@@ -409,6 +416,11 @@ export function KhairatRegistrationDialog(props: KhairatRegistrationDialogProps)
 				<Button 
 					onClick={() => {
 						if (!formData.full_name || !formData.ic_passport_number) {
+							return;
+						}
+
+						if (!isValidMalaysiaIc(formData.ic_passport_number)) {
+							// Basic guard; actual error feedback is shown via toast in parent handlers
 							return;
 						}
 						

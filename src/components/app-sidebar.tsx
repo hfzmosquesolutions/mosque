@@ -16,6 +16,7 @@ import {
   CreditCard,
   UserCheck,
   ExternalLink,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -68,6 +69,11 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
       name: t('payments'),
       href: '/payments',
       icon: CreditCard,
+    });
+    baseNavigation.push({
+      name: t('paymentSettings'),
+      href: '/payment-settings',
+      icon: Settings,
     });
     baseNavigation.push({
       name: t('claims.title'),

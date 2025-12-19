@@ -19,8 +19,7 @@ type Props = {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
-  // Providing all messages to the client
-  // side is the easiest way to get started
+  // Providing all messages to the client side is the easiest way to get started
   const messages = await getMessages({ locale });
 
   return (

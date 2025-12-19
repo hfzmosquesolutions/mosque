@@ -52,7 +52,7 @@ import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistration
 import { KhairatRegistrationDialog } from '@/components/mosque/KhairatRegistrationDialog';
 import { Mosque } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
-import { RUNTIME_FEATURES } from '@/lib/utils';
+import { RUNTIME_FEATURES, normalizeMalaysiaIc } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { checkOnboardingStatus } from '@/lib/api';
@@ -65,6 +65,7 @@ export default function MosqueProfilePage() {
   const locale = params.locale as string;
   const { user } = useAuth();
   const t = useTranslations('mosquePage');
+  const tKhairat = useTranslations('khairat');
   
   // Get the current page URL for return redirect
   const currentPath = `/${locale}/mosques/${mosqueId}`;
@@ -192,7 +193,13 @@ export default function MosqueProfilePage() {
     const loadProfile = async () => {
       if (!user?.id) return;
       const profile = await getUserProfile(user.id);
-      if (profile.success) setUserProfile(profile.data || null);
+      if (profile.success) {
+        const data = profile.data || null;
+        if (data && data.ic_passport_number) {
+          data.ic_passport_number = normalizeMalaysiaIc(data.ic_passport_number).slice(0, 12);
+        }
+        setUserProfile(data);
+      }
     };
     loadProfile();
   }, [user]);
@@ -616,7 +623,7 @@ export default function MosqueProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -631,7 +638,7 @@ export default function MosqueProfilePage() {
 
   if (error || !mosque) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="text-red-500 text-xl mb-4">⚠️</div>
@@ -761,16 +768,6 @@ export default function MosqueProfilePage() {
                   <div>
                     <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed mb-4">
                       {mosque.description}
-                    </p>
-                  </div>
-                )}
-                {mosque.settings?.imam_name != null && (
-                  <div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
-                      {t('imam')}
-                    </h4>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      {String(mosque.settings.imam_name)}
                     </p>
                   </div>
                 )}
@@ -927,6 +924,18 @@ export default function MosqueProfilePage() {
                             if (isDisabled) return;
                             // Navigate to claim page - no login required
                             router.push(`/${locale}/khairat/claim/${mosqueId}`);
+                          },
+                        },
+                        {
+                          id: 'check-status',
+                          title: tKhairat('status.checkShort', { fallback: 'Check Status' }),
+                          icon: CheckCircle,
+                          bgColor: 'bg-emerald-50 dark:bg-emerald-950/20',
+                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-emerald-600 dark:text-emerald-400',
+                          onClick: () => {
+                            if (isDisabled) return;
+                            // Navigate to public status check page - no login required
+                            router.push(`/${locale}/khairat/status/${mosqueId}`);
                           },
                         },
                       ];

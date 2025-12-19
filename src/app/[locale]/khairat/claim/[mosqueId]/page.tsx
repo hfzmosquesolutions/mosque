@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
+import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
 function KhairatClaimPageContent() {
   const params = useParams();
@@ -35,6 +36,7 @@ function KhairatClaimPageContent() {
   const mosqueId = params.mosqueId as string;
   const locale = params.locale as string;
   const t = useTranslations('mosquePage');
+  const tKhairat = useTranslations('khairat');
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ function KhairatClaimPageContent() {
 
           if (data && !error && data.ic_passport_number) {
             // Pre-fill IC number from profile (but don't auto-check)
-            setIcNumber(data.ic_passport_number);
+            setIcNumber(normalizeMalaysiaIc(data.ic_passport_number).slice(0, 12));
           }
         }
       } catch (error) {
@@ -146,11 +148,17 @@ function KhairatClaimPageContent() {
       return;
     }
 
+    const normalizedIc = normalizeMalaysiaIc(icNumber).slice(0, 12);
+    if (!isValidMalaysiaIc(normalizedIc)) {
+      toast.error('Invalid IC number.');
+      return;
+    }
+
     setCheckingByIC(true);
     try {
       const members = await getKhairatMembers({
         mosque_id: mosqueId,
-        ic_passport_number: icNumber.trim(),
+        ic_passport_number: normalizedIc,
       });
       
       // Check if user has active or approved membership
@@ -161,7 +169,7 @@ function KhairatClaimPageContent() {
       if (hasActiveMembership) {
         setIsKhairatMember(true);
         // Store verified IC number to display
-        setVerifiedICNumber(icNumber.trim());
+        setVerifiedICNumber(normalizedIc);
         // Store the khairat_member_id for submission
         const activeMember = members.find(
           member => member.status === 'active' || member.status === 'approved'
@@ -311,6 +319,15 @@ function KhairatClaimPageContent() {
       return;
     }
 
+    // Require at least one supporting document
+    if (claimDocuments.length === 0) {
+      toast.error(
+        t('supportingDocumentsRequired') ||
+          'Please upload at least one supporting document'
+      );
+      return;
+    }
+
     const amountNum = parseFloat(claimAmount);
     if (!(amountNum > 0)) {
       toast.error(t('invalidAmount') || 'Please enter a valid amount');
@@ -424,15 +441,15 @@ function KhairatClaimPageContent() {
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <strong>Not logged in?</strong> We encourage you to{' '}
+                    <strong>{tKhairat('payPage.notLoggedInTitle')}</strong>{' '}
+                    {tKhairat('payPage.notLoggedInDescription')}{' '}
                     <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/claim/${mosqueId}`} className="underline font-semibold">
-                      log in
+                      {tKhairat('payPage.login')}
                     </Link>{' '}
-                    for easier claim tracking and history.
                   </div>
                   <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/claim/${mosqueId}`}>
                     <Button size="sm" variant="outline" className="ml-4">
-                      Log In
+                      {tKhairat('payPage.login')}
                     </Button>
                   </Link>
                 </div>
@@ -443,23 +460,27 @@ function KhairatClaimPageContent() {
           <Card>
             <CardHeader>
               <CardTitle>
-                Submit Claim - Verify Membership
+                {tKhairat('payPage.icVerificationTitle')}
               </CardTitle>
               <CardDescription>
-                To process your claim, we need to verify that you are a registered Khairat member. Please enter your IC number that you used during registration.
+                {tKhairat('payPage.icVerificationSubtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="ic_verification">
-                    IC Number <span className="text-red-500">*</span>
+                    {tKhairat('payPage.icNumberLabel')}{' '}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="ic_verification"
                     value={icNumber}
-                    onChange={(e) => setIcNumber(e.target.value)}
-                    placeholder="Enter your IC number"
+                    onChange={(e) =>
+                      setIcNumber(normalizeMalaysiaIc(e.target.value).slice(0, 12))
+                    }
+                    placeholder={tKhairat('payPage.icNumberPlaceholder')}
+                    maxLength={12}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleCheckMembershipByIC();
@@ -467,7 +488,7 @@ function KhairatClaimPageContent() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter the IC number you used when registering for Khairat
+                    {tKhairat('payPage.icNumberHelp')}
                   </p>
                 </div>
 
@@ -480,25 +501,25 @@ function KhairatClaimPageContent() {
                   {checkingByIC ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Verifying...
+                      {tKhairat('payPage.verifying')}
                     </>
                   ) : (
                     <>
                       <FileText className="h-4 w-4 mr-2" />
-                      Verify Membership
+                      {tKhairat('payPage.verifyMembership')}
                     </>
                   )}
                 </Button>
               </div>
 
               <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Not a member yet?
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                  {tKhairat('payPage.notMemberQuestion')}
                 </p>
                 <Link href={`/${locale}/khairat/register/${mosqueId}`} className="w-full">
                   <Button variant="outline" className="w-full">
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Register for Khairat
+                    {tKhairat('payPage.registerForKhairat')}
                   </Button>
                 </Link>
               </div>
@@ -744,7 +765,7 @@ function KhairatClaimPageContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
-                Supporting Documents (Optional)
+                Supporting Documents <span className="text-red-500">*</span>
               </CardTitle>
               <CardDescription>
                 Upload documents like medical bills, death certificates, or other supporting evidence

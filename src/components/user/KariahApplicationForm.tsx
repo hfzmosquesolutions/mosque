@@ -162,9 +162,9 @@ export function KariahApplicationForm() {
       return;
     }
 
-    if (!userProfile?.ic_passport_number) {
+      if (!userProfile?.ic_passport_number) {
       toast.error(
-        'IC/Passport number not found in your profile. Please complete your onboarding first.'
+        'IC number not found in your profile. Please complete your onboarding first.'
       );
       return;
     }
