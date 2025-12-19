@@ -41,6 +41,7 @@ function BillingContent() {
   const searchParams = useSearchParams();
   const isSuccess = searchParams?.get('success') === 'true';
   const isCanceled = searchParams?.get('canceled') === 'true';
+  const defaultTab = searchParams?.get('tab') || 'plans';
   const { safeSetState, isMounted } = useSafeAsync();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -236,7 +237,7 @@ function BillingContent() {
         </h1>
       </div>
 
-      <Tabs defaultValue="invoices" className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
           <TabsTrigger 
             value="plans" 

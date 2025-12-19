@@ -38,7 +38,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
-import { getMosqueKhairatContributions, getMosqueClaims, getMosque } from '@/lib/api';
+import { getMosqueKhairatContributions, getMosqueClaims, getMosque, getMosqueClaimCounts } from '@/lib/api';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { getKhairatStatistics } from '@/lib/api/khairat-members';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
@@ -72,7 +72,7 @@ function DashboardContent() {
   const [membershipStats, setMembershipStats] = useState<any>(null);
   const [mosqueName, setMosqueName] = useState<string>('');
   const [mosqueData, setMosqueData] = useState<any>(null);
-  const [khairatClaims, setKhairatClaims] = useState<any[]>([]);
+  const [claimCounts, setClaimCounts] = useState<{ successful: number; unsettled: number; total: number }>({ successful: 0, unsettled: 0, total: 0 });
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [pendingApplicationsCount, setPendingApplicationsCount] = useState<number>(0);
@@ -138,22 +138,15 @@ function DashboardContent() {
     try {
       safeSetState(setLoading, true as boolean);
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('full_name, role, onboarding_completed')
-        .eq('id', user?.id)
-        .single();
-
-      if (signal.aborted || !isMounted()) return;
-
-      if (!profileError && profileData) {
-        safeSetState(setUserProfile, profileData);
-      }
-
-      // Fetch user's contributions
-      const { data: contributionsData, error: contributionsError } =
-        await supabase
+      // Parallelize independent queries for better performance
+      // Group 1: User-specific data (can run in parallel)
+      const [profileResult, contributionsResult] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('full_name, role, onboarding_completed')
+          .eq('id', user?.id)
+          .single(),
+        supabase
           .from('khairat_contributions')
           .select(
             `
@@ -170,15 +163,22 @@ function DashboardContent() {
           )
           .eq('contributor_id', user?.id)
           .order('contributed_at', { ascending: false })
-          .limit(10);
+          .limit(10)
+      ]);
 
       if (signal.aborted || !isMounted()) return;
 
-      if (contributionsError) {
-        console.error('Error fetching contributions:', contributionsError);
+      // Process profile data
+      if (!profileResult.error && profileResult.data) {
+        safeSetState(setUserProfile, profileResult.data);
+      }
+
+      // Process contributions data
+      if (contributionsResult.error) {
+        console.error('Error fetching contributions:', contributionsResult.error);
       } else {
         const formattedContributions =
-          contributionsData?.map((item: any) => ({
+          contributionsResult.data?.map((item: any) => ({
             id: item.id,
             amount: item.amount,
             contributed_at: item.contributed_at,
@@ -190,111 +190,63 @@ function DashboardContent() {
         safeSetState(setContributions, formattedContributions as Contribution[]);
       }
 
-      if (signal.aborted || !isMounted()) return;
-
-      // Fetch mosque-wide contributions for admin users
+      // Group 2: Admin-specific data (only if admin, run in parallel)
       if (isAdmin && mosqueId) {
-        try {
-          const mosqueContributions = await getMosqueKhairatContributions(mosqueId);
-          if (!signal.aborted && isMounted()) {
-            safeSetState(setAllContributions, (mosqueContributions.data || []) as Contribution[]);
-          }
-        } catch (error) {
-          if (!signal.aborted && isMounted()) {
-            console.error('Error fetching mosque contributions:', error);
-            safeSetState(setAllContributions, [] as Contribution[]);
-          }
-        }
-      }
-
-      if (signal.aborted || !isMounted()) return;
-
-      // Fetch community stats
-      const { data: statsData, error: statsError } = await supabase.rpc(
-        'get_community_stats'
-      );
-
-      if (signal.aborted || !isMounted()) return;
-
-      if (statsError) {
-        console.error('Error fetching stats:', statsError);
-      } else {
-        safeSetState(setStats, statsData);
-      }
-
-      if (signal.aborted || !isMounted()) return;
-
-      // Load mosque data and membership insights for admin users
-      if (isAdmin && mosqueId) {
-        // Fetch mosque data for admin users
-        try {
-          const mosqueResponse = await getMosque(mosqueId);
-          if (!signal.aborted && isMounted()) {
-            if (mosqueResponse.success && mosqueResponse.data) {
-              safeSetState(setMosqueData, mosqueResponse.data);
-              safeSetState(setMosqueName, mosqueResponse.data.name);
-            }
-          }
-        } catch (mosqueError) {
-          if (!signal.aborted && isMounted()) {
-            console.error('Error fetching mosque data:', mosqueError);
-          }
-        }
-        
-        if (signal.aborted || !isMounted()) return;
-
-        // Fetch khairat membership statistics for admin users
-        try {
-          const membershipData = await getKhairatStatistics(mosqueId);
-          if (!signal.aborted && isMounted()) {
-            safeSetState(setMembershipStats, membershipData);
-          }
-        } catch (membershipError) {
-          if (!signal.aborted && isMounted()) {
-            console.error('Error fetching khairat membership statistics:', membershipError);
-            safeSetState(setMembershipStats, null);
-          }
-        }
-
-        if (signal.aborted || !isMounted()) return;
-
-        // Fetch pending khairat membership applications count for admin users
-        try {
-          const { count: pendingCount, error: pendingError } = await supabase
+        const adminPromises = [
+          getMosque(mosqueId),
+          getMosqueKhairatContributions(mosqueId),
+          getKhairatStatistics(mosqueId),
+          getMosqueClaimCounts(mosqueId), // Use optimized count function instead of fetching 100 records
+          supabase
             .from('khairat_members')
             .select('id', { count: 'exact', head: true })
             .eq('mosque_id', mosqueId)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+        ];
 
-          if (!signal.aborted && isMounted()) {
-            if (pendingError) {
-              console.error('Error fetching pending khairat applications count:', pendingError);
-              safeSetState(setPendingApplicationsCount, 0 as number);
-            } else if (typeof pendingCount === 'number') {
-              safeSetState(setPendingApplicationsCount, pendingCount);
-            }
-          }
-        } catch (pendingError) {
-          if (!signal.aborted && isMounted()) {
-            console.error('Error fetching pending khairat applications count:', pendingError);
-            safeSetState(setPendingApplicationsCount, 0 as number);
-          }
-        }
+        const [
+          mosqueResponse,
+          mosqueContributions,
+          membershipData,
+          claimCountsData,
+          pendingCountResult
+        ] = await Promise.all(adminPromises);
 
         if (signal.aborted || !isMounted()) return;
 
-        // Fetch khairat claims for admin users
-        try {
-          const claimsData = await getMosqueClaims(mosqueId, undefined, 100, 0);
-          if (!signal.aborted && isMounted()) {
-            safeSetState(setKhairatClaims, claimsData.data || []);
-          }
-        } catch (claimsError) {
-          if (!signal.aborted && isMounted()) {
-            console.error('Error fetching khairat claims:', claimsError);
-            safeSetState(setKhairatClaims, [] as any[]);
-          }
+        // Process mosque data
+        if ('success' in mosqueResponse && mosqueResponse.success && mosqueResponse.data) {
+          safeSetState(setMosqueData, mosqueResponse.data);
+          safeSetState(setMosqueName, mosqueResponse.data.name);
         }
+
+        // Process mosque contributions
+        if ('data' in mosqueContributions && mosqueContributions.data) {
+          safeSetState(setAllContributions, mosqueContributions.data as Contribution[]);
+        }
+
+        // Process membership stats
+        if (membershipData && typeof membershipData === 'object' && !('error' in membershipData)) {
+          safeSetState(setMembershipStats, membershipData);
+        }
+
+        // Process claim counts (optimized)
+        if (claimCountsData && typeof claimCountsData === 'object' && 'successful' in claimCountsData) {
+          safeSetState(setClaimCounts, claimCountsData);
+        }
+
+        // Process pending applications count
+        if ('error' in pendingCountResult && 'count' in pendingCountResult && !pendingCountResult.error && typeof pendingCountResult.count === 'number') {
+          safeSetState(setPendingApplicationsCount, pendingCountResult.count);
+        } else {
+          safeSetState(setPendingApplicationsCount, 0 as number);
+        }
+      }
+
+      // Fetch community stats (can run independently)
+      const statsResult = await supabase.rpc('get_community_stats');
+      if (!signal.aborted && isMounted() && !statsResult.error) {
+        safeSetState(setStats, statsResult.data);
       }
 
     } catch (error) {
@@ -319,15 +271,9 @@ function DashboardContent() {
   const completedContributionCount = completedContributions.length;
   const recentContributions = completedContributions.slice(0, 5);
 
-  // Calculate successful khairat claims count
-  const successfulClaimsCount = khairatClaims.filter(claim => 
-    claim.status === 'approved' || claim.status === 'paid'
-  ).length;
-
-  // Calculate unsettled claims count (only pending and under_review, excluding settled: paid, cancelled, rejected, approved)
-  const unsettledClaimsCount = khairatClaims.filter(claim => 
-    claim.status === 'pending' || claim.status === 'under_review'
-  ).length;
+  // Use optimized claim counts (already calculated)
+  const successfulClaimsCount = claimCounts.successful;
+  const unsettledClaimsCount = claimCounts.unsettled;
 
   const paymentSettings = (mosqueData?.settings || {}) as {
     paymentsConfigured?: boolean;

@@ -30,6 +30,7 @@ import {
   CreditCard,
   Banknote,
   AlertCircle,
+  Building2,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { getMosqueKhairatSettings, createKhairatContribution } from '@/lib/api';
@@ -70,15 +71,22 @@ export function KhairatContributionForm({
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const [enabledPaymentMethods, setEnabledPaymentMethods] = useState({
+    online_payment: true,
+    bank_transfer: true,
+    cash: true,
+  });
+  const [mosque, setMosque] = useState<Mosque | null>(null);
   const isMosqueFixed = Boolean(preselectedMosqueId);
 
   useEffect(() => {
     if (selectedMosqueId) {
       loadKhairatSettings(selectedMosqueId);
-      checkPaymentProvider(selectedMosqueId);
+      loadMosqueAndPaymentSettings(selectedMosqueId);
     } else {
       setKhairatSettings(null);
       setHasOnlinePayment(false);
+      setMosque(null);
     }
   }, [selectedMosqueId]);
 
@@ -141,12 +149,7 @@ export function KhairatContributionForm({
 
       const providers: string[] = [];
 
-      // Check for Billplz
-      if (data.billplz && data.hasBillplz) {
-        providers.push('billplz');
-      }
-
-      // Check for ToyyibPay
+      // Only check for ToyyibPay (Billplz no longer used)
       if (data.toyyibpay && data.hasToyyibpay) {
         providers.push('toyyibpay');
       }
@@ -227,6 +230,49 @@ export function KhairatContributionForm({
     }
   };
 
+  const loadMosqueAndPaymentSettings = async (mosqueId: string) => {
+    try {
+      const { getMosque } = await import('@/lib/api');
+      const mosqueRes = await getMosque(mosqueId);
+      
+      if (mosqueRes.success && mosqueRes.data) {
+        setMosque(mosqueRes.data);
+        const settings = mosqueRes.data.settings as Record<string, any> | undefined;
+        const paymentMethods = settings?.enabled_payment_methods || {};
+        
+        // Check subscription plan
+        const { getMosqueSubscription } = await import('@/lib/subscription');
+        let subscriptionPlan = 'free';
+        try {
+          const subscription = await getMosqueSubscription(mosqueId);
+          subscriptionPlan = subscription?.plan || 'free';
+        } catch (error) {
+          console.error('Error fetching subscription:', error);
+        }
+        
+        const isFreePlan = subscriptionPlan === 'free';
+        
+        const paymentMethodsEnabled = {
+          online_payment: isFreePlan ? false : (paymentMethods.online_payment !== false),
+          bank_transfer: paymentMethods.bank_transfer !== false,
+          cash: paymentMethods.cash !== false,
+        };
+        
+        setEnabledPaymentMethods(paymentMethodsEnabled);
+        
+        // Check payment providers (only if online payment is enabled)
+        if (paymentMethodsEnabled.online_payment) {
+          await checkPaymentProvider(mosqueId);
+        } else {
+          setHasOnlinePayment(false);
+          setAvailableProviders([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading mosque and payment settings:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -255,19 +301,15 @@ export function KhairatContributionForm({
       return;
     }
 
-    // Validate online payment fields
-    if (paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') {
-      // Name and email are automatically populated from user account, no need to validate
-
+    // Validate online payment fields (ToyyibPay only)
+    if (paymentMethod === 'toyyibpay') {
       // Phone number is required for ToyyibPay
-      if (paymentMethod === 'toyyibpay') {
-        if (!payerMobile || payerMobile.trim() === '') {
-          toast.error(t('errors.mobileRequiredForToyyibpay'));
-          return;
-        }
+      if (!payerMobile || payerMobile.trim() === '') {
+        toast.error(t('errors.mobileRequiredForToyyibpay'));
+        return;
       }
 
-      // Validate mobile format if provided
+      // Validate mobile format
       if (payerMobile && !/^\+?[0-9\s-()]{8,}$/.test(payerMobile)) {
         toast.error(t('errors.validMobileRequired'));
         return;
@@ -292,8 +334,8 @@ export function KhairatContributionForm({
       if (response.success && response.data) {
         const contributionId = response.data.id;
 
-        // Handle online payment (Billplz or ToyyibPay)
-        if (paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') {
+        // Handle online payment (ToyyibPay only)
+        if (paymentMethod === 'toyyibpay') {
           try {
             const paymentResponse = await fetch(
               `${window.location.origin}/api/payments/create`,
@@ -547,7 +589,7 @@ export function KhairatContributionForm({
           </div>
 
           {/* Online Payment Contact Details */}
-          {(paymentMethod === 'billplz' || paymentMethod === 'toyyibpay') && (
+          {paymentMethod === 'toyyibpay' && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="payerEmail">{t('form.emailFromAccount')}</Label>
@@ -577,7 +619,7 @@ export function KhairatContributionForm({
             </>
           )}
 
-          {selectedMosqueId && khairatSettings?.enabled && (
+          {selectedMosqueId && khairatSettings?.enabled ? (
             <div className="space-y-3">
               <Label>{t('makePaymentDialog.paymentMethodRequired')}</Label>
               {checkingPaymentProvider ? (
@@ -590,65 +632,84 @@ export function KhairatContributionForm({
                   value={paymentMethod}
                   onValueChange={setPaymentMethod}
                 >
-                  {/* Online Payment Options */}
-                  {availableProviders.includes('billplz') && (
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                      <RadioGroupItem value="billplz" id="billplz" />
-                      <Label
-                        htmlFor="billplz"
-                        className="flex items-center gap-3 cursor-pointer flex-1"
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-                          <CreditCard className="h-4 w-4 text-blue-600" />
+                  {/* Online Payment Options - Always show but disable if not enabled */}
+                  {/* ToyyibPay - Always show, but disable if not configured or not enabled */}
+                  <div className={`flex items-center space-x-2 p-3 border rounded-lg ${!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay') ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50'}`}>
+                    <RadioGroupItem 
+                      value="toyyibpay" 
+                      id="toyyibpay" 
+                      disabled={!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay')}
+                    />
+                    <Label
+                      htmlFor="toyyibpay"
+                      className={`flex items-center gap-3 flex-1 ${enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    >
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'bg-green-100' : 'bg-gray-100'}`}>
+                        <CreditCard className={`h-4 w-4 ${enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'text-green-600' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          Online Payment (ToyyibPay)
+                          {(!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay')) && (
+                            <span className="text-xs text-muted-foreground">(Disabled)</span>
+                          )}
                         </div>
-                        <div>
-                          <div className="font-medium">
-                            {t('makePaymentDialog.onlinePaymentBillplz')}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t('makePaymentDialog.onlinePaymentDescription')}
-                          </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t('makePaymentDialog.onlinePaymentDescription')}
                         </div>
-                      </Label>
-                    </div>
-                  )}
+                      </div>
+                    </Label>
+                  </div>
 
-                  {availableProviders.includes('toyyibpay') && (
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                      <RadioGroupItem value="toyyibpay" id="toyyibpay" />
-                      <Label
-                        htmlFor="toyyibpay"
-                        className="flex items-center gap-3 cursor-pointer flex-1"
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-                          <CreditCard className="h-4 w-4 text-green-600" />
+                  {/* Bank Transfer - Always show but disable if not enabled */}
+                  <div className={`flex items-center space-x-2 p-3 border rounded-lg ${!enabledPaymentMethods.bank_transfer ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50'}`}>
+                    <RadioGroupItem 
+                      value="bank_transfer" 
+                      id="bank_transfer" 
+                      disabled={!enabledPaymentMethods.bank_transfer}
+                    />
+                    <Label
+                      htmlFor="bank_transfer"
+                      className={`flex items-center gap-3 flex-1 ${enabledPaymentMethods.bank_transfer ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    >
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${enabledPaymentMethods.bank_transfer ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                        <Building2 className={`h-4 w-4 ${enabledPaymentMethods.bank_transfer ? 'text-emerald-600' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          {t('makePaymentDialog.bankTransferPayment')}
+                          {!enabledPaymentMethods.bank_transfer && (
+                            <span className="text-xs text-muted-foreground">(Disabled)</span>
+                          )}
                         </div>
-                        <div>
-                          <div className="font-medium">
-                            Online Payment (ToyyibPay)
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t('makePaymentDialog.onlinePaymentDescription')}
-                          </div>
+                        <div className="text-sm text-muted-foreground">
+                          {t('makePaymentDialog.bankTransferDescription')}
                         </div>
-                      </Label>
-                    </div>
-                  )}
+                      </div>
+                    </Label>
+                  </div>
 
-                  {/* Manual Payment Options - Hide cash for public mosque */}
+                  {/* Cash - Always show but disable if not enabled */}
                   {!isMosqueFixed && (
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                      <RadioGroupItem value="cash" id="cash" />
+                    <div className={`flex items-center space-x-2 p-3 border rounded-lg ${!enabledPaymentMethods.cash ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50'}`}>
+                      <RadioGroupItem 
+                        value="cash" 
+                        id="cash" 
+                        disabled={!enabledPaymentMethods.cash}
+                      />
                       <Label
                         htmlFor="cash"
-                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        className={`flex items-center gap-3 flex-1 ${enabledPaymentMethods.cash ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                       >
-                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-                          <Banknote className="h-4 w-4 text-green-600" />
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full ${enabledPaymentMethods.cash ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          <Banknote className={`h-4 w-4 ${enabledPaymentMethods.cash ? 'text-green-600' : 'text-gray-400'}`} />
                         </div>
-                        <div>
-                          <div className="font-medium">
+                        <div className="flex-1">
+                          <div className="font-medium flex items-center gap-2">
                             {t('makePaymentDialog.cashPayment')}
+                            {!enabledPaymentMethods.cash && (
+                              <span className="text-xs text-muted-foreground">(Disabled)</span>
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {t('makePaymentDialog.cashPaymentDescription')}
@@ -671,12 +732,40 @@ export function KhairatContributionForm({
                   </Alert>
                 )}
             </div>
-          )}
+          ) : null}
+
+          {/* Bank Transfer Details - Show if bank transfer is selected */}
+          {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && (() => {
+            const bankDetails = mosque?.settings?.bank_transfer_details;
+            const hasBankDetails = bankDetails && typeof bankDetails === 'object' && bankDetails !== null;
+            return hasBankDetails ? (
+              <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Bank Transfer Details</h4>
+                  <div className="space-y-2 text-sm">
+                    {(bankDetails as any).bank_name && (
+                      <p><span className="font-medium">Bank:</span> {(bankDetails as any).bank_name}</p>
+                    )}
+                    {(bankDetails as any).account_number && (
+                      <p><span className="font-medium">Account Number:</span> {(bankDetails as any).account_number}</p>
+                    )}
+                    {(bankDetails as any).account_holder_name && (
+                      <p><span className="font-medium">Account Holder:</span> {(bankDetails as any).account_holder_name}</p>
+                    )}
+                    {(bankDetails as any).reference_instructions && (
+                      <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
+                        <p className="font-medium text-xs mb-1">Reference Instructions:</p>
+                        <p className="text-xs text-muted-foreground">{(bankDetails as any).reference_instructions}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null;
+          })()}
 
           {/* Payment Reference - Only show for manual payments */}
-          {paymentMethod &&
-            paymentMethod !== 'billplz' &&
-            paymentMethod !== 'toyyibpay' && (
+          {paymentMethod && paymentMethod !== 'toyyibpay' && (
               <div className="space-y-2">
                 <Label htmlFor="paymentReference">
                   {t('makePaymentDialog.paymentReferenceOptional')}

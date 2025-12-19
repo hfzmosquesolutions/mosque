@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
@@ -10,31 +9,19 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { MosqueKhairatContributions } from '@/components/khairat/MosqueKhairatContributions';
 import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
-import { getUserKhairatContributions, getUserPaymentHistory } from '@/lib/api';
+import { getUserPaymentHistory } from '@/lib/api';
 import type { KhairatContribution } from '@/types/database';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { PaymentProviderSettings } from '@/components/settings/PaymentProviderSettings';
-import { CreditCard } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
 import { useSafeAsync } from '@/hooks/useSafeAsync';
 
-function KhairatPaymentsContent() {
+function PaymentHistoryContent() {
   const t = useTranslations('khairat');
-  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const [userContributions, setUserContributions] = useState<KhairatContribution[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const { safeSetState, isMounted } = useSafeAsync();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -81,13 +68,6 @@ function KhairatPaymentsContent() {
     };
   }, [user, fetchData, isCompleted, onboardingLoading]);
 
-  // Auto-open payment modal if openModal query parameter is present
-  useEffect(() => {
-    if (hasAdminAccess && searchParams.get('openModal') === 'true') {
-      setIsPaymentModalOpen(true);
-    }
-  }, [hasAdminAccess, searchParams]);
-
   if (onboardingLoading || !isCompleted || adminLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -103,26 +83,15 @@ function KhairatPaymentsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {hasAdminAccess ? t('khairatPayments') : t('paymentHistory')}
-          </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            {hasAdminAccess
-              ? t('khairatPaymentsDescription')
-              : t('paymentHistoryDescription')}
-          </p>
-        </div>
-        {hasAdminAccess && (
-          <Button
-            onClick={() => setIsPaymentModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <CreditCard className="h-4 w-4" />
-            {t('setupPayment')}
-          </Button>
-        )}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {hasAdminAccess ? t('khairatPayments') : t('paymentHistory')}
+        </h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          {hasAdminAccess
+            ? t('khairatPaymentsDescription')
+            : t('paymentHistoryDescription')}
+        </p>
       </div>
 
       {hasAdminAccess ? (
@@ -136,34 +105,17 @@ function KhairatPaymentsContent() {
       ) : (
         <UserPaymentsTable contributions={userContributions as any} />
       )}
-
-      {/* Payment Gateway Setup Modal */}
-      {hasAdminAccess && (
-        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t('paymentGatewaySetup')}</DialogTitle>
-              <DialogDescription>
-                {t('paymentGatewaySetupDescription')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4">
-              <PaymentProviderSettings />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
 
-export default function KhairatPaymentsPage() {
+export default function PaymentHistoryPage() {
   const t = useTranslations('khairat');
   
   return (
     <ProtectedRoute>
-      <DashboardLayout title={t('khairatPayments')}>
-        <KhairatPaymentsContent />
+      <DashboardLayout title={t('paymentHistory')}>
+        <PaymentHistoryContent />
       </DashboardLayout>
     </ProtectedRoute>
   );

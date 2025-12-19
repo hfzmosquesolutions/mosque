@@ -51,6 +51,7 @@ export default function Header() {
     '/profile',
     '/dependents',
     '/my-mosques',
+    '/payment-settings',
   ];
 
   // Remove locale prefix from pathname for checking internal pages

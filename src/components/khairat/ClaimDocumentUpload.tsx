@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { uploadClaimDocument, deleteClaimDocument, getClaimDocuments } from '@/lib/api';
 import type { ClaimDocument } from '@/types/database';
+import { compressImage } from '@/utils/image-compression';
 
 interface ClaimDocumentUploadProps {
   claimId?: string; // If provided, will load existing documents
@@ -79,7 +80,7 @@ export function ClaimDocumentUpload({
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     
     if (files.length === 0) return;
@@ -91,7 +92,7 @@ export function ClaimDocumentUpload({
       return;
     }
 
-    // Validate files
+    // Validate and compress files
     const validFiles: UploadedFile[] = [];
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = [
@@ -104,23 +105,52 @@ export function ClaimDocumentUpload({
       'text/plain'
     ];
 
-    files.forEach((file) => {
+    // Show compression toast for images
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      toast.info('Compressing images to optimize file size...');
+    }
+
+    for (const file of files) {
       if (file.size > maxSize) {
         toast.error(`${file.name} is too large. Maximum size is 10MB.`);
-        return;
+        continue;
       }
 
       if (!allowedTypes.includes(file.type)) {
         toast.error(`${file.name} has an unsupported file type.`);
-        return;
+        continue;
+      }
+
+      // Compress image files to reduce size
+      let processedFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          processedFile = await compressImage(file, 2, 1920); // Max 2MB, max dimension 1920px
+          if (processedFile.size < file.size) {
+            const reduction = ((file.size - processedFile.size) / file.size * 100).toFixed(1);
+            console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB (${reduction}% reduction)`);
+          }
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          // Continue with original file if compression fails
+        }
       }
 
       validFiles.push({
         id: Math.random().toString(36).substring(2),
-        file,
+        file: processedFile,
         status: 'pending'
       });
-    });
+    }
+
+    if (validFiles.length === 0) {
+      // Clear the input if no valid files
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     setUploadedFiles(prev => {
       const newFiles = [...prev, ...validFiles];
@@ -227,11 +257,8 @@ export function ClaimDocumentUpload({
   };
 
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return '🖼️';
-    if (fileType === 'application/pdf') return '📄';
-    if (fileType.includes('word')) return '📝';
-    if (fileType === 'text/plain') return '📄';
-    return '📎';
+    // Standardized file icon (no emoji/thumbnail)
+    return <File className="h-4 w-4" />;
   };
 
   const canUpload = !disabled && uploadedFiles.length + existingDocuments.length < maxFiles;
@@ -313,11 +340,10 @@ export function ClaimDocumentUpload({
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {uploadedFile.status === 'pending' && (
+                    {uploadedFile.status === 'pending' && claimId && (
                       <Button
                         size="sm"
                         onClick={() => handleUpload(uploadedFile)}
-                        disabled={!claimId}
                       >
                         Upload
                       </Button>

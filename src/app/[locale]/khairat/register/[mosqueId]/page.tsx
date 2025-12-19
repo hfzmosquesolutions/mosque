@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
 function KhairatRegisterPageContent() {
   const params = useParams();
@@ -46,7 +47,11 @@ function KhairatRegisterPageContent() {
   const searchParams = useSearchParams();
   const mosqueId = params.mosqueId as string;
   const locale = params.locale as string;
-  const t = useTranslations('mosquePage');
+  // Base mosque page translations
+  const tMosquePage = useTranslations('mosquePage');
+  // Register translations live under khairat.register in messages/*.json
+  const tKhairat = useTranslations('khairat');
+  const tRegister = useTranslations('khairat.register');
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -125,7 +130,9 @@ function KhairatRegisterPageContent() {
             setUserProfile(profileRes.data);
             setFormData({
               full_name: profileRes.data.full_name || '',
-              ic_passport_number: profileRes.data.ic_passport_number || '',
+              ic_passport_number: profileRes.data.ic_passport_number
+                ? normalizeMalaysiaIc(profileRes.data.ic_passport_number).slice(0, 12)
+                : '',
               phone: profileRes.data.phone || '',
               email: user.email || '',
               address: profileRes.data.address || '',
@@ -186,11 +193,16 @@ function KhairatRegisterPageContent() {
       return;
     }
 
+    if (!isValidMalaysiaIc(formData.ic_passport_number)) {
+      toast.error('Invalid IC number.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const result = await submitKhairatApplication({
         mosque_id: mosqueId,
-        ic_passport_number: formData.ic_passport_number,
+        ic_passport_number: normalizeMalaysiaIc(formData.ic_passport_number),
         application_reason: formData.application_reason || '',
         full_name: formData.full_name,
         phone: formData.phone,
@@ -455,7 +467,7 @@ function KhairatRegisterPageContent() {
           <Link href={`/${locale}/mosques/${mosqueId}`}>
             <Button variant="ghost" size="sm" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Mosque
+              {tMosquePage('backToMosques')}
             </Button>
           </Link>
           <div className="flex items-center gap-3 mb-2">
@@ -464,10 +476,12 @@ function KhairatRegisterPageContent() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {t('applyKhairat') || 'Register for Khairat'}
+                {tRegister('pageTitle')}
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                {mosque?.name && `Join the Khairat program at ${mosque.name}`}
+                {mosque?.name
+                  ? tRegister('pageSubtitle', { mosqueName: mosque.name })
+                  : ''}
               </p>
             </div>
           </div>
@@ -490,15 +504,15 @@ function KhairatRegisterPageContent() {
             <AlertDescription className="text-amber-800 dark:text-amber-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <strong>Not logged in?</strong> We encourage you to{' '}
+                  <strong>{tRegister('notLoggedInTitle')}</strong>{' '}
+                  {tRegister('notLoggedInDescription')}{' '}
                   <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/register/${mosqueId}`} className="underline font-semibold">
-                    log in
+                    {tRegister('logIn')}
                   </Link>{' '}
-                  to easily view your application history and track your membership status.
                 </div>
                 <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/register/${mosqueId}`}>
                   <Button size="sm" variant="outline" className="ml-4">
-                    Log In
+                    {tRegister('logIn')}
                   </Button>
                 </Link>
               </div>
@@ -508,32 +522,31 @@ function KhairatRegisterPageContent() {
 
         {/* Registration Info */}
         {mosqueId && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <KhairatRegistrationInfo mosqueId={mosqueId} />
-            </CardContent>
-          </Card>
+          <div className="mb-6">
+            <KhairatRegistrationInfo mosqueId={mosqueId} />
+          </div>
         )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit}>
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle>{tRegister('personalInfoTitle')}</CardTitle>
               <CardDescription>
-                Please provide your personal details for the registration
+                {tRegister('personalInfoDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="full_name">
-                  Full Name <span className="text-red-500">*</span>
+                  {tRegister('fullName')}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="full_name"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  placeholder="Enter your full name"
+                  placeholder={tRegister('fullNamePlaceholder')}
                   required
                   disabled={isMosqueAdmin}
                 />
@@ -541,29 +554,35 @@ function KhairatRegisterPageContent() {
 
               <div className="space-y-2">
                 <Label htmlFor="ic_passport_number">
-                  IC Number <span className="text-red-500">*</span>
+                  {tRegister('icNumber')}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="ic_passport_number"
                   value={formData.ic_passport_number}
-                  onChange={(e) => setFormData({ ...formData, ic_passport_number: e.target.value })}
-                  placeholder="Enter IC number"
+                  onChange={(e) => {
+                    const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                    setFormData({ ...formData, ic_passport_number: normalized });
+                  }}
+                  placeholder={tRegister('icNumberPlaceholder')}
                   required
                   disabled={isMosqueAdmin}
+                  maxLength={12}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">
-                    Phone Number <span className="text-red-500">*</span>
+                    {tRegister('phoneNumber')}{' '}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Enter phone number"
+                    placeholder={tRegister('phoneNumberPlaceholder')}
                     required
                     disabled={isMosqueAdmin}
                   />
@@ -571,26 +590,31 @@ function KhairatRegisterPageContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="email">
-                    Email <span className="text-red-500">*</span>
+                    {tRegister('email')}{' '}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder={user ? "Email from your account" : "Enter your email address"}
+                    placeholder={
+                      user
+                        ? tRegister('emailFromAccount')
+                        : tRegister('emailPlaceholder')
+                    }
                     required
                     disabled={isMosqueAdmin || (user !== null && user !== undefined)}
                     className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
                   />
                   {user && (
                     <p className="text-xs text-muted-foreground">
-                      Email from your account
+                      {tRegister('emailFromAccount')}
                     </p>
                   )}
                   {!user && (
                     <p className="text-xs text-muted-foreground">
-                      Provide your email to receive updates about your application
+                      {tRegister('emailGuestHint')}
                     </p>
                   )}
                 </div>
@@ -598,13 +622,14 @@ function KhairatRegisterPageContent() {
 
               <div className="space-y-2">
                 <Label htmlFor="address">
-                  Address <span className="text-red-500">*</span>
+                  {tRegister('address')}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Enter your full address"
+                  placeholder={tRegister('addressPlaceholder')}
                   rows={3}
                   required
                   disabled={isMosqueAdmin}
@@ -612,13 +637,15 @@ function KhairatRegisterPageContent() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="application_reason">Application Reason (Optional)</Label>
+                <Label htmlFor="application_reason">
+                  {tRegister('applicationReasonLabel')}
+                </Label>
                 <Textarea
                   id="application_reason"
                   value={formData.application_reason}
                   disabled={isMosqueAdmin}
                   onChange={(e) => setFormData({ ...formData, application_reason: e.target.value })}
-                  placeholder="Why do you want to join the khairat program?"
+                  placeholder={tRegister('applicationReasonPlaceholder')}
                   rows={4}
                 />
               </div>
@@ -632,14 +659,14 @@ function KhairatRegisterPageContent() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5" />
-                      Include Tanggungan (Dependents)
+                      {tRegister('dependentsTitle')}
                     </CardTitle>
                     <CardDescription>
                       {user && userDependents.length > 0 
-                        ? 'Select which dependents to include in your khairat registration'
+                        ? tRegister('dependentsDescriptionHas')
                         : !user && tempDependents.length > 0
-                        ? `${tempDependents.length} dependent(s) added to your registration`
-                        : 'Add dependents to include in your khairat registration'}
+                        ? tRegister('dependentsDescriptionGuestHas', { count: tempDependents.length })
+                        : tRegister('dependentsDescriptionEmpty')}
                     </CardDescription>
                   </div>
                   {((user && userDependents.length > 0) || (!user && tempDependents.length > 0)) && !isMosqueAdmin && (
@@ -651,7 +678,7 @@ function KhairatRegisterPageContent() {
                       disabled={isMosqueAdmin}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Dependent
+                      {tRegister('addDependentButton')}
                     </Button>
                   )}
                 </div>
@@ -687,10 +714,14 @@ function KhairatRegisterPageContent() {
                           </div>
                           <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
                             {dependent.date_of_birth && (
-                              <p>DOB: {new Date(dependent.date_of_birth).toLocaleDateString()}</p>
+                              <p>
+                                {tRegister('dateOfBirth')}: {new Date(dependent.date_of_birth).toLocaleDateString()}
+                              </p>
                             )}
                             {dependent.phone && (
-                              <p>Phone: {dependent.phone}</p>
+                              <p>
+                                {tRegister('phoneNumber')}: {dependent.phone}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -704,52 +735,61 @@ function KhairatRegisterPageContent() {
                 {!isMosqueAdmin && (showAddDependentForm || (user ? userDependents.length === 0 : tempDependents.length === 0)) && (
                 <Card className="border-2 border-dashed border-slate-300 dark:border-slate-700">
                   <CardHeader>
-                    <CardTitle className="text-lg">Add New Dependent</CardTitle>
+                    <CardTitle className="text-lg">
+                      {tRegister('addDependentTitle')}
+                    </CardTitle>
                     <CardDescription>
-                      Fill in the details below to add a dependent
+                      {tRegister('addDependentDescription')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="dep_full_name">
-                          Full Name <span className="text-red-500">*</span>
+                          {tRegister('fullName')}{' '}
+                          <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="dep_full_name"
                           value={newDependent.full_name}
                           onChange={(e) => setNewDependent({ ...newDependent, full_name: e.target.value })}
-                          placeholder="Enter full name"
+                          placeholder={tRegister('fullNamePlaceholder')}
                           disabled={isMosqueAdmin}
                         />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="dep_relationship">
-                          Relationship <span className="text-red-500">*</span>
+                          {tRegister('relationship')}{' '}
+                          <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="dep_relationship"
                           value={newDependent.relationship}
                           onChange={(e) => setNewDependent({ ...newDependent, relationship: e.target.value })}
-                          placeholder="e.g., spouse, child, parent"
+                          placeholder={tRegister('relationshipPlaceholder')}
                           disabled={isMosqueAdmin}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="dep_ic">IC Number</Label>
+                        <Label htmlFor="dep_ic">{tRegister('icNumber')}</Label>
                         <Input
                           id="dep_ic"
                           value={newDependent.ic_passport_number}
-                          onChange={(e) => setNewDependent({ ...newDependent, ic_passport_number: e.target.value })}
-                          placeholder="Enter IC number"
+                          onChange={(e) =>
+                            setNewDependent({
+                              ...newDependent,
+                              ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
+                            })
+                          }
+                          placeholder={tRegister('icNumberPlaceholder')}
                           disabled={isMosqueAdmin}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="dep_dob">Date of Birth</Label>
+                        <Label htmlFor="dep_dob">{tRegister('dateOfBirth')}</Label>
                         <Input
                           id="dep_dob"
                           type="date"
@@ -760,54 +800,53 @@ function KhairatRegisterPageContent() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="dep_gender">Gender</Label>
+                        <Label htmlFor="dep_gender">{tRegister('gender')}</Label>
                         <Select
                           value={newDependent.gender}
                           onValueChange={(value) => setNewDependent({ ...newDependent, gender: value })}
                           disabled={isMosqueAdmin}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
+                            <SelectValue placeholder={tRegister('selectGender')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="male">{tRegister('genderMale')}</SelectItem>
+                            <SelectItem value="female">{tRegister('genderFemale')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="dep_phone">Phone Number</Label>
+                        <Label htmlFor="dep_phone">{tRegister('phoneNumber')}</Label>
                         <Input
                           id="dep_phone"
                           type="tel"
                           value={newDependent.phone}
                           onChange={(e) => setNewDependent({ ...newDependent, phone: e.target.value })}
-                          placeholder="Enter phone number"
+                          placeholder={tRegister('phoneNumberPlaceholder')}
                           disabled={isMosqueAdmin}
                         />
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_email">Email</Label>
+                        <Label htmlFor="dep_email">{tRegister('email')}</Label>
                         <Input
                           id="dep_email"
                           type="email"
                           value={newDependent.email}
                           onChange={(e) => setNewDependent({ ...newDependent, email: e.target.value })}
-                          placeholder="Enter email address"
+                          placeholder={tRegister('emailPlaceholder')}
                           disabled={isMosqueAdmin}
                         />
                       </div>
 
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_address">Address</Label>
+                        <Label htmlFor="dep_address">{tRegister('address')}</Label>
                         <Textarea
                           id="dep_address"
                           value={newDependent.address}
                           onChange={(e) => setNewDependent({ ...newDependent, address: e.target.value })}
-                          placeholder="Enter address"
+                          placeholder={tRegister('addressPlaceholder')}
                           rows={2}
                           disabled={isMosqueAdmin}
                         />
@@ -823,7 +862,7 @@ function KhairatRegisterPageContent() {
                           disabled={isMosqueAdmin}
                         />
                         <Label htmlFor="save_to_profile" className="text-sm font-normal cursor-pointer">
-                          Save this dependent to my profile for future use
+                              {tRegister('saveToProfile')}
                         </Label>
                       </div>
                     )}
@@ -850,14 +889,14 @@ function KhairatRegisterPageContent() {
                         className="flex-1"
                         disabled={isMosqueAdmin}
                       >
-                        Cancel
+                        {tMosquePage('cancel') || 'Cancel'}
                       </Button>
                       <Button
                         type="button"
                         onClick={async () => {
                           if (isMosqueAdmin) return;
                           if (!newDependent.full_name || !newDependent.relationship) {
-                            toast.error('Please fill in required fields (Name and Relationship)');
+                            toast.error(tRegister('dependentValidation'));
                             return;
                           }
 
@@ -951,12 +990,12 @@ function KhairatRegisterPageContent() {
                         {savingDependent ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
+                            {tMosquePage('saving') || 'Saving...'}
                           </>
                         ) : (
                           <>
                             <Plus className="h-4 w-4 mr-2" />
-                            Add Dependent
+                            {tRegister('addDependentButton')}
                           </>
                         )}
                       </Button>
@@ -1011,14 +1050,18 @@ function KhairatRegisterPageContent() {
               {user && selectedDependentIds.size > 0 && userDependents.length > 0 && (
                 <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                   <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                    <strong>{selectedDependentIds.size}</strong> dependent{selectedDependentIds.size > 1 ? 's' : ''} selected
+                    {tRegister('dependentsSelectedSummary', {
+                      count: selectedDependentIds.size,
+                    })}
                   </p>
                 </div>
               )}
               {!user && tempDependents.length > 0 && (
                 <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                   <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                    <strong>{tempDependents.length}</strong> dependent{tempDependents.length > 1 ? 's' : ''} will be included in your registration
+                    {tRegister('dependentsGuestSummary', {
+                      count: tempDependents.length,
+                    })}
                   </p>
                 </div>
               )}
@@ -1036,12 +1079,12 @@ function KhairatRegisterPageContent() {
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
+                  {tMosquePage('saving') || 'Submitting...'}
                 </>
               ) : (
                 <>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Submit Application
+                  {tRegister('submitApplication')}
                 </>
               )}
             </Button>

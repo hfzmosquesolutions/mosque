@@ -66,6 +66,7 @@ import {
 } from '@/lib/api/khairat-members';
 import { KhairatMember } from '@/types/database';
 import { supabase } from '@/lib/supabase';
+import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
 interface KhairatManagementProps {
   mosqueId: string;
@@ -904,14 +905,18 @@ export function KhairatManagement({
                 </div>
                 <div>
                   <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
-                  <Input
-                    placeholder={t('registerDialog.enterIcNumber')}
-                    value={createForm.ic_passport_number}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, ic_passport_number: e.target.value })
-                    }
-                    className="mt-1"
-                  />
+              <Input
+                placeholder={t('registerDialog.enterIcNumber')}
+                value={createForm.ic_passport_number}
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
+                  })
+                }
+                className="mt-1"
+                maxLength={12}
+              />
                 </div>
                 <div>
                   <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
@@ -972,9 +977,13 @@ export function KhairatManagement({
                     placeholder={t('registerDialog.enterIcNumber')}
                     value={createForm.ic_passport_number}
                     onChange={(e) =>
-                      setCreateForm({ ...createForm, ic_passport_number: e.target.value })
+                      setCreateForm({
+                        ...createForm,
+                        ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
+                      })
                     }
                     className="mt-1"
+                    maxLength={12}
                   />
                 </div>
               </>

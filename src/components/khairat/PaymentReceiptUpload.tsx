@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,8 @@ import {
 import { toast } from 'sonner';
 import { uploadPaymentReceipt, deletePaymentReceipt, getPaymentReceipts } from '@/lib/api';
 import type { PaymentReceipt } from '@/types/database';
+import { compressImage } from '@/utils/image-compression';
+import { useTranslations } from 'next-intl';
 
 interface PaymentReceiptUploadProps {
   contributionId?: string; // If provided, will load existing receipts
@@ -45,10 +46,11 @@ interface UploadedFile {
 export function PaymentReceiptUpload({
   contributionId,
   onReceiptsChange,
-  maxFiles = 3,
+  maxFiles = 1,
   disabled = false
 }: PaymentReceiptUploadProps) {
   const { user } = useAuth();
+  const tKhairat = useTranslations('khairat');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [existingReceipts, setExistingReceipts] = useState<PaymentReceipt[]>([]);
@@ -80,19 +82,24 @@ export function PaymentReceiptUpload({
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     
     if (files.length === 0) return;
 
     // Validate file count
-    const totalFiles = uploadedFiles.length + existingReceipts.length + files.length;
+    const totalFiles =
+      uploadedFiles.length + existingReceipts.length + files.length;
     if (totalFiles > maxFiles) {
-      toast.error(`Maximum ${maxFiles} files allowed`);
+      toast.error(
+        tKhairat('payPage.tooManyFiles', {
+          count: maxFiles,
+        })
+      );
       return;
     }
 
-    // Validate files
+    // Validate and compress files
     const validFiles: UploadedFile[] = [];
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = [
@@ -102,23 +109,57 @@ export function PaymentReceiptUpload({
       'application/pdf',
     ];
 
-    files.forEach((file) => {
+    // Prepare image files for optional compression (no user-facing toast)
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+    for (const file of files) {
       if (file.size > maxSize) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
-        return;
+        toast.error(
+          tKhairat('payPage.fileTooLarge', {
+            fileName: file.name,
+          })
+        );
+        continue;
       }
 
       if (!allowedTypes.includes(file.type)) {
-        toast.error(`${file.name} has an unsupported file type. Only JPEG, PNG, GIF, and PDF are allowed.`);
-        return;
+        toast.error(
+          tKhairat('payPage.unsupportedFileType', {
+            fileName: file.name,
+          })
+        );
+        continue;
+      }
+
+      // Compress image files to reduce size
+      let processedFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          processedFile = await compressImage(file, 2, 1920); // Max 2MB, max dimension 1920px
+          if (processedFile.size < file.size) {
+            const reduction = ((file.size - processedFile.size) / file.size * 100).toFixed(1);
+            console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB (${reduction}% reduction)`);
+          }
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          // Continue with original file if compression fails
+        }
       }
 
       validFiles.push({
         id: Math.random().toString(36).substring(2),
-        file,
+        file: processedFile,
         status: 'pending'
       });
-    });
+    }
+
+    if (validFiles.length === 0) {
+      // Clear the input if no valid files
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     const updatedFiles = [...uploadedFiles, ...validFiles];
     setUploadedFiles(updatedFiles);
@@ -139,7 +180,7 @@ export function PaymentReceiptUpload({
 
   const handleUpload = async (uploadedFile: UploadedFile) => {
     if (!contributionId || !user?.id) {
-      toast.error('Contribution ID and user ID are required');
+      toast.error(tKhairat('payPage.uploadMissingIds'));
       return;
     }
 
@@ -164,7 +205,11 @@ export function PaymentReceiptUpload({
               : f
           )
         );
-        toast.success(`${uploadedFile.file.name} uploaded successfully`);
+        toast.success(
+          tKhairat('payPage.uploadSuccess', {
+            fileName: uploadedFile.file.name,
+          })
+        );
         loadExistingReceipts();
       } else {
         throw new Error(response.error || 'Upload failed');
@@ -177,7 +222,11 @@ export function PaymentReceiptUpload({
             : f
         )
       );
-      toast.error(`Failed to upload ${uploadedFile.file.name}: ${error.message}`);
+      toast.error(
+        tKhairat('payPage.uploadFailed', {
+          fileName: uploadedFile.file.name,
+        })
+      );
     }
   };
 
@@ -187,15 +236,21 @@ export function PaymentReceiptUpload({
     }
 
     try {
-      const response = await deletePaymentReceipt(contributionId, receiptId, user.id);
+      const response = await deletePaymentReceipt(
+        contributionId,
+        receiptId,
+        user.id
+      );
       if (response.success) {
-        toast.success('Receipt deleted successfully');
+        toast.success(tKhairat('payPage.deleteSuccess'));
         loadExistingReceipts();
       } else {
-        toast.error(response.error || 'Failed to delete receipt');
+        toast.error(
+          response.error || tKhairat('payPage.deleteFailedGeneric')
+        );
       }
     } catch (error: any) {
-      toast.error(`Failed to delete receipt: ${error.message}`);
+      toast.error(tKhairat('payPage.deleteFailed'));
     }
   };
 
@@ -220,49 +275,150 @@ export function PaymentReceiptUpload({
   };
 
   const getFileIcon = (fileType?: string) => {
-    if (!fileType) return <File className="h-4 w-4" />;
-    if (fileType.startsWith('image/')) return <Eye className="h-4 w-4" />;
+    // Standardized file icon (no emoji/thumbnail)
     return <File className="h-4 w-4" />;
   };
 
+  const totalFiles = uploadedFiles.length + existingReceipts.length;
+  const canUpload =
+    !disabled && uploadedFiles.length + existingReceipts.length < maxFiles;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label>Payment Receipt</Label>
-        {!disabled && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadedFiles.length + existingReceipts.length >= maxFiles}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Receipt
-          </Button>
-        )}
-      </div>
-
       <input
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/gif,application/pdf"
-        multiple
+        multiple={maxFiles > 1}
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled}
       />
 
+      {/* Upload Area */}
+      <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6">
+        <div className="text-center">
+          <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              {existingReceipts.length === 0 && uploadedFiles.length === 0 
+                ? tKhairat('payPage.noReceiptUploaded')
+                : tKhairat('payPage.uploadPaymentReceiptTitle')}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {tKhairat('payPage.uploadPaymentReceiptDescription')}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {tKhairat('payPage.uploadPaymentReceiptLimit', {
+                count: maxFiles,
+              })}
+            </p>
+          </div>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!canUpload}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {tKhairat('payPage.uploadReceiptButton')}
+          </Button>
+        </div>
+      </div>
+
+      {/* File Count */}
+      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
+        <span>
+          {tKhairat('payPage.filesCount', {
+            current: totalFiles,
+            max: maxFiles,
+          })}
+        </span>
+        {contributionId && (
+          <span>
+            {tKhairat('payPage.uploadedCount', {
+              count: existingReceipts.length,
+            })}
+          </span>
+        )}
+      </div>
+
+      {/* Pending Uploads */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            {tKhairat('payPage.filesToUploadTitle')}
+          </h4>
+          {uploadedFiles.map((uploadedFile) => (
+            <Card key={uploadedFile.id} className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1">
+                  {uploadedFile.status === 'uploading' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : uploadedFile.status === 'success' ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : uploadedFile.status === 'error' ? (
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                  ) : (
+                    <File className="h-4 w-4" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {uploadedFile.file.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(uploadedFile.file.size)}
+                    </p>
+                    {uploadedFile.error && (
+                      <p className="text-xs text-red-600">
+                        {uploadedFile.error}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {uploadedFile.status === 'pending' && !contributionId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePendingFile(uploadedFile.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                {uploadedFile.status === 'pending' && contributionId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpload(uploadedFile)}
+                  >
+                    Upload
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Existing Receipts */}
       {existingReceipts.length > 0 && (
         <div className="space-y-2">
+          <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            {tKhairat('payPage.uploadedReceiptsTitle')}
+          </h4>
           {existingReceipts.map((receipt) => (
             <Card key={receipt.id} className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
                   {getFileIcon(receipt.file_type)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{receipt.file_name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {receipt.file_name}
+                    </p>
                     {receipt.file_size && (
                       <p className="text-xs text-muted-foreground">
                         {formatFileSize(receipt.file_size)}
@@ -309,73 +465,11 @@ export function PaymentReceiptUpload({
         </div>
       )}
 
-      {/* Pending Uploads */}
-      {uploadedFiles.length > 0 && (
-        <div className="space-y-2">
-          {uploadedFiles.map((uploadedFile) => (
-            <Card key={uploadedFile.id} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  {uploadedFile.status === 'uploading' ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : uploadedFile.status === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : uploadedFile.status === 'error' ? (
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                  ) : (
-                    <File className="h-4 w-4" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(uploadedFile.file.size)}
-                    </p>
-                    {uploadedFile.error && (
-                      <p className="text-xs text-red-600">{uploadedFile.error}</p>
-                    )}
-                  </div>
-                </div>
-                {uploadedFile.status === 'pending' && !contributionId && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removePendingFile(uploadedFile.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                {uploadedFile.status === 'pending' && contributionId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleUpload(uploadedFile)}
-                  >
-                    Upload
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {existingReceipts.length === 0 && uploadedFiles.length === 0 && (
-        <Card className="p-6 border-dashed">
-          <div className="text-center text-muted-foreground">
-            <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No receipt uploaded yet</p>
-            <p className="text-xs mt-1">Upload a payment receipt (JPEG, PNG, GIF, or PDF)</p>
-          </div>
-        </Card>
-      )}
-
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Receipt Preview</DialogTitle>
+            <DialogTitle>{tKhairat('payPage.receiptPreviewTitle')}</DialogTitle>
             <DialogDescription>{selectedReceipt?.file_name}</DialogDescription>
           </DialogHeader>
           {selectedReceipt && (

@@ -36,6 +36,7 @@ import { UserProfile } from '@/types/database';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Loading } from '@/components/ui/loading';
+import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
 function ProfileContent() {
   const { user } = useAuth();
@@ -82,6 +83,16 @@ function ProfileContent() {
 
   const handleSave = async () => {
     if (!user?.id || !profile) return;
+
+    // Validate IC number format if provided
+    if (profile.ic_passport_number) {
+      const normalizedIc = normalizeMalaysiaIc(profile.ic_passport_number);
+      if (!isValidMalaysiaIc(normalizedIc)) {
+        setError('Invalid IC number.');
+        return;
+      }
+      profile.ic_passport_number = normalizedIc;
+    }
 
     setSaving(true);
     const response = await updateUserProfile(user.id, {
@@ -228,12 +239,16 @@ function ProfileContent() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="icPassportNumber">IC/Passport Number</Label>
+                    <Label htmlFor="icPassportNumber">IC Number</Label>
                     <Input
                       id="icPassportNumber"
                       value={profile.ic_passport_number || ''}
-                      onChange={(e) => updateField('ic_passport_number', e.target.value)}
-                      placeholder="Enter your IC or Passport number"
+                      onChange={(e) => {
+                        const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                        updateField('ic_passport_number', normalized);
+                      }}
+                      placeholder="Enter your IC number"
+                      maxLength={12}
                     />
                   </div>
                   <div className="space-y-2">

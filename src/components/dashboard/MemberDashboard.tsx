@@ -108,9 +108,14 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
     try {
       setLoading(true);
 
-      // Fetch user's contributions
-      const { data: contributionsData, error: contributionsError } =
-        await supabase
+      // Parallelize all independent queries for better performance
+      const [
+        contributionsResult,
+        dependentsResult,
+        khairatMembershipsResult,
+        claimsResult
+      ] = await Promise.all([
+        supabase
           .from('khairat_contributions')
           .select(
             `
@@ -127,13 +132,29 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
           )
           .eq('contributor_id', user?.id)
           .order('contributed_at', { ascending: false })
-          .limit(10);
+          .limit(10),
+        supabase
+          .from('user_dependents')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user?.id),
+        supabase
+          .from('khairat_members')
+          .select('id, status')
+          .eq('user_id', user?.id)
+          .in('status', ['pending', 'approved', 'active']),
+        supabase
+          .from('khairat_claims')
+          .select('approved_amount')
+          .eq('claimant_id', user?.id)
+          .eq('status', 'approved')
+      ]);
 
-      if (contributionsError) {
-        console.error('Error fetching contributions:', contributionsError);
+      // Process contributions
+      if (contributionsResult.error) {
+        console.error('Error fetching contributions:', contributionsResult.error);
       } else {
         const formattedContributions =
-          contributionsData?.map((item: any) => ({
+          contributionsResult.data?.map((item: any) => ({
             id: item.id,
             amount: item.amount,
             contributed_at: item.contributed_at,
@@ -148,42 +169,24 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
         setContributions(formattedContributions);
       }
 
-      // Fetch dependents count
-      const { data: dependentsData, error: dependentsError } = await supabase
-        .from('user_dependents')
-        .select('id')
-        .eq('user_id', user?.id);
-
-      if (!dependentsError && dependentsData) {
-        setDependentsCount(dependentsData.length);
+      // Process dependents count (using count query is faster)
+      if (!dependentsResult.error && typeof dependentsResult.count === 'number') {
+        setDependentsCount(dependentsResult.count);
       }
 
-      // Check if user has registered for khairat (khairat membership)
-      const { data: khairatMemberships, error: khairatError } = await supabase
-        .from('khairat_members')
-        .select('id, status')
-        .eq('user_id', user?.id)
-        .in('status', ['pending', 'approved', 'active']);
-
-      if (!khairatError && khairatMemberships && khairatMemberships.length > 0) {
+      // Process khairat memberships
+      if (!khairatMembershipsResult.error && khairatMembershipsResult.data && khairatMembershipsResult.data.length > 0) {
         setHasRegisteredForKhairat(true);
       }
 
-      // Fetch approved claims amount
-      const { data: claimsData, error: claimsError } = await supabase
-        .from('khairat_claims')
-        .select('approved_amount')
-        .eq('claimant_id', user?.id)
-        .eq('status', 'approved');
-
-      if (!claimsError && claimsData) {
-        const totalApprovedAmount = claimsData.reduce((sum, claim) => sum + (claim.approved_amount || 0), 0);
+      // Process approved claims amount
+      if (!claimsResult.error && claimsResult.data) {
+        const totalApprovedAmount = claimsResult.data.reduce((sum, claim) => sum + (claim.approved_amount || 0), 0);
         setActiveClaimsAmount(totalApprovedAmount);
       }
 
       // Check if user has found a mosque (through khairat registration)
-      // If user has registered for khairat, they have found a mosque
-      const hasFoundMosqueThroughRegistration = khairatMemberships && khairatMemberships.length > 0;
+      const hasFoundMosqueThroughRegistration = khairatMembershipsResult.data && khairatMembershipsResult.data.length > 0;
       
       // Also check if user has visited mosques page (localStorage tracking)
       const hasVisitedMosques = localStorage.getItem('hasVisitedMosques') === 'true';

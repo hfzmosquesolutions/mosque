@@ -155,6 +155,7 @@ export function PaymentProviderSettings() {
     }
   };
 
+
   const updateFormData = (field: string, value: string | boolean) => {
     if (selectedProvider === 'billplz') {
       setBillplzFormData((prev) => ({ ...prev, [field]: value }));
