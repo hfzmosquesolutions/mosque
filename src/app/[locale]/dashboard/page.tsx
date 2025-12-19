@@ -215,28 +215,28 @@ function DashboardContent() {
         if (signal.aborted || !isMounted()) return;
 
         // Process mosque data
-        if (mosqueResponse.success && mosqueResponse.data) {
+        if ('success' in mosqueResponse && mosqueResponse.success && mosqueResponse.data) {
           safeSetState(setMosqueData, mosqueResponse.data);
           safeSetState(setMosqueName, mosqueResponse.data.name);
         }
 
         // Process mosque contributions
-        if (mosqueContributions.data) {
+        if ('data' in mosqueContributions && mosqueContributions.data) {
           safeSetState(setAllContributions, mosqueContributions.data as Contribution[]);
         }
 
         // Process membership stats
-        if (membershipData) {
+        if (membershipData && typeof membershipData === 'object' && !('error' in membershipData)) {
           safeSetState(setMembershipStats, membershipData);
         }
 
         // Process claim counts (optimized)
-        if (claimCountsData) {
+        if (claimCountsData && typeof claimCountsData === 'object' && 'successful' in claimCountsData) {
           safeSetState(setClaimCounts, claimCountsData);
         }
 
         // Process pending applications count
-        if (!pendingCountResult.error && typeof pendingCountResult.count === 'number') {
+        if ('error' in pendingCountResult && 'count' in pendingCountResult && !pendingCountResult.error && typeof pendingCountResult.count === 'number') {
           safeSetState(setPendingApplicationsCount, pendingCountResult.count);
         } else {
           safeSetState(setPendingApplicationsCount, 0 as number);

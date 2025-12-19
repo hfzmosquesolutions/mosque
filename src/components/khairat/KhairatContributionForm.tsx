@@ -619,7 +619,7 @@ export function KhairatContributionForm({
             </>
           )}
 
-          {selectedMosqueId && khairatSettings?.enabled && (
+          {selectedMosqueId && khairatSettings?.enabled ? (
             <div className="space-y-3">
               <Label>{t('makePaymentDialog.paymentMethodRequired')}</Label>
               {checkingPaymentProvider ? (
@@ -732,33 +732,37 @@ export function KhairatContributionForm({
                   </Alert>
                 )}
             </div>
-          )}
+          ) : null}
 
           {/* Bank Transfer Details - Show if bank transfer is selected */}
-          {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && mosque?.settings?.bank_transfer_details && (
-            <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Bank Transfer Details</h4>
-                <div className="space-y-2 text-sm">
-                  {mosque.settings.bank_transfer_details.bank_name && (
-                    <p><span className="font-medium">Bank:</span> {mosque.settings.bank_transfer_details.bank_name}</p>
-                  )}
-                  {mosque.settings.bank_transfer_details.account_number && (
-                    <p><span className="font-medium">Account Number:</span> {mosque.settings.bank_transfer_details.account_number}</p>
-                  )}
-                  {mosque.settings.bank_transfer_details.account_holder_name && (
-                    <p><span className="font-medium">Account Holder:</span> {mosque.settings.bank_transfer_details.account_holder_name}</p>
-                  )}
-                  {mosque.settings.bank_transfer_details.reference_instructions && (
-                    <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                      <p className="font-medium text-xs mb-1">Reference Instructions:</p>
-                      <p className="text-xs text-muted-foreground">{mosque.settings.bank_transfer_details.reference_instructions}</p>
-                    </div>
-                  )}
+          {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && (() => {
+            const bankDetails = mosque?.settings?.bank_transfer_details;
+            const hasBankDetails = bankDetails && typeof bankDetails === 'object' && bankDetails !== null;
+            return hasBankDetails ? (
+              <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Bank Transfer Details</h4>
+                  <div className="space-y-2 text-sm">
+                    {(bankDetails as any).bank_name && (
+                      <p><span className="font-medium">Bank:</span> {(bankDetails as any).bank_name}</p>
+                    )}
+                    {(bankDetails as any).account_number && (
+                      <p><span className="font-medium">Account Number:</span> {(bankDetails as any).account_number}</p>
+                    )}
+                    {(bankDetails as any).account_holder_name && (
+                      <p><span className="font-medium">Account Holder:</span> {(bankDetails as any).account_holder_name}</p>
+                    )}
+                    {(bankDetails as any).reference_instructions && (
+                      <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
+                        <p className="font-medium text-xs mb-1">Reference Instructions:</p>
+                        <p className="text-xs text-muted-foreground">{(bankDetails as any).reference_instructions}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* Payment Reference - Only show for manual payments */}
           {paymentMethod && paymentMethod !== 'toyyibpay' && (

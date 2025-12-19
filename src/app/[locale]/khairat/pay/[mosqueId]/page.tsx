@@ -1150,109 +1150,115 @@ function KhairatPayPageContent() {
                 </RadioGroup>
               </div>
 
-              {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && (
-                <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">
-                      {tKhairat('payPage.bankTransferDetailsTitle')}
-                    </h4>
-                    {mosque?.settings?.bank_transfer_details && (
-                      <div className="space-y-2 text-sm">
-                        {mosque.settings.bank_transfer_details.bank_name && (
-                          <p>
-                            <span className="font-medium">Bank:</span>{' '}
-                            {mosque.settings.bank_transfer_details.bank_name}
-                          </p>
-                        )}
-                        {mosque.settings.bank_transfer_details.account_number && (
-                          <p>
-                            <span className="font-medium">Account Number:</span>{' '}
-                            {mosque.settings.bank_transfer_details.account_number}
-                          </p>
-                        )}
-                        {mosque.settings.bank_transfer_details.account_holder_name && (
-                          <p>
-                            <span className="font-medium">Account Holder:</span>{' '}
-                            {mosque.settings.bank_transfer_details.account_holder_name}
-                          </p>
-                        )}
-                        {mosque.settings.bank_transfer_details.reference_instructions && (
-                          <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                            <p className="font-medium text-xs mb-1">
-                              {tKhairat(
-                                'payPage.referenceInstructionsLabel'
-                              )}
-                              :
+              {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && (() => {
+                const bankDetails = mosque?.settings?.bank_transfer_details;
+                const hasBankDetails = bankDetails && typeof bankDetails === 'object' && bankDetails !== null;
+                return (
+                  <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">
+                        {tKhairat('payPage.bankTransferDetailsTitle')}
+                      </h4>
+                      {hasBankDetails ? (
+                        <div className="space-y-2 text-sm">
+                          {(bankDetails as any).bank_name && (
+                            <p>
+                              <span className="font-medium">Bank:</span>{' '}
+                              {(bankDetails as any).bank_name}
                             </p>
-                            <p className="text-xs text-muted-foreground">{mosque.settings.bank_transfer_details.reference_instructions}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                          {(bankDetails as any).account_number && (
+                            <p>
+                              <span className="font-medium">Account Number:</span>{' '}
+                              {(bankDetails as any).account_number}
+                            </p>
+                          )}
+                          {(bankDetails as any).account_holder_name && (
+                            <p>
+                              <span className="font-medium">Account Holder:</span>{' '}
+                              {(bankDetails as any).account_holder_name}
+                            </p>
+                          )}
+                          {(bankDetails as any).reference_instructions && (
+                            <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
+                              <p className="font-medium text-xs mb-1">
+                                {tKhairat(
+                                  'payPage.referenceInstructionsLabel'
+                                )}
+                                :
+                              </p>
+                              <p className="text-xs text-muted-foreground">{(bankDetails as any).reference_instructions}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               
-              {enabledPaymentMethods.cash && paymentMethod === 'cash' && (
-                <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">
-                      {tKhairat('payPage.cashPaymentDetailsTitle')}
-                    </h4>
-                    {mosque?.settings?.cash_payment_details && (
-                      <div className="space-y-2 text-sm">
-                        {mosque.settings.cash_payment_details.payment_location && (
-                          <p>
-                            <span className="font-medium">
-                              {tKhairat('payPage.paymentLocationLabel')}:
-                            </span>{' '}
-                            {mosque.settings.cash_payment_details.payment_location}
-                          </p>
-                        )}
-                        {mosque.settings.cash_payment_details.office_hours && (
-                          <p>
-                            <span className="font-medium">
-                              {tKhairat('payPage.officeHoursLabel')}:
-                            </span>{' '}
-                            {mosque.settings.cash_payment_details.office_hours}
-                          </p>
-                        )}
-                        {(mosque.settings.cash_payment_details.contact_person || mosque.settings.cash_payment_details.contact_phone) && (
-                          <div className="flex gap-4">
-                            {mosque.settings.cash_payment_details.contact_person && (
-                              <p>
-                                <span className="font-medium">
-                                  {tKhairat('payPage.contactLabel')}:
-                                </span>{' '}
-                                {mosque.settings.cash_payment_details
-                                  .contact_person}
-                              </p>
-                            )}
-                            {mosque.settings.cash_payment_details.contact_phone && (
-                              <p>
-                                <span className="font-medium">
-                                  {tKhairat('payPage.phoneLabel')}:
-                                </span>{' '}
-                                {mosque.settings.cash_payment_details
-                                  .contact_phone}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {mosque.settings.cash_payment_details.instructions && (
-                          <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                            <p className="font-medium text-xs mb-1">
-                              {tKhairat('payPage.paymentInstructionsLabel')}
+              {enabledPaymentMethods.cash && paymentMethod === 'cash' && (() => {
+                const cashDetails = mosque?.settings?.cash_payment_details;
+                const hasCashDetails = cashDetails && typeof cashDetails === 'object' && cashDetails !== null;
+                return (
+                  <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">
+                        {tKhairat('payPage.cashPaymentDetailsTitle')}
+                      </h4>
+                      {hasCashDetails ? (
+                        <div className="space-y-2 text-sm">
+                          {(cashDetails as any).payment_location && (
+                            <p>
+                              <span className="font-medium">
+                                {tKhairat('payPage.paymentLocationLabel')}:
+                              </span>{' '}
+                              {(cashDetails as any).payment_location}
+                            </p>
+                          )}
+                          {(cashDetails as any).office_hours && (
+                            <p>
+                              <span className="font-medium">
+                                {tKhairat('payPage.officeHoursLabel')}:
+                              </span>{' '}
+                              {(cashDetails as any).office_hours}
+                            </p>
+                          )}
+                          {((cashDetails as any).contact_person || (cashDetails as any).contact_phone) && (
+                            <div className="flex gap-4">
+                              {(cashDetails as any).contact_person && (
+                                <p>
+                                  <span className="font-medium">
+                                    {tKhairat('payPage.contactLabel')}:
+                                  </span>{' '}
+                                  {(cashDetails as any).contact_person}
+                                </p>
+                              )}
+                              {(cashDetails as any).contact_phone && (
+                                <p>
+                                  <span className="font-medium">
+                                    {tKhairat('payPage.phoneLabel')}:
+                                  </span>{' '}
+                                  {(cashDetails as any).contact_phone}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {(cashDetails as any).instructions && (
+                            <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
+                              <p className="font-medium text-xs mb-1">
+                                {tKhairat('payPage.paymentInstructionsLabel')}
                               :
                             </p>
-                            <p className="text-xs text-muted-foreground">{mosque.settings.cash_payment_details.instructions}</p>
+                            <p className="text-xs text-muted-foreground">{(cashDetails as any).instructions}</p>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               {(paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && (
                 <div className="space-y-2">
                   <PaymentReceiptUpload
