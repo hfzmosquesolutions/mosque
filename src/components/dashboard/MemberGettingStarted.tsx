@@ -16,6 +16,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface Step {
   id: string;
@@ -44,12 +45,13 @@ export function MemberGettingStarted({
   hasRegisteredForKhairat = false,
   hasFoundMosque = false
 }: MemberGettingStartedProps) {
+  const t = useTranslations('dashboard');
   
   const steps: Step[] = [
     {
       id: 'complete-onboarding',
-      title: 'Complete Your Profile Setup',
-      description: 'Finish setting up your profile and account information',
+      title: t('memberSetupSteps.completeOnboarding.title'),
+      description: t('memberSetupSteps.completeOnboarding.description'),
       icon: User,
       href: '/onboarding',
       completed: hasCompletedOnboarding,
@@ -57,8 +59,8 @@ export function MemberGettingStarted({
     },
     {
       id: 'find-local-mosque',
-      title: 'Find Your Local Mosque',
-      description: 'Discover and connect with mosques in your area',
+      title: t('memberSetupSteps.findLocalMosque.title'),
+      description: t('memberSetupSteps.findLocalMosque.description'),
       icon: MapPin,
       href: '/mosques',
       completed: hasFoundMosque,
@@ -66,8 +68,8 @@ export function MemberGettingStarted({
     },
     {
       id: 'register-khairat',
-      title: 'Register for Khairat',
-      description: 'Find your mosque and join a khairat program to support your community',
+      title: t('memberSetupSteps.registerKhairat.title'),
+      description: t('memberSetupSteps.registerKhairat.description'),
       icon: Heart,
       href: '/mosques',
       completed: hasRegisteredForKhairat,
@@ -75,8 +77,8 @@ export function MemberGettingStarted({
     },
     {
       id: 'make-first-contribution',
-      title: 'Make Your First Contribution',
-      description: 'Start supporting your community with a khairat contribution',
+      title: t('memberSetupSteps.makeFirstContribution.title'),
+      description: t('memberSetupSteps.makeFirstContribution.description'),
       icon: DollarSign,
       href: '/my-mosques',
       completed: contributionsCount > 0,
@@ -104,11 +106,11 @@ export function MemberGettingStarted({
   const getPriorityText = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'Important';
+        return t('stepPriorityLabels.high');
       case 'medium':
-        return 'Recommended';
+        return t('stepPriorityLabels.medium');
       case 'low':
-        return 'Optional';
+        return t('stepPriorityLabels.low');
       default:
         return '';
     }
@@ -120,21 +122,21 @@ export function MemberGettingStarted({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <CheckCircle className="h-4 w-4 text-emerald-600" />
-            Getting Started
+            {t('memberSetupGuideTitle')}
           </CardTitle>
           <Badge variant="outline" className="text-xs">
-            {completedSteps}/{totalSteps} completed
+            {t('stepsCompleted', { completed: completedSteps, total: totalSteps })}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Complete these steps to get the most out of your mosque community
+          {t('memberSetupGuideDescription')}
         </p>
       </CardHeader>
       <CardContent>
         {/* Progress Bar */}
         <div className="mb-6">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-            <span>Progress</span>
+            <span>{t('progress')}</span>
             <span>{Math.round(progressPercentage)}%</span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -205,7 +207,7 @@ export function MemberGettingStarted({
                 <div className="flex-shrink-0">
                   {step.completed ? (
                     <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      Completed
+                      {t('stepStatus.completed')}
                     </Badge>
                   ) : (
                     <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
@@ -215,7 +217,7 @@ export function MemberGettingStarted({
                         target={step.href === '/mosques' ? '_blank' : undefined}
                         rel={step.href === '/mosques' ? 'noopener noreferrer' : undefined}
                       >
-                        Start
+                        {t('stepStatus.start')}
                         <ArrowRight className="h-3 w-3" />
                       </Link>
                     </Button>
@@ -231,10 +233,10 @@ export function MemberGettingStarted({
           <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
             <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
               <CheckCircle className="h-5 w-5" />
-              <span className="font-medium text-sm">Congratulations! You've completed all the getting started steps.</span>
+              <span className="font-medium text-sm">{t('memberSetupCompletionTitle')}</span>
             </div>
             <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
-              You're now fully engaged with your mosque community!
+              {t('memberSetupCompletionDescription')}
             </p>
           </div>
         )}

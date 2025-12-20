@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -78,7 +79,11 @@ interface MosqueMembership {
 
 export function UserApplicationsTable({ showHeader = true }: UserApplicationsTableProps) {
   const t = useTranslations('khairat');
+  const tMyMosques = useTranslations('docs.myMosques');
+  const tCommon = useTranslations('common');
   const { user } = useAuth();
+  const locale = useLocale();
+  const router = useRouter();
   const [members, setMembers] = useState<MosqueMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -375,7 +380,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
   };
 
   if (loading) {
-    return <Loading />;
+    return <Loading message={tMyMosques('loadingMyMosques')} />;
   }
 
   if (members.length === 0) {
@@ -385,10 +390,10 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
           <Building className="h-12 w-12 text-emerald-600" />
         </div>
             <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-3">
-              Join Your First Mosque
+              {tMyMosques('joinYourFirstMosque')}
             </h3>
             <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-8">
-              Connect with mosques in your community and participate in khairat programs to make meaningful contributions.
+              {tMyMosques('joinYourFirstMosqueDescription')}
             </p>
         <Button 
           size="lg" 
@@ -396,7 +401,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
           asChild
         >
           <a href="/mosques" target="_blank" rel="noopener noreferrer">
-            <Building className="mr-2 h-5 w-5" /> Find Mosques
+            <Building className="mr-2 h-5 w-5" /> {tMyMosques('findMosques')}
           </a>
         </Button>
       </div>
@@ -405,153 +410,164 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {members.map((application) => (
           <Card
             key={application.id}
             className="transition-all hover:shadow-md bg-white/90 dark:bg-slate-800 border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer p-0"
           >
-            {/* Mosque Banner Image - Full width at top */}
-            <div className="w-full h-40 bg-slate-100 dark:bg-slate-700 overflow-hidden">
-              <Image
-                src={(application.mosque?.banner_url || application.mosque?.logo_url || '/window.svg') as string}
-                alt={application.mosque?.name || 'Mosque'}
-                width={400}
-                height={160}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            
-            {/* Mosque Content */}
-            <div className="px-4 md:px-5 py-4">
-              {/* Mosque Logo and Name */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700 flex-shrink-0">
-                  <Image
-                    src={application.mosque?.logo_url || '/icon-khairatkita.png'}
-                    alt={`${application.mosque?.name} logo`}
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                    {application.mosque?.id ? (
-                      <button
-                        onClick={() => application.mosque?.id && window.open(`/mosques/${application.mosque?.id}`, '_blank', 'noopener,noreferrer')}
-                        className="text-slate-900 dark:text-slate-100 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
-                        title="View mosque page"
-                      >
-                        {application.mosque?.name}
-                      </button>
-                    ) : (
-                      <span className="text-slate-500">Unknown Mosque</span>
-                    )}
-                  </h3>
-                  {application.mosque?.address && (
-                    <div className="flex items-center text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      <MapPin className="h-3 w-3 mr-1 flex-shrink-0 text-emerald-600" />
-                      <span className="truncate">{application.mosque?.address}</span>
+            <div className="flex flex-col md:flex-row">
+              {/* Mosque Image/Logo - Left side */}
+              <div className="w-full md:w-64 lg:w-80 h-48 md:h-auto bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                <Image
+                  src={(application.mosque?.banner_url || application.mosque?.logo_url || '/window.svg') as string}
+                  alt={application.mosque?.name || 'Mosque'}
+                  width={400}
+                  height={300}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
+              {/* Mosque Content - Right side */}
+              <div className="flex-1 px-4 md:px-6 py-4 md:py-5">
+                <div className="flex flex-col h-full">
+                  {/* Header: Logo, Name, and Menu */}
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-12 w-12 rounded-full overflow-hidden bg-white border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                        <Image
+                          src={application.mosque?.logo_url || '/icon-khairatkita.png'}
+                          alt={`${application.mosque?.name} logo`}
+                          width={48}
+                          height={48}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">
+                          {application.mosque?.id ? (
+                            <button
+                              onClick={() => application.mosque?.id && window.open(`/mosques/${application.mosque?.id}`, '_blank', 'noopener,noreferrer')}
+                              className="text-slate-900 dark:text-slate-100 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
+                              title="View mosque page"
+                            >
+                              {application.mosque?.name}
+                            </button>
+                          ) : (
+                            <span className="text-slate-500">Unknown Mosque</span>
+                          )}
+                        </h3>
+                        {application.mosque?.address && (
+                          <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                            <MapPin className="h-3.5 w-3.5 mr-1.5 flex-shrink-0 text-emerald-600" />
+                            <span className="truncate">{application.mosque?.address}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setSelectedMember(application);
-                    setShowManagementModal(true);
-                  }}
-                  className="text-slate-400 hover:text-slate-600 p-1 h-8 w-8"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Application/Membership Status - Always show */}
-              <div 
-                className="mb-3 p-3 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md cursor-default"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
-                      {application.status === 'active' || application.status === 'approved' ? 'Member ID' : 'Application Status'}
-                    </span>
-                    {getStatusBadgeInline(application.status)}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setSelectedMember(application);
+                        setShowManagementModal(true);
+                      }}
+                      className="text-slate-400 hover:text-slate-600 p-1 h-8 w-8 flex-shrink-0"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
                   </div>
-                  {application.membership_number && (application.status === 'active' || application.status === 'approved') ? (
-                    <>
-                      <span className="text-base font-mono font-semibold text-emerald-700 dark:text-emerald-400 select-all">
-                        {application.membership_number}
-                      </span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400">
-                        Joined {formatDate(application.created_at)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-xs text-slate-600 dark:text-slate-400">
-                      Applied {formatDate(application.created_at)}
-                    </span>
-                  )}
+                  
+                  {/* Membership Info and Actions - Bottom section */}
+                  <div className="flex flex-col md:flex-row gap-4 mt-auto">
+                    {/* Membership Status Card */}
+                    <div 
+                      className="flex-1 p-4 bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-md cursor-default"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                            {application.status === 'active' || application.status === 'approved' ? t('memberId') : t('applicationStatus')}
+                          </span>
+                          {getStatusBadgeInline(application.status)}
+                        </div>
+                        {application.membership_number && (application.status === 'active' || application.status === 'approved') ? (
+                          <>
+                            <span className="text-lg font-mono font-semibold text-emerald-700 dark:text-emerald-400 select-all">
+                              {application.membership_number}
+                            </span>
+                            <span className="text-xs text-slate-600 dark:text-slate-400">
+                              {t('joined')} {formatDate(application.created_at)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-slate-600 dark:text-slate-400">
+                            {t('applied')} {formatDate(application.created_at)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 md:w-48 lg:w-56">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
+                            router.push(`/${locale}/khairat/pay/${application.mosque.id}`);
+                          }
+                        }}
+                        disabled={
+                          application.status !== 'approved' && application.status !== 'active'
+                        }
+                        className={
+                          (application.status === 'approved' || application.status === 'active')
+                            ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50 w-full"
+                            : "border-gray-300 text-gray-400 cursor-not-allowed w-full"
+                        }
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {(application.status === 'approved' || application.status === 'active') ? t('makePayment') : t('payKhairat')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
+                            router.push(`/${locale}/khairat/claim/${application.mosque.id}`);
+                          }
+                        }}
+                        disabled={
+                          application.status !== 'approved' && application.status !== 'active'
+                        }
+                        className={
+                          (application.status === 'approved' || application.status === 'active')
+                            ? "border-blue-300 text-blue-600 hover:bg-blue-50 w-full"
+                            : "border-gray-300 text-gray-400 cursor-not-allowed w-full"
+                        }
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {t('submitClaim')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (application.mosque?.id) {
+                            window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
+                        className="w-full border-slate-300"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {t('visitMosque')}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-                {/* Action Buttons */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
-                      window.open(`/mosques/${application.mosque.id}?openKhairat=true`, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                  disabled={
-                    application.status !== 'approved' && application.status !== 'active'
-                  }
-                  className={
-                    (application.status === 'approved' || application.status === 'active')
-                      ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50 w-full"
-                      : "border-gray-300 text-gray-400 cursor-not-allowed w-full"
-                  }
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {(application.status === 'approved' || application.status === 'active') ? 'Make Payment' : 'Pay Khairat'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (application.mosque?.id && (application.status === 'approved' || application.status === 'active')) {
-                      window.open(`/mosques/${application.mosque.id}?openClaim=true`, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                  disabled={
-                    application.status !== 'approved' && application.status !== 'active'
-                  }
-                  className={
-                    (application.status === 'approved' || application.status === 'active')
-                      ? "border-blue-300 text-blue-600 hover:bg-blue-50 w-full mt-2"
-                      : "border-gray-300 text-gray-400 cursor-not-allowed w-full mt-2"
-                  }
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {(application.status === 'approved' || application.status === 'active') ? 'Submit Claim' : 'Submit Claim'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (application.mosque?.id) {
-                      window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                  className="w-full mt-2 border-slate-300"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Visit Mosque
-                </Button>
             </div>
           </Card>
         ))}
@@ -583,9 +599,9 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
       <Dialog open={showManagementModal} onOpenChange={setShowManagementModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Manage Application</DialogTitle>
+            <DialogTitle>{t('manageApplication')}</DialogTitle>
             <DialogDescription>
-              View and manage your khairat application
+              {t('viewAndManageApplication')}
             </DialogDescription>
           </DialogHeader>
           
@@ -616,26 +632,6 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                   </div>
                 </div>
                 
-                {/* Member ID - Show in modal for active/approved members */}
-                {selectedMember.membership_number && (selectedMember.status === 'active' || selectedMember.status === 'approved') && (
-                  <div className="p-3 bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-md cursor-default">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <label className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">Member ID</label>
-                        <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50/80 dark:border-emerald-700 dark:text-emerald-200 dark:bg-emerald-900/40">
-                          {selectedMember.status === 'active' ? 'Active' : 'Approved'}
-                        </Badge>
-                      </div>
-                      <div className="text-lg font-mono font-semibold text-emerald-700 dark:text-emerald-400 select-all">
-                        {selectedMember.membership_number}
-                      </div>
-                      <div className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
-                        Joined {formatDate(selectedMember.created_at)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
                 {selectedMember.admin_notes && (
                   <div>
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Admin Notes</label>
@@ -658,7 +654,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                     className="border-orange-300 text-orange-600 hover:bg-orange-50"
                   >
                     <X className="h-4 w-4 mr-2" />
-                    {(selectedMember.status === 'approved' || selectedMember.status === 'active') ? 'Leave Khairat' : 'Withdraw Application'}
+                    {(selectedMember.status === 'approved' || selectedMember.status === 'active') ? t('leaveKhairat') : t('withdrawApplication')}
                   </Button>
                 )}
                 
@@ -672,13 +668,13 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                     className="border-red-300 text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Application
+                    {t('deleteApplication')}
                   </Button>
                 )}
                 
                 {!canWithdraw(selectedMember.status) && !canWithdrawMembership(selectedMember.status) && !canDelete(selectedMember.status) && (
                   <div className="text-center py-4 text-slate-500 text-sm">
-                    No actions available for this application
+                    {t('noActionsAvailable')}
                   </div>
                 )}
               </div>
@@ -692,24 +688,24 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedMember?.status === 'approved' ? 'Leave Khairat' : 'Withdraw Application'}
+              {selectedMember?.status === 'approved' ? t('leaveKhairat') : t('withdrawApplication')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedMember?.status === 'approved' 
-                ? 'Are you sure you want to leave this khairat membership? You can reapply later if needed.'
-                : 'Are you sure you want to withdraw this application? You can reapply later if needed.'
+                ? t('leaveKhairatConfirmation')
+                : t('withdrawApplicationConfirmation')
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={selectedMember?.status === 'approved' ? handleWithdrawMembership : handleWithdrawApplication}
               className="bg-orange-600 hover:bg-orange-700"
               disabled={withdrawingId === selectedMember?.id}
             >
-              {withdrawingId === selectedMember?.id ? 'Processing...' : 
-               selectedMember?.status === 'approved' ? 'Leave' : 'Withdraw'}
+              {withdrawingId === selectedMember?.id ? t('processing') : 
+               selectedMember?.status === 'approved' ? t('leave') : t('withdraw')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -23,6 +24,7 @@ interface PaymentReceiptViewProps {
 }
 
 export function PaymentReceiptView({ contributionId }: PaymentReceiptViewProps) {
+  const t = useTranslations('khairat');
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
@@ -71,7 +73,7 @@ export function PaymentReceiptView({ contributionId }: PaymentReceiptViewProps) 
   if (receipts.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-4">
-        No payment receipts available
+        {t('noPaymentReceiptsAvailable')}
       </div>
     );
   }
@@ -120,7 +122,7 @@ export function PaymentReceiptView({ contributionId }: PaymentReceiptViewProps) 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Receipt Preview</DialogTitle>
+            <DialogTitle>{t('receiptPreview')}</DialogTitle>
             <DialogDescription>{selectedReceipt?.file_name}</DialogDescription>
           </DialogHeader>
           {selectedReceipt && (

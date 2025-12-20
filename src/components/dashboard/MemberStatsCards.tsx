@@ -33,25 +33,25 @@ export function MemberStatsCards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <StatsCard
-        title="Total Contributed"
+        title={t('memberStatsCards.totalContributed')}
         value={`RM ${totalContributed.toLocaleString()}`}
-        subtitle="Your khairat contributions"
+        subtitle={t('memberStatsCards.totalContributedSubtitle')}
         icon={Heart}
         {...StatsCardColors.emerald}
       />
 
       <StatsCard
-        title="Approved Claims"
+        title={t('memberStatsCards.approvedClaims')}
         value={`RM ${activeClaimsAmount.toLocaleString()}`}
-        subtitle="Total amount from approved claims"
+        subtitle={t('memberStatsCards.approvedClaimsSubtitle')}
         icon={FileText}
         {...StatsCardColors.purple}
       />
 
       <StatsCard
-        title="Family Members"
+        title={t('memberStatsCards.familyMembers')}
         value={dependentsCount}
-        subtitle="Dependents registered"
+        subtitle={t('memberStatsCards.familyMembersSubtitle')}
         icon={Users}
         {...StatsCardColors.blue}
       />
