@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -23,6 +24,7 @@ interface ClaimDocumentViewProps {
 }
 
 export function ClaimDocumentView({ claimId }: ClaimDocumentViewProps) {
+  const t = useTranslations('claims');
   const [documents, setDocuments] = useState<ClaimDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<ClaimDocument | null>(null);
@@ -71,7 +73,7 @@ export function ClaimDocumentView({ claimId }: ClaimDocumentViewProps) {
   if (documents.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-4">
-        No supporting documents available
+        {t('noSupportingDocumentsAvailable')}
       </div>
     );
   }
@@ -120,7 +122,7 @@ export function ClaimDocumentView({ claimId }: ClaimDocumentViewProps) {
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Document Preview</DialogTitle>
+            <DialogTitle>{t('documentPreview')}</DialogTitle>
             <DialogDescription>{selectedDocument?.file_name}</DialogDescription>
           </DialogHeader>
           {selectedDocument && (
@@ -142,7 +144,7 @@ export function ClaimDocumentView({ claimId }: ClaimDocumentViewProps) {
                   <div className="text-center">
                     <File className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      Preview not available for this file type
+                      {t('previewNotAvailable')}
                     </p>
                     <a
                       href={selectedDocument.file_url}
@@ -151,7 +153,7 @@ export function ClaimDocumentView({ claimId }: ClaimDocumentViewProps) {
                       className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download File
+                      {t('downloadFile')}
                     </a>
                   </div>
                 </div>
