@@ -406,7 +406,7 @@ export function UserPaymentsTable({ contributions, showHeader = true }: UserPaym
               {(selectedContribution.payment_method === 'bank_transfer' || selectedContribution.payment_method === 'cash') && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Payment Receipts
+                    {t('paymentReceipts')}
                   </label>
                   <PaymentReceiptView contributionId={selectedContribution.id} />
                 </div>

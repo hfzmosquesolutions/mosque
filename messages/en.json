@@ -145,6 +145,9 @@
     "welcome": "Welcome back",
     "adminRole": "Administrator",
     "memberRole": "Member",
+    "communityMember": "Community Member",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications",
     "viewPublicProfile": "View Mosque Page",
     "totalContributed": "Total Received",
     "totalPaymentsMade": "Total payments made",
@@ -184,6 +187,7 @@
     "viewAll": "View All",
     "noData": "No data available",
     "loading": "Loading dashboard data...",
+    "loadingDashboard": "Loading dashboard...",
     "adminSetupGuideTitle": "Admin Setup Guide",
     "adminSetupGuideDescription": "Complete these steps to fully set up your mosque management system",
     "stepsCompleted": "{completed}/{total} completed",
@@ -217,7 +221,44 @@
     },
     "stepStatus": {
       "completed": "Completed",
-      "setupAction": "Setup"
+      "setupAction": "Setup",
+      "start": "Start"
+    },
+    "memberSetupGuideTitle": "Getting Started",
+    "memberSetupGuideDescription": "Complete these steps to get the most out of your mosque community",
+    "progress": "Progress",
+    "memberSetupSteps": {
+      "completeOnboarding": {
+        "title": "Complete Your Profile Setup",
+        "description": "Finish setting up your profile and account information"
+      },
+      "findLocalMosque": {
+        "title": "Find Your Local Mosque",
+        "description": "Search for mosques near you to join your community"
+      },
+      "registerKhairat": {
+        "title": "Register as a Khairat Member",
+        "description": "Find your mosque and join a khairat program to support your community"
+      },
+      "makeFirstContribution": {
+        "title": "Make Your First Khairat Payment",
+        "description": "Process your first payment through your mosque's khairat program"
+      }
+    },
+    "stepPriorityLabels": {
+      "high": "Important",
+      "medium": "Recommended",
+      "low": "Optional"
+    },
+    "memberSetupCompletionTitle": "Congratulations! You've completed all the getting started steps.",
+    "memberSetupCompletionDescription": "You're now fully engaged with your mosque community!",
+    "memberStatsCards": {
+      "totalContributed": "Total Paid",
+      "totalContributedSubtitle": "Your khairat payments",
+      "approvedClaims": "Approved Claims",
+      "approvedClaimsSubtitle": "Total amount from approved claims",
+      "familyMembers": "Family Members",
+      "familyMembersSubtitle": "Dependents registered"
     },
     "adminSetupCompletionTitle": "Excellent! Your mosque management system is fully set up.",
     "adminSetupCompletionDescription": "You're now ready to serve your community effectively!",
@@ -757,7 +798,11 @@
     "tryAgain": "Try Again",
     "myProfile": "My Profile",
     "managePersonalInformation": "Manage your personal information and public profile",
+    "manageProfileInformation": "Manage your profile information",
+    "loadingProfile": "Loading profile...",
     "saving": "Saving...",
+    "icNumber": "IC Number",
+    "enterIcNumber": "Enter your IC number",
     "basicInformation": "Basic Information",
     "updatePersonalDetails": "Update your personal details and basic information",
     "emailCannotBeChanged": "Email cannot be changed here. Contact support if needed.",
@@ -1524,6 +1569,27 @@
     "paymentHistory": "Payment History",
     "khairatPaymentsDescription": "Review and track all khairat payments made to your mosque in one clear view.",
     "paymentHistoryDescription": "View your complete payment history including all contributions and payments made to mosques.",
+    "paymentReceipts": "Payment Receipts",
+    "noPaymentReceiptsAvailable": "No payment receipts available",
+    "receiptPreview": "Receipt Preview",
+    "memberId": "Member ID",
+    "applicationStatus": "Application Status",
+    "joined": "Joined",
+    "applied": "Applied",
+    "payKhairat": "Pay Khairat",
+    "submitClaim": "Submit Claim",
+    "visitMosque": "Visit Mosque",
+    "manageApplication": "Manage Application",
+    "viewAndManageApplication": "View and manage your khairat application",
+    "leaveKhairat": "Leave Khairat",
+    "withdrawApplication": "Withdraw Application",
+    "leaveKhairatConfirmation": "Are you sure you want to leave this khairat membership? You can reapply later if needed.",
+    "withdrawApplicationConfirmation": "Are you sure you want to withdraw this application? You can reapply later if needed.",
+    "leave": "Leave",
+    "withdraw": "Withdraw",
+    "deleteApplication": "Delete Application",
+    "noActionsAvailable": "No actions available for this application",
+    "processing": "Processing...",
     "setupPayment": "Setup Payment",
     "paymentGatewaySetup": "Payment Gateway Setup",
     "paymentGatewaySetupDescription": "Configure your payment gateway settings to enable online payments",
@@ -2852,6 +2918,12 @@
     "myMosques": {
       "title": "My Mosques",
       "description": "Discover and join mosques in your area, manage memberships, and view your mosque-related activities",
+      "pageDescription": "View and manage your khairat memberships and applications",
+      "findMosque": "Find Mosque",
+      "findMosques": "Find Mosques",
+      "joinYourFirstMosque": "Join Your First Mosque",
+      "joinYourFirstMosqueDescription": "Connect with mosques in your community and participate in khairat programs to make meaningful payments.",
+      "loadingMyMosques": "Loading my mosques...",
       "findingMosques": "Finding Mosques",
       "browseAvailable": "Browse Available Mosques",
       "browseItem1": "Navigate to \"My Mosques\" from the sidebar",

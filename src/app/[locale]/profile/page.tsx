@@ -142,39 +142,35 @@ function ProfileContent() {
 
   if (onboardingLoading || !isCompleted || loading) {
     return (
-      <DashboardLayout>
-        <Loading 
-          message="Loading profile..." 
-          size="lg"
-          className="py-12"
-        />
-      </DashboardLayout>
+      <Loading 
+        message={t('loadingProfile')} 
+        size="lg"
+        className="py-12"
+      />
     );
   }
 
   if (error || !profile) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <Card className="border-0 shadow-lg max-w-md">
-            <CardContent className="pt-6 text-center">
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit mx-auto mb-4">
-                <User className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                {t('profileError')}
-              </h3>
-              <p className="text-muted-foreground mb-4">{error || t('profileNotFound')}</p>
-              <Button 
-                onClick={fetchProfile}
-                className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                {t('tryAgain')}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center h-64">
+        <Card className="border-0 shadow-lg max-w-md">
+          <CardContent className="pt-6 text-center">
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit mx-auto mb-4">
+              <User className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              {t('profileError')}
+            </h3>
+            <p className="text-muted-foreground mb-4">{error || t('profileNotFound')}</p>
+            <Button 
+              onClick={fetchProfile}
+              className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              {t('tryAgain')}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -183,10 +179,10 @@ function ProfileContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            My Profile
+            {t('myProfile')}
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Manage your profile information
+            {t('manageProfileInformation')}
           </p>
         </div>
         {hasUnsavedChanges && (
@@ -196,7 +192,7 @@ function ProfileContent() {
             className="gap-2 bg-blue-600 hover:bg-blue-700"
           >
             <Save className="h-4 w-4" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? t('saving') : t('saveChanges')}
           </Button>
         )}
       </div>
@@ -239,7 +235,7 @@ function ProfileContent() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="icPassportNumber">IC Number</Label>
+                    <Label htmlFor="icPassportNumber">{t('icNumber')}</Label>
                     <Input
                       id="icPassportNumber"
                       value={profile.ic_passport_number || ''}
@@ -247,7 +243,7 @@ function ProfileContent() {
                         const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
                         updateField('ic_passport_number', normalized);
                       }}
-                      placeholder="Enter your IC number"
+                      placeholder={t('enterIcNumber')}
                       maxLength={12}
                     />
                   </div>
@@ -274,10 +270,6 @@ function ProfileContent() {
                       <SelectContent>
                         <SelectItem value="male">{t('male')}</SelectItem>
                         <SelectItem value="female">{t('female')}</SelectItem>
-                        <SelectItem value="other">{t('other')}</SelectItem>
-                        <SelectItem value="prefer-not-to-say">
-                          {t('preferNotToSay')}
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -323,9 +315,10 @@ function ProfileContent() {
 }
 
 export default function ProfilePage() {
+  const t = useTranslations('users');
   return (
     <ProtectedRoute>
-      <DashboardLayout title="Profile">
+      <DashboardLayout title={t('myProfile')}>
         <ProfileContent />
       </DashboardLayout>
     </ProtectedRoute>

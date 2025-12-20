@@ -241,7 +241,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
   if (loading) {
     return (
       <Loading 
-        message="Loading dashboard..." 
+        message={t('loadingDashboard')} 
         size="lg"
         className="py-12"
       />
@@ -273,7 +273,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
                   {t('welcome')}, {userProfile?.full_name || user?.email}
                 </h1>
                 <p className="text-white/90 text-sm sm:text-base">
-                  Community Member
+                  {t('communityMember')}
                 </p>
               </div>
             </div>
@@ -295,7 +295,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <div className="p-4">
-                    <h3 className="font-semibold text-sm mb-3">Notifications</h3>
+                    <h3 className="font-semibold text-sm mb-3">{t('notifications')}</h3>
                     {notifications.length > 0 ? (
                       <div className="space-y-1">
                         {notifications.map((notification, index) => {
@@ -330,7 +330,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                        No notifications
+                        {t('noNotifications')}
                       </p>
                     )}
                   </div>

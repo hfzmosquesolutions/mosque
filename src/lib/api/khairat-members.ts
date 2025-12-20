@@ -119,14 +119,40 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
     throw new Error('Authentication required');
   }
 
-  let query = supabase
-    .from('khairat_members')
-    .select(`
-      *,
-      mosque:mosques(id, name, logo_url, banner_url, address),
-      dependents:khairat_member_dependents(*)
-    `)
-    .order('created_at', { ascending: false });
+  // Optimize query: only fetch needed fields and skip dependents for better performance
+  // When fetching by user_id (common for my-mosques page), we don't need all fields or dependents
+  // This significantly improves load time for the my-mosques page
+  const isUserQuery = !!filters.user_id;
+  
+  let query;
+  if (isUserQuery) {
+    // Lightweight query for user's own memberships (my-mosques page)
+    // Only fetch essential fields - no dependents, no full member details
+    query = supabase
+      .from('khairat_members')
+      .select(`
+        id,
+        mosque_id,
+        user_id,
+        status,
+        created_at,
+        updated_at,
+        admin_notes,
+        membership_number,
+        mosque:mosques(id, name, logo_url, banner_url, address)
+      `)
+      .order('created_at', { ascending: false });
+  } else {
+    // Full query for admin/other use cases that need complete member data
+    query = supabase
+      .from('khairat_members')
+      .select(`
+        *,
+        mosque:mosques(id, name, logo_url, banner_url, address),
+        dependents:khairat_member_dependents(*)
+      `)
+      .order('created_at', { ascending: false });
+  }
   
   // Using direct fields from khairat_members table (full_name, phone, email, address)
   // instead of joining with user_profiles

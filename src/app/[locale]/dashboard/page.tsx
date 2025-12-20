@@ -345,7 +345,7 @@ function DashboardContent() {
     return (
       <DashboardLayout>
         <Loading 
-          message="Loading dashboard..." 
+          message={t('loadingDashboard')} 
           size="lg"
           className="py-12"
         />

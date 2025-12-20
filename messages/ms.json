@@ -146,6 +146,9 @@
     "welcome": "Selamat kembali",
     "adminRole": "Pentadbir",
     "memberRole": "Ahli",
+    "communityMember": "Ahli Komuniti",
+    "notifications": "Notifikasi",
+    "noNotifications": "Tiada notifikasi",
     "viewPublicProfile": "Lihat Halaman Masjid",
     "totalContributed": "Jumlah Diterima",
     "totalPaymentsMade": "Jumlah pembayaran dibuat",
@@ -218,7 +221,44 @@
     },
     "stepStatus": {
       "completed": "Selesai",
-      "setupAction": "Sediakan"
+      "setupAction": "Sediakan",
+      "start": "Mula"
+    },
+    "memberSetupGuideTitle": "Mula",
+    "memberSetupGuideDescription": "Lengkapkan langkah ini untuk memaksimumkan penglibatan anda dengan komuniti masjid",
+    "progress": "Kemajuan",
+    "memberSetupSteps": {
+      "completeOnboarding": {
+        "title": "Lengkapkan Persediaan Profil Anda",
+        "description": "Selesaikan persediaan profil dan maklumat akaun anda"
+      },
+      "findLocalMosque": {
+        "title": "Cari Masjid Tempatan Anda",
+        "description": "Cari masjid berhampiran anda untuk menyertai komuniti anda"
+      },
+      "registerKhairat": {
+        "title": "Daftar sebagai Ahli Khairat",
+        "description": "Cari masjid anda dan sertai program khairat untuk menyokong komuniti anda"
+      },
+      "makeFirstContribution": {
+        "title": "Buat Pembayaran Khairat Pertama Anda",
+        "description": "Proses pembayaran pertama anda melalui program khairat masjid anda"
+      }
+    },
+    "stepPriorityLabels": {
+      "high": "Penting",
+      "medium": "Disyorkan",
+      "low": "Pilihan"
+    },
+    "memberSetupCompletionTitle": "Tahniah! Anda telah melengkapkan semua langkah permulaan.",
+    "memberSetupCompletionDescription": "Anda kini terlibat sepenuhnya dengan komuniti masjid anda!",
+    "memberStatsCards": {
+      "totalContributed": "Jumlah Dibayar",
+      "totalContributedSubtitle": "Pembayaran khairat anda",
+      "approvedClaims": "Tuntutan Diluluskan",
+      "approvedClaimsSubtitle": "Jumlah keseluruhan daripada tuntutan yang diluluskan",
+      "familyMembers": "Ahli Keluarga",
+      "familyMembersSubtitle": "Tanggungan berdaftar"
     },
     "adminSetupCompletionTitle": "Hebat! Sistem pengurusan masjid anda telah siap sepenuhnya.",
     "adminSetupCompletionDescription": "Anda kini bersedia untuk berkhidmat kepada komuniti dengan berkesan!",
@@ -787,7 +827,12 @@
     "tryAgain": "Cuba Lagi",
     "myProfile": "Profil Saya",
     "managePersonalInformation": "Urus maklumat peribadi dan profil awam anda",
+    "manageProfileInformation": "Urus maklumat profil anda",
+    "loadingProfile": "Memuatkan profil...",
     "saving": "Menyimpan...",
+    "saveChanges": "Simpan Perubahan",
+    "icNumber": "Nombor IC",
+    "enterIcNumber": "Masukkan nombor IC anda",
     "basicInformation": "Maklumat Asas",
     "updatePersonalDetails": "Kemas kini butiran peribadi dan maklumat asas anda",
     "emailCannotBeChanged": "Emel tidak boleh ditukar di sini. Hubungi sokongan jika diperlukan.",
@@ -1571,6 +1616,27 @@
     "paymentHistory": "Sejarah Pembayaran",
     "khairatPaymentsDescription": "Semak dan jejaki semua pembayaran khairat yang dibuat kepada masjid anda dalam satu pandangan yang jelas.",
     "paymentHistoryDescription": "Lihat sejarah pembayaran lengkap anda termasuk semua sumbangan dan pembayaran yang dibuat kepada masjid.",
+    "paymentReceipts": "Resit Pembayaran",
+    "noPaymentReceiptsAvailable": "Tiada resit pembayaran tersedia",
+    "receiptPreview": "Pratonton Resit",
+    "memberId": "ID Ahli",
+    "applicationStatus": "Status Permohonan",
+    "joined": "Menyertai",
+    "applied": "Memohon",
+    "payKhairat": "Bayar Khairat",
+    "submitClaim": "Hantar Tuntutan",
+    "visitMosque": "Lawati Masjid",
+    "manageApplication": "Urus Permohonan",
+    "viewAndManageApplication": "Lihat dan urus permohonan khairat anda",
+    "leaveKhairat": "Tinggalkan Khairat",
+    "withdrawApplication": "Tarik Balik Permohonan",
+    "leaveKhairatConfirmation": "Adakah anda pasti mahu meninggalkan keahlian khairat ini? Anda boleh memohon semula kemudian jika diperlukan.",
+    "withdrawApplicationConfirmation": "Adakah anda pasti mahu menarik balik permohonan ini? Anda boleh memohon semula kemudian jika diperlukan.",
+    "leave": "Tinggalkan",
+    "withdraw": "Tarik Balik",
+    "deleteApplication": "Padam Permohonan",
+    "noActionsAvailable": "Tiada tindakan tersedia untuk permohonan ini",
+    "processing": "Memproses...",
     "setupPayment": "Sediakan Pembayaran",
     "paymentGatewaySetup": "Penyediaan Gateway Pembayaran",
     "paymentGatewaySetupDescription": "Konfigurasikan tetapan gateway pembayaran anda untuk membolehkan pembayaran dalam talian",
@@ -2861,6 +2927,12 @@
     "myMosques": {
       "title": "Masjid Saya",
       "description": "Cari dan sertai masjid di kawasan anda, urus keahlian, dan lihat aktiviti berkaitan masjid anda",
+      "pageDescription": "Lihat dan urus keahlian khairat dan permohonan anda",
+      "findMosque": "Cari Masjid",
+      "findMosques": "Cari Masjid",
+      "joinYourFirstMosque": "Sertai Masjid Pertama Anda",
+      "joinYourFirstMosqueDescription": "Berhubung dengan masjid dalam komuniti anda dan sertai program khairat untuk membuat pembayaran yang bermakna.",
+      "loadingMyMosques": "Memuatkan masjid saya...",
       "findingMosques": "Mencari Masjid",
       "browseAvailable": "Layari Masjid yang Tersedia",
       "browseItem1": "Navigasi ke \"Masjid Saya\" dari bar sisi",
