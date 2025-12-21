@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import {
   FileText,
   Loader2,
@@ -15,17 +16,20 @@ import {
   AlertCircle,
   Upload,
   UserPlus,
+  CheckCircle,
   CheckCircle2,
   Download,
+  Building,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMosque, checkOnboardingStatus, createClaim, uploadClaimDocument, isUserMosqueAdmin } from '@/lib/api';
-import { getKhairatMembers } from '@/lib/api/khairat-members';
 import { Mosque } from '@/types/database';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ClaimDocumentUpload } from '@/components/khairat/ClaimDocumentUpload';
+import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
+import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
@@ -53,6 +57,13 @@ function KhairatClaimPageContent() {
   const [checkingByIC, setCheckingByIC] = useState(false);
   const [verifiedICNumber, setVerifiedICNumber] = useState<string | null>(null);
   const [verifiedKhairatMemberId, setVerifiedKhairatMemberId] = useState<string | null>(null);
+  const [verifiedMembershipNumber, setVerifiedMembershipNumber] = useState<string | null>(null);
+  const [verifiedMemberInfo, setVerifiedMemberInfo] = useState<{
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    status?: string;
+  } | null>(null);
   const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false);
   const [submittedClaim, setSubmittedClaim] = useState<{
     id: string;
@@ -128,6 +139,40 @@ function KhairatClaimPageContent() {
             // Pre-fill IC number from profile (but don't auto-check)
             setIcNumber(normalizeMalaysiaIc(data.ic_passport_number).slice(0, 12));
           }
+
+          // Check if logged-in user has khairat membership for this mosque
+          try {
+            // Fetch full member details including name, email, phone
+            const { data: memberData, error: memberError } = await supabase
+              .from('khairat_members')
+              .select('id, status, membership_number, full_name, email, phone')
+              .eq('user_id', user.id)
+              .eq('mosque_id', mosqueId)
+              .in('status', ['active', 'approved'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!memberError && memberData) {
+              setIsKhairatMember(true);
+              setVerifiedKhairatMemberId(memberData.id);
+              setVerifiedMembershipNumber(memberData.membership_number || null);
+              // Store member's registered information for display
+              setVerifiedMemberInfo({
+                full_name: memberData.full_name || undefined,
+                email: memberData.email || undefined,
+                phone: memberData.phone || undefined,
+                status: memberData.status || undefined,
+              });
+              // Set verified IC number if available
+              if (data?.ic_passport_number) {
+                setVerifiedICNumber(normalizeMalaysiaIc(data.ic_passport_number).slice(0, 12));
+              }
+            }
+          } catch (error) {
+            // Silently fail - user can still verify by IC
+            console.error('Error checking logged-in user membership:', error);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -156,14 +201,29 @@ function KhairatClaimPageContent() {
 
     setCheckingByIC(true);
     try {
-      const members = await getKhairatMembers({
-        mosque_id: mosqueId,
-        ic_passport_number: normalizedIc,
+      // Use API endpoint instead of direct function call to bypass RLS and user_id restrictions
+      const response = await fetch('/api/khairat-members/check-by-ic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mosqueId,
+          ic: normalizedIc,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to verify membership');
+      }
+
+      const members = data.members || [];
       
       // Check if user has active or approved membership
       const hasActiveMembership = members.some(
-        member => member.status === 'active' || member.status === 'approved'
+        (member: any) => member.status === 'active' || member.status === 'approved'
       );
       
       if (hasActiveMembership) {
@@ -172,10 +232,18 @@ function KhairatClaimPageContent() {
         setVerifiedICNumber(normalizedIc);
         // Store the khairat_member_id for submission
         const activeMember = members.find(
-          member => member.status === 'active' || member.status === 'approved'
+          (member: any) => member.status === 'active' || member.status === 'approved'
         );
         if (activeMember) {
           setVerifiedKhairatMemberId(activeMember.id);
+          setVerifiedMembershipNumber(activeMember.membership_number || null);
+          // Store member's registered information for display
+          setVerifiedMemberInfo({
+            full_name: activeMember.full_name || undefined,
+            email: activeMember.email || undefined,
+            phone: activeMember.phone || undefined,
+            status: activeMember.status || undefined,
+          });
         }
         // SECURITY: Do NOT auto-fill form with data from IC number
         // Only verify membership status
@@ -398,10 +466,21 @@ function KhairatClaimPageContent() {
 
   if (loading || checkingMembership) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">Loading claim form...</p>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatLoadingHeader
+          locale={locale}
+          mosqueId={mosqueId}
+          title={t('submitKhairatClaim') || 'Submit Khairat Claim'}
+          subtitle={undefined}
+          icon={FileText}
+          iconBgColor="bg-green-50 dark:bg-green-950/20"
+          iconColor="text-green-600 dark:text-green-400"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">Loading claim form...</p>
+          </div>
         </div>
       </div>
     );
@@ -410,52 +489,19 @@ function KhairatClaimPageContent() {
   // Show registration required message if not a member and not admin
   if (!isKhairatMember && !isMosqueAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <Link href={`/${locale}/mosques/${mosqueId}`}>
-              <Button variant="ghost" size="sm" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Mosque
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  {t('submitKhairatClaim') || 'Submit Khairat Claim'}
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  {mosque?.name && `Submit a claim request to ${mosque.name}`}
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title={t('submitKhairatClaim') || 'Submit Khairat Claim'}
+          subtitle={mosque?.name ? tKhairat('claimRequestSubtitle', { mosqueName: mosque.name }) : undefined}
+          icon={FileText}
+          iconBgColor="bg-green-50 dark:bg-green-950/20"
+          iconColor="text-green-600 dark:text-green-400"
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
 
-          {/* Login Encouragement (only for non-logged in users) */}
-          {!user && (
-            <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>{tKhairat('payPage.notLoggedInTitle')}</strong>{' '}
-                    {tKhairat('payPage.notLoggedInDescription')}{' '}
-                    <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/claim/${mosqueId}`} className="underline font-semibold">
-                      {tKhairat('payPage.login')}
-                    </Link>{' '}
-                  </div>
-                  <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/claim/${mosqueId}`}>
-                    <Button size="sm" variant="outline" className="ml-4">
-                      {tKhairat('payPage.login')}
-                    </Button>
-                  </Link>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Card>
             <CardHeader>
@@ -533,22 +579,19 @@ function KhairatClaimPageContent() {
   // Show success page if claim was submitted
   if (submittedSuccessfully && submittedClaim) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title="Claim Submitted Successfully"
+          subtitle={`Your claim has been submitted to ${mosque?.name || 'the mosque'}`}
+          icon={CheckCircle2}
+          iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Claim Submitted Successfully</CardTitle>
-                  <CardDescription>
-                    Your claim has been submitted to {mosque?.name}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
             <CardContent className="space-y-4">
               <Alert className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -583,9 +626,19 @@ function KhairatClaimPageContent() {
                         }).format(submittedClaim.requestedAmount)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-slate-600 dark:text-slate-400">Status:</span>
-                      <span className="font-medium capitalize">{submittedClaim.status}</span>
+                      <Badge 
+                        variant={
+                          submittedClaim.status === 'approved' ? 'default' :
+                          submittedClaim.status === 'rejected' ? 'destructive' :
+                          submittedClaim.status === 'pending' ? 'secondary' :
+                          'outline'
+                        }
+                        className="capitalize"
+                      >
+                        {submittedClaim.status}
+                      </Badge>
                     </div>
                     {submittedClaim.description && (
                       <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
@@ -649,81 +702,141 @@ function KhairatClaimPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href={`/${locale}/mosques/${mosqueId}`}>
-            <Button variant="ghost" size="sm" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Mosque
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {t('submitKhairatClaim') || 'Submit Khairat Claim'}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                {mosque?.name && `Submit a claim request to ${mosque.name}`}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <KhairatStandardHeader
+        mosque={mosque}
+        locale={locale}
+        mosqueId={mosqueId}
+        title={t('submitKhairatClaim') || 'Submit Khairat Claim'}
+        subtitle={mosque?.name ? tKhairat('claimRequestSubtitle', { mosqueName: mosque.name }) : undefined}
+        icon={FileText}
+        iconBgColor="bg-green-50 dark:bg-green-950/20"
+        iconColor="text-green-600 dark:text-green-400"
+      />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
 
         {/* Admin Alert */}
         {isMosqueAdmin && (
           <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>View Only Mode</strong> - As a mosque administrator, you can view this form to see what users will experience, but you cannot submit claims.
+              <strong>{tKhairat('viewOnlyModeTitle')}</strong> {tKhairat('viewOnlyModeDescription')}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Info Alert */}
-        {!isMosqueAdmin && (
-          <Alert className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please provide clear and detailed information about your claim. This helps administrators make accurate decisions.
-            </AlertDescription>
-          </Alert>
+        {/* Membership Verification Status */}
+        {(verifiedICNumber || verifiedKhairatMemberId) && isKhairatMember && (
+          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <strong className="text-slate-900 dark:text-slate-100">{tKhairat('payPage.membershipVerifiedTitle')}</strong>
+              </div>
+              {verifiedICNumber && (
+                <div className="flex items-center gap-2 ml-6">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedICNumber}</span>
+                  </p>
+                  {(verifiedMemberInfo?.status || isKhairatMember) && (
+                    <Badge 
+                      variant={
+                        (verifiedMemberInfo?.status === 'active' || verifiedMemberInfo?.status === 'approved' || !verifiedMemberInfo?.status) ? 'default' :
+                        verifiedMemberInfo.status === 'inactive' ? 'secondary' :
+                        verifiedMemberInfo.status === 'pending' ? 'secondary' :
+                        'outline'
+                      }
+                      className="capitalize"
+                    >
+                      {verifiedMemberInfo?.status === 'active' || !verifiedMemberInfo?.status ? (locale === 'ms' ? 'Aktif' : 'Active') :
+                       verifiedMemberInfo.status === 'approved' ? (locale === 'ms' ? 'Diluluskan' : 'Approved') :
+                       verifiedMemberInfo.status === 'inactive' ? (locale === 'ms' ? 'Tidak Aktif' : 'Inactive') :
+                       verifiedMemberInfo.status === 'pending' ? (locale === 'ms' ? 'Menunggu' : 'Pending') :
+                       verifiedMemberInfo.status || (locale === 'ms' ? 'Aktif' : 'Active')}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              {(verifiedKhairatMemberId || verifiedMembershipNumber) && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
+                  {tKhairat('payPage.memberIdLabel') || 'Member ID'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedMembershipNumber || verifiedKhairatMemberId?.slice(0, 8).toUpperCase()}</span>
+                </p>
+              )}
+              
+              {/* Display Registered Information */}
+              {verifiedMemberInfo && (verifiedMemberInfo.full_name || verifiedMemberInfo.email || verifiedMemberInfo.phone) && (
+                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
+                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {tKhairat('payPage.registeredInformationLabel') || 'Registered Information'}
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    {verifiedMemberInfo.full_name && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.payerNameLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1">
+                          {verifiedMemberInfo.full_name}
+                        </span>
+                      </div>
+                    )}
+                    {verifiedMemberInfo.email && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.emailLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1 break-all">
+                          {verifiedMemberInfo.email}
+                        </span>
+                      </div>
+                    )}
+                    {verifiedMemberInfo.phone && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.mobileNumberLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1">
+                          {verifiedMemberInfo.phone}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit}>
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Claim Information</CardTitle>
+              <CardTitle>{tKhairat('claimInformationTitle')}</CardTitle>
               <CardDescription>
-                Fill in the details about your claim request
+                {tKhairat('claimInformationDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="claim_title">
-                  Claim Title <span className="text-red-500">*</span>
+                  {tKhairat('khairatClaimTitle')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="claim_title"
                   value={claimTitle}
                   onChange={(e) => setClaimTitle(e.target.value)}
-                  placeholder={t('khairatClaimTitlePlaceholder') || 'E.g. Funeral assistance, Medical expenses'}
+                  placeholder={tKhairat('khairatClaimTitlePlaceholder') || 'E.g. Funeral assistance, Medical expenses'}
                   required
                   disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide a clear, concise title for your claim
+                  {tKhairat('claimTitleHelp')}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="claim_amount">
-                  Amount (RM) <span className="text-red-500">*</span>
+                  {tKhairat('claimAmountLabel')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="claim_amount"
@@ -732,29 +845,29 @@ function KhairatClaimPageContent() {
                   min="1"
                   value={claimAmount}
                   onChange={(e) => setClaimAmount(e.target.value)}
-                  placeholder={t('amountPlaceholder') || 'Enter amount'}
+                  placeholder={tKhairat('payPage.amountPlaceholder') || 'Enter amount'}
                   required
                   disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter the amount you are requesting
+                  {tKhairat('claimAmountHelp')}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="claim_description">
-                  Description (Optional)
+                  {tKhairat('claimDescriptionLabel')}
                 </Label>
                 <Textarea
                   id="claim_description"
                   rows={5}
                   value={claimDescription}
                   onChange={(e) => setClaimDescription(e.target.value)}
-                  placeholder={t('khairatClaimDescriptionPlaceholder') || 'Describe your situation and need for financial assistance'}
+                  placeholder={tKhairat('khairatClaimDescriptionPlaceholder') || 'Describe your situation and need for financial assistance'}
                   disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide detailed information about your situation and why you need this assistance
+                  {tKhairat('claimDescriptionHelp')}
                 </p>
               </div>
             </CardContent>
@@ -765,10 +878,10 @@ function KhairatClaimPageContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
-                Supporting Documents <span className="text-red-500">*</span>
+                {tKhairat('supportingDocumentsTitle')} <span className="text-red-500">*</span>
               </CardTitle>
               <CardDescription>
-                Upload documents like medical bills, death certificates, or other supporting evidence
+                {tKhairat('supportingDocumentsDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -786,7 +899,7 @@ function KhairatClaimPageContent() {
               {claimDocuments.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>{claimDocuments.length}</strong> document{claimDocuments.length > 1 ? 's' : ''} selected
+                    {tKhairat('documentsSelected', { count: claimDocuments.length })}
                   </p>
                 </div>
               )}
@@ -804,12 +917,12 @@ function KhairatClaimPageContent() {
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
+                  {tKhairat('submittingClaim')}
                 </>
               ) : (
                 <>
                   <FileText className="h-4 w-4 mr-2" />
-                  Submit Claim
+                  {tKhairat('submitClaim')}
                 </>
               )}
             </Button>

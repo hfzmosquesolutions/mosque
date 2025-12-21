@@ -235,7 +235,12 @@ export interface KhairatProgram {
 // Mosque khairat settings (stored in mosques.settings jsonb)
 export interface MosqueKhairatSettings {
   enabled: boolean;
-  fixed_price?: number;
+  fixed_price?: number; // Deprecated: kept for backward compatibility, use fixed_prices instead
+  fixed_prices?: {
+    online_payment?: number;
+    bank_transfer?: number;
+    cash?: number;
+  };
   description?: string;
   payment_methods?: string[];
   target_amount?: number;

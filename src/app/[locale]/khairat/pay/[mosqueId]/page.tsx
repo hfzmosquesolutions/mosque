@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -30,6 +38,8 @@ import {
   CheckCircle2,
   Download,
   Building2,
+  Building,
+  Upload,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +50,8 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { PaymentReceiptUpload } from '@/components/khairat/PaymentReceiptUpload';
+import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
+import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
@@ -77,6 +89,15 @@ function KhairatPayPageContent() {
   const [icNumber, setIcNumber] = useState('');
   const [checkingByIC, setCheckingByIC] = useState(false);
   const [verifiedICNumber, setVerifiedICNumber] = useState<string | null>(null);
+  const [verifiedMemberId, setVerifiedMemberId] = useState<string | null>(null);
+  const [verifiedMembershipNumber, setVerifiedMembershipNumber] = useState<string | null>(null);
+  const [verifiedMemberInfo, setVerifiedMemberInfo] = useState<{
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    status?: string;
+  } | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false);
   const [submittedContribution, setSubmittedContribution] = useState<{
     id: string;
@@ -85,6 +106,8 @@ function KhairatPayPageContent() {
     paymentMethod: string;
     payerName: string;
     status: string;
+    memberId?: string;
+    membershipNumber?: string;
   } | null>(null);
 
   // Scroll to top on mount
@@ -106,6 +129,124 @@ function KhairatPayPageContent() {
       }
     }
   }, [mosqueId]);
+
+  // Helper function to get fixed price for a payment method
+  const getFixedPriceForMethod = useCallback((method: string): number | undefined => {
+    if (!khairatSettings?.fixed_prices) {
+      // Fallback to legacy fixed_price if fixed_prices is not set
+      return khairatSettings?.fixed_price;
+    }
+
+    switch (method) {
+      case 'toyyibpay':
+      case 'online_payment':
+        return khairatSettings.fixed_prices.online_payment;
+      case 'bank_transfer':
+        return khairatSettings.fixed_prices.bank_transfer;
+      case 'cash':
+        return khairatSettings.fixed_prices.cash;
+      default:
+        return undefined;
+    }
+  }, [khairatSettings]);
+
+  // Handle payment method change
+  const handlePaymentMethodChange = useCallback((value: string) => {
+    setPaymentMethod(value);
+    
+    // Set amount based on fixed price for the selected payment method
+    const fixedPrice = getFixedPriceForMethod(value);
+    if (fixedPrice && fixedPrice > 0) {
+      setAmount(fixedPrice.toString());
+    } else {
+      setAmount('');
+    }
+  }, [getFixedPriceForMethod]);
+
+  // Handle amount input change with validation
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Allow empty string
+    if (value === '') {
+      setAmount('');
+      return;
+    }
+    
+    // Only allow digits and one decimal point - remove ALL other characters including dashes
+    let sanitized = value.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = sanitized.split('.');
+    if (parts.length > 2) {
+      sanitized = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit to 2 decimal places
+    if (parts.length === 2 && parts[1].length > 2) {
+      sanitized = parts[0] + '.' + parts[1].slice(0, 2);
+    }
+    
+    // Don't allow leading zeros (except 0.xx)
+    if (sanitized.length > 1 && sanitized[0] === '0' && sanitized[1] !== '.') {
+      sanitized = sanitized.slice(1);
+    }
+    
+    setAmount(sanitized);
+  }, []);
+
+  // Prevent invalid keys from being entered
+  const handleAmountKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow: backspace, delete, tab, escape, enter, decimal point, and arrow keys
+    if (
+      ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key) ||
+      (e.key === '.' && !amount.includes('.')) ||
+      (e.key >= '0' && e.key <= '9') ||
+      (e.ctrlKey || e.metaKey) // Allow Ctrl/Cmd + A, C, V, X, etc.
+    ) {
+      return;
+    }
+    
+    // Block everything else including dashes, minus signs, etc.
+    e.preventDefault();
+  }, [amount]);
+
+  // Handle paste events to sanitize pasted content
+  const handleAmountPaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    
+    // Sanitize pasted content - only allow digits and one decimal point
+    let sanitized = pastedText.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = sanitized.split('.');
+    if (parts.length > 2) {
+      sanitized = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit to 2 decimal places
+    if (parts.length === 2 && parts[1].length > 2) {
+      sanitized = parts[0] + '.' + parts[1].slice(0, 2);
+    }
+    
+    // Don't allow leading zeros (except 0.xx)
+    if (sanitized.length > 1 && sanitized[0] === '0' && sanitized[1] !== '.') {
+      sanitized = sanitized.slice(1);
+    }
+    
+    setAmount(sanitized);
+  }, []);
+
+  // Set initial amount when payment method is selected and khairat settings are loaded
+  useEffect(() => {
+    if (paymentMethod && khairatSettings) {
+      const fixedPrice = getFixedPriceForMethod(paymentMethod);
+      if (fixedPrice && fixedPrice > 0) {
+        setAmount(fixedPrice.toString());
+      }
+    }
+  }, [paymentMethod, khairatSettings, getFixedPriceForMethod]);
 
   // Fetch initial data (no login required)
   useEffect(() => {
@@ -144,10 +285,7 @@ function KhairatPayPageContent() {
         const settingsRes = await getMosqueKhairatSettings(mosqueId);
         if (settingsRes.success && settingsRes.data) {
           setKhairatSettings(settingsRes.data);
-          // Auto-fill amount if fixed price (only for non-admin users)
-          if (!isAdmin && settingsRes.data.fixed_price && settingsRes.data.fixed_price > 0) {
-            setAmount(settingsRes.data.fixed_price.toString());
-          }
+          // Note: Amount will be auto-filled when payment method is selected
         }
 
         // Load payment method settings from mosque
@@ -212,6 +350,36 @@ function KhairatPayPageContent() {
           if (user.email) {
             setPayerEmail(user.email);
           }
+
+          // Check if logged-in user has khairat membership for this mosque
+          try {
+            // Fetch full member details including name, email, phone
+            const { data: memberData, error: memberError } = await supabase
+              .from('khairat_members')
+              .select('id, status, membership_number, full_name, email, phone')
+              .eq('user_id', user.id)
+              .eq('mosque_id', mosqueId)
+              .in('status', ['active', 'approved'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!memberError && memberData) {
+              setIsKhairatMember(true);
+              setVerifiedMemberId(memberData.id);
+              setVerifiedMembershipNumber(memberData.membership_number || null);
+              // Store member's registered information for display
+              setVerifiedMemberInfo({
+                full_name: memberData.full_name || undefined,
+                email: memberData.email || undefined,
+                phone: memberData.phone || undefined,
+                status: memberData.status || undefined,
+              });
+            }
+          } catch (error) {
+            // Silently fail - user can still verify by IC
+            console.error('Error checking logged-in user membership:', error);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -240,26 +408,53 @@ function KhairatPayPageContent() {
 
     setCheckingByIC(true);
     try {
-      const members = await getKhairatMembers({
-        mosque_id: mosqueId,
-        ic_passport_number: normalizedIc,
+      // Use API endpoint instead of direct function call to bypass RLS and user_id restrictions
+      const response = await fetch('/api/khairat-members/check-by-ic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mosqueId,
+          ic: normalizedIc,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to verify membership');
+      }
+
+      const members = data.members || [];
       
       // Check if user has active or approved membership
-      const hasActiveMembership = members.some(
-        member => member.status === 'active' || member.status === 'approved'
+      const activeMember = members.find(
+        (member: any) => member.status === 'active' || member.status === 'approved'
       );
       
-      if (hasActiveMembership) {
+      if (activeMember) {
         setIsKhairatMember(true);
         // Store verified IC number to display
         setVerifiedICNumber(normalizedIc);
+        // Store member ID and membership number
+        setVerifiedMemberId(activeMember.id);
+        setVerifiedMembershipNumber(activeMember.membership_number || null);
+        // Store member's registered information for display
+        setVerifiedMemberInfo({
+          full_name: activeMember.full_name || undefined,
+          email: activeMember.email || undefined,
+          phone: activeMember.phone || undefined,
+          status: activeMember.status || undefined,
+        });
         // SECURITY: Do NOT auto-fill form with data from IC number
         // Only verify membership status. User must enter their own payment details.
-        // For logged-in users, their info will be pre-filled from their profile (handled separately)
         toast.success('Membership verified! You can proceed with payment.');
       } else {
         setIsKhairatMember(false);
+        setVerifiedMemberId(null);
+        setVerifiedMembershipNumber(null);
+        setVerifiedMemberInfo(null);
         toast.error('No active membership found for this IC number. Please register first.');
       }
     } catch (error: any) {
@@ -348,10 +543,15 @@ function KhairatPayPageContent() {
 
     setSubmitting(true);
     try {
+      // Use registered information if available, otherwise use form fields
+      const finalPayerName = verifiedMemberInfo?.full_name || payerName || undefined;
+      const finalPayerEmail = verifiedMemberInfo?.email || payerEmail || undefined;
+      const finalPayerMobile = verifiedMemberInfo?.phone || payerMobile || undefined;
+
       const paymentData = {
         mosque_id: mosqueId,
         contributor_id: user?.id || undefined, // Can be null for non-logged in users
-        contributor_name: payerName || undefined,
+        contributor_name: finalPayerName,
         amount: parseFloat(amount),
         payment_method: paymentMethod,
         payment_reference: undefined, // No longer used, receipts are uploaded separately
@@ -378,9 +578,9 @@ function KhairatPayPageContent() {
                   contributionId,
                   mosqueId: mosqueId,
                   amount: parseFloat(amount),
-                  payerName: payerName.trim(),
-                  payerEmail: payerEmail.trim(),
-                  payerMobile: payerMobile.trim() || undefined,
+                  payerName: finalPayerName?.trim() || '',
+                  payerEmail: finalPayerEmail?.trim() || '',
+                  payerMobile: finalPayerMobile?.trim() || undefined,
                   description: `Khairat contribution - ${mosqueId}`,
                   providerType: paymentMethod,
                 }),
@@ -441,14 +641,20 @@ function KhairatPayPageContent() {
             paymentId: response.data.payment_id,
             amount: parseFloat(amount),
             paymentMethod: paymentMethod,
-            payerName: payerName || user?.email || 'Anonymous',
+            payerName: finalPayerName || user?.email || 'Anonymous',
             status: 'pending',
+            memberId: verifiedMemberId || undefined,
+            membershipNumber: verifiedMembershipNumber || undefined,
           };
           setSubmittedContribution(contributionData);
           setSubmittedSuccessfully(true);
           
           // Persist to sessionStorage in case of page refresh
-          sessionStorage.setItem(`payment-success-${mosqueId}`, JSON.stringify(contributionData));
+          sessionStorage.setItem(`payment-success-${mosqueId}`, JSON.stringify({
+            ...contributionData,
+            memberId: verifiedMemberId || undefined,
+            membershipNumber: verifiedMembershipNumber || undefined,
+          }));
         }
       } else {
         throw new Error(response.error || 'Failed to create payment');
@@ -566,32 +772,19 @@ function KhairatPayPageContent() {
   // Show success page after submission
   if (submittedSuccessfully && submittedContribution) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title={tKhairat('payPage.successTitle')}
+          subtitle={tKhairat('payPage.successSubtitle')}
+          icon={CheckCircle2}
+          iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
+        <div className="max-w-2xl mx-auto px-4 pb-12">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-4">
-                <Link href={`/${locale}/mosques/${mosqueId}`}>
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    {tKhairat('payPage.backToMosque')}
-                  </Button>
-                </Link>
-              </div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">
-                    {tKhairat('payPage.successTitle')}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {tKhairat('payPage.successSubtitle')}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
             <CardContent className="space-y-4">
               <Alert className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -615,6 +808,12 @@ function KhairatPayPageContent() {
                       <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
                         <span className="text-slate-600 dark:text-slate-400">{tKhairat('paymentsTable.paymentId')}:</span>
                         <span className="font-medium font-mono">{submittedContribution.paymentId}</span>
+                      </div>
+                    )}
+                    {(submittedContribution.memberId || submittedContribution.membershipNumber) && (
+                      <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                        <span className="text-slate-600 dark:text-slate-400">{tKhairat('payPage.memberIdLabel') || 'Member ID'}:</span>
+                        <span className="font-medium font-mono">{submittedContribution.membershipNumber || submittedContribution.memberId?.slice(0, 8).toUpperCase()}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -642,11 +841,19 @@ function KhairatPayPageContent() {
                       </span>
                       <span className="font-medium">{submittedContribution.payerName}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-slate-600 dark:text-slate-400">
                         {tKhairat('payPage.successStatusLabel')}:
                       </span>
-                      <Badge variant="outline" className="capitalize">
+                      <Badge 
+                        variant={
+                          submittedContribution.status === 'approved' || submittedContribution.status === 'completed' ? 'default' :
+                          submittedContribution.status === 'rejected' ? 'destructive' :
+                          submittedContribution.status === 'pending' ? 'secondary' :
+                          'outline'
+                        }
+                        className="capitalize"
+                      >
                         {submittedContribution.status}
                       </Badge>
                     </div>
@@ -697,6 +904,9 @@ function KhairatPayPageContent() {
                       setNotes('');
                       setPayerMobile('');
                       setVerifiedICNumber(null);
+                      setVerifiedMemberId(null);
+                      setVerifiedMembershipNumber(null);
+                      setVerifiedMemberInfo(null);
                       setIsKhairatMember(false);
                       setIcNumber('');
                       window.scrollTo(0, 0);
@@ -730,12 +940,23 @@ function KhairatPayPageContent() {
 
   if (loading || checkingMembership) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">
-            {tKhairat('payPage.loadingForm')}
-          </p>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatLoadingHeader
+          locale={locale}
+          mosqueId={mosqueId}
+          title={t('makePayment') || 'Pay Khairat'}
+          subtitle={undefined}
+          icon={HandCoins}
+          iconBgColor="bg-orange-50 dark:bg-orange-950/20"
+          iconColor="text-orange-600 dark:text-orange-400"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">
+              {tKhairat('payPage.loadingForm')}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -744,55 +965,19 @@ function KhairatPayPageContent() {
   // Show IC verification form for all users who haven't verified yet (except admin)
   if (!isKhairatMember && !isMosqueAdmin && !checkingMembership) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <Link href={`/${locale}/mosques/${mosqueId}`}>
-              <Button variant="ghost" size="sm" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {tKhairat('payPage.backToMosque')}
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <HandCoins className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  {t('makePayment') || 'Pay Khairat'}
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  {mosque?.name &&
-                    tKhairat('payPage.headerSubtitle', {
-                      mosqueName: mosque.name,
-                    })}
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title={t('makePayment') || 'Pay Khairat'}
+          subtitle={mosque?.name ? tKhairat('payPage.headerSubtitle', { mosqueName: mosque.name }) : undefined}
+          icon={HandCoins}
+          iconBgColor="bg-orange-50 dark:bg-orange-950/20"
+          iconColor="text-orange-600 dark:text-orange-400"
+        />
+        <div className="max-w-3xl mx-auto px-4 pb-12">
 
-          {/* Login Encouragement (only for non-logged in users) */}
-          {!user && (
-            <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>{tKhairat('payPage.notLoggedInTitle')}</strong>{' '}
-                    {tKhairat('payPage.notLoggedInDescription')}{' '}
-                    <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/pay/${mosqueId}`} className="underline font-semibold">
-                      {tKhairat('payPage.login')}
-                    </Link>{' '}
-                  </div>
-                  <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/pay/${mosqueId}`}>
-                    <Button size="sm" variant="outline" className="ml-4">
-                      {tKhairat('payPage.login')}
-                    </Button>
-                  </Link>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Card>
             <CardHeader>
@@ -870,32 +1055,18 @@ function KhairatPayPageContent() {
   // Show registration required message if logged in but not a member
   if (user && !isKhairatMember && !isMosqueAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <Link href={`/${locale}/mosques/${mosqueId}`}>
-              <Button variant="ghost" size="sm" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {tKhairat('payPage.backToMosque')}
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <HandCoins className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  {t('makePayment') || 'Pay Khairat'}
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  {mosque?.name &&
-                    tKhairat('payPage.headerSubtitle', {
-                      mosqueName: mosque.name,
-                    })}
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title={t('makePayment') || 'Pay Khairat'}
+          subtitle={mosque?.name ? tKhairat('payPage.headerSubtitle', { mosqueName: mosque.name }) : undefined}
+          icon={HandCoins}
+          iconBgColor="bg-orange-50 dark:bg-orange-950/20"
+          iconColor="text-orange-600 dark:text-orange-400"
+        />
+        <div className="max-w-3xl mx-auto px-4 pb-12">
 
           <Card>
             <CardHeader>
@@ -931,155 +1102,181 @@ function KhairatPayPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href={`/${locale}/mosques/${mosqueId}`}>
-            <Button variant="ghost" size="sm" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {tKhairat('payPage.backToMosque')}
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-              <HandCoins className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {t('makePayment') || 'Pay Khairat'}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                {mosque?.name &&
-                  tKhairat('payPage.headerSubtitle', {
-                    mosqueName: mosque.name,
-                  })}
-              </p>
-            </div>
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <KhairatStandardHeader
+        mosque={mosque}
+        locale={locale}
+        mosqueId={mosqueId}
+        title={t('makePayment') || 'Pay Khairat'}
+        subtitle={mosque?.name ? tKhairat('payPage.headerSubtitle', { mosqueName: mosque.name }) : undefined}
+        icon={HandCoins}
+        iconBgColor="bg-orange-50 dark:bg-orange-950/20"
+        iconColor="text-orange-600 dark:text-orange-400"
+      />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
         {/* Admin Alert */}
         {isMosqueAdmin && (
           <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>{tKhairat('payPage.viewOnlyTitle')}</strong>
-              {tKhairat('payPage.viewOnlyDescription')}
+              <strong>{tKhairat('payPage.viewOnlyTitle')}</strong> {tKhairat('payPage.viewOnlyDescription')}
             </AlertDescription>
           </Alert>
         )}
 
         {/* Membership Verification Status */}
-        {verifiedICNumber && isKhairatMember && (
-          <Alert className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800 dark:text-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong>{tKhairat('payPage.membershipVerifiedTitle')}</strong>
-                  <p className="text-sm mt-1">
-                    {tKhairat('payPage.membershipVerifiedDescription', {
-                      icNumber: verifiedICNumber || '',
-                    })}
-                  </p>
-                </div>
+        {(verifiedICNumber || verifiedMemberId) && isKhairatMember && (
+          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <strong className="text-slate-900 dark:text-slate-100">{tKhairat('payPage.membershipVerifiedTitle')}</strong>
               </div>
-            </AlertDescription>
-          </Alert>
+              {verifiedICNumber && (
+                <div className="flex items-center gap-2 ml-6">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedICNumber}</span>
+                  </p>
+                  {(verifiedMemberInfo?.status || isKhairatMember) && (
+                    <Badge 
+                      variant={
+                        (verifiedMemberInfo?.status === 'active' || verifiedMemberInfo?.status === 'approved' || !verifiedMemberInfo?.status) ? 'default' :
+                        verifiedMemberInfo.status === 'inactive' ? 'secondary' :
+                        verifiedMemberInfo.status === 'pending' ? 'secondary' :
+                        'outline'
+                      }
+                      className="capitalize"
+                    >
+                      {verifiedMemberInfo?.status === 'active' || !verifiedMemberInfo?.status ? (locale === 'ms' ? 'Aktif' : 'Active') :
+                       verifiedMemberInfo.status === 'approved' ? (locale === 'ms' ? 'Diluluskan' : 'Approved') :
+                       verifiedMemberInfo.status === 'inactive' ? (locale === 'ms' ? 'Tidak Aktif' : 'Inactive') :
+                       verifiedMemberInfo.status === 'pending' ? (locale === 'ms' ? 'Menunggu' : 'Pending') :
+                       verifiedMemberInfo.status || (locale === 'ms' ? 'Aktif' : 'Active')}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              {(verifiedMemberId || verifiedMembershipNumber) && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
+                  {tKhairat('payPage.memberIdLabel') || 'Member ID'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedMembershipNumber || verifiedMemberId?.slice(0, 8).toUpperCase()}</span>
+                </p>
+              )}
+              
+              {/* Display Registered Information */}
+              {verifiedMemberInfo && (verifiedMemberInfo.full_name || verifiedMemberInfo.email || verifiedMemberInfo.phone) && (
+                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
+                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {tKhairat('payPage.registeredInformationLabel') || 'Registered Information'}
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    {verifiedMemberInfo.full_name && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.payerNameLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1">
+                          {verifiedMemberInfo.full_name}
+                        </span>
+                      </div>
+                    )}
+                    {verifiedMemberInfo.email && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.emailLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1 break-all">
+                          {verifiedMemberInfo.email}
+                        </span>
+                      </div>
+                    )}
+                    {verifiedMemberInfo.phone && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
+                          {tKhairat('payPage.mobileNumberLabel')}:
+                        </span>
+                        <span className="text-slate-900 dark:text-slate-100 flex-1">
+                          {verifiedMemberInfo.phone}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit}>
           <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>{tKhairat('payPage.paymentDetailsTitle')}</CardTitle>
-                <CardDescription>
-                  {tKhairat('payPage.paymentDetailsDescription')}
-                </CardDescription>
-              </CardHeader>
+            <CardHeader>
+              <CardTitle>{tKhairat('payPage.paymentDetailsTitle')}</CardTitle>
+              <CardDescription>
+                {tKhairat('payPage.paymentDetailsDescription')}
+              </CardDescription>
+            </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">
-                  {tKhairat('payPage.amountLabel')}{' '}
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder={tKhairat('payPage.amountPlaceholder')}
-                  required
-                  disabled={isMosqueAdmin || !!(khairatSettings?.fixed_price && khairatSettings.fixed_price > 0)}
-                  className={khairatSettings?.fixed_price && khairatSettings.fixed_price > 0 ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
-                />
-                {khairatSettings?.fixed_price && khairatSettings.fixed_price > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {tKhairat('payPage.fixedPriceNote', {
-                      amount: khairatSettings.fixed_price.toFixed(2),
-                    })}
-                  </p>
-                )}
-              </div>
+              {/* Show editable fields only if no registered information available */}
+              {(!verifiedMemberInfo || (!verifiedMemberInfo.full_name && !verifiedMemberInfo.email && !verifiedMemberInfo.phone)) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="payer_name">
+                      {tKhairat('payPage.payerNameLabel')}
+                    </Label>
+                    <Input
+                      id="payer_name"
+                      value={payerName}
+                      onChange={(e) => setPayerName(e.target.value)}
+                      placeholder={tKhairat('payPage.payerNamePlaceholder')}
+                      disabled={isMosqueAdmin}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="payer_name">
-                  {tKhairat('payPage.payerNameLabel')}
-                </Label>
-                <Input
-                  id="payer_name"
-                  value={payerName}
-                  onChange={(e) => setPayerName(e.target.value)}
-                  placeholder={tKhairat('payPage.payerNamePlaceholder')}
-                  disabled={isMosqueAdmin}
-                />
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="payer_email">
+                        {tKhairat('payPage.emailLabel')}
+                      </Label>
+                      <Input
+                        id="payer_email"
+                        type="email"
+                        value={payerEmail}
+                        onChange={(e) => setPayerEmail(e.target.value)}
+                        placeholder={tKhairat('payPage.emailPlaceholder')}
+                        disabled={isMosqueAdmin || (user !== null && user !== undefined)}
+                        className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
+                      />
+                      {user && (
+                        <p className="text-xs text-muted-foreground">
+                          {tKhairat('payPage.emailFromAccount')}
+                        </p>
+                      )}
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="payer_email">
-                  {tKhairat('payPage.emailLabel')}
-                </Label>
-                <Input
-                  id="payer_email"
-                  type="email"
-                  value={payerEmail}
-                  onChange={(e) => setPayerEmail(e.target.value)}
-                  placeholder={tKhairat('payPage.emailPlaceholder')}
-                  disabled={isMosqueAdmin || (user !== null && user !== undefined)}
-                  className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
-                />
-                {user && (
-                  <p className="text-xs text-muted-foreground">
-                    {tKhairat('payPage.emailFromAccount')}
-                  </p>
-                )}
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="payer_mobile">
+                        {tKhairat('payPage.mobileNumberLabel')}
+                      </Label>
+                      <Input
+                        id="payer_mobile"
+                        type="tel"
+                        value={payerMobile}
+                        onChange={(e) => setPayerMobile(e.target.value)}
+                        placeholder={tKhairat('payPage.mobileNumberPlaceholder')}
+                        disabled={isMosqueAdmin}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="payer_mobile">
-                    {tKhairat('payPage.mobileNumberLabel')}
-                  </Label>
-                  <Input
-                    id="payer_mobile"
-                    type="tel"
-                    value={payerMobile}
-                    onChange={(e) => setPayerMobile(e.target.value)}
-                    placeholder={tKhairat('payPage.mobileNumberPlaceholder')}
-                    disabled={isMosqueAdmin}
-                  />
-                </div>
-              </div>
-
+              {/* Payment Method Selection */}
               <div className="space-y-2">
                 <Label>
                   {tKhairat('payPage.paymentMethodLabel')}{' '}
                   <span className="text-red-500">*</span>
                 </Label>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <RadioGroup value={paymentMethod} onValueChange={handlePaymentMethodChange}>
                   {/* Online Payment Options - Always show but disable if not available/enabled */}
                   {/* ToyyibPay - Always show, but disable if not configured or not enabled */}
                   <div className={`flex items-center space-x-2 p-3 border rounded-lg ${!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay') ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -1092,14 +1289,16 @@ function KhairatPayPageContent() {
                       htmlFor="toyyibpay" 
                       className={`flex-1 ${enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        <span>{tKhairat('payPage.onlinePaymentLabel')}</span>
-                        {(!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay')) && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({tKhairat('payPage.disabled')})
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          <span>{tKhairat('payPage.onlinePaymentLabel')}</span>
+                        </div>
+                        <Badge variant={enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'default' : 'secondary'} className="text-xs">
+                          {enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') 
+                            ? tKhairat('payPage.enabled') 
+                            : tKhairat('payPage.disabled')}
+                        </Badge>
                       </div>
                     </Label>
                   </div>
@@ -1114,14 +1313,16 @@ function KhairatPayPageContent() {
                       htmlFor="bank_transfer" 
                       className={`flex-1 ${enabledPaymentMethods.bank_transfer ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        <span>{tKhairat('payPage.bankTransferLabel')}</span>
-                        {!enabledPaymentMethods.bank_transfer && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({tKhairat('payPage.disabled')})
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          <span>{tKhairat('payPage.bankTransferLabel')}</span>
+                        </div>
+                        <Badge variant={enabledPaymentMethods.bank_transfer ? 'default' : 'secondary'} className="text-xs">
+                          {enabledPaymentMethods.bank_transfer 
+                            ? tKhairat('payPage.enabled') 
+                            : tKhairat('payPage.disabled')}
+                        </Badge>
                       </div>
                     </Label>
                   </div>
@@ -1136,63 +1337,116 @@ function KhairatPayPageContent() {
                       htmlFor="cash" 
                       className={`flex-1 ${enabledPaymentMethods.cash ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <Banknote className="h-4 w-4" />
-                        <span>{tKhairat('payPage.cashLabel')}</span>
-                        {!enabledPaymentMethods.cash && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({tKhairat('payPage.disabled')})
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="h-4 w-4" />
+                          <span>{tKhairat('payPage.cashLabel')}</span>
+                        </div>
+                        <Badge variant={enabledPaymentMethods.cash ? 'default' : 'secondary'} className="text-xs">
+                          {enabledPaymentMethods.cash 
+                            ? tKhairat('payPage.enabled') 
+                            : tKhairat('payPage.disabled')}
+                        </Badge>
                       </div>
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
 
+              {/* Amount Input - Show after payment method is selected */}
+              {paymentMethod && (
+                <>
+                  {!(getFixedPriceForMethod(paymentMethod) && getFixedPriceForMethod(paymentMethod)! > 0) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">
+                        {tKhairat('payPage.amountLabel')}{' '}
+                        {!isMosqueAdmin && <span className="text-red-500">*</span>}
+                      </Label>
+                      <Input
+                        id="amount"
+                        type="text"
+                        inputMode="decimal"
+                        value={amount}
+                        onChange={handleAmountChange}
+                        onKeyDown={handleAmountKeyDown}
+                        onPaste={handleAmountPaste}
+                        onBlur={(e) => {
+                          // Validate on blur - ensure it's a valid number
+                          const numValue = parseFloat(e.target.value);
+                          if (e.target.value && (!numValue || numValue <= 0 || isNaN(numValue))) {
+                            setAmount('');
+                          } else if (e.target.value && numValue > 0) {
+                            // Format to 2 decimal places
+                            setAmount(numValue.toFixed(2));
+                          }
+                        }}
+                        placeholder={tKhairat('payPage.amountPlaceholder')}
+                        required={!isMosqueAdmin}
+                        disabled={isMosqueAdmin}
+                        readOnly={isMosqueAdmin}
+                        className={isMosqueAdmin ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
+                        pattern="[0-9]*\.?[0-9]{0,2}"
+                      />
+                    </div>
+                  )}
+
+                  {/* Total Price Display - Show for both admin and regular users */}
+                  {amount && parseFloat(amount) > 0 && (
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                          {tKhairat('payPage.totalAmountLabel') || 'Total Amount'}:
+                        </span>
+                        <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                          {new Intl.NumberFormat('ms-MY', {
+                            style: 'currency',
+                            currency: 'MYR',
+                          }).format(parseFloat(amount))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
               {enabledPaymentMethods.bank_transfer && paymentMethod === 'bank_transfer' && (() => {
                 const bankDetails = mosque?.settings?.bank_transfer_details;
                 const hasBankDetails = bankDetails && typeof bankDetails === 'object' && bankDetails !== null;
                 return (
-                  <div className="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-lg">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">
-                        {tKhairat('payPage.bankTransferDetailsTitle')}
-                      </h4>
-                      {hasBankDetails ? (
-                        <div className="space-y-2 text-sm">
-                          {(bankDetails as any).bank_name && (
-                            <p>
-                              <span className="font-medium">Bank:</span>{' '}
-                              {(bankDetails as any).bank_name}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {tKhairat('payPage.bankTransferDetailsTitle')}
+                    </h4>
+                    {hasBankDetails ? (
+                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        {(bankDetails as any).bank_name && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">Bank:</span>{' '}
+                            {(bankDetails as any).bank_name}
+                          </p>
+                        )}
+                        {(bankDetails as any).account_number && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">Account Number:</span>{' '}
+                            <span className="font-mono">{(bankDetails as any).account_number}</span>
+                          </p>
+                        )}
+                        {(bankDetails as any).account_holder_name && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">Account Holder:</span>{' '}
+                            {(bankDetails as any).account_holder_name}
+                          </p>
+                        )}
+                        {(bankDetails as any).reference_instructions && (
+                          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                            <p className="font-medium text-xs mb-1 text-slate-900 dark:text-slate-100">
+                              {tKhairat('payPage.referenceInstructionsLabel')}:
                             </p>
-                          )}
-                          {(bankDetails as any).account_number && (
-                            <p>
-                              <span className="font-medium">Account Number:</span>{' '}
-                              {(bankDetails as any).account_number}
-                            </p>
-                          )}
-                          {(bankDetails as any).account_holder_name && (
-                            <p>
-                              <span className="font-medium">Account Holder:</span>{' '}
-                              {(bankDetails as any).account_holder_name}
-                            </p>
-                          )}
-                          {(bankDetails as any).reference_instructions && (
-                            <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                              <p className="font-medium text-xs mb-1">
-                                {tKhairat(
-                                  'payPage.referenceInstructionsLabel'
-                                )}
-                                :
-                              </p>
-                              <p className="text-xs text-muted-foreground">{(bankDetails as any).reference_instructions}</p>
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">{(bankDetails as any).reference_instructions}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })()}
@@ -1201,83 +1455,103 @@ function KhairatPayPageContent() {
                 const cashDetails = mosque?.settings?.cash_payment_details;
                 const hasCashDetails = cashDetails && typeof cashDetails === 'object' && cashDetails !== null;
                 return (
-                  <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">
-                        {tKhairat('payPage.cashPaymentDetailsTitle')}
-                      </h4>
-                      {hasCashDetails ? (
-                        <div className="space-y-2 text-sm">
-                          {(cashDetails as any).payment_location && (
-                            <p>
-                              <span className="font-medium">
-                                {tKhairat('payPage.paymentLocationLabel')}:
-                              </span>{' '}
-                              {(cashDetails as any).payment_location}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {tKhairat('payPage.cashPaymentDetailsTitle')}
+                    </h4>
+                    {hasCashDetails ? (
+                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                        {(cashDetails as any).payment_location && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {tKhairat('payPage.paymentLocationLabel')}:
+                            </span>{' '}
+                            {(cashDetails as any).payment_location}
+                          </p>
+                        )}
+                        {(cashDetails as any).office_hours && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {tKhairat('payPage.officeHoursLabel')}:
+                            </span>{' '}
+                            {(cashDetails as any).office_hours}
+                          </p>
+                        )}
+                        {((cashDetails as any).contact_person || (cashDetails as any).contact_phone) && (
+                          <p>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {tKhairat('payPage.contactLabel')}:
+                            </span>{' '}
+                            {(cashDetails as any).contact_person || (cashDetails as any).contact_phone}
+                          </p>
+                        )}
+                        {(cashDetails as any).instructions && (
+                          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                            <p className="font-medium text-xs mb-1 text-slate-900 dark:text-slate-100">
+                              {tKhairat('payPage.paymentInstructionsLabel')}:
                             </p>
-                          )}
-                          {(cashDetails as any).office_hours && (
-                            <p>
-                              <span className="font-medium">
-                                {tKhairat('payPage.officeHoursLabel')}:
-                              </span>{' '}
-                              {(cashDetails as any).office_hours}
-                            </p>
-                          )}
-                          {((cashDetails as any).contact_person || (cashDetails as any).contact_phone) && (
-                            <div className="flex gap-4">
-                              {(cashDetails as any).contact_person && (
-                                <p>
-                                  <span className="font-medium">
-                                    {tKhairat('payPage.contactLabel')}:
-                                  </span>{' '}
-                                  {(cashDetails as any).contact_person}
-                                </p>
-                              )}
-                              {(cashDetails as any).contact_phone && (
-                                <p>
-                                  <span className="font-medium">
-                                    {tKhairat('payPage.phoneLabel')}:
-                                  </span>{' '}
-                                  {(cashDetails as any).contact_phone}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {(cashDetails as any).instructions && (
-                            <div className="mt-2 p-2 bg-white dark:bg-slate-800 rounded border">
-                              <p className="font-medium text-xs mb-1">
-                                {tKhairat('payPage.paymentInstructionsLabel')}
-                              :
-                            </p>
-                            <p className="text-xs text-muted-foreground">{(cashDetails as any).instructions}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">{(cashDetails as any).instructions}</p>
                           </div>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })()}
               {(paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && (
                 <div className="space-y-2">
-                  <PaymentReceiptUpload
-                    onReceiptsChange={(receipts) => {
-                      // Handle both File[] and PaymentReceipt[] types
-                      if (receipts.length > 0 && receipts[0] instanceof File) {
-                        setPaymentReceipts(receipts as File[]);
-                      } else {
-                        // If receipts are already uploaded (PaymentReceipt[]), convert to empty array
-                        // since we only need files for new uploads
-                        setPaymentReceipts([]);
-                      }
-                    }}
-                    maxFiles={1}
-                    disabled={isMosqueAdmin}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {tKhairat('payPage.uploadReceiptHelp')}
-                  </p>
+                  <Label>Payment Receipt</Label>
+                  <Dialog open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isMosqueAdmin}
+                        className="w-full"
+                      >
+                        {paymentReceipts.length > 0 ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                            {tKhairat('payPage.receiptUploaded', {
+                              count: paymentReceipts.length,
+                            }) || `${paymentReceipts.length} ${paymentReceipts.length === 1 ? 'receipt' : 'receipts'} uploaded`}
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            {tKhairat('payPage.uploadReceiptButton') || 'Upload Payment Receipt'}
+                          </>
+                        )}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{tKhairat('payPage.uploadPaymentReceiptTitle') || 'Upload Payment Receipt'}</DialogTitle>
+                        <DialogDescription>
+                          {tKhairat('payPage.uploadPaymentReceiptDescription') || 'Upload a payment receipt (JPEG, PNG, GIF, or PDF)'}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <PaymentReceiptUpload
+                          onReceiptsChange={(receipts) => {
+                            // Handle both File[] and PaymentReceipt[] types
+                            if (receipts.length > 0 && receipts[0] instanceof File) {
+                              setPaymentReceipts(receipts as File[]);
+                            } else {
+                              // If receipts are already uploaded (PaymentReceipt[]), convert to empty array
+                              // since we only need files for new uploads
+                              setPaymentReceipts([]);
+                            }
+                          }}
+                          maxFiles={1}
+                          disabled={isMosqueAdmin}
+                        />
+                        <p className="text-xs text-muted-foreground mt-3">
+                          {tKhairat('payPage.uploadReceiptHelp')}
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
 

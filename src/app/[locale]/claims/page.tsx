@@ -7,7 +7,6 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { ClaimsManagement } from '@/components/admin/ClaimsManagement';
-import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
 import { Loading } from '@/components/ui/loading';
 import { useSafeAsync } from '@/hooks/useSafeAsync';
 
@@ -37,31 +36,37 @@ function KhairatClaimsContent() {
     );
   }
 
+  if (!hasAdminAccess) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
+          Access denied. Only mosque administrators can access claims management.
+        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-500">
+          To submit a claim, please visit the mosque profile page and use the claim submission form.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          {hasAdminAccess ? t('khairatClaims') : t('claimHistory')}
+          {t('khairatClaims')}
         </h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-          {hasAdminAccess
-            ? t('khairatClaimsDescription')
-            : t('claimHistoryDescription')}
+          {t('khairatClaimsDescription')}
         </p>
       </div>
 
-      {hasAdminAccess ? (
-        mosqueId ? (
-          <ClaimsManagement mosqueId={mosqueId} showHeader={false} />
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">{t('unknownMosque')}</p>
-          </div>
-        )
+      {mosqueId ? (
+        <ClaimsManagement mosqueId={mosqueId} showHeader={false} />
       ) : (
-        <UserClaimsTable showHeader={false} />
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">{t('unknownMosque')}</p>
+        </div>
       )}
-
     </div>
   );
 }

@@ -456,6 +456,7 @@ export async function getMosqueKhairatSettings(
     const khairatSettings = mosque.settings?.khairat || {
       enabled: false,
       fixed_price: undefined,
+      fixed_prices: undefined,
       description: undefined,
       payment_methods: [],
       target_amount: undefined,
@@ -463,7 +464,17 @@ export async function getMosqueKhairatSettings(
       end_date: undefined
     };
 
-    return { success: true, data: khairatSettings };
+    // Ensure fixed_prices is included even if it's not in the stored settings
+    const settingsWithFixedPrices = {
+      ...khairatSettings,
+      fixed_prices: khairatSettings.fixed_prices || {
+        online_payment: undefined,
+        bank_transfer: undefined,
+        cash: undefined,
+      }
+    };
+
+    return { success: true, data: settingsWithFixedPrices };
   } catch (error) {
     return { success: false, error: 'Failed to fetch mosque khairat settings' };
   }
@@ -685,10 +696,23 @@ export async function updateMosqueKhairatSettings(
       return { success: false, error: fetchError.message };
     }
 
-    // Update settings with new khairat settings
+    // Merge new khairat settings with existing ones (don't overwrite other fields)
+    const existingKhairatSettings = mosque.settings?.khairat || {};
+    const mergedKhairatSettings = {
+      ...existingKhairatSettings,
+      ...settings,
+      // Preserve fixed_prices structure if it exists
+      fixed_prices: settings.fixed_prices || existingKhairatSettings.fixed_prices || {
+        online_payment: undefined,
+        bank_transfer: undefined,
+        cash: undefined,
+      }
+    };
+
+    // Update settings with merged khairat settings
     const updatedSettings = {
       ...mosque.settings,
-      khairat: settings
+      khairat: mergedKhairatSettings
     };
 
     const { data, error } = await supabase

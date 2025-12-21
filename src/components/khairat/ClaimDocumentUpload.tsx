@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { uploadClaimDocument, deleteClaimDocument, getClaimDocuments } from '@/lib/api';
 import type { ClaimDocument } from '@/types/database';
 import { compressImage } from '@/utils/image-compression';
+import { useTranslations } from 'next-intl';
 
 interface ClaimDocumentUploadProps {
   claimId?: string; // If provided, will load existing documents
@@ -49,6 +50,7 @@ export function ClaimDocumentUpload({
   disabled = false
 }: ClaimDocumentUploadProps) {
   const { user } = useAuth();
+  const tKhairat = useTranslations('khairat');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [existingDocuments, setExistingDocuments] = useState<ClaimDocument[]>([]);
@@ -271,13 +273,13 @@ export function ClaimDocumentUpload({
           <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              Upload Supporting Documents
+              {tKhairat('uploadSupportingDocuments')}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Upload images, PDFs, or documents to support your claim
+              {tKhairat('uploadSupportingDocumentsHelp')}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Max {maxFiles} files, 10MB each. Supported: JPEG, PNG, PDF, DOC, TXT
+              {tKhairat('maxFilesInfo', { maxFiles })}
             </p>
           </div>
           
@@ -289,7 +291,7 @@ export function ClaimDocumentUpload({
             disabled={!canUpload}
           >
             <Upload className="h-4 w-4 mr-2" />
-            Choose Files
+            {tKhairat('chooseFiles')}
           </Button>
           
           <input

@@ -17,6 +17,7 @@ interface KhairatRegistrationSettings {
 
 export function KhairatRegistrationInfo({ mosqueId }: KhairatRegistrationInfoProps) {
   const t = useTranslations('mosquePage');
+  const tRegister = useTranslations('khairat.register');
   const [settings, setSettings] = useState<KhairatRegistrationSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +50,11 @@ export function KhairatRegistrationInfo({ mosqueId }: KhairatRegistrationInfoPro
 
   return (
     <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+      <div className="mb-3">
+        <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+          {tRegister('mosqueInformationTitle') || 'Information from Mosque'}
+        </h3>
+      </div>
       <div className="space-y-3 text-sm">
         {/* Custom Welcome Message */}
         {settings.custom_message && (

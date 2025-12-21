@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -71,7 +70,6 @@ export function MosqueKhairatContributions({
   mosqueId,
   showHeader = true,
 }: MosqueKhairatContributionsProps) {
-  const { user } = useAuth();
   const t = useTranslations('khairat');
   const [loading, setLoading] = useState(false);
   const [contributions, setContributions] = useState<ContributionWithUser[]>([]);

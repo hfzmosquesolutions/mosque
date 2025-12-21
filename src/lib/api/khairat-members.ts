@@ -35,9 +35,8 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
   const { data: user } = await supabase.auth.getUser();
   const isAuthenticated = !!user.user;
 
-  // If checking by IC number, allow without authentication or with authentication
-  // SECURITY: This is only for anonymous registrations (user_id = NULL)
-  // Registered users should use their account to access their records
+  // If checking by IC number, allow without authentication
+  // Since we've removed user login, all members are now anonymous (user_id = NULL)
   // We limit what data is returned to prevent information gathering attacks
   if (filters.ic_passport_number) {
     let query = supabase
@@ -55,7 +54,8 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
         updated_at
       `) // Limited fields - exclude sensitive data like address, admin_notes, etc.
       .eq('ic_passport_number', filters.ic_passport_number)
-      .is('user_id', null); // SECURITY: Only query anonymous registrations
+      // Removed .is('user_id', null) filter since all members are now anonymous
+      // Legacy members may have user_id set, but we still want to find them by IC
     
     if (filters.mosque_id) {
       query = query.eq('mosque_id', filters.mosque_id);
@@ -73,44 +73,8 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
       throw new Error(`Failed to fetch khairat members: ${error.message}`);
     }
 
-    // Additional security check: If user is authenticated, also check their own records
-    // This allows logged-in users to verify their own membership even if they registered anonymously
-    const { data: authUser } = await supabase.auth.getUser();
-    if (authUser.user) {
-      // Also check for records belonging to the authenticated user
-      let userQuery = supabase
-        .from('khairat_members')
-        .select(`
-          id,
-          mosque_id,
-          ic_passport_number,
-          status,
-          membership_number,
-          full_name,
-          phone,
-          email,
-          created_at,
-          updated_at
-        `)
-        .eq('ic_passport_number', filters.ic_passport_number)
-        .eq('user_id', authUser.user.id); // Only their own records
-      
-      if (filters.mosque_id) {
-        userQuery = userQuery.eq('mosque_id', filters.mosque_id);
-      }
-      
-      if (filters.status) {
-        userQuery = userQuery.eq('status', filters.status);
-      }
-
-      const { data: userData } = await userQuery;
-      
-      // Combine results (anonymous + own records)
-      if (userData && userData.length > 0) {
-        return [...(data || []), ...userData] as KhairatMember[];
-      }
-    }
-
+    // Since we've removed user login, all members are anonymous
+    // No need to check for authenticated user records anymore
     return data as KhairatMember[];
   }
 

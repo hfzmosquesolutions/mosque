@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // 1. Find khairat member by IC and mosque (latest record)
     const { data: members, error: memberError } = await supabaseAdmin
       .from('khairat_members')
-      .select('id, status, membership_number, created_at')
+      .select('id, status, membership_number, full_name, email, phone, created_at')
       .eq('mosque_id', mosqueId)
       .eq('ic_passport_number', ic)
       .order('created_at', { ascending: false });
@@ -86,6 +86,9 @@ export async function POST(request: Request) {
             memberId: latestMember.id,
             membershipNumber: latestMember.membership_number ?? null,
             status: latestMember.status,
+            full_name: latestMember.full_name || undefined,
+            email: latestMember.email || undefined,
+            phone: latestMember.phone || undefined,
           }
         : {
             found: false,
@@ -102,6 +105,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
 
 

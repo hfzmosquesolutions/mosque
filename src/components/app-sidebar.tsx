@@ -58,7 +58,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
     },
   ];
 
-  // For admin users, only show the core features
+  // Only show admin features - no user dashboard needed
   if (hasAdminAccess) {
     baseNavigation.push({
       name: t('members'),
@@ -80,57 +80,10 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
       href: '/claims',
       icon: FileText,
     });
-    // Legacy data page hidden for now
-    // baseNavigation.push({
-    //   name: t('legacyData'),
-    //   href: '/legacy',
-    //   icon: Database,
-    // });
     baseNavigation.push({
       name: t('mosquePage'),
       href: '/mosque-profile',
       icon: Building,
-    });
-  } else {
-    // For regular users, show community features
-    // Events removed
-
-    // Show My Mosques (user version)
-    baseNavigation.push({
-      name: t('myMosques'),
-      href: '/my-mosques',
-      icon: HandHeart,
-    });
-
-    // Payment History for regular users
-    baseNavigation.push({
-      name: t('paymentHistory'),
-      href: '/payments',
-      icon: CreditCard,
-    });
-
-    // Claims for regular users
-    baseNavigation.push({
-      name: t('claims.title'),
-      href: '/claims',
-      icon: FileText,
-    });
-
-    // Khairat page is not available to regular users
-    // Kariah applications are now handled through My Mosques page
-
-    // Dependents management for regular users only
-    baseNavigation.push({
-      name: t('dependents'),
-      href: '/dependents',
-      icon: Users,
-    });
-
-    // Only show personal Profile link for non-admin (normal) users
-    baseNavigation.push({
-      name: t('profile'),
-      href: '/profile',
-      icon: User,
     });
   }
 
@@ -207,7 +160,7 @@ export function AppSidebar() {
                   ? '...'
                   : hasAdminAccess
                   ? t('administrator')
-                  : t('member')}
+                  : ''}
               </span>
             </div>
           </div>

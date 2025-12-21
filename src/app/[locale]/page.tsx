@@ -283,14 +283,24 @@ export default function Home() {
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
               </Link>
 
-              {/* Register Mosque */}
-              <Link href={`/${locale}/signup`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
-                  <Plus className="h-3.5 w-3.5" />
-                </span>
-                <span className="font-semibold">{t('registerMosqueShort')}</span>
-                <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-              </Link>
+              {/* Admin Login */}
+              {user ? (
+                <Link href={`/${locale}/dashboard`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                  <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
+                    <Shield className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="font-semibold">Admin Dashboard</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+                </Link>
+              ) : (
+                <Link href={`/${locale}/login`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                  <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
+                    <Shield className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="font-semibold">Mosque Admin Login</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+                </Link>
+              )}
             </div>
           </nav>
         </div>
@@ -566,10 +576,10 @@ export default function Home() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/signup">
+                <Link href="/login">
                   <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3">
-                    <UserPlus className="mr-2 h-5 w-5" />
-                    {t('registerYourMosque')}
+                    <Shield className="mr-2 h-5 w-5" />
+                    Mosque Admin Login
                   </Button>
                 </Link>
               )}
@@ -580,7 +590,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-4 max-w-2xl mx-auto">
-              {t('startManagingDescription')}
+              Only mosque administrators need to log in. Regular users can access all features without an account.
             </p>
           </div>
 
@@ -688,10 +698,10 @@ export default function Home() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/signup">
+              <Link href="/login">
                 <Button size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 px-8 py-3">
-                  <UserPlus className="mr-2 h-5 w-5" />
-                  {t('registerYourMosque')}
+                  <Shield className="mr-2 h-5 w-5" />
+                  Mosque Admin Login
                 </Button>
               </Link>
             )}

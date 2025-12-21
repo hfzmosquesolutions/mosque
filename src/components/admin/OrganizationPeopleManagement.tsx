@@ -60,7 +60,9 @@ import {
   MapPin,
   Calendar,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -78,6 +80,9 @@ import {
 
 interface OrganizationPeopleManagementProps {
   mosqueId: string;
+  isServiceEnabled?: boolean;
+  onServiceToggle?: (enabled: boolean) => void;
+  savingToggle?: boolean;
 }
 
 const POSITION_OPTIONS = [
@@ -111,8 +116,14 @@ const DEPARTMENT_OPTIONS = [
   'Other'
 ];
 
-export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleManagementProps) {
+export function OrganizationPeopleManagement({ 
+  mosqueId,
+  isServiceEnabled,
+  onServiceToggle,
+  savingToggle
+}: OrganizationPeopleManagementProps) {
   const t = useTranslations('mosquePage.organizationPeople');
+  const tService = useTranslations('mosquePage.serviceManagement');
   const [people, setPeople] = useState<OrganizationPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -364,13 +375,13 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
             {t('description')}
           </p>
         </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogClose}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t('addPerson')}
-              </Button>
-            </DialogTrigger>
+        <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogClose}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('addPerson')}
+            </Button>
+          </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t('addOrganizationPerson')}</DialogTitle>
@@ -520,7 +531,34 @@ export function OrganizationPeopleManagement({ mosqueId }: OrganizationPeopleMan
             </DialogContent>
           </Dialog>
         </div>
-        {people.length === 0 ? (
+
+      {/* Service Toggle */}
+      {onServiceToggle && (
+        <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Label className="text-base font-medium">
+                {tService('organizationPeople')}
+              </Label>
+              {isServiceEnabled ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {tService('organizationPeopleDescription')}
+            </p>
+          </div>
+          <Switch
+            checked={isServiceEnabled}
+            onCheckedChange={onServiceToggle}
+            disabled={savingToggle}
+          />
+        </div>
+      )}
+
+      {people.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>{t('noPeopleYet')}</p>

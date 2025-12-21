@@ -99,19 +99,15 @@ export function KhairatManagement({
     : internalCreateDialogOpen;
   const setCreateDialogOpen = onCreateDialogChange || setInternalCreateDialogOpen;
   const [createForm, setCreateForm] = useState({
-    user_id: '',
     full_name: '',
     ic_passport_number: '',
     phone: '',
     email: '',
     address: '',
     notes: '',
-    useDirectData: false, // Toggle between user_id or direct data
   });
 
   const loadMembers = async () => {
-    if (!user) return;
-    
     setLoading(true);
     try {
       const allMembers = await getKhairatMembers({
@@ -243,93 +239,46 @@ export function KhairatManagement({
   };
 
   const handleCreateMember = async () => {
-    // Validate based on mode
-    if (!createForm.useDirectData) {
-      // Using user_id mode
-      if (!createForm.user_id) {
-        toast.error('User ID is required');
-        return;
-      }
-    } else {
-      // Using direct data mode
-      if (!createForm.full_name || !createForm.ic_passport_number) {
-        toast.error('Full name and IC number are required');
-        return;
-      }
+    // Validate required fields
+    if (!createForm.full_name || !createForm.ic_passport_number) {
+      toast.error('Full name and IC number are required');
+      return;
     }
 
     setProcessing(true);
     try {
-      if (!createForm.useDirectData) {
-        // Check if user exists
-        const { data: userProfile, error: userError } = await supabase
-          .from('user_profiles')
-          .select('id, full_name')
-          .eq('id', createForm.user_id)
-          .single();
+      // Check if member with same IC already exists for this mosque
+      const { data: existingMember } = await supabase
+        .from('khairat_members')
+        .select('id, status')
+        .eq('ic_passport_number', normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
+        .eq('mosque_id', mosqueId)
+        .maybeSingle();
 
-        if (userError || !userProfile) {
-          toast.error('User not found. Please check the User ID.');
-          setProcessing(false);
-          return;
-        }
-
-        // Check if member already exists
-        const { data: existingMember } = await supabase
-          .from('khairat_members')
-          .select('id, status')
-          .eq('user_id', createForm.user_id)
-          .eq('mosque_id', mosqueId)
-          .single();
-
-        if (existingMember) {
-          toast.error(`User already has a ${existingMember.status} membership`);
-          setProcessing(false);
-          return;
-        }
-      } else {
-        // Check if member with same IC already exists for this mosque
-        const { data: existingMember } = await supabase
-          .from('khairat_members')
-          .select('id, status')
-          .eq('ic_passport_number', createForm.ic_passport_number)
-          .eq('mosque_id', mosqueId)
-          .is('user_id', null)
-          .single();
-
-        if (existingMember) {
-          toast.error(`A member with this IC number already exists with ${existingMember.status} status`);
-          setProcessing(false);
-          return;
-        }
+      if (existingMember) {
+        toast.error(`A member with this IC number already exists with ${existingMember.status} status`);
+        setProcessing(false);
+        return;
       }
 
-      // Create the member directly as active
+      // Create the member directly as active (no user_id)
       const insertData: any = {
         mosque_id: mosqueId,
-        ic_passport_number: createForm.ic_passport_number || null,
+        full_name: createForm.full_name,
+        ic_passport_number: normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12),
+        phone: createForm.phone || null,
+        email: createForm.email || null,
+        address: createForm.address || null,
         notes: createForm.notes || null,
         status: 'active',
         joined_date: new Date().toISOString().split('T')[0],
       };
-
-      if (createForm.useDirectData) {
-        // Direct data mode - no user_id
-        insertData.full_name = createForm.full_name;
-        insertData.phone = createForm.phone || null;
-        insertData.email = createForm.email || null;
-        insertData.address = createForm.address || null;
-      } else {
-        // User account mode
-        insertData.user_id = createForm.user_id;
-      }
 
       const { data: newMember, error: createError } = await supabase
         .from('khairat_members')
         .insert(insertData)
         .select(`
           *,
-          user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
           mosque:mosques(id, name)
         `)
         .single();
@@ -341,14 +290,12 @@ export function KhairatManagement({
       toast.success('Member registered successfully');
       setCreateDialogOpen(false);
       setCreateForm({ 
-        user_id: '', 
         full_name: '',
         ic_passport_number: '', 
         phone: '',
         email: '',
         address: '',
         notes: '',
-        useDirectData: false,
       });
       loadMembers();
     } catch (error: any) {
@@ -873,38 +820,19 @@ export function KhairatManagement({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Toggle between user account and direct data */}
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <input
-                type="checkbox"
-                id="useDirectData"
-                checked={createForm.useDirectData}
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
+              <Input
+                placeholder={t('registerDialog.enterFullName')}
+                value={createForm.full_name}
                 onChange={(e) =>
-                  setCreateForm({ ...createForm, useDirectData: e.target.checked })
+                  setCreateForm({ ...createForm, full_name: e.target.value })
                 }
-                className="h-4 w-4"
+                className="mt-1"
               />
-              <label htmlFor="useDirectData" className="text-sm font-medium cursor-pointer">
-                {t('registerDialog.registerWithoutAccount')}
-              </label>
             </div>
-
-            {createForm.useDirectData ? (
-              /* Direct Data Mode - No user account required */
-              <>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
-                  <Input
-                    placeholder={t('registerDialog.enterFullName')}
-                    value={createForm.full_name}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, full_name: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
               <Input
                 placeholder={t('registerDialog.enterIcNumber')}
                 value={createForm.ic_passport_number}
@@ -917,77 +845,42 @@ export function KhairatManagement({
                 className="mt-1"
                 maxLength={12}
               />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
-                  <Input
-                    placeholder={t('registerDialog.enterPhoneNumber')}
-                    value={createForm.phone}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, phone: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
-                  <Input
-                    type="email"
-                    placeholder={t('registerDialog.enterEmailAddress')}
-                    value={createForm.email}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, email: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
-                  <Textarea
-                    placeholder={t('registerDialog.enterAddress')}
-                    value={createForm.address}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, address: e.target.value })
-                    }
-                    className="mt-1"
-                    rows={2}
-                  />
-                </div>
-              </>
-            ) : (
-              /* User Account Mode */
-              <>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.userIdRequired')}</label>
-                  <Input
-                    placeholder={t('registerDialog.enterUserId')}
-                    value={createForm.user_id}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, user_id: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t('registerDialog.userIdHint')}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{t('registerDialog.icNumberOptional')}</label>
-                  <Input
-                    placeholder={t('registerDialog.enterIcNumber')}
-                    value={createForm.ic_passport_number}
-                    onChange={(e) =>
-                      setCreateForm({
-                        ...createForm,
-                        ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
-                      })
-                    }
-                    className="mt-1"
-                    maxLength={12}
-                  />
-                </div>
-              </>
-            )}
+            </div>
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
+              <Input
+                placeholder={t('registerDialog.enterPhoneNumber')}
+                value={createForm.phone}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, phone: e.target.value })
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
+              <Input
+                type="email"
+                placeholder={t('registerDialog.enterEmailAddress')}
+                value={createForm.email}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, email: e.target.value })
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
+              <Textarea
+                placeholder={t('registerDialog.enterAddress')}
+                value={createForm.address}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, address: e.target.value })
+                }
+                className="mt-1"
+                rows={2}
+              />
+            </div>
 
             <div>
               <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
@@ -1007,14 +900,12 @@ export function KhairatManagement({
                 onClick={() => {
                   setCreateDialogOpen(false);
                   setCreateForm({ 
-                    user_id: '', 
                     full_name: '',
                     ic_passport_number: '', 
                     phone: '',
                     email: '',
                     address: '',
                     notes: '',
-                    useDirectData: false,
                   });
                 }}
                 disabled={processing}

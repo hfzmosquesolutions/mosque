@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -18,8 +17,8 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { checkOnboardingStatus } from '@/lib/api';
+import { Mail, Eye, EyeOff, ArrowLeft, Shield } from 'lucide-react';
+import { useAdminAccess } from '@/hooks/useUserRole';
 
 function LoginPageContent() {
   const t = useTranslations('auth');
@@ -28,6 +27,7 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
+  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/dashboard';
@@ -38,6 +38,13 @@ function LoginPageContent() {
       sessionStorage.setItem('returnUrl', returnUrl);
     }
   }, [returnUrl]);
+
+  // Redirect admin users away from login page
+  useEffect(() => {
+    if (!adminLoading && hasAdminAccess) {
+      router.push('/dashboard');
+    }
+  }, [hasAdminAccess, adminLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +62,7 @@ function LoginPageContent() {
       // Get the returnUrl from sessionStorage or query params
       const storedReturnUrl = sessionStorage.getItem('returnUrl') || returnUrl;
       
-      // Wait a bit for auth state to update, then check onboarding status
+      // Wait a bit for auth state to update, then check admin access
       setTimeout(async () => {
         try {
           // Get the user ID from the auth context
@@ -63,20 +70,18 @@ function LoginPageContent() {
           const { data: { user: authUser } } = await supabase.auth.getUser();
           
           if (authUser?.id) {
-            // Check if user needs onboarding
-            const onboardingCompleted = await checkOnboardingStatus(authUser.id);
+            // Check if user is admin (owns a mosque)
+            const { data: mosqueData } = await supabase
+              .from('mosques')
+              .select('id')
+              .eq('user_id', authUser.id)
+              .single();
             
-            if (!onboardingCompleted) {
-              // Store returnUrl for after onboarding completion
-              if (storedReturnUrl && storedReturnUrl !== '/dashboard') {
-                sessionStorage.setItem('pendingReturnUrl', storedReturnUrl);
-              }
-              // Clear the regular returnUrl since we're using pendingReturnUrl
-              if (sessionStorage.getItem('returnUrl')) {
-                sessionStorage.removeItem('returnUrl');
-              }
-              // Redirect to onboarding
-              window.location.href = '/onboarding';
+            if (!mosqueData) {
+              // User is not an admin, sign them out
+              await supabase.auth.signOut();
+              toast.error('Access denied. Only mosque administrators can log in.');
+              setLoading(false);
               return;
             }
           }
@@ -86,17 +91,14 @@ function LoginPageContent() {
             sessionStorage.removeItem('returnUrl');
           }
           
-          // Onboarding completed, redirect to returnUrl
+          // Admin verified, redirect to dashboard
           window.location.href = storedReturnUrl;
         } catch (error) {
-          console.error('Error checking onboarding:', error);
-          // Fallback: just redirect to returnUrl
-          if (sessionStorage.getItem('returnUrl')) {
-            sessionStorage.removeItem('returnUrl');
-          }
-          window.location.href = storedReturnUrl;
+          console.error('Error verifying admin access:', error);
+          toast.error('Failed to verify access. Please try again.');
+          setLoading(false);
         }
-      }, 200);
+      }, 500);
     } catch (error: any) {
       toast.error(error?.message || t('loginError'));
       setLoading(false);
@@ -121,12 +123,12 @@ function LoginPageContent() {
         {/* Login Card */}
         <Card className="border-emerald-100 dark:border-slate-700 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
-              {t('signIn')}
-            </CardTitle>
-            <CardDescription className="text-center text-slate-600 dark:text-slate-400">
-              {t('signInToAccount')}
-            </CardDescription>
+            <div className="flex items-center justify-center mb-2">
+              <Shield className="h-6 w-6 text-emerald-600 mr-2" />
+              <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
+                Mosque Admin Login
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -245,16 +247,16 @@ function LoginPageContent() {
               </Button>
             </form>
 
-            {/* Sign Up Link */}
-            <div className="mt-6 text-center text-sm">
+            {/* Signup Link */}
+            <div className="mt-4 text-center text-sm">
               <span className="text-slate-600 dark:text-slate-400">
                 {t('dontHaveAccount')}{' '}
               </span>
               <Link
-                href={`/signup${returnUrl !== '/dashboard' ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                href="/signup"
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-               >
-                {t('createAccount')}
+              >
+                {t('signUp')}
               </Link>
             </div>
           </CardContent>

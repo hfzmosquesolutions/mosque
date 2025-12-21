@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -55,54 +55,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES, normalizeMalaysiaIc } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
-import { checkOnboardingStatus } from '@/lib/api';
-
 export default function MosqueProfilePage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const mosqueId = params.id as string;
   const locale = params.locale as string;
   const { user } = useAuth();
   const t = useTranslations('mosquePage');
   const tKhairat = useTranslations('khairat');
-  
-  // Get the current page URL for return redirect
-  const currentPath = `/${locale}/mosques/${mosqueId}`;
-  
-  // Check onboarding status for logged-in users (same pattern as login/signup)
-  useEffect(() => {
-    const checkOnboardingAndRedirect = async () => {
-      // Only check for logged-in users
-      if (!user?.id) {
-        return;
-      }
-
-      try {
-        // Check if user needs onboarding
-        const onboardingCompleted = await checkOnboardingStatus(user.id);
-        
-        if (!onboardingCompleted) {
-          // Store returnUrl for after onboarding completion (same as login/signup)
-          if (currentPath && currentPath !== '/dashboard') {
-            sessionStorage.setItem('pendingReturnUrl', currentPath);
-          }
-          // Redirect to onboarding
-          router.push('/onboarding');
-        }
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-        // Don't redirect on error, let user continue viewing the page
-      }
-    };
-
-    // Wait a bit for auth state to stabilize
-    const timer = setTimeout(() => {
-      checkOnboardingAndRedirect();
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [user?.id, currentPath, router]);
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [contributionPrograms, setContributionPrograms] = useState<any[]>([]);
@@ -275,7 +237,7 @@ export default function MosqueProfilePage() {
 
   const handleContributeToProgram = (programId: string) => {
     if (!user?.id) {
-      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(pathname)}`);
       return;
     }
     setSelectedProgramId(programId);
@@ -284,7 +246,7 @@ export default function MosqueProfilePage() {
 
   const handleOpenKhairatClaim = () => {
     if (!user?.id) {
-      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(pathname)}`);
       return;
     }
     setIsKhairatClaimDialogOpen(true);
@@ -438,7 +400,7 @@ export default function MosqueProfilePage() {
 
   const handleApplyKhairat = async () => {
     if (!user?.id) {
-      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(currentPath)}`);
+      router.push(`/${locale}/login?returnUrl=${encodeURIComponent(pathname)}`);
       return;
     }
     if (!mosque) return;
@@ -1102,11 +1064,12 @@ export default function MosqueProfilePage() {
               <Button 
                 onClick={() => {
                   setIsSuccessModalOpen(false);
-                  router.push('/my-mosques');
+                  // Users can check their status using IC number on the mosque profile page
+                  window.location.reload();
                 }}
                 className="w-full"
               >
-                {t('viewMyPayments', { fallback: 'View My Payments' })}
+                {t('checkStatus', { fallback: 'Check Status' })}
               </Button>
               <Button 
                 variant="outline" 

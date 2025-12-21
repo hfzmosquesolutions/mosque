@@ -36,15 +36,14 @@ import { supabase } from '@/lib/supabase';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
-import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { getMosqueKhairatContributions, getMosqueClaims, getMosque, getMosqueClaimCounts } from '@/lib/api';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { getKhairatStatistics } from '@/lib/api/khairat-members';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCount } from '@/lib/api/notifications';
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { MemberDashboard } from '@/components/dashboard/MemberDashboard';
 import { AdminGettingStarted } from '@/components/dashboard/AdminGettingStarted';
 
 
@@ -65,7 +64,6 @@ interface Stats {
 
 function DashboardContent() {
   const { user, loading: userLoading } = useAuth();
-  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [allContributions, setAllContributions] = useState<Contribution[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -79,13 +77,13 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
-  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const { isAdmin, mosqueId, loading: roleLoading } = useUserRole();
+  const { isCompleted: onboardingCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const { safeSetState, isMounted } = useSafeAsync();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!onboardingLoading && !roleLoading && isCompleted && user) {
+    if (!roleLoading && user && isAdmin && onboardingCompleted) {
       fetchDashboardData();
     }
 
@@ -94,7 +92,7 @@ function DashboardContent() {
         abortControllerRef.current.abort();
       }
     };
-  }, [user, onboardingLoading, roleLoading, isCompleted, isAdmin, mosqueId]);
+  }, [user, roleLoading, isAdmin, mosqueId, onboardingCompleted]);
 
   // Fetch notifications from database
   useEffect(() => {
@@ -138,33 +136,12 @@ function DashboardContent() {
     try {
       safeSetState(setLoading, true as boolean);
 
-      // Parallelize independent queries for better performance
-      // Group 1: User-specific data (can run in parallel)
-      const [profileResult, contributionsResult] = await Promise.all([
-        supabase
-          .from('user_profiles')
-          .select('full_name, role, onboarding_completed')
-          .eq('id', user?.id)
-          .single(),
-        supabase
-          .from('khairat_contributions')
-          .select(
-            `
-            *,
-            program:khairat_programs(
-              *,
-              mosque:mosques(
-                id,
-                name,
-                address
-              )
-            )
-          `
-          )
-          .eq('contributor_id', user?.id)
-          .order('contributed_at', { ascending: false })
-          .limit(10)
-      ]);
+      // Fetch user profile
+      const profileResult = await supabase
+        .from('user_profiles')
+        .select('full_name, role, onboarding_completed')
+        .eq('id', user?.id)
+        .single();
 
       if (signal.aborted || !isMounted()) return;
 
@@ -173,24 +150,7 @@ function DashboardContent() {
         safeSetState(setUserProfile, profileResult.data);
       }
 
-      // Process contributions data
-      if (contributionsResult.error) {
-        console.error('Error fetching contributions:', contributionsResult.error);
-      } else {
-        const formattedContributions =
-          contributionsResult.data?.map((item: any) => ({
-            id: item.id,
-            amount: item.amount,
-            contributed_at: item.contributed_at,
-            status: item.status || 'completed',
-            program: {
-              name: item.program?.name || t('unknownProgram'),
-            },
-          })) || [];
-        safeSetState(setContributions, formattedContributions as Contribution[]);
-      }
-
-      // Group 2: Admin-specific data (only if admin, run in parallel)
+      // Admin-specific data (only if admin, run in parallel)
       if (isAdmin && mosqueId) {
         const adminPromises = [
           getMosque(mosqueId),
@@ -260,7 +220,8 @@ function DashboardContent() {
     }
   };
 
-  const contributionSource = isAdmin ? allContributions : contributions;
+  // Dashboard is admin-only, so always use mosque contributions
+  const contributionSource = allContributions;
   const completedContributions = contributionSource.filter(
     contribution => contribution.status === 'completed'
   );
@@ -341,7 +302,7 @@ function DashboardContent() {
     }
   };
 
-  if (onboardingLoading || !isCompleted || userLoading || loading || roleLoading) {
+  if (userLoading || loading || roleLoading || onboardingLoading) {
     return (
       <DashboardLayout>
         <Loading 
@@ -353,11 +314,18 @@ function DashboardContent() {
     );
   }
 
-  // Render different dashboards based on user role
+  // Only admins can access dashboard
   if (!isAdmin) {
     return (
       <DashboardLayout>
-        <MemberDashboard user={user} userProfile={userProfile} />
+        <div className="text-center py-12">
+          <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
+            Access denied. Only mosque administrators can access the dashboard.
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-500">
+            If you need to check your khairat status, please use the IC number lookup on the mosque profile page.
+          </p>
+        </div>
       </DashboardLayout>
     );
   }
