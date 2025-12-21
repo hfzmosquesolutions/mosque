@@ -25,6 +25,7 @@ import {
   Users,
   Calendar,
   CheckCircle,
+  XCircle,
   AlertCircle,
   Target,
   Plus,
@@ -57,8 +58,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { AddressForm, AddressData, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationPeopleManagement } from '@/components/admin/OrganizationPeopleManagement';
-import { ServiceManagement } from '@/components/dashboard/ServiceManagement';
 import { Loading } from '@/components/ui/loading';
+import { updateMosqueSettings } from '@/lib/api';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -131,6 +132,8 @@ function MosqueProfileContent() {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
+  const [isOrganizationEnabled, setIsOrganizationEnabled] = useState(false);
+  const [savingOrganizationToggle, setSavingOrganizationToggle] = useState(false);
 
   const updateProfile = (
     field: keyof MosqueProfileData,
@@ -231,12 +234,62 @@ function MosqueProfileContent() {
     }
   }, [mosqueId]);
 
+  const loadOrganizationServiceStatus = useCallback(async () => {
+    if (!mosqueId) return;
+    
+    try {
+      const response = await getMosque(mosqueId);
+      if (response.success && response.data) {
+        const enabledServices = (response.data.settings?.enabled_services as string[]) || [];
+        setIsOrganizationEnabled(enabledServices.includes('organization_people'));
+      }
+    } catch (error) {
+      console.error('Error loading organization service status:', error);
+    }
+  }, [mosqueId]);
+
+  const handleOrganizationToggle = async (enabled: boolean) => {
+    if (!mosqueId) return;
+    
+    setSavingOrganizationToggle(true);
+    try {
+      const currentServices = (profile.settings?.enabled_services as string[]) || [];
+      const updatedServices = enabled
+        ? [...currentServices.filter(s => s !== 'organization_people'), 'organization_people']
+        : currentServices.filter(s => s !== 'organization_people');
+
+      const response = await updateMosqueSettings(mosqueId, {
+        enabled_services: updatedServices,
+      });
+
+      if (response.success) {
+        setIsOrganizationEnabled(enabled);
+        setProfile(prev => ({
+          ...prev,
+          settings: {
+            ...(prev.settings || {}),
+            enabled_services: updatedServices
+          }
+        }));
+        toast.success(enabled ? t('serviceManagement.serviceEnabled') : t('serviceManagement.serviceDisabled'));
+      } else {
+        toast.error(response.error || t('serviceManagement.failedToUpdate'));
+      }
+    } catch (error) {
+      console.error('Error updating organization service:', error);
+      toast.error(t('serviceManagement.failedToUpdate'));
+    } finally {
+      setSavingOrganizationToggle(false);
+    }
+  };
+
   useEffect(() => {
     if (mosqueId) {
       loadMosqueData();
       loadKhairatSettings();
+      loadOrganizationServiceStatus();
     }
-  }, [mosqueId, loadMosqueData, loadKhairatSettings]);
+  }, [mosqueId, loadMosqueData, loadKhairatSettings, loadOrganizationServiceStatus]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -340,13 +393,6 @@ function MosqueProfileContent() {
             >
               <Building className="h-4 w-4" />
               {t('profile')}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="services" 
-              className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
-            >
-              <Settings className="h-4 w-4" />
-              {t('services')}
             </TabsTrigger>
             <TabsTrigger 
               value="organization" 
@@ -728,26 +774,15 @@ function MosqueProfileContent() {
                 </div>
           </TabsContent>
 
-          <TabsContent value="services" forceMount className="space-y-6 p-6">
+          <TabsContent value="organization" forceMount className="space-y-6 p-6">
             {mosqueId && (
-              <ServiceManagement 
+              <OrganizationPeopleManagement 
                 mosqueId={mosqueId}
-                currentServices={(profile.settings?.enabled_services as string[]) || []}
-                onServicesUpdate={(services) => {
-                  setProfile(prev => ({
-                    ...prev,
-                    settings: {
-                      ...(prev.settings || {}),
-                      enabled_services: services
-                    }
-                  }));
-                }}
+                isServiceEnabled={isOrganizationEnabled}
+                onServiceToggle={handleOrganizationToggle}
+                savingToggle={savingOrganizationToggle}
               />
             )}
-          </TabsContent>
-
-          <TabsContent value="organization" forceMount className="space-y-6 p-6">
-            {mosqueId && <OrganizationPeopleManagement mosqueId={mosqueId} />}
           </TabsContent>
         </Tabs>
       </div>

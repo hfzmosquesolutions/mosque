@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -17,13 +16,12 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail, ArrowLeft, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { checkOnboardingStatus } from '@/lib/api';
+import { Mail, Eye, EyeOff, ArrowLeft, Shield, CheckCircle2, XCircle } from 'lucide-react';
+import { useAdminAccess } from '@/hooks/useUserRole';
 
 function SignupPageContent() {
   const t = useTranslations('auth');
-  const te = useTranslations('errors');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,39 +29,55 @@ function SignupPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
+  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  const returnUrl = searchParams.get('returnUrl') || '/onboarding';
 
   // Store returnUrl in sessionStorage so ProtectedRoute can access it
   useEffect(() => {
-    if (returnUrl && returnUrl !== '/dashboard') {
+    if (returnUrl && returnUrl !== '/onboarding') {
       sessionStorage.setItem('returnUrl', returnUrl);
     }
   }, [returnUrl]);
 
-  const getPasswordStrength = (password: string) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    return strength;
+  // Redirect admin users away from signup page
+  useEffect(() => {
+    if (!adminLoading && hasAdminAccess) {
+      router.push('/dashboard');
+    }
+  }, [hasAdminAccess, adminLoading, router]);
+
+  // Password strength checker
+  const getPasswordStrength = (pwd: string) => {
+    if (pwd.length === 0) return { strength: 'none', score: 0 };
+    if (pwd.length < 6) return { strength: 'weak', score: 1 };
+    
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[a-z]/.test(pwd)) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+
+    if (score <= 2) return { strength: 'weak', score };
+    if (score <= 3) return { strength: 'medium', score };
+    return { strength: 'strong', score };
   };
 
   const passwordStrength = getPasswordStrength(password);
+  const passwordsMatch = password && confirmPassword && password === confirmPassword;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (password !== confirmPassword) {
-      toast.error(te('passwordsDoNotMatch'));
+      toast.error(t('passwordsDontMatch'));
       return;
     }
 
-    if (passwordStrength < 3) {
-      toast.error(te('strongerPassword'));
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
@@ -76,55 +90,19 @@ function SignupPageContent() {
         return;
       }
       
-      toast.success(te('accountCreatedSuccessfully'));
+      toast.success(t('signupSuccess') || 'Account created successfully! Please check your email to verify your account.');
       
-      // Get the returnUrl from sessionStorage or query params
-      const storedReturnUrl = sessionStorage.getItem('returnUrl') || returnUrl;
+      // Store returnUrl for after onboarding
+      if (returnUrl && returnUrl !== '/onboarding') {
+        sessionStorage.setItem('pendingReturnUrl', returnUrl);
+      }
       
-      // Wait a bit for auth state to update, then check onboarding status
-      setTimeout(async () => {
-        try {
-          // Get the user ID from the auth context
-          const { supabase } = await import('@/lib/supabase');
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          
-          if (authUser?.id) {
-            // Check if user needs onboarding
-            const onboardingCompleted = await checkOnboardingStatus(authUser.id);
-            
-            if (!onboardingCompleted) {
-              // Store returnUrl for after onboarding completion
-              if (storedReturnUrl && storedReturnUrl !== '/dashboard') {
-                sessionStorage.setItem('pendingReturnUrl', storedReturnUrl);
-              }
-              // Clear the regular returnUrl since we're using pendingReturnUrl
-              if (sessionStorage.getItem('returnUrl')) {
-                sessionStorage.removeItem('returnUrl');
-              }
-              // Redirect to onboarding
-              window.location.href = '/onboarding';
-              return;
-            }
-          }
-          
-          // Clear sessionStorage
-          if (sessionStorage.getItem('returnUrl')) {
-            sessionStorage.removeItem('returnUrl');
-          }
-          
-          // Onboarding completed, redirect to returnUrl
-          window.location.href = storedReturnUrl;
-        } catch (error) {
-          console.error('Error checking onboarding:', error);
-          // Fallback: just redirect to returnUrl
-          if (sessionStorage.getItem('returnUrl')) {
-            sessionStorage.removeItem('returnUrl');
-          }
-          window.location.href = storedReturnUrl;
-        }
-      }, 200);
+      // Redirect to onboarding after successful signup
+      setTimeout(() => {
+        router.push('/onboarding');
+      }, 1500);
     } catch (error: any) {
-      toast.error(error?.message || te('failedToCreateAccount'));
+      toast.error(error?.message || t('signupError'));
       setLoading(false);
     }
   };
@@ -138,7 +116,6 @@ function SignupPageContent() {
       setLoading(false);
     }
     // Note: If successful, the user will be redirected by OAuth flow
-    // so we don't need to handle success case here
   };
 
   return (
@@ -147,12 +124,12 @@ function SignupPageContent() {
         {/* Signup Card */}
         <Card className="border-emerald-100 dark:border-slate-700 shadow-lg">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
-              {t('signup')}
-            </CardTitle>
-            <CardDescription className="text-center text-slate-600 dark:text-slate-400">
-              {t('joinPlatform')}
-            </CardDescription>
+            <div className="flex items-center justify-center mb-2">
+              <Shield className="h-6 w-6 text-emerald-600 mr-2" />
+              <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
+                Admin Signup
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
@@ -187,16 +164,14 @@ function SignupPageContent() {
                   {t('password')}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder={t('createStrongPassword')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11"
+                    className="pr-10 h-11"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"
@@ -210,32 +185,34 @@ function SignupPageContent() {
                     )}
                   </button>
                 </div>
-                {/* Password Strength Indicator */}
                 {password && (
-                  <div className="space-y-2">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <div
-                          key={level}
-                          className={`h-1 flex-1 rounded-full ${
-                            level <= passwordStrength
-                              ? passwordStrength <= 2
-                                ? 'bg-red-500'
-                                : passwordStrength <= 3
-                                ? 'bg-yellow-500'
-                                : 'bg-emerald-500'
-                              : 'bg-slate-200 dark:bg-slate-700'
-                          }`}
-                        />
-                      ))}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {t('passwordStrength')}:
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          passwordStrength.strength === 'weak'
+                            ? 'text-red-600 dark:text-red-400'
+                            : passwordStrength.strength === 'medium'
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : 'text-green-600 dark:text-green-400'
+                        }`}
+                      >
+                        {t(passwordStrength.strength)}
+                      </span>
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                      {t('passwordStrength')}{' '}
-                      {passwordStrength <= 2
-                        ? t('weak')
-                        : passwordStrength <= 3
-                        ? t('medium')
-                        : t('strong')}
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${
+                          passwordStrength.strength === 'weak'
+                            ? 'bg-red-500 w-1/3'
+                            : passwordStrength.strength === 'medium'
+                            ? 'bg-yellow-500 w-2/3'
+                            : 'bg-green-500 w-full'
+                        }`}
+                      />
                     </div>
                   </div>
                 )}
@@ -250,16 +227,14 @@ function SignupPageContent() {
                   {t('confirmPassword')}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder={t('confirmYourPassword')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11"
+                    className="pr-10 h-11"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"
@@ -275,17 +250,20 @@ function SignupPageContent() {
                 </div>
                 {confirmPassword && (
                   <div className="flex items-center gap-2 text-xs">
-                    {password === confirmPassword ? (
+                    {passwordsMatch ? (
                       <>
-                        <Check className="h-3 w-3 text-emerald-600" />
-                        <span className="text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                        <span className="text-green-600 dark:text-green-400 font-medium">
                           {t('passwordsMatch')}
                         </span>
                       </>
                     ) : (
-                      <span className="text-red-500">
-                        {t('passwordsDontMatch')}
-                      </span>
+                      <>
+                        <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                        <span className="text-red-600 dark:text-red-400 font-medium">
+                          {t('passwordsDontMatch')}
+                        </span>
+                      </>
                     )}
                   </div>
                 )}
@@ -295,14 +273,17 @@ function SignupPageContent() {
               <Button
                 type="submit"
                 className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                disabled={
-                  loading ||
-                  password !== confirmPassword ||
-                  passwordStrength < 3
-                }
+                disabled={loading || !passwordsMatch || password.length < 6}
               >
                 {loading ? t('creatingAccount') : t('signupButton')}
               </Button>
+
+              {/* SSL Badge */}
+              <div className="flex items-center justify-end text-sm">
+                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                  <span className="text-xs">{t('sslSecured')}</span>
+                </div>
+              </div>
 
               {/* Divider */}
               <div className="relative mt-6">
@@ -343,17 +324,16 @@ function SignupPageContent() {
               </Button>
             </form>
 
-            {/* Sign In Link */}
-            <div className="mt-6 text-center text-sm">
+            {/* Login Link */}
+            <div className="mt-4 text-center text-sm">
               <span className="text-slate-600 dark:text-slate-400">
                 {t('alreadyHaveAccountText')}{' '}
               </span>
               <Link
-                href={`/login${returnUrl !== '/dashboard' ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                href="/login"
                 className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-               
               >
-                {t('login')}
+                {t('signIn')}
               </Link>
             </div>
           </CardContent>
@@ -364,7 +344,6 @@ function SignupPageContent() {
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
-           
           >
             <ArrowLeft className="h-4 w-4" />
             {t('backToHome')}
@@ -382,3 +361,4 @@ export default function SignupPage() {
     </ProtectedRoute>
   );
 }
+

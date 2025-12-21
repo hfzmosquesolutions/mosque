@@ -22,11 +22,26 @@ export function useUserRole(): UserRoleData {
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Listen for custom event to refresh admin status (triggered after onboarding)
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('[HOOK] useUserRole - Refresh triggered');
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('refreshUserRole', handleRefresh);
+    return () => window.removeEventListener('refreshUserRole', handleRefresh);
+  }, []);
 
   useEffect(() => {
     async function fetchUserRole() {
       if (!user?.id) {
         setLoading(false);
+        setIsAdmin(false);
+        setIsMosqueOwner(false);
+        setMosqueId(null);
         return;
       }
 
@@ -39,43 +54,64 @@ export function useUserRole(): UserRoleData {
           .from('user_profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (profileError) {
-          console.error('[HOOK] useUserRole - Profile fetch error:', profileError);
-          throw profileError;
+        if (profileError && profileError.code !== 'PGRST116') {
+          // Profile doesn't exist yet - user needs to complete onboarding
+          console.log('[HOOK] useUserRole - Profile not found, user needs onboarding:', profileError);
+          setProfile(null);
+        } else {
+          setProfile(profileData);
         }
 
-        setProfile(profileData);
-
         // Check if user owns a mosque
+        // Use maybeSingle() instead of single() to handle "no rows" case gracefully
         const { data: mosqueData, error: mosqueError } = await supabase
           .from('mosques')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (mosqueError) {
-          console.log('[HOOK] useUserRole - Mosque ownership check error (user may not own a mosque):', mosqueError);
+          // Log the error for debugging
+          console.log('[HOOK] useUserRole - Mosque query result:', {
+            error: mosqueError,
+            code: mosqueError.code,
+            message: mosqueError.message,
+            userId: user.id
+          });
+          
+          // PGRST116 is "no rows returned" which is fine
+          // Other errors might be RLS issues or real problems
+          if (mosqueError.code !== 'PGRST116') {
+            console.error('[HOOK] useUserRole - Mosque ownership check error:', mosqueError);
+          }
         }
         
-        if (mosqueData && !mosqueError) {
+        if (mosqueData) {
           setIsMosqueOwner(true);
           setIsAdmin(true);
           setMosqueId(mosqueData.id);
+          console.log('[HOOK] useUserRole - ✅ User is admin, owns mosque:', mosqueData.id);
         } else {
-          console.log('[HOOK] useUserRole - User does not own a mosque');
+          setIsMosqueOwner(false);
+          setIsAdmin(false);
+          setMosqueId(null);
+          console.log('[HOOK] useUserRole - ❌ User does not own a mosque (userId:', user.id + ')');
         }
       } catch (err) {
         console.error('[HOOK] useUserRole - Error fetching user role:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch user role');
+        setIsAdmin(false);
+        setIsMosqueOwner(false);
+        setMosqueId(null);
       } finally {
         setLoading(false);
       }
     }
 
     fetchUserRole();
-  }, [user?.id]);
+  }, [user?.id, refreshTrigger]);
 
   return {
     profile,

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, Menu, X, User2, Languages, Check } from 'lucide-react';
+import { Building2, Menu, X, User2, Languages, Check, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import {
@@ -109,14 +109,6 @@ export default function Header() {
                     {tNavigation('browseMosques')}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    href={`/${locale}/docs`}
-                    className={navigationMenuTriggerStyle()}
-                  >
-                    {tNavigation('documentation')}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
 
                 {/* Language Dropdown */}
                 <DropdownMenu>
@@ -177,21 +169,15 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="ghost" size="sm">
-                      {tAuth('login')}
-                    </Button>
-                  </Link>
-                  <Link href="/signup">
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {tAuth('signup')}
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/login">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Mosque Admin Login
+                  </Button>
+                </Link>
               )}
             </div>
           </div>
@@ -223,14 +209,6 @@ export default function Header() {
                   className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
                 >
                   {tNavigation('browseMosques')}
-                </Button>
-              </Link>
-              <Link href={`/${locale}/docs`} onClick={() => setIsMobileMenuOpen(false)}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                >
-                  {tNavigation('documentation')}
                 </Button>
               </Link>
               {user && (
@@ -310,24 +288,18 @@ export default function Header() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full">
-                      {tAuth('login')}
-                    </Button>
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button
+                    size="sm"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-2"
                   >
-                    <Button
-                      size="sm"
-                      className="w-full bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {tAuth('signup')}
-                    </Button>
-                  </Link>
-                </div>
+                    <Shield className="h-4 w-4" />
+                    Mosque Admin Login
+                  </Button>
+                </Link>
               )}
             </div>
           </div>

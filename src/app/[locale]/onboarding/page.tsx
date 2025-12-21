@@ -43,8 +43,8 @@ interface OnboardingData {
   address: string;
   icPassportNumber: string;
 
-  // Role Selection
-  accountType: 'member' | 'admin' | '';
+  // Role Selection (admin only now)
+  accountType: 'admin' | '';
 
   // Admin-specific fields
   mosqueName?: string;
@@ -61,7 +61,7 @@ function OnboardingContent() {
     phone: '',
     address: '',
     icPassportNumber: '',
-    accountType: '',
+    accountType: 'admin', // Always admin for mosque administrators
     mosqueAddressData: {
       address_line1: '',
       address_line2: '',
@@ -91,7 +91,7 @@ function OnboardingContent() {
             phone: profile.phone || '',
             address: profile.address || '',
             icPassportNumber: profile.ic_passport_number || '',
-            accountType: profile.account_type || '',
+            accountType: 'admin', // Always admin
           };
 
           // If user is admin, try to fetch mosque data
@@ -162,16 +162,7 @@ function OnboardingContent() {
         toast.error(t('fillRequiredFields'));
         return;
       }
-    } else if (step === 2) {
-      if (!data.accountType) {
-        toast.error(t('selectAccountType'));
-        return;
-      }
-    } else if (
-      step === 3 &&
-      data.accountType === 'admin' &&
-      !data.mosqueName
-    ) {
+    } else if (step === 2 && !data.mosqueName) {
       toast.error(t('enterMosqueName'));
       return;
     }
@@ -197,16 +188,25 @@ function OnboardingContent() {
         phone: data.phone,
         address: data.address,
         icPassportNumber: data.icPassportNumber,
-        accountType: data.accountType as 'member' | 'admin',
-        mosqueName: data.accountType === 'admin' ? data.mosqueName : undefined,
-        mosqueAddress:
-          data.accountType === 'admin' ? data.mosqueAddress : undefined,
-        mosqueAddressData:
-          data.accountType === 'admin' ? data.mosqueAddressData : undefined,
+        accountType: 'admin' as const,
+        mosqueName: data.mosqueName,
+        mosqueAddress: data.mosqueAddress,
+        mosqueAddressData: data.mosqueAddressData,
       });
 
       if (result.success) {
         toast.success(t('onboardingCompleted'));
+        
+        // Wait a moment for database to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Trigger refresh event for useUserRole hook
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refreshUserRole'));
+        }
+        
+        // Wait a bit more for hook to refresh
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Check for pending returnUrl (from login/signup flow)
         const pendingReturnUrl = typeof window !== 'undefined' 
@@ -218,9 +218,9 @@ function OnboardingContent() {
           sessionStorage.removeItem('pendingReturnUrl');
         }
         
-        // Redirect to pendingReturnUrl if available, otherwise dashboard
+        // Force a full page reload to ensure all hooks refresh with new admin status
         const redirectTo = pendingReturnUrl || '/dashboard';
-        router.push(redirectTo);
+        window.location.href = redirectTo;
       } else {
         toast.error(result.error || t('onboardingFailed'));
       }
@@ -237,10 +237,10 @@ function OnboardingContent() {
       <div className="text-center mb-6">
         <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">
-          {t('personalInformation')}
+          Mosque Administrator Information
         </h3>
         <p className="text-slate-600 dark:text-slate-400">
-          {t('personalInfoDescription')}
+          Enter your personal information as the mosque administrator
         </p>
       </div>
 
@@ -270,87 +270,7 @@ function OnboardingContent() {
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <Shield className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold mb-2">{t('accountType')}</h3>
-        <p className="text-slate-600 dark:text-slate-400">
-          {t('accountTypeDescription')}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card
-          className={`cursor-pointer transition-all ${
-            data.accountType === 'member'
-              ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
-              : 'hover:shadow-md'
-          }`}
-          onClick={() => updateData('accountType', 'member')}
-        >
-          <CardContent className="p-6 text-center">
-            <Users className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
-            <h4 className="font-semibold mb-2">{t('communityMember')}</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {t('communityMemberDescription')}
-            </p>
-            <div className="mt-3">
-              <Badge variant="secondary">{t('memberAccess')}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`cursor-pointer transition-all ${
-            data.accountType === 'admin'
-              ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950'
-              : 'hover:shadow-md'
-          }`}
-          onClick={() => updateData('accountType', 'admin')}
-        >
-          <CardContent className="p-6 text-center">
-            <Shield className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
-            <h4 className="font-semibold mb-2">{t('mosqueAdministrator')}</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {t('mosqueAdministratorDescription')}
-            </p>
-            <div className="mt-3">
-              <Badge variant="default">{t('adminAccess')}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => {
-    if (data.accountType === 'member') {
-      return (
-        <div className="space-y-4">
-          <div className="text-center mb-6">
-            <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
-              {t('membershipDetails')}
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              {t('membershipDetailsDescription')}
-            </p>
-          </div>
-
-          <div className="text-center p-6 bg-emerald-50 dark:bg-emerald-950 rounded-lg">
-            <CheckCircle className="h-8 w-8 text-emerald-600 mx-auto mb-3" />
-            <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
-              {t('memberAccountSetup')}
-            </h4>
-            <p className="text-emerald-700 dark:text-emerald-300">
-              {t('memberAccountSetupDescription')}
-            </p>
-          </div>
-        </div>
-      );
-    }
-
+  const renderStep2 = () => {
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
@@ -397,7 +317,7 @@ function OnboardingContent() {
     );
   };
 
-  const renderStep4 = () => (
+  const renderStep3 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
         <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
@@ -410,7 +330,7 @@ function OnboardingContent() {
       <Card className="bg-slate-50 dark:bg-slate-800">
         <CardContent className="p-6 space-y-4">
           <div>
-            <h4 className="font-semibold mb-2">{t('personalInformation')}</h4>
+            <h4 className="font-semibold mb-2">Mosque Administrator Information</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-slate-600 dark:text-slate-400">
@@ -428,19 +348,7 @@ function OnboardingContent() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">{t('accountType')}</h4>
-            <Badge
-              variant={data.accountType === 'admin' ? 'default' : 'secondary'}
-            >
-              {data.accountType === 'admin'
-                ? t('mosqueAdministrator')
-                : t('communityMember')}
-            </Badge>
-          </div>
-
-          {data.accountType === 'admin' && (
-            <div>
-              <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
+            <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
                 {data.mosqueName && (
                   <p>
@@ -470,8 +378,7 @@ function OnboardingContent() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+          </div>
 
         </CardContent>
       </Card>
@@ -486,10 +393,10 @@ function OnboardingContent() {
           <CardHeader className="text-center">
             <div className="mb-6">
               <CardTitle className="text-3xl font-bold mb-2">
-                {t('setupAccount')}
+                Setup Your Mosque
               </CardTitle>
               <CardDescription className="text-lg">
-                {t('stepOf', { step, total: 4 })}
+                {t('stepOf', { step, total: 3 })}
               </CardDescription>
             </div>
 
@@ -497,7 +404,7 @@ function OnboardingContent() {
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-4">
               <div
                 className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(step / 4) * 100}%` }}
+                style={{ width: `${(step / 3) * 100}%` }}
               />
             </div>
           </CardHeader>
@@ -506,7 +413,6 @@ function OnboardingContent() {
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
-            {step === 4 && renderStep4()}
 
             <div className="flex justify-between pt-6">
               <Button
@@ -519,7 +425,7 @@ function OnboardingContent() {
                 {t('back')}
               </Button>
 
-              {step < 4 ? (
+              {step < 3 ? (
                 <Button
                   onClick={handleNext}
                   className="flex items-center gap-2"
@@ -547,7 +453,7 @@ function OnboardingContent() {
 
 export default function OnboardingPage() {
   return (
-    <ProtectedRoute requireAuth={true}>
+    <ProtectedRoute requireAuth={true} requireAdmin={false}>
       <OnboardingContent />
     </ProtectedRoute>
   );

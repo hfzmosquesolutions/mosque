@@ -21,7 +21,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Plus,
-  UserPlus
+  UserPlus,
+  Building
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,8 @@ import { bulkCreateKhairatMemberDependents } from '@/lib/api/khairat-member-depe
 import { UserProfile, UserDependent, Mosque, CreateKhairatMemberDependent } from '@/types/database';
 import { toast } from 'sonner';
 import { KhairatRegistrationInfo } from '@/components/mosque/KhairatRegistrationInfo';
+import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
+import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
 import Link from 'next/link';
 import {
   Select,
@@ -271,10 +274,21 @@ function KhairatRegisterPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">Loading registration form...</p>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatLoadingHeader
+          locale={locale}
+          mosqueId={mosqueId}
+          title={tRegister('pageTitle')}
+          subtitle={undefined}
+          icon={UserPlus}
+          iconBgColor="bg-blue-50 dark:bg-blue-950/20"
+          iconColor="text-blue-600 dark:text-blue-400"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">Loading registration form...</p>
+          </div>
         </div>
       </div>
     );
@@ -283,30 +297,19 @@ function KhairatRegisterPageContent() {
   // Show success page after submission
   if (submittedSuccessfully) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title="Application Submitted Successfully!"
+          subtitle="Your Khairat registration has been received"
+          icon={CheckCircle2}
+          iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
+        <div className="max-w-2xl mx-auto px-4 pb-12">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-4">
-                <Link href={`/${locale}/mosques/${mosqueId}`}>
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Mosque
-                  </Button>
-                </Link>
-              </div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Application Submitted Successfully!</CardTitle>
-                  <CardDescription className="mt-1">
-                    Your Khairat registration has been received
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
             <CardContent className="space-y-4">
               <Alert className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -351,18 +354,6 @@ function KhairatRegisterPageContent() {
                   </div>
                 </div>
 
-                {!user && (
-                  <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800 dark:text-amber-200">
-                      <strong>Not logged in?</strong> We recommend you{' '}
-                      <Link href={`/${locale}/login?returnUrl=/${locale}/mosques/${mosqueId}`} className="underline font-semibold">
-                        create an account and log in
-                      </Link>{' '}
-                      to easily track your application status and view your membership history.
-                    </AlertDescription>
-                  </Alert>
-                )}
 
                 <div className="pt-4 space-y-2">
                   <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -371,8 +362,7 @@ function KhairatRegisterPageContent() {
                   <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
                     <li>The mosque administrator will review your application</li>
                     <li>You will be notified once a decision is made</li>
-                    {user && <li>You can check your application status in your dashboard</li>}
-                    {!user && <li>If you log in, you can track your application status</li>}
+                    <li>You can check your application status using your IC number on the mosque profile page</li>
                   </ul>
                 </div>
               </div>
@@ -383,16 +373,10 @@ function KhairatRegisterPageContent() {
                     Back to Mosque
                   </Button>
                 </Link>
-                {user ? (
+                {user && (
                   <Link href={`/${locale}/dashboard`} className="flex-1">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
                       Go to Dashboard
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href={`/${locale}/login?returnUrl=/${locale}/dashboard`} className="flex-1">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      Log In to Track Status
                     </Button>
                   </Link>
                 )}
@@ -407,23 +391,19 @@ function KhairatRegisterPageContent() {
   // If user already has an application (and is logged in), show status
   if (user && currentStatus && currentStatus !== null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <KhairatStandardHeader
+          mosque={mosque}
+          locale={locale}
+          mosqueId={mosqueId}
+          title="Khairat Registration Status"
+          subtitle={`Your application status for ${mosque?.name || 'the mosque'}`}
+          icon={UserPlus}
+          iconBgColor="bg-blue-50 dark:bg-blue-950/20"
+          iconColor="text-blue-600 dark:text-blue-400"
+        />
+        <div className="max-w-3xl mx-auto px-4 pb-12">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-4">
-                <Link href={`/${locale}/mosques/${mosqueId}`}>
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Mosque
-                  </Button>
-                </Link>
-              </div>
-              <CardTitle className="text-2xl">Khairat Registration Status</CardTitle>
-              <CardDescription>
-                Your application status for {mosque?.name}
-              </CardDescription>
-            </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {currentStatus === 'active' && (
@@ -460,65 +440,29 @@ function KhairatRegisterPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href={`/${locale}/mosques/${mosqueId}`}>
-            <Button variant="ghost" size="sm" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {tMosquePage('backToMosques')}
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <UserPlus className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {tRegister('pageTitle')}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                {mosque?.name
-                  ? tRegister('pageSubtitle', { mosqueName: mosque.name })
-                  : ''}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <KhairatStandardHeader
+        mosque={mosque}
+        locale={locale}
+        mosqueId={mosqueId}
+        title={tRegister('pageTitle')}
+        subtitle={mosque?.name ? tRegister('pageSubtitle', { mosqueName: mosque.name }) : undefined}
+        icon={UserPlus}
+        iconBgColor="bg-blue-50 dark:bg-blue-950/20"
+        iconColor="text-blue-600 dark:text-blue-400"
+      />
+      <div className="max-w-3xl mx-auto px-4 pb-12">
 
         {/* Admin Alert */}
         {isMosqueAdmin && (
           <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>View Only Mode</strong> - As a mosque administrator, you can view this form to see what users will experience, but you cannot submit applications.
+              <strong>{tRegister('viewOnlyModeTitle')}</strong> {tRegister('viewOnlyModeDescription')}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Login Encouragement for Non-Logged In Users */}
-        {!user && (
-          <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong>{tRegister('notLoggedInTitle')}</strong>{' '}
-                  {tRegister('notLoggedInDescription')}{' '}
-                  <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/register/${mosqueId}`} className="underline font-semibold">
-                    {tRegister('logIn')}
-                  </Link>{' '}
-                </div>
-                <Link href={`/${locale}/login?returnUrl=/${locale}/khairat/register/${mosqueId}`}>
-                  <Button size="sm" variant="outline" className="ml-4">
-                    {tRegister('logIn')}
-                  </Button>
-                </Link>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Registration Info */}
         {mosqueId && (
@@ -1065,8 +1009,141 @@ function KhairatRegisterPageContent() {
                   </p>
                 </div>
               )}
-              </CardContent>
-            </Card>
+
+              {/* Show disabled form for admins when no dependents */}
+              {isMosqueAdmin && userDependents.length === 0 && tempDependents.length === 0 && (
+                <Card className="border-2 border-dashed border-slate-300 dark:border-slate-700 opacity-50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {tRegister('addDependentTitle')}
+                    </CardTitle>
+                    <CardDescription>
+                      {tRegister('addDependentDescription')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_full_name_disabled">
+                          {tRegister('fullName')}{' '}
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="dep_full_name_disabled"
+                          placeholder={tRegister('fullNamePlaceholder')}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_relationship_disabled">
+                          {tRegister('relationship')}{' '}
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="dep_relationship_disabled"
+                          placeholder={tRegister('relationshipPlaceholder')}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_ic_disabled">{tRegister('icNumber')}</Label>
+                        <Input
+                          id="dep_ic_disabled"
+                          placeholder={tRegister('icNumberPlaceholder')}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_dob_disabled">{tRegister('dateOfBirth')}</Label>
+                        <Input
+                          id="dep_dob_disabled"
+                          type="date"
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_gender_disabled">{tRegister('gender')}</Label>
+                        <Select disabled>
+                          <SelectTrigger>
+                            <SelectValue placeholder={tRegister('selectGender')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">{tRegister('genderMale')}</SelectItem>
+                            <SelectItem value="female">{tRegister('genderFemale')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dep_phone_disabled">{tRegister('phoneNumber')}</Label>
+                        <Input
+                          id="dep_phone_disabled"
+                          type="tel"
+                          placeholder={tRegister('phoneNumberPlaceholder')}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="dep_email_disabled">{tRegister('email')}</Label>
+                        <Input
+                          id="dep_email_disabled"
+                          type="email"
+                          placeholder={tRegister('emailPlaceholder')}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="dep_address_disabled">{tRegister('address')}</Label>
+                        <Textarea
+                          id="dep_address_disabled"
+                          placeholder={tRegister('addressPlaceholder')}
+                          rows={2}
+                          disabled
+                        />
+                      </div>
+                    </div>
+
+                    {user && (
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox
+                          id="save_to_profile_disabled"
+                          disabled
+                        />
+                        <Label htmlFor="save_to_profile_disabled" className="text-sm font-normal">
+                          {tRegister('saveToProfile')}
+                        </Label>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        disabled
+                      >
+                        {tMosquePage('cancel') || 'Cancel'}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {tRegister('addDependentButton')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Submit Button */}
           <div className="pt-6">

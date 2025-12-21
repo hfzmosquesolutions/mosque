@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from 'next-intl';
 import {
@@ -90,14 +90,11 @@ export function KhairatContributionForm({
     }
   }, [selectedMosqueId]);
 
-  // Handle fixed price when mosque is selected
+  // Reset amount when mosque changes (will be set when payment method is selected)
   useEffect(() => {
-    if (khairatSettings?.fixed_price && khairatSettings.fixed_price > 0) {
-      setAmount(khairatSettings.fixed_price.toString());
-    } else {
-      setAmount('');
-    }
-  }, [khairatSettings]);
+    setAmount('');
+    setPaymentMethod('');
+  }, [selectedMosqueId]);
 
   // Auto-populate email, name, and mobile from user account
   useEffect(() => {
@@ -415,6 +412,49 @@ export function KhairatContributionForm({
     }
   };
 
+  // Helper function to get fixed price for a payment method
+  const getFixedPriceForMethod = useCallback((method: string): number | undefined => {
+    if (!khairatSettings?.fixed_prices) {
+      // Fallback to legacy fixed_price if fixed_prices is not set
+      return khairatSettings?.fixed_price;
+    }
+
+    switch (method) {
+      case 'toyyibpay':
+      case 'online_payment':
+        return khairatSettings.fixed_prices.online_payment;
+      case 'bank_transfer':
+        return khairatSettings.fixed_prices.bank_transfer;
+      case 'cash':
+        return khairatSettings.fixed_prices.cash;
+      default:
+        return undefined;
+    }
+  }, [khairatSettings]);
+
+  // Handle payment method change
+  const handlePaymentMethodChange = useCallback((value: string) => {
+    setPaymentMethod(value);
+    
+    // Set amount based on fixed price for the selected payment method
+    const fixedPrice = getFixedPriceForMethod(value);
+    if (fixedPrice && fixedPrice > 0) {
+      setAmount(fixedPrice.toString());
+    } else {
+      setAmount('');
+    }
+  }, [getFixedPriceForMethod]);
+
+  // Set initial amount when payment method is selected and khairat settings are loaded
+  useEffect(() => {
+    if (paymentMethod && khairatSettings) {
+      const fixedPrice = getFixedPriceForMethod(paymentMethod);
+      if (fixedPrice && fixedPrice > 0) {
+        setAmount(fixedPrice.toString());
+      }
+    }
+  }, [paymentMethod, khairatSettings, getFixedPriceForMethod]);
+
   const handleClose = () => {
     setSelectedMosqueId(preselectedMosqueId || '');
     setAmount('');
@@ -548,7 +588,8 @@ export function KhairatContributionForm({
               {t('makePaymentDialog.amountRequired')}
             </Label>
 {(() => {
-              const hasFixedPrice = Boolean(khairatSettings?.fixed_price && khairatSettings.fixed_price > 0);
+              const fixedPrice = paymentMethod ? getFixedPriceForMethod(paymentMethod) : undefined;
+              const hasFixedPrice = Boolean(fixedPrice && fixedPrice > 0);
               
               return (
                 <>
@@ -559,14 +600,14 @@ export function KhairatContributionForm({
                     min="1"
                     value={amount}
                     onChange={(e) => !hasFixedPrice && setAmount(e.target.value)}
-                    placeholder={hasFixedPrice ? `RM ${khairatSettings?.fixed_price?.toFixed(2)}` : t('makePaymentDialog.enterAmount')}
+                    placeholder={hasFixedPrice ? `RM ${fixedPrice?.toFixed(2)}` : t('makePaymentDialog.enterAmount')}
                     readOnly={hasFixedPrice}
                     className={hasFixedPrice ? "bg-muted cursor-not-allowed" : ""}
                     required
                   />
-                  {hasFixedPrice && khairatSettings?.fixed_price && (
+                  {hasFixedPrice && fixedPrice && (
                     <p className="text-xs text-muted-foreground">
-                      Fixed price: RM {khairatSettings.fixed_price.toFixed(2)}
+                      Fixed price: RM {fixedPrice.toFixed(2)}
                     </p>
                   )}
                 </>
@@ -630,7 +671,7 @@ export function KhairatContributionForm({
               ) : (
                 <RadioGroup
                   value={paymentMethod}
-                  onValueChange={setPaymentMethod}
+                  onValueChange={handlePaymentMethodChange}
                 >
                   {/* Online Payment Options - Always show but disable if not enabled */}
                   {/* ToyyibPay - Always show, but disable if not configured or not enabled */}
