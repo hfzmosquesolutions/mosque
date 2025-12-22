@@ -56,7 +56,12 @@ export async function GET(request: NextRequest) {
       .select(`
         id, 
         status, 
-        amount, 
+        amount,
+        mosque_id, 
+        contributor_id,
+        payment_id,
+        payment_reference,
+        payment_data,
         contributor_name
       `)
       .eq('id', contributionId)
@@ -76,6 +81,7 @@ export async function GET(request: NextRequest) {
       id: contribution.id,
       current_status: contribution.status,
       current_amount: contribution.amount,
+      contributor_id: contribution.contributor_id,
       contributor_name: contribution.contributor_name
     });
 
@@ -123,6 +129,25 @@ export async function GET(request: NextRequest) {
     
     console.log('ℹ️ Note: Payment data updated immediately + webhook callback provides additional redundancy');
 
+    // Attempt to resolve khairat membership number for the contributor
+    let membershipNumber = contribution.payment_data?.membership_number || '';
+    try {
+      if (!membershipNumber && contribution.contributor_id) {
+        const { data: member } = await supabaseAdmin
+          .from('khairat_members')
+          .select('membership_number')
+          .eq('mosque_id', contribution.mosque_id)
+          .eq('user_id', contribution.contributor_id)
+          .in('status', ['active', 'approved'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        membershipNumber = member?.membership_number || '';
+      }
+    } catch (e) {
+      console.log('ℹ️ Unable to resolve membership number:', e);
+    }
+
     // Determine payment status for redirect
     const isPaid = billplzPaid === 'true';
     const isFailed = billplzPaid === 'false';
@@ -147,17 +172,25 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set('status', paymentStatus);
     redirectUrl.searchParams.set('message', statusMessage);
     redirectUrl.searchParams.set('contributionId', contribution.id);
-    redirectUrl.searchParams.set('paymentId', billplzId);
+    redirectUrl.searchParams.set('paymentId', contribution.payment_id || '');
+    redirectUrl.searchParams.set('billId', billplzId);
     redirectUrl.searchParams.set('amount', contribution.amount.toString());
     redirectUrl.searchParams.set('payerName', contribution.contributor_name);
+    redirectUrl.searchParams.set('mosqueId', contribution.mosque_id);
+    if (membershipNumber) {
+      redirectUrl.searchParams.set('membershipNumber', membershipNumber);
+    }
     
     console.log('🔄 Redirect URL parameters:', {
       status: paymentStatus,
       message: statusMessage,
       contributionId: contribution.id,
-      paymentId: billplzId,
+      paymentId: contribution.payment_id || '',
+      billId: billplzId,
       amount: contribution.amount.toString(),
-      payerName: contribution.contributor_name
+      payerName: contribution.contributor_name,
+      mosqueId: contribution.mosque_id,
+      membershipNumber
     });
     
     console.log('🔄 Final redirect URL:', redirectUrl.toString());

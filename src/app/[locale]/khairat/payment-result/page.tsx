@@ -8,14 +8,18 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAdminAccess } from '@/hooks/useUserRole';
+import jsPDF from 'jspdf';
 
 interface PaymentResultData {
   status: string;
   message: string;
   contributionId?: string;
   paymentId?: string;
+  billId?: string;
   amount?: string;
   payerName?: string;
+  mosqueId?: string;
+  membershipNumber?: string;
 }
 
 function PaymentResultContent() {
@@ -28,7 +32,29 @@ function PaymentResultContent() {
 
   // Determine the correct redirect path based on user role
   const getKhairatPath = () => {
-    return hasAdminAccess ? '/payments' : '/my-mosques';
+    if (resultData?.mosqueId) {
+      return `/mosques/${resultData.mosqueId}`;
+    }
+    return hasAdminAccess ? '/payments' : '/mosques';
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!resultData) return;
+    const doc = new jsPDF();
+    const title = t('paymentDetails');
+    const statusText = getStatusText(resultData.status);
+    doc.setFontSize(18);
+    doc.text(title, 20, 20);
+    doc.setFontSize(12);
+    doc.text(`${t('payerName')}: ${resultData.payerName || '-'}`, 20, 40);
+    doc.text(`${t('amount')}: RM ${resultData.amount ? parseFloat(resultData.amount).toFixed(2) : '-'}`, 20, 50);
+    doc.text(`${t('paymentId')}: ${resultData.paymentId || '-'}`, 20, 60);
+    doc.text(`${t('billId')}: ${resultData.billId || '-'}`, 20, 70);
+    doc.text(`${t('khairatId')}: ${resultData.membershipNumber || '-'}`, 20, 80);
+    doc.text(`${t('status')}: ${statusText}`, 20, 90);
+    doc.text(`${t('note')}: ${resultData.message || '-'}`, 20, 100);
+    const fileName = `resit-${resultData.paymentId || resultData.contributionId || 'khairat'}.pdf`;
+    doc.save(fileName);
   };
 
   useEffect(() => {
@@ -37,16 +63,22 @@ function PaymentResultContent() {
     const message = searchParams.get('message') || t('paymentStatusUnknown');
     const contributionId = searchParams.get('contributionId');
     const paymentId = searchParams.get('paymentId');
+    const billId = searchParams.get('billId');
     const amount = searchParams.get('amount');
     const payerName = searchParams.get('payerName');
+    const mosqueId = searchParams.get('mosqueId');
+    const membershipNumber = searchParams.get('membershipNumber');
 
     setResultData({
       status,
       message,
       contributionId: contributionId || undefined,
       paymentId: paymentId || undefined,
+      billId: billId || undefined,
       amount: amount || undefined,
       payerName: payerName || undefined,
+      mosqueId: mosqueId || undefined,
+      membershipNumber: membershipNumber || undefined,
     });
     setIsLoading(false);
   }, [searchParams]);
@@ -142,14 +174,19 @@ function PaymentResultContent() {
               <CardTitle className="text-2xl mb-2">
                 {getStatusText(resultData.status)}
               </CardTitle>
-              <Badge className={getStatusColor(resultData.status)}>
-                {resultData.status.toUpperCase()}
-              </Badge>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
                 <p className="text-lg text-gray-700 mb-4">
-                  {resultData.message}
+                  {resultData.status === 'success'
+                    ? t('paymentCompletedSuccessfully')
+                    : resultData.status === 'failed'
+                    ? t('paymentFailedMessage')
+                    : resultData.status === 'pending'
+                    ? t('paymentProcessingMessage')
+                    : resultData.status === 'expired'
+                    ? t('paymentExpiredMessage')
+                    : t('paymentStatusUnknown')}
                 </p>
               </div>
 
@@ -158,6 +195,11 @@ function PaymentResultContent() {
                 <h3 className="font-semibold text-gray-900 mb-3">
                   {t('paymentDetails')}
                 </h3>
+                <div>
+                  <Badge className={getStatusColor(resultData.status)}>
+                    {getStatusText(resultData.status)}
+                  </Badge>
+                </div>
 
                 {resultData.payerName && (
                   <div className="flex justify-between">
@@ -183,14 +225,21 @@ function PaymentResultContent() {
                     </span>
                   </div>
                 )}
-
-                {resultData.contributionId && (
+                
+                {resultData.billId && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">
-                      {t('contributionId')}:
-                    </span>
+                    <span className="text-gray-600">{t('billId')}:</span>
                     <span className="font-mono text-sm">
-                      {resultData.contributionId}
+                      {resultData.billId}
+                    </span>
+                  </div>
+                )}
+
+                {resultData.membershipNumber && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">{t('khairatId')}:</span>
+                    <span className="font-mono text-sm">
+                      {resultData.membershipNumber}
                     </span>
                   </div>
                 )}
@@ -208,10 +257,10 @@ function PaymentResultContent() {
 
                 {resultData.status === 'success' && (
                   <Button
-                    onClick={() => router.push(getKhairatPath())}
+                    onClick={handleDownloadReceipt}
                     className="flex-1"
                   >
-                    {t('viewMyContributions')}
+                    {t('downloadReceipt')}
                   </Button>
                 )}
 

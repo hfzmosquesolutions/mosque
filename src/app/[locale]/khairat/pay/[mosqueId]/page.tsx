@@ -298,21 +298,8 @@ function KhairatPayPageContent() {
         if (mosqueRes.success && mosqueRes.data) {
           const settings = mosqueRes.data.settings as Record<string, any> | undefined;
           const paymentMethods = settings?.enabled_payment_methods || {};
-          
-          // Check subscription plan
-          const { getMosqueSubscription } = await import('@/lib/subscription');
-          let subscriptionPlan = 'free';
-          try {
-            const subscription = await getMosqueSubscription(mosqueId);
-            subscriptionPlan = subscription?.plan || 'free';
-          } catch (error) {
-            console.error('Error fetching subscription:', error);
-          }
-          
-          const isFreePlan = subscriptionPlan === 'free';
-          
           paymentMethodsEnabled = {
-            online_payment: isFreePlan ? false : (paymentMethods.online_payment !== false),
+            online_payment: paymentMethods.online_payment !== false,
             bank_transfer: paymentMethods.bank_transfer !== false,
             cash: paymentMethods.cash !== false,
           };
@@ -523,14 +510,12 @@ function KhairatPayPageContent() {
 
     // Validate online payment fields (ToyyibPay only)
     if (paymentMethod === 'toyyibpay') {
-      // Phone number is required for ToyyibPay
-      if (!payerMobile || payerMobile.trim() === '') {
+      const mobileForValidation = (verifiedMemberInfo?.phone || payerMobile || '').trim();
+      if (!mobileForValidation) {
         toast.error('Mobile number is required for ToyyibPay');
         return;
       }
-
-      // Validate mobile format
-      if (payerMobile && !/^\+?[0-9\s-()]{8,}$/.test(payerMobile)) {
+      if (!/^\+?[0-9\s-()]{8,}$/.test(mobileForValidation)) {
         toast.error('Please enter a valid mobile number');
         return;
       }
@@ -554,7 +539,7 @@ function KhairatPayPageContent() {
         contributor_name: finalPayerName,
         amount: parseFloat(amount),
         payment_method: paymentMethod,
-        payment_reference: undefined, // No longer used, receipts are uploaded separately
+        payment_reference: verifiedMembershipNumber || undefined,
         status: 'pending' as const,
         notes: notes || undefined,
       };
@@ -582,6 +567,7 @@ function KhairatPayPageContent() {
                   payerEmail: finalPayerEmail?.trim() || '',
                   payerMobile: finalPayerMobile?.trim() || undefined,
                   description: `Khairat contribution - ${mosqueId}`,
+                  membershipNumber: verifiedMembershipNumber || undefined,
                   providerType: paymentMethod,
                 }),
               }
@@ -1294,11 +1280,11 @@ function KhairatPayPageContent() {
                           <CreditCard className="h-4 w-4" />
                           <span>{tKhairat('payPage.onlinePaymentLabel')}</span>
                         </div>
-                        <Badge variant={enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') ? 'default' : 'secondary'} className="text-xs">
-                          {enabledPaymentMethods.online_payment && hasOnlinePayment && availableProviders.includes('toyyibpay') 
-                            ? tKhairat('payPage.enabled') 
-                            : tKhairat('payPage.disabled')}
-                        </Badge>
+                        {(!enabledPaymentMethods.online_payment || !hasOnlinePayment || !availableProviders.includes('toyyibpay')) && (
+                          <Badge variant="secondary" className="text-xs">
+                            {tKhairat('userPaymentsTable.notAvailable')}
+                          </Badge>
+                        )}
                       </div>
                     </Label>
                   </div>
@@ -1318,11 +1304,11 @@ function KhairatPayPageContent() {
                           <Building2 className="h-4 w-4" />
                           <span>{tKhairat('payPage.bankTransferLabel')}</span>
                         </div>
-                        <Badge variant={enabledPaymentMethods.bank_transfer ? 'default' : 'secondary'} className="text-xs">
-                          {enabledPaymentMethods.bank_transfer 
-                            ? tKhairat('payPage.enabled') 
-                            : tKhairat('payPage.disabled')}
-                        </Badge>
+                        {!enabledPaymentMethods.bank_transfer && (
+                          <Badge variant="secondary" className="text-xs">
+                            {tKhairat('userPaymentsTable.notAvailable')}
+                          </Badge>
+                        )}
                       </div>
                     </Label>
                   </div>
@@ -1342,11 +1328,11 @@ function KhairatPayPageContent() {
                           <Banknote className="h-4 w-4" />
                           <span>{tKhairat('payPage.cashLabel')}</span>
                         </div>
-                        <Badge variant={enabledPaymentMethods.cash ? 'default' : 'secondary'} className="text-xs">
-                          {enabledPaymentMethods.cash 
-                            ? tKhairat('payPage.enabled') 
-                            : tKhairat('payPage.disabled')}
-                        </Badge>
+                        {!enabledPaymentMethods.cash && (
+                          <Badge variant="secondary" className="text-xs">
+                            {tKhairat('userPaymentsTable.notAvailable')}
+                          </Badge>
+                        )}
                       </div>
                     </Label>
                   </div>
@@ -1609,4 +1595,3 @@ function KhairatPayPageContent() {
 export default function KhairatPayPage() {
   return <KhairatPayPageContent />;
 }
-

@@ -13,7 +13,7 @@ import { Settings, FileText } from 'lucide-react';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { SubscriptionStatus } from '@/components/subscription/SubscriptionStatus';
 import { PricingPlanCard } from '@/components/subscription/PricingPlanCard';
-import { getMosqueSubscription, getUserSubscription, getFeaturesForPlan } from '@/lib/subscription';
+import { getEffectiveSubscription, getUserSubscription, getFeaturesForPlan } from '@/lib/subscription';
 import { MosqueSubscription, UserSubscription } from '@/lib/subscription';
 import { SubscriptionPlan, SubscriptionFeatures } from '@/lib/stripe';
 import { useUserMosque, useUserRole } from '@/hooks/useUserRole';
@@ -61,7 +61,7 @@ function BillingContent() {
           if (userSub) {
             safeSetState(setSubscription, userSub as any);
           } else if (mosqueId) {
-            const mosqueSub = await getMosqueSubscription(mosqueId);
+            const mosqueSub = await getEffectiveSubscription(mosqueId);
             if (!abortController.signal.aborted && isMounted()) {
               safeSetState(setSubscription, mosqueSub as MosqueSubscription | UserSubscription | null);
             }
@@ -69,7 +69,7 @@ function BillingContent() {
             safeSetState(setSubscription, null as MosqueSubscription | UserSubscription | null);
           }
         } else if (mosqueId) {
-          const mosqueSub = await getMosqueSubscription(mosqueId);
+          const mosqueSub = await getEffectiveSubscription(mosqueId);
           if (!abortController.signal.aborted && isMounted()) {
             safeSetState(setSubscription, mosqueSub as MosqueSubscription | UserSubscription | null);
           }
