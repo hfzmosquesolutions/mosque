@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { encryptCredential, maskCredential, decryptIfNeeded } from '@/lib/encryption';
+import { reencryptProviderCredentials } from '@/lib/encryption-rotation';
 
 // Initialize Supabase admin client only when needed
 function getSupabaseAdmin() {
@@ -55,17 +57,27 @@ export async function GET(request: NextRequest) {
     };
 
     providers?.forEach(provider => {
+      // Mask sensitive credentials before returning to client
+      const maskedProvider = {
+        ...provider,
+        billplz_api_key: maskCredential(provider.billplz_api_key),
+        billplz_x_signature_key: maskCredential(provider.billplz_x_signature_key),
+        toyyibpay_secret_key: maskCredential(provider.toyyibpay_secret_key),
+        stripe_secret_key: maskCredential(provider.stripe_secret_key),
+        chip_api_key: maskCredential(provider.chip_api_key),
+      };
+
       if (provider.provider_type === 'billplz') {
-        result.billplz = provider;
+        result.billplz = maskedProvider;
         result.hasBillplz = provider.is_active;
       } else if (provider.provider_type === 'chip') {
-        result.chip = provider;
+        result.chip = maskedProvider;
         result.hasChip = provider.is_active;
       } else if (provider.provider_type === 'stripe') {
-        result.stripe = provider;
+        result.stripe = maskedProvider;
         result.hasStripe = provider.is_active;
       } else if (provider.provider_type === 'toyyibpay') {
-        result.toyyibpay = provider;
+        result.toyyibpay = maskedProvider;
         result.hasToyyibpay = provider.is_active;
       }
     });
@@ -101,9 +113,59 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
     );
   }
 
+  // Resolve masked or missing credentials by fetching existing provider values
+  const supabaseAdmin = getSupabaseAdmin();
+  let resolvedBillplzApiKey = billplz_api_key;
+  let resolvedBillplzXSignatureKey = billplz_x_signature_key;
+  let resolvedBillplzCollectionId = billplz_collection_id;
+  let resolvedToyyibpaySecretKey = toyyibpay_secret_key;
+  let resolvedToyyibpayCategoryCode = toyyibpay_category_code;
+
+  try {
+    const { data: existingProvider } = await supabaseAdmin
+      .from('mosque_payment_providers')
+      .select('*')
+      .eq('mosque_id', mosqueId)
+      .eq('provider_type', providerType)
+      .single();
+
+    if (providerType === 'billplz' && existingProvider) {
+      if (
+        (!resolvedBillplzApiKey || resolvedBillplzApiKey.startsWith('****')) &&
+        existingProvider.billplz_api_key
+      ) {
+        resolvedBillplzApiKey = decryptIfNeeded(existingProvider.billplz_api_key);
+      }
+      if (
+        (!resolvedBillplzXSignatureKey || resolvedBillplzXSignatureKey.startsWith('****')) &&
+        existingProvider.billplz_x_signature_key
+      ) {
+        resolvedBillplzXSignatureKey = decryptIfNeeded(existingProvider.billplz_x_signature_key);
+      }
+      if (!resolvedBillplzCollectionId && existingProvider.billplz_collection_id) {
+        resolvedBillplzCollectionId = existingProvider.billplz_collection_id;
+      }
+    }
+
+    if (providerType === 'toyyibpay' && existingProvider) {
+      if (
+        (!resolvedToyyibpaySecretKey || resolvedToyyibpaySecretKey.startsWith('****')) &&
+        existingProvider.toyyibpay_secret_key
+      ) {
+        resolvedToyyibpaySecretKey = decryptIfNeeded(existingProvider.toyyibpay_secret_key);
+      }
+      if (!resolvedToyyibpayCategoryCode && existingProvider.toyyibpay_category_code) {
+        resolvedToyyibpayCategoryCode = existingProvider.toyyibpay_category_code;
+      }
+    }
+  } catch (resolveError) {
+    console.warn('Warning resolving existing provider credentials:', resolveError);
+    // Continue; validation below will catch missing fields
+  }
+
   // Validate required fields for active providers
   if (is_active && providerType === 'billplz') {
-    if (!billplz_api_key || !billplz_x_signature_key || !billplz_collection_id) {
+    if (!resolvedBillplzApiKey || !resolvedBillplzXSignatureKey || !resolvedBillplzCollectionId) {
       return NextResponse.json(
         { error: 'API Key, X-Signature Key, and Collection ID are required for active Billplz provider' },
         { status: 400 }
@@ -112,7 +174,7 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
   }
   
   if (is_active && providerType === 'toyyibpay') {
-    if (!toyyibpay_secret_key || !toyyibpay_category_code) {
+    if (!resolvedToyyibpaySecretKey || !resolvedToyyibpayCategoryCode) {
       return NextResponse.json(
         { error: 'Secret Key and Category Code are required for active ToyyibPay provider' },
         { status: 400 }
@@ -120,18 +182,26 @@ async function handleUpsertPaymentProvider(request: NextRequest) {
     }
   }
 
+  // Encrypt credentials before storing
+  // If credentials are already encrypted with old key, they'll be re-encrypted with new key
+  const encryptedBillplzApiKey = resolvedBillplzApiKey ? encryptCredential(resolvedBillplzApiKey) : null;
+  const encryptedBillplzXSignatureKey = resolvedBillplzXSignatureKey ? encryptCredential(resolvedBillplzXSignatureKey) : null;
+  const encryptedToyyibpaySecretKey = resolvedToyyibpaySecretKey ? encryptCredential(resolvedToyyibpaySecretKey) : null;
+  
+  // Note: During key rotation, if old credentials exist in DB, they'll be automatically
+  // re-encrypted on next update. For immediate rotation, use the rotation script.
+
   // Use the upsert function to save payment provider
-  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin.rpc('upsert_mosque_payment_provider', {
     p_mosque_id: mosqueId,
     p_provider_type: providerType,
     p_is_active: is_active,
     p_is_sandbox: is_sandbox,
-    p_billplz_api_key: billplz_api_key || null,
-    p_billplz_x_signature_key: billplz_x_signature_key || null,
-    p_billplz_collection_id: billplz_collection_id || null,
-    p_toyyibpay_secret_key: toyyibpay_secret_key || null,
-    p_toyyibpay_category_code: toyyibpay_category_code || null,
+    p_billplz_api_key: encryptedBillplzApiKey,
+    p_billplz_x_signature_key: encryptedBillplzXSignatureKey,
+    p_billplz_collection_id: resolvedBillplzCollectionId || null,
+    p_toyyibpay_secret_key: encryptedToyyibpaySecretKey,
+    p_toyyibpay_category_code: resolvedToyyibpayCategoryCode || null,
   });
 
   if (error) {

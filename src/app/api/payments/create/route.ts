@@ -18,17 +18,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       contributionId,
-      programId,
+      mosqueId,
       amount,
       payerName,
       payerEmail,
       payerMobile,
       description,
-      providerType = 'billplz'
+      membershipNumber,
+      providerType = 'toyyibpay'
     } = body;
 
     // Validate required fields
-    if (!contributionId || !programId || !amount || !payerName) {
+    if (!contributionId || !mosqueId || !amount || !payerName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -60,29 +61,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get program details to validate mosque
+    // Validate contribution belongs to the provided mosque
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: program, error: programError } = await supabaseAdmin
-      .from('khairat_programs')
-      .select('id, mosque_id')
-      .eq('id', programId)
-      .single();
-
-    if (programError || !program) {
-      return NextResponse.json(
-        { error: 'Program not found' },
-        { status: 404 }
-      );
-    }
-
-    const mosqueId = program.mosque_id;
 
     // Check if contribution exists and is pending
     const { data: contribution, error: contributionError } = await supabaseAdmin
       .from('khairat_contributions')
-      .select('id, status, program_id')
+      .select('id, status, mosque_id')
       .eq('id', contributionId)
-      .eq('program_id', programId)
+      .eq('mosque_id', mosqueId)
       .single();
 
     if (contributionError || !contribution) {
@@ -120,6 +107,7 @@ export async function POST(request: NextRequest) {
         payerEmail,
         payerMobile,
         description: description || `Khairat contribution for ${payerName}`,
+        reference: membershipNumber || undefined,
       });
     } else if (providerType === 'toyyibpay') {
       paymentResult = await PaymentService.createToyyibPayPayment({
@@ -130,6 +118,7 @@ export async function POST(request: NextRequest) {
         payerEmail,
         payerMobile,
         description: description || `Khairat contribution for ${payerName}`,
+        reference: membershipNumber || undefined,
       });
 
     } else {

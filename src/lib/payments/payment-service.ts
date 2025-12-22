@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { BillplzProvider, BillplzConfig } from './providers/billplz';
 import { ToyyibPayProvider, ToyyibPayConfig, ToyyibPayCallbackData } from './providers/toyyibpay';
+import { decryptIfNeeded } from '@/lib/encryption';
 
 // Initialize Supabase admin client only when needed
 function getSupabaseAdmin() {
@@ -45,7 +46,7 @@ export interface CreatePaymentRequest {
   payerEmail?: string;
   payerMobile?: string;
   description: string;
-  reference?: string;
+  reference?: string; // Use to carry membershipNumber if provided
 }
 
 export interface PaymentResponse {
@@ -73,7 +74,19 @@ export class PaymentService {
       return null;
     }
 
-    return data;
+    if (!data) {
+      return null;
+    }
+
+    // Decrypt credentials if they are encrypted
+    return {
+      ...data,
+      billplz_api_key: data.billplz_api_key ? decryptIfNeeded(data.billplz_api_key) : undefined,
+      billplz_x_signature_key: data.billplz_x_signature_key ? decryptIfNeeded(data.billplz_x_signature_key) : undefined,
+      toyyibpay_secret_key: data.toyyibpay_secret_key ? decryptIfNeeded(data.toyyibpay_secret_key) : undefined,
+      stripe_secret_key: data.stripe_secret_key ? decryptIfNeeded(data.stripe_secret_key) : undefined,
+      chip_api_key: data.chip_api_key ? decryptIfNeeded(data.chip_api_key) : undefined,
+    };
   }
 
   /**
@@ -153,7 +166,8 @@ export class PaymentService {
         collection_id: provider.billplz_collection_id,
         created_at: new Date().toISOString(),
         callback_url: callbackUrl,
-        redirect_url: redirectUrl
+        redirect_url: redirectUrl,
+        membership_number: request.reference || null
       };
       
       const updateResult = await getSupabaseAdmin()
@@ -259,7 +273,8 @@ export class PaymentService {
         bill_url: paymentUrl,
         created_at: new Date().toISOString(),
         callback_url: callbackUrl,
-        redirect_url: redirectUrl
+        redirect_url: redirectUrl,
+        membership_number: request.reference || null
       };
             
       const { data: updatedContribution, error: updateError } = await getSupabaseAdmin()
@@ -473,7 +488,7 @@ export class PaymentService {
   static async getPaymentStatus(
     paymentId: string,
     mosqueId: string,
-    providerType: PaymentProviderType = 'billplz'
+    providerType: PaymentProviderType = 'toyyibpay'
   ): Promise<{ success: boolean; status?: string; error?: string }> {
     try {
       if (providerType === 'billplz') {

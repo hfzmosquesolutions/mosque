@@ -142,6 +142,25 @@ export async function getMosqueSubscription(mosqueId: string): Promise<MosqueSub
   return data;
 }
 
+export async function getEffectiveSubscription(mosqueId: string): Promise<MosqueSubscription | UserSubscription | null> {
+  // First check if mosque has an owner with a user subscription
+  const { data: mosque } = await supabase
+    .from('mosques')
+    .select('user_id')
+    .eq('id', mosqueId)
+    .single();
+
+  if (mosque?.user_id) {
+    const userSub = await getUserSubscription(mosque.user_id);
+    if (userSub && (userSub.status === 'active' || userSub.status === 'trialing')) {
+      return userSub;
+    }
+  }
+
+  // Fallback to mosque subscription
+  return getMosqueSubscription(mosqueId);
+}
+
 export async function updateMosqueSubscription(
   mosqueId: string,
   updates: Partial<MosqueSubscription>
@@ -208,6 +227,23 @@ export async function getSubscriptionInvoices(mosqueId: string): Promise<Subscri
 }
 
 export async function isFeatureAvailable(mosqueId: string, featureName: string): Promise<boolean> {
+  // First, check if the mosque owner has a subscription that covers this feature
+  const { data: mosque } = await supabase
+    .from('mosques')
+    .select('user_id')
+    .eq('id', mosqueId)
+    .single();
+
+  if (mosque?.user_id) {
+    const userSub = await getUserSubscription(mosque.user_id);
+    if (userSub && (userSub.status === 'active' || userSub.status === 'trialing')) {
+      const features = getFeaturesForPlan(userSub.plan);
+      // @ts-ignore - Index signature issue
+      if (features[featureName]) return true;
+    }
+  }
+
+  // Fallback to mosque-level subscription check via RPC
   const { data, error } = await supabase
     .rpc('is_feature_available', {
       mosque_uuid: mosqueId,

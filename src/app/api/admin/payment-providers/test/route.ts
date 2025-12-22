@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BillplzProvider } from '@/lib/payments/providers/billplz';
 import { ToyyibPayProvider } from '@/lib/payments/providers/toyyibpay';
+import { PaymentService } from '@/lib/payments/payment-service';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
+    let { 
       providerType, 
       apiKey, 
       collectionId, 
       secretKey, 
       categoryCode, 
-      isSandbox = true 
+      isSandbox = true,
+      mosqueId
     } = body;
 
     if (!providerType) {
@@ -19,6 +21,32 @@ export async function POST(request: NextRequest) {
         { error: 'Provider type is required' },
         { status: 400 }
       );
+    }
+
+    // Handle masked credentials
+    // If credentials are masked (start with ****) and we have mosqueId, try to fetch real credentials
+    if (mosqueId) {
+      const isApiKeyMasked = apiKey && apiKey.startsWith('****');
+      const isSecretKeyMasked = secretKey && secretKey.startsWith('****');
+      
+      if (isApiKeyMasked || isSecretKeyMasked) {
+        try {
+          const provider = await PaymentService.getPaymentProvider(mosqueId, providerType);
+          
+          if (provider) {
+            if (isApiKeyMasked && providerType === 'billplz' && provider.billplz_api_key) {
+              apiKey = provider.billplz_api_key;
+            }
+            
+            if (isSecretKeyMasked && providerType === 'toyyibpay' && provider.toyyibpay_secret_key) {
+              secretKey = provider.toyyibpay_secret_key;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching payment provider for test:', error);
+          // Continue with original values, will likely fail if still masked
+        }
+      }
     }
 
     // Validate provider-specific fields
@@ -98,17 +126,13 @@ export async function POST(request: NextRequest) {
             success: true,
             message: 'Connection successful',
             connectionInfo: {
-              secretKey: 'Valid',
-              categoryCode: categoryCode,
-              status: 'Connected',
-              categoryName: testResult.CategoryName || 'Unknown',
-              categoryDescription: testResult.categoryDescription || 'Unknown',
-              categoryStatus: testResult.categoryStatus || 'Unknown',
+              name: testResult.CategoryName,
+              description: testResult.CategoryDescription,
             },
           });
         } else {
           return NextResponse.json(
-            { error: 'Failed to retrieve category information or invalid credentials' },
+            { error: 'Failed to retrieve category information' },
             { status: 400 }
           );
         }
@@ -117,25 +141,29 @@ export async function POST(request: NextRequest) {
         
         // Parse ToyyibPay error response
         let errorMessage = 'Connection test failed';
-        if (error.response?.data?.error) {
-          errorMessage = error.response.data.error;
+        
+        if (Array.isArray(error.response?.data)) {
+          // ToyyibPay sometimes returns array of errors
+          errorMessage = error.response.data.map((e: any) => e.msg).join(', ');
+        } else if (error.response?.data?.msg) {
+          errorMessage = error.response.data.msg;
         } else if (error.message) {
           errorMessage = error.message;
         }
         
         return NextResponse.json(
-          { error: `ToyyibPay API error: ${errorMessage}` },
+          { error: errorMessage },
           { status: 400 }
         );
       }
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid provider type' },
+        { status: 400 }
+      );
     }
-
-    return NextResponse.json(
-      { error: 'Unsupported provider type' },
-      { status: 400 }
-    );
   } catch (error) {
-    console.error('Error in POST /api/admin/payment-providers/test:', error);
+    console.error('Connection test error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

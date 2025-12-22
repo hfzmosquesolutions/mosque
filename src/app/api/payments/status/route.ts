@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const paymentId = searchParams.get('paymentId');
     const contributionId = searchParams.get('contributionId');
-    const providerType = searchParams.get('providerType') || 'billplz';
+    const providerType = searchParams.get('providerType') || 'toyyibpay';
 
     if (!paymentId && !contributionId) {
       return NextResponse.json(

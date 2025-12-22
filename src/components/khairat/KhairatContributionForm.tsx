@@ -238,10 +238,10 @@ export function KhairatContributionForm({
         const paymentMethods = settings?.enabled_payment_methods || {};
         
         // Check subscription plan
-        const { getMosqueSubscription } = await import('@/lib/subscription');
+        const { getEffectiveSubscription } = await import('@/lib/subscription');
         let subscriptionPlan = 'free';
         try {
-          const subscription = await getMosqueSubscription(mosqueId);
+          const subscription = await getEffectiveSubscription(mosqueId);
           subscriptionPlan = subscription?.plan || 'free';
         } catch (error) {
           console.error('Error fetching subscription:', error);

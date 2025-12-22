@@ -206,12 +206,14 @@ export function PaymentProviderSettings() {
                 apiKey: billplzFormData.billplz_api_key,
                 collectionId: billplzFormData.billplz_collection_id,
                 isSandbox: billplzFormData.is_sandbox,
+                mosqueId,
               }
             : {
                 providerType: 'toyyibpay',
                 secretKey: toyyibPayFormData.toyyibpay_secret_key,
                 categoryCode: toyyibPayFormData.toyyibpay_category_code,
                 isSandbox: toyyibPayFormData.is_sandbox,
+                mosqueId,
               };
 
         const testResponse = await fetch(
@@ -286,6 +288,38 @@ export function PaymentProviderSettings() {
         }
       }
 
+      const saveBody =
+        selectedProvider === 'billplz'
+          ? (() => {
+              const body: any = {
+                mosqueId,
+                providerType: selectedProvider,
+                billplz_collection_id: billplzFormData.billplz_collection_id,
+                is_sandbox: billplzFormData.is_sandbox,
+                is_active: billplzFormData.is_active,
+              };
+              if (!billplzFormData.billplz_api_key.startsWith('****')) {
+                body.billplz_api_key = billplzFormData.billplz_api_key;
+              }
+              if (!billplzFormData.billplz_x_signature_key.startsWith('****')) {
+                body.billplz_x_signature_key = billplzFormData.billplz_x_signature_key;
+              }
+              return body;
+            })()
+          : (() => {
+              const body: any = {
+                mosqueId,
+                providerType: selectedProvider,
+                toyyibpay_category_code: toyyibPayFormData.toyyibpay_category_code,
+                is_sandbox: toyyibPayFormData.is_sandbox,
+                is_active: toyyibPayFormData.is_active,
+              };
+              if (!toyyibPayFormData.toyyibpay_secret_key.startsWith('****')) {
+                body.toyyibpay_secret_key = toyyibPayFormData.toyyibpay_secret_key;
+              }
+              return body;
+            })();
+
       const response = await fetch(
         `${window.location.origin}/api/admin/payment-providers`,
         {
@@ -293,11 +327,7 @@ export function PaymentProviderSettings() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            mosqueId: mosqueId,
-            providerType: selectedProvider,
-            ...formData,
-          }),
+          body: JSON.stringify(saveBody),
         }
       );
 
@@ -356,12 +386,14 @@ export function PaymentProviderSettings() {
               apiKey: billplzFormData.billplz_api_key,
               collectionId: billplzFormData.billplz_collection_id,
               isSandbox: billplzFormData.is_sandbox,
+              mosqueId,
             }
           : {
               providerType: 'toyyibpay',
               secretKey: toyyibPayFormData.toyyibpay_secret_key,
               categoryCode: toyyibPayFormData.toyyibpay_category_code,
               isSandbox: toyyibPayFormData.is_sandbox,
+              mosqueId,
             };
 
       const response = await fetch(
@@ -452,44 +484,43 @@ export function PaymentProviderSettings() {
                 className="w-4 h-4"
               />
               <span className="text-sm">ToyyibPay</span>
+              <Badge variant="outline" className="ml-1 text-xs">Recommended</Badge>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="provider"
+                value="billplz"
+                checked={selectedProvider === 'billplz'}
+                onChange={(e) =>
+                  setSelectedProvider(e.target.value as ProviderType)
+                }
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Billplz</span>
+              <Badge variant="outline" className="ml-1 text-xs">Advanced</Badge>
             </label>
           </div>
         </div>
 
-        {/* Status and Mode */}
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={
-                selectedProvider === 'billplz'
-                  ? billplzFormData.is_active
-                  : toyyibPayFormData.is_active
-              }
-              onCheckedChange={(checked) =>
-                updateFormData('is_active', checked)
-              }
-            />
-            <div>
-              <Label className="text-sm font-medium">
-                {t('paymentProviderSettings.enableOnlineDonations')}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {t('paymentProviderSettings.enableOnlineDonationsDescription')}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-sm">{t('paymentProviderSettings.sandboxMode')}</Label>
-            <Switch
-              checked={
-                selectedProvider === 'billplz'
-                  ? billplzFormData.is_sandbox
-                  : toyyibPayFormData.is_sandbox
-              }
-              onCheckedChange={(checked) =>
-                updateFormData('is_sandbox', checked)
-              }
-            />
+        <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+          <Switch
+            checked={
+              selectedProvider === 'billplz'
+                ? billplzFormData.is_sandbox
+                : toyyibPayFormData.is_sandbox
+            }
+            onCheckedChange={(checked) =>
+              updateFormData('is_sandbox', checked)
+            }
+          />
+          <div>
+            <Label className="text-sm font-medium">
+              {t('paymentProviderSettings.sandboxMode')}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t('paymentProviderSettings.sandboxModeDescription')}
+            </p>
           </div>
         </div>
 

@@ -84,7 +84,7 @@ export default function PaymentsPage() {
                       <strong>{t('planStandard')}</strong>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
-                      <strong>{t('planPremium')}</strong>
+                      <strong>{t('planPro')}</strong>
                     </div>
                   </div>
                 </div>

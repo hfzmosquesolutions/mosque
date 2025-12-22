@@ -141,25 +141,34 @@ function PaymentSettingsContent() {
     }
   };
 
-  const handlePaymentMethodToggle = (method: 'online_payment' | 'bank_transfer' | 'cash', enabled: boolean) => {
-    // Check if trying to enable online payment on free plan
+  const handlePaymentMethodToggle = async (method: 'online_payment' | 'bank_transfer' | 'cash', enabled: boolean) => {
     if (method === 'online_payment' && enabled && isFreePlan) {
       toast.error(t('paymentProviderSettings.onlinePaymentRequiresUpgrade') || 'Online payment requires Standard or Pro plan. Please upgrade to use this feature.');
       return;
     }
-    
-    // Just update local state, don't save immediately
-    const updatedMethods = {
-      ...paymentMethods,
-      [method]: enabled,
-    };
-    
-    // If free plan, force disable online payment
+    const updatedMethods = { ...paymentMethods, [method]: enabled };
     if (isFreePlan) {
       updatedMethods.online_payment = false;
     }
-    
-    setPaymentMethods(updatedMethods);
+    setSavingPaymentMethods(true);
+    try {
+      if (mosqueId) {
+        const res = await updateMosqueSettings(mosqueId, { enabled_payment_methods: updatedMethods });
+        if (res.success) {
+          setPaymentMethods(updatedMethods);
+          toast.success(t('paymentProviderSettings.paymentMethodsUpdated') || 'Payment methods updated');
+          if (method === 'online_payment') setIsOnlinePaymentOpen(enabled);
+          if (method === 'bank_transfer') setIsBankTransferOpen(enabled);
+          if (method === 'cash') setIsCashOpen(enabled);
+        } else {
+          toast.error(res.error || 'Failed to save payment methods');
+        }
+      }
+    } catch {
+      toast.error('Failed to save payment methods');
+    } finally {
+      setSavingPaymentMethods(false);
+    }
   };
 
   const handleBankDetailsSave = async () => {
