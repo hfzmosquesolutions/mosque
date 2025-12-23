@@ -15,13 +15,8 @@ function KhairatMembersContent() {
   const { mosqueId, loading: mosqueLoading } = useUserMosque();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
-  // Show loading while fetching mosque data
-  if (mosqueLoading) {
-    return <PageLoading />;
-  }
 
   return (
     <div className="space-y-6">
@@ -35,16 +30,20 @@ function KhairatMembersContent() {
             {t('khairatMembersDescription')}
           </p>
         </div>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          {t('registerNewMember')}
-        </Button>
+        {!mosqueLoading && (
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {t('registerNewMember')}
+          </Button>
+        )}
       </div>
 
-      {mosqueId ? (
+      {mosqueLoading ? (
+        <PageLoading />
+      ) : mosqueId ? (
         <KhairatManagement 
           mosqueId={mosqueId} 
           createDialogOpen={createDialogOpen}

@@ -25,10 +25,6 @@ function KhairatClaimsContent() {
 
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
-  // Show loading while fetching mosque data
-  if (mosqueLoading) {
-    return <PageLoading />;
-  }
 
   return (
     <div className="space-y-6">
@@ -41,7 +37,9 @@ function KhairatClaimsContent() {
         </p>
       </div>
 
-      {mosqueId ? (
+      {mosqueLoading ? (
+        <PageLoading />
+      ) : mosqueId ? (
         <ClaimsManagement mosqueId={mosqueId} showHeader={false} />
       ) : (
         <div className="text-center py-8">

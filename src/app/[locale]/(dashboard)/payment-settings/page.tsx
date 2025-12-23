@@ -289,7 +289,21 @@ function PaymentSettingsContent() {
   // If we reach here, user is authenticated and has admin access
   // Wait for loading to complete before rendering
   if (onboardingLoading || !isCompleted || adminLoading || subscriptionLoading) {
-    return <PageLoading />;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t('paymentGatewaySetup')}
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+              {t('paymentGatewaySetupDescription')}
+            </p>
+          </div>
+        </div>
+        <PageLoading />
+      </div>
+    );
   }
 
   return (
