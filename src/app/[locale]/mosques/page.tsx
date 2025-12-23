@@ -193,7 +193,6 @@ export default function MosquesPage() {
     setSelectedState('');
     setSelectedCity('');
     // Contact detail filters removed
-    setSelectedServices([]);
   };
 
   if (loading) {
@@ -452,7 +451,6 @@ export default function MosquesPage() {
                       onClick={() => {
                         setSearchQuery('');
                         setSortBy('relevance');
-                      setSelectedServices([]);
                       }}
                     >
                       {t('reset')}
