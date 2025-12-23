@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, ClipboardList, Loader2, ShieldCheck, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
-import { getMosque } from '@/lib/api';
+import { ArrowLeft, CheckCircle2, ClipboardList, Loader2, ShieldCheck, UserPlus, AlertCircle, CheckCircle, Search } from 'lucide-react';
+import { getMosque, getUserPaymentHistory } from '@/lib/api';
 import type { Mosque } from '@/types/database';
 import { toast } from 'sonner';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
@@ -51,6 +51,7 @@ function KhairatStatusPageContent() {
   const locale = params.locale as string;
   const tKhairat = useTranslations('khairat');
   const tMosquePage = useTranslations('mosquePage');
+  const tDashboard = useTranslations('dashboard');
   const { user } = useAuth();
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
@@ -59,6 +60,8 @@ function KhairatStatusPageContent() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [statusResult, setStatusResult] = useState<KhairatStatusResponse | null>(null);
   const [verifiedICNumber, setVerifiedICNumber] = useState<string | null>(null);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<any[] | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -155,6 +158,76 @@ function KhairatStatusPageContent() {
     return 'outline' as const;
   };
 
+  const handleEditIc = () => {
+    setStatusResult(null);
+    setVerifiedICNumber(null);
+    setIcNumber('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!mosqueId || !statusResult?.registration.found) return;
+      setLoadingPayments(true);
+      try {
+        // Prefer logged-in user
+        if (user?.id) {
+          const res = await getUserPaymentHistory(user.id, mosqueId);
+          setPaymentHistory(res.success ? (res.data || []) : []);
+          return;
+        }
+        // Fallback: resolve user by verified IC number
+        if (verifiedICNumber) {
+          try {
+            const { supabase } = await import('@/lib/supabase');
+            const { data: profile, error } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('ic_passport_number', verifiedICNumber)
+              .limit(1)
+              .maybeSingle();
+            if (!error && profile?.id) {
+              const res = await getUserPaymentHistory(profile.id, mosqueId);
+              setPaymentHistory(res.success ? (res.data || []) : []);
+              return;
+            }
+          } catch {
+            // ignore and show empty
+          }
+        }
+        setPaymentHistory([]);
+      } catch {
+        setPaymentHistory([]);
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+    fetchPayments();
+  }, [statusResult?.registration.found, verifiedICNumber, user?.id, mosqueId]);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!user?.id || !mosqueId) return;
+      setLoadingPayments(true);
+      try {
+        const res = await getUserPaymentHistory(user.id, mosqueId);
+        if (res.success) {
+          setPaymentHistory(res.data || []);
+        } else {
+          setPaymentHistory([]);
+        }
+      } catch {
+        setPaymentHistory([]);
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+    if (statusResult?.registration.found && user) {
+      fetchPayments();
+    } else {
+      setPaymentHistory(null);
+    }
+  }, [statusResult?.registration.found, user, mosqueId]);
   if (loadingMosque) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950">
@@ -163,9 +236,9 @@ function KhairatStatusPageContent() {
           mosqueId={mosqueId}
           title={tKhairat('status.checkTitle') || 'Check Khairat Status'}
           subtitle={undefined}
-          icon={CheckCircle}
-          iconBgColor="bg-emerald-50 dark:bg-emerald-950/20"
-          iconColor="text-emerald-600 dark:text-emerald-400"
+          icon={Search}
+          iconBgColor="bg-purple-50 dark:bg-purple-950/20"
+          iconColor="text-purple-600 dark:text-purple-400"
         />
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center gap-3">
@@ -187,7 +260,7 @@ function KhairatStatusPageContent() {
           locale={locale}
           mosqueId={mosqueId}
           title={tKhairat('status.checkTitle') || 'Check Khairat Status'}
-          icon={CheckCircle}
+          icon={Search}
           iconBgColor="bg-emerald-50 dark:bg-emerald-950/20"
           iconColor="text-emerald-600 dark:text-emerald-400"
         />
@@ -223,11 +296,18 @@ function KhairatStatusPageContent() {
         mosqueId={mosqueId}
         title={tKhairat('status.checkTitle') || 'Check Khairat Status'}
         subtitle={mosque?.name ? `Check your khairat status at ${mosque.name}` : undefined}
-        icon={CheckCircle}
-        iconBgColor="bg-emerald-50 dark:bg-emerald-950/20"
-        iconColor="text-emerald-600 dark:text-emerald-400"
+        icon={Search}
+        iconBgColor="bg-purple-50 dark:bg-purple-950/20"
+        iconColor="text-purple-600 dark:text-purple-400"
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
+        {statusResult && (
+          <div className="flex justify-end mb-4">
+            <Button variant="link" size="sm" onClick={handleEditIc}>
+              {tKhairat('status.editIcButton', { fallback: 'Back to IC Check' })}
+            </Button>
+          </div>
+        )}
 
         {/* Membership Verification Status */}
         {statusResult && statusResult.registration.found && verifiedICNumber && (
@@ -455,6 +535,73 @@ function KhairatStatusPageContent() {
                 )}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  {tKhairat('paymentHistory') || 'Payment History'}
+                </CardTitle>
+                <CardDescription>
+                  {tKhairat('paymentHistoryDescription') || 'Your khairat payments at this mosque.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingPayments && (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {tKhairat('loadingKhairatData') || 'Loading khairat data...'}
+                  </div>
+                )}
+                {!loadingPayments && (!paymentHistory || paymentHistory.length === 0) && (
+                  <Alert>
+                    <AlertDescription>
+                      {tDashboard('noPaymentsYet') || 'No payments yet'}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {!loadingPayments && paymentHistory && paymentHistory.length > 0 && (
+                  <div className="space-y-3">
+                    {paymentHistory.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border rounded-md px-3 py-2 bg-slate-50 dark:bg-slate-900/40"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {tKhairat('userPaymentsTable.amount') || 'Amount'}:{' '}
+                            <span className="font-mono">RM {p.amount}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {tKhairat('userPaymentsTable.date') || 'Date'}:{' '}
+                            {new Date(p.contributed_at).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {tKhairat('userPaymentsTable.paymentMethod') || 'Payment Method'}:{' '}
+                            {p.payment_method || (tKhairat('userPaymentsTable.notAvailable') || 'N/A')}
+                          </p>
+                          {p.payment_reference && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {tKhairat('userPaymentsTable.reference') || 'Reference'}:{' '}
+                              <span className="font-mono">{p.payment_reference}</span>
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {p.payment_type === 'legacy' && (
+                            <Badge variant="secondary">
+                              {tKhairat('userPaymentsTable.legacy') || 'Legacy'}
+                            </Badge>
+                          )}
+                          <Badge variant={getStatusBadgeVariant(p.status)} className="capitalize">
+                            {p.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
@@ -465,5 +612,3 @@ function KhairatStatusPageContent() {
 export default function KhairatStatusPage() {
   return <KhairatStatusPageContent />;
 }
-
-

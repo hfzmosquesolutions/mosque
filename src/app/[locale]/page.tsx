@@ -37,6 +37,7 @@ import {
   Megaphone,
   FileText,
   CreditCard,
+  HandCoins,
 } from 'lucide-react';
 import { getAllMosques } from '@/lib/api';
 import { Mosque } from '@/types/database';
@@ -146,9 +147,7 @@ export default function Home() {
               const query = (searchQuery || '').trim();
               const base = `/${locale}/mosques`;
               const url = query ? `${base}?q=${encodeURIComponent(query)}` : base;
-                if (typeof window !== 'undefined') {
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }
+                router.push(url);
               }}
               role="search"
               aria-labelledby="search-label"
@@ -250,15 +249,11 @@ export default function Home() {
           <nav className="mt-6" aria-label="Popular services">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('popularServices')}</h3>
-              <Link href={`/${locale}/mosques`} className="text-xs text-emerald-700 hover:underline dark:text-emerald-300 flex items-center gap-1">
-                {t('seeAll')}
-                <ChevronRight className="h-3 w-3" />
-              </Link>
             </div>
             <div className="flex flex-wrap gap-2">
               {/* Register Khairat */}
-              <Link href={`/${locale}/mosques?services=khairat_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                <span className="rounded-full p-1 bg-rose-50 text-rose-600 dark:bg-rose-900/30">
+              <Link href={`/${locale}/mosques`} className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-blue-50 text-blue-600 dark:bg-blue-900/30">
                   <UserPlus className="h-3.5 w-3.5" />
                 </span>
                 <span className="font-semibold">{t('registerKhairatShort')}</span>
@@ -266,41 +261,32 @@ export default function Home() {
               </Link>
 
               {/* Pay Khairat */}
-              <Link href={`/${locale}/mosques?services=khairat_management`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                <span className="rounded-full p-1 bg-purple-50 text-purple-600 dark:bg-purple-900/30">
-                  <Heart className="h-3.5 w-3.5" />
+              <Link href={`/${locale}/mosques`} className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-orange-50 text-orange-600 dark:bg-orange-900/30">
+                  <HandCoins className="h-3.5 w-3.5" />
                 </span>
                 <span className="font-semibold">{t('payKhairat')}</span>
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
               </Link>
 
-              {/* Organization */}
-              <Link href={`/${locale}/mosques?services=organization_people`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                <span className="rounded-full p-1 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30">
-                  <Building2 className="h-3.5 w-3.5" />
+              {/* Check Status */}
+              <Link href={`/${locale}/mosques`} className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
+                  <Search className="h-3.5 w-3.5" />
                 </span>
-                <span className="font-semibold">{t('mosqueInfo')}</span>
+                <span className="font-semibold">{t('checkStatus')}</span>
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
               </Link>
 
-              {/* Admin Login */}
-              {user ? (
-                <Link href={`/${locale}/dashboard`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                  <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
-                    <Shield className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="font-semibold">Admin Dashboard</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-                </Link>
-              ) : (
-                <Link href={`/${locale}/login`} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                  <span className="rounded-full p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
-                    <Shield className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="font-semibold">Mosque Admin Login</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-                </Link>
-              )}
+              {/* Khairat Claim */}
+              <Link href={`/${locale}/mosques`} className="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                <span className="rounded-full p-1 bg-green-50 text-green-600 dark:bg-green-900/30">
+                  <FileText className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-semibold">{t('submitKhairatClaim')}</span>
+                <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+              </Link>
+
             </div>
           </nav>
         </div>
@@ -314,10 +300,6 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12" aria-labelledby="find-mosques-heading">
         <h2 id="find-mosques-heading" className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">{t('featuredMosque')}</h2>
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-            <Star className="h-4 w-4 text-yellow-500" />
-            <span>{t('verifiedListings')}</span>
-          </div>
           <div className="text-sm text-slate-500">
             {loading ? t('loading') : `${featuredMosques.length} ${t('featured')}`}
           </div>
@@ -344,12 +326,7 @@ export default function Home() {
                 className="transition-all hover:shadow-md bg-white/90 dark:bg-slate-800 border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer p-0"
                 onClick={() => {
                   if (mosque) {
-                    const path = `/mosques/${mosque.id}`;
-                    if (typeof window !== 'undefined') {
-                      window.open(path, '_blank', 'noopener,noreferrer');
-                    } else {
-                      router.push(path);
-                    }
+                    router.push(`/${locale}/mosques/${mosque.id}`);
                   }
                 }}
               >
@@ -579,19 +556,16 @@ export default function Home() {
                 <Link href="/login">
                   <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3">
                     <Shield className="mr-2 h-5 w-5" />
-                    Mosque Admin Login
+                    {t('mosqueAdminLogin')}
                   </Button>
                 </Link>
               )}
-              <Link href="/pricing" target="_blank" rel="noopener noreferrer">
+              <Link href="/pricing">
                 <Button size="lg" variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-3">
                   {t('viewPricingPlans')}
                 </Button>
               </Link>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-4 max-w-2xl mx-auto">
-              Only mosque administrators need to log in. Regular users can access all features without an account.
-            </p>
           </div>
 
         </div>
@@ -701,11 +675,11 @@ export default function Home() {
               <Link href="/login">
                 <Button size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 px-8 py-3">
                   <Shield className="mr-2 h-5 w-5" />
-                  Mosque Admin Login
+                  {t('mosqueAdminLogin')}
                 </Button>
               </Link>
             )}
-            <Link href="/pricing" target="_blank" rel="noopener noreferrer">
+            <Link href="/pricing">
               <Button size="lg" variant="outline" className="bg-white/10 text-white hover:bg-white/20 border-white/40 px-8 py-3">
                 {t('viewPricingPlans')}
               </Button>
@@ -718,7 +692,7 @@ export default function Home() {
       <footer className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center">
               <Image
                 src="/logo-khairatkita.png"
                 alt="khairatkita Logo"
@@ -727,9 +701,6 @@ export default function Home() {
                 className="rounded-md"
               />
             </div>
-            <p className="text-slate-600 dark:text-slate-400">
-              {t('footerDescription')}
-            </p>
           </div>
         </div>
       </footer>

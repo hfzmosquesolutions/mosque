@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck, Heart, UserPlus } from 'lucide-react';
+import { Loader2, FileText, HeartHandshake, HandCoins, CheckCircle, Clock, Edit, User, Trash2, X, UserCheck, Heart, UserPlus, Search, Info } from 'lucide-react';
 import { createClaim, uploadClaimDocument } from '@/lib/api';
 import { submitKhairatApplication, getKhairatMembers, deleteKhairatMember, withdrawKhairatMembership } from '@/lib/api/khairat-members';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
@@ -891,9 +891,9 @@ export default function MosqueProfilePage() {
                         {
                           id: 'check-status',
                           title: tKhairat('status.checkShort', { fallback: 'Check Status' }),
-                          icon: CheckCircle,
-                          bgColor: 'bg-emerald-50 dark:bg-emerald-950/20',
-                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-emerald-600 dark:text-emerald-400',
+                          icon: Search,
+                          bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+                          iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-purple-600 dark:text-purple-400',
                           onClick: () => {
                             if (isDisabled) return;
                             // Navigate to public status check page - no login required
@@ -962,70 +962,83 @@ export default function MosqueProfilePage() {
                 <CardDescription>{t('contactInformationDescription', { fallback: 'Get in touch with the mosque' })}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mosque.phone && (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                      <Phone className="h-4 w-4 text-emerald-600" />
+                {!mosque.phone && !mosque.email && !mosque.website && !mosque.address ? (
+                  <div className="flex items-center space-x-3 py-4">
+                    <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Info className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                     </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('phone')}
-                      </p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {mosque.phone}
-                      </p>
-                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {t('noContactInformationAvailable')}
+                    </p>
                   </div>
-                )}
-                {mosque.email && (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                      <Mail className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('email')}
-                      </p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {mosque.email}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {mosque.website && (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                      <Globe className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('website')}
-                      </p>
-                      <a
-                        href={mosque.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-                      >
-                        {t('visitWebsite')}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {mosque.address && (
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center mt-1">
-                      <MapPin className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('address')}
-                      </p>
-                      <p className="font-medium text-slate-900 dark:text-white leading-relaxed">
-                        {mosque.address}
-                      </p>
-                    </div>
-                  </div>
+                ) : (
+                  <>
+                    {mosque.phone && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+                          <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {t('phone')}
+                          </p>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {mosque.phone}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {mosque.email && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+                          <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {t('email')}
+                          </p>
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {mosque.email}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {mosque.website && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+                          <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {t('website')}
+                          </p>
+                          <a
+                            href={mosque.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                          >
+                            {t('visitWebsite')}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {mosque.address && (
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center mt-1">
+                          <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {t('address')}
+                          </p>
+                          <p className="font-medium text-slate-900 dark:text-white leading-relaxed">
+                            {mosque.address}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

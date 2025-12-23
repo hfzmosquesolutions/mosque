@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
   Calendar,
   Home,
@@ -99,7 +100,7 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
   return baseNavigation;
 };
 
-export function AppSidebar() {
+export const AppSidebar = React.memo(function AppSidebar() {
   const pathname = usePathname();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId } = useUserMosque();
@@ -109,7 +110,10 @@ export function AppSidebar() {
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [mosqueLoading, setMosqueLoading] = useState(false);
 
-  const navigation = getNavigation(hasAdminAccess, t, locale, mosqueId);
+  const navigation = React.useMemo(
+    () => getNavigation(hasAdminAccess, t, locale, mosqueId),
+    [hasAdminAccess, t, locale, mosqueId]
+  );
 
   // Fetch mosque data when mosqueId is available
   useEffect(() => {
@@ -342,4 +346,4 @@ export function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
-}
+});

@@ -4,36 +4,19 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
+import { useUserMosque } from '@/hooks/useUserRole';
 import { MosqueKhairatContributions } from '@/components/khairat/MosqueKhairatContributions';
-import { Loading } from '@/components/ui/loading';
+import { PageLoading } from '@/components/ui/page-loading';
 
 function PaymentHistoryContent() {
   const t = useTranslations('khairat');
-  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
-  const { mosqueId } = useUserMosque();
+  const { mosqueId, loading: mosqueLoading } = useUserMosque();
 
-  if (adminLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loading 
-            message={t('loadingKhairatData')} 
-            size="lg"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasAdminAccess) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-lg text-slate-600 dark:text-slate-400">
-          Access denied. Only mosque administrators can access payment management.
-        </p>
-      </div>
-    );
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Show loading while fetching mosque data
+  if (mosqueLoading) {
+    return <PageLoading />;
   }
 
   return (

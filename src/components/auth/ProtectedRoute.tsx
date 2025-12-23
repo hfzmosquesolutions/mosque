@@ -122,68 +122,37 @@ export function ProtectedRoute({
     }
   }, [user, loading, adminLoading, hasAdminAccess, router, redirectTo, requireAuth, requireAdmin, searchParams]);
 
-  // Show loading spinner while checking authentication
-  if (loading || adminLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-              <div
-                className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"
-                style={{ animationDelay: '0.1s' }}
-              ></div>
-              <div
-                className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"
-                style={{ animationDelay: '0.2s' }}
-              ></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // CRITICAL: Don't render children while still loading authentication/admin status
+  // This prevents any flash of content or premature access denied messages
+  if (loading || adminLoading || isCheckingAdmin) {
+    return null;
   }
 
-  // Don't render children if user should be redirected
+  // Don't render children if user should be redirected (not authenticated)
   if (requireAuth && !user) {
     return null;
   }
 
-  // If checking admin access and user is authenticated but admin status shows false,
-  // show loading while double-checking (useEffect will handle the redirect if needed)
-  if (requireAuth && requireAdmin && user && !hasAdminAccess && (!adminLoading || isCheckingAdmin)) {
-    // Show loading while:
-    // 1. Hook is still loading, OR
-    // 2. We're double-checking admin status
-    // The useEffect will either:
-    // - Find user is admin and trigger refresh (then this will re-render with hasAdminAccess=true)
-    // - Find user is not admin and redirect
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
-              <div
-                className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"
-                style={{ animationDelay: '0.1s' }}
-              ></div>
-              <div
-                className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"
-                style={{ animationDelay: '0.2s' }}
-              ></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // CRITICAL: For admin routes, only render if user has confirmed admin access
+  // Don't render if admin is required but user doesn't have access
+  // We must be absolutely certain before rendering (all loading complete + user exists + has access)
+  if (requireAuth && requireAdmin) {
+    // Only render if we have confirmed admin access (not just "not loading")
+    if (!user || !hasAdminAccess) {
+      return null;
+    }
   }
 
+  // Don't render children if user is authenticated admin on non-auth pages
   if (!requireAuth && user && hasAdminAccess) {
     return null;
   }
 
+  // All checks passed - render children
+  // At this point, we know:
+  // - User is authenticated (if requireAuth)
+  // - User has admin access (if requireAdmin) - CONFIRMED, not just "loading complete"
+  // - All loading is complete
   return <>{children}</>;
 }
 
