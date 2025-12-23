@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, Menu, X, User2, Languages, Check, Shield } from 'lucide-react';
+import { Building2, Menu, X, User2, Languages, Check } from 'lucide-react';
 import { useState } from 'react';
 import { RUNTIME_FEATURES } from '@/lib/utils';
 import {
@@ -172,10 +172,9 @@ export default function Header() {
                 <Link href="/login">
                   <Button
                     size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
+                    className="bg-emerald-600 hover:bg-emerald-700"
                   >
-                    <Shield className="h-4 w-4" />
-                    Mosque Admin Login
+                    {tAuth('mosqueAdmin')}
                   </Button>
                 </Link>
               )}
@@ -294,10 +293,9 @@ export default function Header() {
                 >
                   <Button
                     size="sm"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
                   >
-                    <Shield className="h-4 w-4" />
-                    Mosque Admin Login
+                    {tAuth('mosqueAdmin')}
                   </Button>
                 </Link>
               )}

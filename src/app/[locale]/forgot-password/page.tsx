@@ -54,12 +54,9 @@ function ForgotPasswordContent() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 p-4">
         <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
             <div>
               <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
                 {t('resetLinkSent')}
@@ -103,12 +100,9 @@ function ForgotPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-            <Mail className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-          </div>
           <div>
             <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
               {t('forgotPasswordTitle')}

@@ -39,6 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Save } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { MosqueKhairatSettings } from '@/types/database';
+import { PageLoading } from '@/components/ui/page-loading';
 
 function PaymentSettingsContent() {
   const t = useTranslations('khairat');
@@ -283,31 +284,12 @@ function PaymentSettingsContent() {
     }
   };
 
-  if (onboardingLoading || !isCompleted || adminLoading || subscriptionLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">{t('loadingKhairatData')}</p>
-        </div>
-      </div>
-    );
-  }
 
-  if (!hasAdminAccess) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">{t('paymentProviderSettings.accessDenied')}</h2>
-            <p className="text-muted-foreground">
-              {t('paymentProviderSettings.accessDeniedDescription')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Wait for loading to complete before rendering
+  if (onboardingLoading || !isCompleted || adminLoading || subscriptionLoading) {
+    return <PageLoading />;
   }
 
   return (

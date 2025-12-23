@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard, StatsCardColors } from '@/components/ui/stats-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loading } from '@/components/ui/loading';
 import { useSafeAsync } from '@/hooks/useSafeAsync';
 import {
   DropdownMenu,
@@ -45,6 +44,7 @@ import { getUserNotifications, markNotificationAsRead, getUnreadNotificationCoun
 import { NotificationCard } from '@/components/dashboard/NotificationCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { AdminGettingStarted } from '@/components/dashboard/AdminGettingStarted';
+import { PageLoading } from '@/components/ui/page-loading';
 
 
 interface Contribution {
@@ -302,30 +302,14 @@ function DashboardContent() {
     }
   };
 
-  if (userLoading || loading || roleLoading || onboardingLoading) {
-    return (
-      <DashboardLayout>
-        <Loading 
-          message={t('loadingDashboard')} 
-          size="lg"
-          className="py-12"
-        />
-      </DashboardLayout>
-    );
-  }
 
-  // Only admins can access dashboard
-  if (!isAdmin) {
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Wait for role loading to complete before rendering
+  if (roleLoading || onboardingLoading || !onboardingCompleted) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
-            Access denied. Only mosque administrators can access the dashboard.
-          </p>
-          <p className="text-sm text-slate-500 dark:text-slate-500">
-            If you need to check your khairat status, please use the IC number lookup on the mosque profile page.
-          </p>
-        </div>
+        <PageLoading />
       </DashboardLayout>
     );
   }

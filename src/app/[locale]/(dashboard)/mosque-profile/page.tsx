@@ -34,6 +34,7 @@ import {
   Image as ImageIcon,
   Settings,
   DollarSign,
+  HeartHandshake,
 } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,6 +43,9 @@ import {
   getUserMosqueId,
   getMosque,
   updateMosque,
+  getKhairatRegistrationSettings,
+  updateKhairatRegistrationSettings,
+  KariahRegistrationSettings,
 } from '@/lib/api';
 import type {
   MosqueKhairatSettings,
@@ -58,8 +62,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { AddressForm, AddressData, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationPeopleManagement } from '@/components/admin/OrganizationPeopleManagement';
-import { Loading } from '@/components/ui/loading';
 import { updateMosqueSettings } from '@/lib/api';
+import { PageLoading } from '@/components/ui/page-loading';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -134,6 +138,13 @@ function MosqueProfileContent() {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   const [isOrganizationEnabled, setIsOrganizationEnabled] = useState(false);
   const [savingOrganizationToggle, setSavingOrganizationToggle] = useState(false);
+  const [khairatRegistrationSettings, setKhairatRegistrationSettings] = useState<KariahRegistrationSettings>({
+    requirements: '',
+    benefits: '',
+    custom_message: '',
+  });
+  const [loadingRegistrationSettings, setLoadingRegistrationSettings] = useState(true);
+  const [savingRegistrationSettings, setSavingRegistrationSettings] = useState(false);
 
   const updateProfile = (
     field: keyof MosqueProfileData,
@@ -248,6 +259,41 @@ function MosqueProfileContent() {
     }
   }, [mosqueId]);
 
+  const loadKhairatRegistrationSettings = useCallback(async () => {
+    if (!mosqueId) return;
+
+    setLoadingRegistrationSettings(true);
+    try {
+      const response = await getKhairatRegistrationSettings(mosqueId);
+      if (response.success && response.data) {
+        setKhairatRegistrationSettings(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading khairat registration settings:', error);
+    } finally {
+      setLoadingRegistrationSettings(false);
+    }
+  }, [mosqueId]);
+
+  const handleSaveRegistrationSettings = async () => {
+    if (!mosqueId) return;
+
+    setSavingRegistrationSettings(true);
+    try {
+      const response = await updateKhairatRegistrationSettings(mosqueId, khairatRegistrationSettings);
+      if (response.success) {
+        toast.success(t('settingsSaved'));
+      } else {
+        toast.error(response.error || t('failedToSave'));
+      }
+    } catch (error) {
+      console.error('Error saving khairat registration settings:', error);
+      toast.error(t('failedToSave'));
+    } finally {
+      setSavingRegistrationSettings(false);
+    }
+  };
+
   const handleOrganizationToggle = async (enabled: boolean) => {
     if (!mosqueId) return;
     
@@ -288,8 +334,9 @@ function MosqueProfileContent() {
       loadMosqueData();
       loadKhairatSettings();
       loadOrganizationServiceStatus();
+      loadKhairatRegistrationSettings();
     }
-  }, [mosqueId, loadMosqueData, loadKhairatSettings, loadOrganizationServiceStatus]);
+  }, [mosqueId, loadMosqueData, loadKhairatSettings, loadOrganizationServiceStatus, loadKhairatRegistrationSettings]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -338,38 +385,13 @@ function MosqueProfileContent() {
   };
 
 
-  if (onboardingLoading || !isCompleted) {
-    return null;
-  }
-
-  if (adminLoading || isLoading || settingsLoading) {
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Wait for loading to complete before rendering
+  if (onboardingLoading || !isCompleted || adminLoading || isLoading || settingsLoading) {
     return (
       <DashboardLayout title={t('profile')}>
-        <Loading 
-          message={t('loadingMosqueProfile')} 
-          size="lg"
-          className="py-12"
-        />
-      </DashboardLayout>
-    );
-  }
-
-  if (!hasAdminAccess) {
-    return (
-      <DashboardLayout title={t('profile')}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                {t('accessRestricted')}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                {t('onlyAdministratorsAccess')}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <PageLoading />
       </DashboardLayout>
     );
   }
@@ -401,6 +423,15 @@ function MosqueProfileContent() {
               <Users className="h-4 w-4" />
               {t('organizationPeople.title')}
             </TabsTrigger>
+            {khairatSettings && (
+              <TabsTrigger 
+                value="khairat" 
+                className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
+              >
+                <HeartHandshake className="h-4 w-4" />
+                {t('khairatSettings')}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile" forceMount className="space-y-6 p-6">
@@ -784,6 +815,124 @@ function MosqueProfileContent() {
               />
             )}
           </TabsContent>
+
+          {khairatSettings && (
+            <TabsContent value="khairat" forceMount className="space-y-6 p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                      {t('khairatSettings')}
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {t('khairatRegistrationSettingsDescription')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Khairat Registration Settings Section */}
+                <div>
+                  {loadingRegistrationSettings ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                    </div>
+                  ) : (
+                    <div className="space-y-6 border rounded-lg p-6">
+                      {/* Custom Message */}
+                      <div className="space-y-2">
+                        <Label htmlFor="customMessage">
+                          {t('customMessage')}
+                        </Label>
+                        <Textarea
+                          id="customMessage"
+                          value={khairatRegistrationSettings.custom_message}
+                          onChange={(e) =>
+                            setKhairatRegistrationSettings((prev) => ({
+                              ...prev,
+                              custom_message: e.target.value,
+                            }))
+                          }
+                          rows={3}
+                          placeholder={t('customMessagePlaceholder')}
+                          className="bg-white dark:bg-slate-700"
+                        />
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('customMessagePlaceholder')}
+                        </p>
+                      </div>
+
+                      {/* Requirements */}
+                      <div className="space-y-2">
+                        <Label htmlFor="requirements">
+                          {t('registrationRequirements')}
+                        </Label>
+                        <Textarea
+                          id="requirements"
+                          value={khairatRegistrationSettings.requirements}
+                          onChange={(e) =>
+                            setKhairatRegistrationSettings((prev) => ({
+                              ...prev,
+                              requirements: e.target.value,
+                            }))
+                          }
+                          rows={6}
+                          placeholder={t('requirementsPlaceholder')}
+                          className="bg-white dark:bg-slate-700"
+                        />
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('requirementsPlaceholder')}
+                        </p>
+                      </div>
+
+                      {/* Benefits */}
+                      <div className="space-y-2">
+                        <Label htmlFor="benefits">
+                          {t('membershipBenefits')}
+                        </Label>
+                        <Textarea
+                          id="benefits"
+                          value={khairatRegistrationSettings.benefits}
+                          onChange={(e) =>
+                            setKhairatRegistrationSettings((prev) => ({
+                              ...prev,
+                              benefits: e.target.value,
+                            }))
+                          }
+                          rows={6}
+                          placeholder={t('benefitsPlaceholder')}
+                          className="bg-white dark:bg-slate-700"
+                        />
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('benefitsPlaceholder')}
+                        </p>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="pt-4 border-t">
+                        <Button
+                          onClick={handleSaveRegistrationSettings}
+                          disabled={savingRegistrationSettings}
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          {savingRegistrationSettings ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                              {t('saving')}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Save className="h-4 w-4" />
+                              {t('saveSettings')}
+                            </div>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>

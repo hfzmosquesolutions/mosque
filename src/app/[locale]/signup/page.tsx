@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -17,7 +18,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Mail, Eye, EyeOff, ArrowLeft, Shield, CheckCircle2, XCircle } from 'lucide-react';
+import { Mail, Eye, EyeOff, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
 
 function SignupPageContent() {
@@ -120,59 +121,56 @@ function SignupPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Signup Card */}
-        <Card className="border-emerald-100 dark:border-slate-700 shadow-lg">
-          <CardHeader className="space-y-1 pb-4">
-            <div className="flex items-center justify-center mb-2">
-              <Shield className="h-6 w-6 text-emerald-600 mr-2" />
-              <CardTitle className="text-lg font-semibold text-center text-slate-900 dark:text-slate-100">
-                Admin Signup
-              </CardTitle>
+      <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+        <CardHeader className="text-center space-y-4">
+          <div>
+            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
+              {t('signUp')}
+            </CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-300 mt-2">
+              {t('createNewAccount')}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignup} className="space-y-6">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                {t('emailAddress')}
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder={t('enterEmailAddress')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-11 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400"
+                required
+              />
             </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignup} className="space-y-4">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                >
-                  {t('emailAddress')}
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11"
-                    required
-                  />
-                </div>
-              </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                >
-                  {t('password')}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={t('createStrongPassword')}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10 h-11"
-                    required
-                  />
+            {/* Password Field */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                {t('password')}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={t('createStrongPassword')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10 h-11 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400"
+                  required
+                />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -218,24 +216,24 @@ function SignupPageContent() {
                 )}
               </div>
 
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="confirmPassword"
-                  className="text-sm font-medium text-slate-700 dark:text-slate-300"
-                >
-                  {t('confirmPassword')}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder={t('confirmYourPassword')}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-10 h-11"
-                    required
-                  />
+            {/* Confirm Password Field */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300"
+              >
+                {t('confirmPassword')}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder={t('confirmYourPassword')}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pr-10 h-11 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400"
+                  required
+                />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -267,89 +265,70 @@ function SignupPageContent() {
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                disabled={loading || !passwordsMatch || password.length < 6}
-              >
-                {loading ? t('creatingAccount') : t('signupButton')}
-              </Button>
-
-              {/* SSL Badge */}
-              <div className="flex items-center justify-end text-sm">
-                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                  <span className="text-xs">{t('sslSecured')}</span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="relative mt-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200 dark:border-slate-700" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-slate-800 px-3 text-slate-500 dark:text-slate-400 font-medium">
-                    {t('orContinueWith')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Google Sign Up Button */}
-              <Button
-                variant="outline"
-                type="button"
-                onClick={handleGoogleSignup}
-                disabled={loading}
-                className="w-full mt-4 h-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="google"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 488 512"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
-                  ></path>
-                </svg>
-                {t('continueWithGoogle')}
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <div className="mt-4 text-center text-sm">
-              <span className="text-slate-600 dark:text-slate-400">
-                {t('alreadyHaveAccountText')}{' '}
-              </span>
-              <Link
-                href="/login"
-                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
-              >
-                {t('signIn')}
-              </Link>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Back to home link */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('backToHome')}
-          </Link>
-        </div>
-      </div>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+              disabled={loading || !passwordsMatch || password.length < 6}
+            >
+              {loading ? t('creatingAccount') : t('signupButton')}
+            </Button>
+
+            {/* Divider */}
+            <div className="relative mt-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200 dark:border-slate-700" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white/80 dark:bg-slate-800/80 px-3 text-slate-500 dark:text-slate-400 font-medium">
+                  {t('orContinueWith')}
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign Up Button */}
+            <Button
+              variant="outline"
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={loading}
+              className="w-full mt-4 h-11 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <svg
+                className="mr-2 h-4 w-4"
+                aria-hidden="true"
+                focusable="false"
+                data-prefix="fab"
+                data-icon="google"
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 488 512"
+              >
+                <path
+                  fill="currentColor"
+                  d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
+                ></path>
+              </svg>
+              {t('continueWithGoogle')}
+            </Button>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center text-sm">
+            <span className="text-slate-600 dark:text-slate-400">
+              {t('alreadyHaveAccountText')}{' '}
+            </span>
+            <Link
+              href="/login"
+              className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
+            >
+              {t('signIn')}
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

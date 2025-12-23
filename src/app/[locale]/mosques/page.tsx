@@ -65,7 +65,6 @@ export default function MosquesPage() {
   // Removed contact detail filters for simplicity
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'relevance' | 'nameAsc' | 'nameDesc'>('relevance');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,18 +90,6 @@ export default function MosquesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Initialize selected services from URL (?services=svc1,svc2)
-  useEffect(() => {
-    const servicesParam = (searchParams.get('services') || '').trim();
-    if (servicesParam) {
-      const parsed = servicesParam
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      setSelectedServices(parsed);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   const fetchMosques = async () => {
     try {
@@ -163,15 +150,6 @@ export default function MosquesPage() {
 
     // Contact detail filters removed
 
-    // Filter by enabled services (all selected must be enabled)
-    if (selectedServices.length > 0) {
-      results = results.filter((m) => {
-        const enabled = Array.isArray((m as any).settings?.enabled_services)
-          ? ((m as any).settings!.enabled_services as string[])
-          : [];
-        return selectedServices.every((svc) => enabled.includes(svc));
-      });
-    }
 
     if (sortBy === 'nameAsc') {
       results.sort((a, b) => a.name.localeCompare(b.name));
@@ -180,7 +158,7 @@ export default function MosquesPage() {
     }
 
     setFilteredMosques(results);
-  }, [searchQuery, mosques, selectedState, selectedCity, sortBy, selectedServices]);
+  }, [searchQuery, mosques, selectedState, selectedCity, sortBy]);
 
   useEffect(() => {
     filterMosques();
@@ -215,7 +193,6 @@ export default function MosquesPage() {
     setSelectedState('');
     setSelectedCity('');
     // Contact detail filters removed
-    setSelectedServices([]);
   };
 
   if (loading) {
@@ -320,10 +297,6 @@ export default function MosquesPage() {
                 : t('allRegistered')}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Star className="h-4 w-4 text-yellow-500" />
-            <span>{t('verifiedListings')}</span>
-          </div>
         </div>
 
         {/* Mobile Filters Toggle */}
@@ -385,36 +358,6 @@ export default function MosquesPage() {
                     )}
                   </div>
                 </div>
-
-                {/* Mobile Service Filters */}
-                <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('services')}</div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {[
-                      { id: 'khairat_management', label: t('khairat') },
-                      { id: 'kariah_management', label: t('kariah') },
-                      { id: 'organization_people', label: t('organization') },
-                    ].map((svc) => (
-                      <label key={svc.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedServices.includes(svc.id)}
-                          onChange={(e) =>
-                            setSelectedServices((prev) =>
-                              e.target.checked
-                                ? [...prev, svc.id]
-                                : prev.filter((s) => s !== svc.id)
-                            )
-                          }
-                          className="h-4 w-4"
-                        />
-                        <span>{svc.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                
 
                 <div>
                   <Button className="w-full" variant="default" onClick={() => filterMosques()}>
@@ -494,38 +437,6 @@ export default function MosquesPage() {
                     </div>
                   </div>
 
-                  {/* Services Filters */}
-                  <div className="pt-2">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('services')}</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: 'khairat_management', label: t('khairat') },
-                        { id: 'kariah_management', label: t('kariah') },
-                        { id: 'organization_people', label: t('organization') },
-                      ].map((svc) => (
-                        <label key={svc.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={selectedServices.includes(svc.id)}
-                            onChange={(e) =>
-                              setSelectedServices((prev) =>
-                                e.target.checked
-                                  ? [...prev, svc.id]
-                                  : prev.filter((s) => s !== svc.id)
-                              )
-                            }
-                            className="h-4 w-4"
-                          />
-                          <span>{svc.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  
-
-                  
-
                   <div className="pt-2">
                     <Button
                       className="w-full"
@@ -540,7 +451,6 @@ export default function MosquesPage() {
                       onClick={() => {
                         setSearchQuery('');
                         setSortBy('relevance');
-                      setSelectedServices([]);
                       }}
                     >
                       {t('reset')}
@@ -619,44 +529,6 @@ export default function MosquesPage() {
                                 {mosque.description}
                               </CardDescription>
                             )}
-                            {/* Available services (from mosque public page settings) */}
-                            {(() => {
-                              let enabledServices = Array.isArray((mosque as any).settings?.enabled_services)
-                                ? ((mosque as any).settings.enabled_services as string[])
-                                : [];
-                              // Exclude removed features
-                              enabledServices = enabledServices.filter((sid) => sid !== 'announcements');
-
-                              if (enabledServices.length === 0) return null;
-
-                              const SERVICE_INFO: Record<string, { label: string; Icon: any; cls?: string }> = {
-                                khairat_management: { label: t('khairat'), Icon: HandCoins, cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-                                kariah_management: { label: t('kariah'), Icon: Users, cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                                organization_people: { label: t('organization'), Icon: Users, cls: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-                                friday_prayers: { label: 'Friday', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
-                                daily_prayers: { label: 'Daily', Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' },
-                                mosque_profile: { label: 'Page', Icon: Globe2, cls: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-                              };
-
-                              return (
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                  {enabledServices.slice(0, 6).map((sid) => {
-                                    const info = SERVICE_INFO[sid] || { label: sid, Icon: Users, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200' };
-                                    const IconComp = info.Icon;
-                                    return (
-                                      <span
-                                        key={`${mosque.id}-${sid}`}
-                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${info.cls}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <IconComp className="h-3.5 w-3.5" />
-                                        {info.label}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
                             <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />

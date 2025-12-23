@@ -4,17 +4,14 @@ import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
-import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
+import { useUserMosque } from '@/hooks/useUserRole';
 import { ClaimsManagement } from '@/components/admin/ClaimsManagement';
-import { Loading } from '@/components/ui/loading';
 import { useSafeAsync } from '@/hooks/useSafeAsync';
+import { PageLoading } from '@/components/ui/page-loading';
 
 function KhairatClaimsContent() {
   const t = useTranslations('claims');
-  const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
-  const { mosqueId } = useUserMosque();
-  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
+  const { mosqueId, loading: mosqueLoading } = useUserMosque();
   const { isMounted } = useSafeAsync();
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -26,27 +23,11 @@ function KhairatClaimsContent() {
     };
   }, []);
 
-  if (onboardingLoading || !isCompleted || adminLoading) {
-    return (
-      <Loading 
-        message={t('loadingClaims')} 
-        size="lg"
-        className="py-12"
-      />
-    );
-  }
-
-  if (!hasAdminAccess) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">
-          Access denied. Only mosque administrators can access claims management.
-        </p>
-        <p className="text-sm text-slate-500 dark:text-slate-500">
-          To submit a claim, please visit the mosque profile page and use the claim submission form.
-        </p>
-      </div>
-    );
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Show loading while fetching mosque data
+  if (mosqueLoading) {
+    return <PageLoading />;
   }
 
   return (

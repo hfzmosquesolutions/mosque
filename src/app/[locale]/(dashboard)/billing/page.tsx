@@ -22,7 +22,7 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loading } from '@/components/ui/loading';
+import { PageLoading } from '@/components/ui/page-loading';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -94,30 +94,11 @@ function BillingContent() {
     };
   }, [user?.id, mosqueId, isCompleted, onboardingLoading, safeSetState, isMounted]);
   
+  // ProtectedRoute already handles access control
+  // If we reach here, user is authenticated and has admin access
+  // Wait for loading to complete before rendering
   if (onboardingLoading || !isCompleted || roleLoading || mosqueLoading || loading) {
-    return (
-      <Loading 
-        message={t('loadingMessage')} 
-        size="lg"
-        className="py-12"
-      />
-    );
-  }
-
-  // Redirect non-admin users
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {t('accessDenied')}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {t('accessDeniedDescription')}
-          </p>
-        </div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
