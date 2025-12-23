@@ -306,13 +306,7 @@ function DashboardContent() {
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
   // Wait for role loading to complete before rendering
-  if (roleLoading || onboardingLoading || !onboardingCompleted) {
-    return (
-      <DashboardLayout>
-        <PageLoading />
-      </DashboardLayout>
-    );
-  }
+  const isLoading = roleLoading || onboardingLoading || !onboardingCompleted;
 
   return (
     <DashboardLayout>
@@ -438,54 +432,58 @@ function DashboardContent() {
         </div>
 
         {/* Dashboard Content */}
+        {isLoading ? (
+          <PageLoading />
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard
+                title={t('totalContributed')}
+                value={`RM ${totalContributed.toLocaleString()}`}
+                subtitle="Total khairat received"
+                icon={DollarSign}
+                {...StatsCardColors.emerald}
+              />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title={t('totalContributed')}
-            value={`RM ${totalContributed.toLocaleString()}`}
-            subtitle="Total khairat received"
-            icon={DollarSign}
-            {...StatsCardColors.emerald}
-          />
+              <StatsCard
+                title={t('newRegistrations')}
+                value={pendingApplicationsCount}
+                subtitle={t('newRegistrationsSubtitle')}
+                icon={Users}
+                {...StatsCardColors.blue}
+              />
 
-          <StatsCard
-            title={t('newRegistrations')}
-            value={pendingApplicationsCount}
-            subtitle={t('newRegistrationsSubtitle')}
-            icon={Users}
-            {...StatsCardColors.blue}
-          />
+              <StatsCard
+                title={t('totalMembers')}
+                value={membershipStats?.total || 0}
+                subtitle={t('totalMembersSubtitle')}
+                icon={Building2}
+                {...StatsCardColors.purple}
+              />
 
-          <StatsCard
-            title={t('totalMembers')}
-            value={membershipStats?.total || 0}
-            subtitle={t('totalMembersSubtitle')}
-            icon={Building2}
-            {...StatsCardColors.purple}
-          />
+              <StatsCard
+                title={t('successfulClaims')}
+                value={successfulClaimsCount}
+                subtitle="Successful khairat claims"
+                icon={TrendingUp}
+                {...StatsCardColors.orange}
+              />
+            </div>
 
-          <StatsCard
-            title={t('successfulClaims')}
-            value={successfulClaimsCount}
-            subtitle="Successful khairat claims"
-            icon={TrendingUp}
-            {...StatsCardColors.orange}
-          />
-        </div>
-
-        {/* Admin Getting Started and Quick Actions - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AdminGettingStarted 
-            hasMosqueProfile={!!mosqueData}
-            hasPaymentSetup={hasPaymentSetup}
-            applicationCount={membershipStats?.total || 0}
-            contributionCount={completedContributionCount}
-            claimCount={successfulClaimsCount}
-          />
-          <QuickActions pendingClaimsCount={unsettledClaimsCount} pendingRegistrationsCount={pendingApplicationsCount} />
-        </div>
-
+            {/* Admin Getting Started and Quick Actions - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AdminGettingStarted 
+                hasMosqueProfile={!!mosqueData}
+                hasPaymentSetup={hasPaymentSetup}
+                applicationCount={membershipStats?.total || 0}
+                contributionCount={completedContributionCount}
+                claimCount={successfulClaimsCount}
+              />
+              <QuickActions pendingClaimsCount={unsettledClaimsCount} pendingRegistrationsCount={pendingApplicationsCount} />
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

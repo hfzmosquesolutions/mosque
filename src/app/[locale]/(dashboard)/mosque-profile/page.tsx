@@ -388,13 +388,7 @@ function MosqueProfileContent() {
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
   // Wait for loading to complete before rendering
-  if (onboardingLoading || !isCompleted || adminLoading || isLoading || settingsLoading) {
-    return (
-      <DashboardLayout title={t('profile')}>
-        <PageLoading />
-      </DashboardLayout>
-    );
-  }
+  const isPageLoading = onboardingLoading || !isCompleted || adminLoading || isLoading || settingsLoading;
 
   return (
     <DashboardLayout title={t('profile')}>
@@ -406,9 +400,13 @@ function MosqueProfileContent() {
            </h1>
          </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
+         {isPageLoading ? (
+           <PageLoading />
+         ) : (
+          <>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-600">
             <TabsTrigger 
               value="profile" 
               className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
@@ -432,9 +430,9 @@ function MosqueProfileContent() {
                 {t('khairatSettings')}
               </TabsTrigger>
             )}
-          </TabsList>
+              </TabsList>
 
-          <TabsContent value="profile" forceMount className="space-y-6 p-6">
+              <TabsContent value="profile" forceMount className="space-y-6 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
@@ -803,9 +801,9 @@ function MosqueProfileContent() {
 
                   </div>
                 </div>
-          </TabsContent>
+              </TabsContent>
 
-          <TabsContent value="organization" forceMount className="space-y-6 p-6">
+              <TabsContent value="organization" forceMount className="space-y-6 p-6">
             {mosqueId && (
               <OrganizationPeopleManagement 
                 mosqueId={mosqueId}
@@ -814,10 +812,10 @@ function MosqueProfileContent() {
                 savingToggle={savingOrganizationToggle}
               />
             )}
-          </TabsContent>
+              </TabsContent>
 
-          {khairatSettings && (
-            <TabsContent value="khairat" forceMount className="space-y-6 p-6">
+              {khairatSettings && (
+                <TabsContent value="khairat" forceMount className="space-y-6 p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -931,9 +929,11 @@ function MosqueProfileContent() {
                   )}
                 </div>
               </div>
-            </TabsContent>
-          )}
-        </Tabs>
+                </TabsContent>
+              )}
+            </Tabs>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

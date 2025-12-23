@@ -97,8 +97,23 @@ function BillingContent() {
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
   // Wait for loading to complete before rendering
-  if (onboardingLoading || !isCompleted || roleLoading || mosqueLoading || loading) {
-    return <PageLoading />;
+  const isLoading = onboardingLoading || !isCompleted || roleLoading || mosqueLoading || loading;
+
+  // Show header with loading indicator in content area
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t('title')}
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            {t('description')}
+          </p>
+        </div>
+        <PageLoading />
+      </div>
+    );
   }
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
