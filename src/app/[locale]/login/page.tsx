@@ -63,27 +63,28 @@ function LoginPageContent() {
       // Get the returnUrl from sessionStorage or query params
       const storedReturnUrl = sessionStorage.getItem('returnUrl') || returnUrl;
       
-      // Wait a bit for auth state to update, then check admin access
+      // Wait a bit for auth state to update, then redirect
       setTimeout(async () => {
         try {
-          // Get the user ID from the auth context
+          // Check if user is admin to determine which dashboard
           const { supabase } = await import('@/lib/supabase');
           const { data: { user: authUser } } = await supabase.auth.getUser();
           
-          if (authUser?.id) {
-            // Check if user is admin (owns a mosque)
-            const { data: mosqueData } = await supabase
-              .from('mosques')
-              .select('id')
-              .eq('user_id', authUser.id)
-              .single();
-            
-            if (!mosqueData) {
-              // User is not an admin, sign them out
-              await supabase.auth.signOut();
-              toast.error('Access denied. Only mosque administrators can log in.');
-              setLoading(false);
-              return;
+          let redirectUrl = storedReturnUrl;
+          
+          // If redirecting to dashboard, check admin status
+          if (redirectUrl === '/dashboard' || redirectUrl.includes('/dashboard')) {
+            if (authUser?.id) {
+              const { data: mosqueData } = await supabase
+                .from('mosques')
+                .select('id')
+                .eq('user_id', authUser.id)
+                .maybeSingle();
+              
+              // Redirect to appropriate dashboard
+              redirectUrl = mosqueData ? '/dashboard' : '/my-dashboard';
+            } else {
+              redirectUrl = '/my-dashboard';
             }
           }
           
@@ -92,11 +93,10 @@ function LoginPageContent() {
             sessionStorage.removeItem('returnUrl');
           }
           
-          // Admin verified, redirect to dashboard
-          window.location.href = storedReturnUrl;
+          // Redirect to appropriate dashboard
+          window.location.href = redirectUrl;
         } catch (error) {
-          console.error('Error verifying admin access:', error);
-          toast.error('Failed to verify access. Please try again.');
+          console.error('Error during redirect:', error);
           setLoading(false);
         }
       }, 500);

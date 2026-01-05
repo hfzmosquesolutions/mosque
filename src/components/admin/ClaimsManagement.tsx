@@ -48,6 +48,9 @@ import {
   Calendar,
   User,
   Building,
+  MapPin,
+  Mail,
+  Phone,
   FileText,
   Plus,
   Download,
@@ -60,12 +63,14 @@ import {
   updateClaim,
   getClaimDocuments
 } from '@/lib/api';
+import { getKhairatMemberById } from '@/lib/api/khairat-members';
 import type {
   KhairatClaimWithDetails,
   ClaimStatus,
   ClaimPriority,
   UpdateKhairatClaim,
-  ClaimDocument
+  ClaimDocument,
+  KhairatMember
 } from '@/types/database';
 import { ClaimDocumentView } from '@/components/khairat/ClaimDocumentView';
 
@@ -107,25 +112,57 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedMember, setSelectedMember] = useState<KhairatMember | null>(null);
+  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [loadingMember, setLoadingMember] = useState(false);
   
 
   const statusConfig = getStatusConfig(t);
   const priorityConfig = getPriorityConfig(t);
 
   useEffect(() => {
+    if (!mosqueId) {
+      setClaims([]);
+      setLoading(false);
+      return;
+    }
     fetchData();
   }, [mosqueId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      if (!mosqueId) {
+        setClaims([]);
+        return;
+      }
       const claimsResponse = await getClaims({ mosque_id: mosqueId });
       setClaims(claimsResponse.data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('[ClaimsManagement] Error fetching data:', error);
       toast.error(t('messages.loadError'));
+      setClaims([]); // Clear claims on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMemberClick = async (memberId: string) => {
+    if (!memberId) return;
+    
+    setLoadingMember(true);
+    setIsMemberModalOpen(true);
+    try {
+      const member = await getKhairatMemberById(memberId);
+      setSelectedMember(member);
+    } catch (error) {
+      console.error('Error loading member details:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load member details';
+      toast.error(errorMessage);
+      setIsMemberModalOpen(false);
+      setSelectedMember(null);
+    } finally {
+      setLoadingMember(false);
     }
   };
 
@@ -220,10 +257,48 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
         const claim = row.original as KhairatClaimWithDetails;
         const member = getMemberData(claim);
         return (
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{member?.full_name || t('unknown')}</span>
+          <div className="flex items-start gap-2">
+            <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">{member?.full_name || t('unknown')}</span>
+              {claim.title && (
+                <span className="text-xs text-muted-foreground line-clamp-2">{claim.title}</span>
+              )}
+            </div>
           </div>
+        );
+      },
+    },
+    {
+      id: 'member',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('memberId')} />
+      ),
+      cell: ({ row }) => {
+        const claim = row.original as KhairatClaimWithDetails;
+        const member = getMemberData(claim);
+        
+        if (!member) {
+          return <span className="text-muted-foreground text-sm">-</span>;
+        }
+        
+        const memberId = member.id;
+        
+        return (
+          <button
+            onClick={() => handleMemberClick(memberId)}
+            className="flex flex-col gap-1 hover:opacity-80 transition-opacity text-left"
+          >
+            {member.membership_number ? (
+              <span className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
+                {member.membership_number}
+              </span>
+            ) : (
+              <span className="font-mono text-xs text-muted-foreground hover:underline cursor-pointer">
+                {memberId.slice(0, 8).toUpperCase()}
+              </span>
+            )}
+          </button>
         );
       },
     },
@@ -339,6 +414,9 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
       t('exportHeaders.priority'),
       t('exportHeaders.status'),
       t('exportHeaders.submittedAt'),
+      t('personInChargeName'),
+      t('personInChargePhone'),
+      t('personInChargeRelationship'),
     ];
 
     const rows = filteredClaims.map((c) => {
@@ -351,6 +429,9 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
         c.priority,
         c.status,
         formatDate(c.created_at),
+        c.person_in_charge_name || '',
+        c.person_in_charge_phone || '',
+        c.person_in_charge_relationship || '',
       ];
     });
 
@@ -503,6 +584,32 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                     <p className="text-sm text-muted-foreground">{selectedClaim.description}</p>
                   </div>
                 )}
+                {/* Person in Charge Information */}
+                {(selectedClaim.person_in_charge_name || selectedClaim.person_in_charge_phone || selectedClaim.person_in_charge_relationship) && (
+                  <div className="col-span-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-sm font-medium mb-2">{t('personInCharge')}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedClaim.person_in_charge_name && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t('personInChargeName')}</p>
+                          <p className="text-sm font-medium">{selectedClaim.person_in_charge_name}</p>
+                        </div>
+                      )}
+                      {selectedClaim.person_in_charge_phone && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">{t('personInChargePhone')}</p>
+                          <p className="text-sm font-medium">{selectedClaim.person_in_charge_phone}</p>
+                        </div>
+                      )}
+                      {selectedClaim.person_in_charge_relationship && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground">{t('personInChargeRelationship')}</p>
+                          <p className="text-sm font-medium">{selectedClaim.person_in_charge_relationship}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Review Form */}
@@ -576,6 +683,111 @@ export function ClaimsManagement({ mosqueId, showHeader = true }: ClaimsManageme
                   {tc('save')}
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Member Details Modal */}
+      <Dialog open={isMemberModalOpen} onOpenChange={setIsMemberModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{tc('memberDetails') || 'Member Details'}</DialogTitle>
+            <DialogDescription>
+              {tc('memberDetailsDescription') || 'View detailed information about this member'}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingMember ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedMember ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {selectedMember.membership_number && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('memberId') || 'Member ID'}:
+                    </label>
+                    <p className="text-sm font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      {selectedMember.membership_number}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {tc('name') || 'Name'}:
+                  </label>
+                  <p className="text-sm">{selectedMember.full_name || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {tc('status') || 'Status'}:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {selectedMember.status === 'active' || selectedMember.status === 'approved' ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <Badge variant={selectedMember.status === 'active' || selectedMember.status === 'approved' ? 'default' : 'secondary'}>
+                      {selectedMember.status}
+                    </Badge>
+                  </div>
+                </div>
+                {selectedMember.ic_passport_number && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('icNumber') || 'IC Number'}:
+                    </label>
+                    <p className="text-sm font-mono">{selectedMember.ic_passport_number}</p>
+                  </div>
+                )}
+                {selectedMember.phone && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('phone') || 'Phone'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.phone}</p>
+                  </div>
+                )}
+                {selectedMember.email && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('email') || 'Email'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.email}</p>
+                  </div>
+                )}
+                {selectedMember.address && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('address') || 'Address'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.address}</p>
+                  </div>
+                )}
+                {selectedMember.created_at && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {tc('createdAt') || 'Created At'}:
+                    </label>
+                    <p className="text-sm">{formatDate(selectedMember.created_at)}</p>
+                  </div>
+                )}
+              </div>
+              {selectedMember.admin_notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {tc('adminNotes') || 'Admin Notes'}:
+                  </label>
+                  <p className="text-sm">{selectedMember.admin_notes}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              {tc('memberNotFound') || 'Member not found'}
             </div>
           )}
         </DialogContent>

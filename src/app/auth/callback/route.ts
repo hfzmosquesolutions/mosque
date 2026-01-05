@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getDashboardUrl } from '@/lib/utils/dashboard';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -12,11 +13,13 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code);
     
-    if (!error) {
-      // Redirect to returnUrl if provided, otherwise dashboard
-      let redirectTo = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+    if (!error && data?.user) {
+      // Get correct dashboard URL based on admin status
+      const dashboardUrl = await getDashboardUrl(data.user.id);
+      // Redirect to returnUrl if provided, otherwise correct dashboard
+      let redirectTo = returnUrl ? decodeURIComponent(returnUrl) : dashboardUrl;
       
       // Ensure redirectTo has locale prefix (default to 'ms' if missing)
       if (!redirectTo.startsWith('/ms/') && !redirectTo.startsWith('/en/')) {

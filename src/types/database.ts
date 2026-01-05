@@ -206,6 +206,7 @@ export interface KhairatContribution {
   mosque_id: string;
   contributor_id?: string;
   contributor_name?: string;
+  khairat_member_id?: string; // Primary reference to link payment to khairat member
   amount: number;
   payment_method?: string;
   payment_reference?: string;
@@ -812,8 +813,8 @@ export type ClaimPriority = 'low' | 'medium' | 'high' | 'urgent';
 export interface KhairatClaim {
   id: string;
   claim_id?: string; // Unique claim reference ID in format CLM-XXXXX-XXXXX
-  claimant_id?: string; // Optional for backward compatibility, prefer khairat_member_id
-  khairat_member_id?: string; // Reference to khairat_members table
+  claimant_id?: string; // Optional, for reference
+  khairat_member_id: string; // Required - Reference to khairat_members table
   mosque_id: string;
   title: string;
   description: string;
@@ -821,6 +822,9 @@ export interface KhairatClaim {
   approved_amount?: number;
   status: ClaimStatus;
   priority: ClaimPriority;
+  person_in_charge_name?: string; // Name of person applying on behalf of member
+  person_in_charge_phone?: string; // Phone number of person applying on behalf of member
+  person_in_charge_relationship?: string; // Relationship of person applying on behalf of member
   admin_notes?: string;
   rejection_reason?: string;
   reviewed_by?: string;

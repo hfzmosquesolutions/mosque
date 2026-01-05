@@ -24,9 +24,12 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useLocale, useTranslations } from 'next-intl';
 import { locales, type Locale } from '@/i18n';
+import { useAdminAccess } from '@/hooks/useUserRole';
+import { getDashboardUrlSync } from '@/lib/utils/dashboard';
 
 export default function Header() {
   const { user, signOut } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const locale = useLocale() as Locale;
@@ -42,6 +45,7 @@ export default function Header() {
   // Hide header on internal pages that have sidebar
   const internalPages = [
     '/dashboard',
+    '/my-dashboard',
     '/members',
     '/payments',
     '/claims',
@@ -93,7 +97,7 @@ export default function Header() {
                   <>
                     <NavigationMenuItem>
                       <NavigationMenuLink
-                        href="/dashboard"
+                        href={getDashboardUrlSync(hasAdminAccess)}
                         className={navigationMenuTriggerStyle()}
                       >
                         {tNavigation('dashboard')}
@@ -213,7 +217,7 @@ export default function Header() {
               {user && (
                 <>
                   <Link
-                    href="/dashboard"
+                    href={getDashboardUrlSync(hasAdminAccess)}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Button

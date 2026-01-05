@@ -101,6 +101,7 @@ export function KhairatManagement({
   const [createForm, setCreateForm] = useState({
     full_name: '',
     ic_passport_number: '',
+    membership_number: '',
     phone: '',
     email: '',
     address: '',
@@ -245,13 +246,20 @@ export function KhairatManagement({
       return;
     }
 
+    // Validate IC number format
+    const normalizedIc = normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12);
+    if (!isValidMalaysiaIc(normalizedIc)) {
+      toast.error('Invalid IC number. Please enter a valid 12-digit Malaysian IC number.');
+      return;
+    }
+
     setProcessing(true);
     try {
       // Check if member with same IC already exists for this mosque
       const { data: existingMember } = await supabase
         .from('khairat_members')
         .select('id, status')
-        .eq('ic_passport_number', normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
+        .eq('ic_passport_number', normalizedIc)
         .eq('mosque_id', mosqueId)
         .maybeSingle();
 
@@ -261,11 +269,28 @@ export function KhairatManagement({
         return;
       }
 
+      // Check if membership number is provided and if it's unique for this mosque
+      if (createForm.membership_number && createForm.membership_number.trim()) {
+        const { data: existingByMembershipNumber } = await supabase
+          .from('khairat_members')
+          .select('id, status')
+          .eq('membership_number', createForm.membership_number.trim())
+          .eq('mosque_id', mosqueId)
+          .maybeSingle();
+
+        if (existingByMembershipNumber) {
+          toast.error(`A member with this membership ID already exists with ${existingByMembershipNumber.status} status`);
+          setProcessing(false);
+          return;
+        }
+      }
+
       // Create the member directly as active (no user_id)
       const insertData: any = {
         mosque_id: mosqueId,
         full_name: createForm.full_name,
-        ic_passport_number: normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12),
+        ic_passport_number: normalizedIc,
+        membership_number: createForm.membership_number?.trim() || null,
         phone: createForm.phone || null,
         email: createForm.email || null,
         address: createForm.address || null,
@@ -291,7 +316,8 @@ export function KhairatManagement({
       setCreateDialogOpen(false);
       setCreateForm({ 
         full_name: '',
-        ic_passport_number: '', 
+        ic_passport_number: '',
+        membership_number: '',
         phone: '',
         email: '',
         address: '',
@@ -842,8 +868,33 @@ export function KhairatManagement({
                     ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
                   })
                 }
-                className="mt-1"
+                className={`mt-1 ${
+                  createForm.ic_passport_number && 
+                  !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
+                    ? 'border-red-500 focus-visible:ring-red-500' 
+                    : ''
+                }`}
                 maxLength={12}
+              />
+              {createForm.ic_passport_number && 
+               !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12)) && (
+                <p className="text-xs text-red-500 mt-1">
+                  {t('registerDialog.invalidIcNumber') || 'Invalid IC number. Please enter a valid 12-digit Malaysian IC number.'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium">{t('registerDialog.membershipNumberOptional')}</label>
+              <Input
+                placeholder={t('registerDialog.enterMembershipNumber')}
+                value={createForm.membership_number}
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    membership_number: e.target.value,
+                  })
+                }
+                className="mt-1"
               />
             </div>
             <div>
@@ -901,7 +952,8 @@ export function KhairatManagement({
                   setCreateDialogOpen(false);
                   setCreateForm({ 
                     full_name: '',
-                    ic_passport_number: '', 
+                    ic_passport_number: '',
+                    membership_number: '',
                     phone: '',
                     email: '',
                     address: '',
@@ -912,7 +964,15 @@ export function KhairatManagement({
               >
                 {t('registerDialog.cancel')}
               </Button>
-              <Button onClick={handleCreateMember} disabled={processing}>
+              <Button 
+                onClick={handleCreateMember} 
+                disabled={
+                  processing || 
+                  !createForm.full_name || 
+                  !createForm.ic_passport_number ||
+                  !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
+                }
+              >
                 {processing && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}

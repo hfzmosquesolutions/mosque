@@ -27,21 +27,13 @@ import {
   TrendingUp,
   Users,
   FileText,
-  MoreHorizontal,
   Eye,
   Calendar,
   User,
   AlertTriangle,
   Search,
+  Edit,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +42,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { getMosqueKhairatContributions, updateKhairatContributionStatus } from '@/lib/api';
-import type { KhairatContribution, UserProfile } from '@/types/database';
+import { getKhairatMemberById } from '@/lib/api/khairat-members';
+import type { KhairatContribution, UserProfile, KhairatMember } from '@/types/database';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { PaymentReceiptView } from '@/components/khairat/PaymentReceiptView';
@@ -64,6 +57,11 @@ type ContributionStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
 
 interface ContributionWithUser extends KhairatContribution {
   contributor?: UserProfile;
+  member?: {
+    id: string;
+    membership_number?: string | null;
+    full_name?: string;
+  };
 }
 
 export function MosqueKhairatContributions({
@@ -79,6 +77,9 @@ export function MosqueKhairatContributions({
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedContribution, setSelectedContribution] = useState<ContributionWithUser | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<KhairatMember | null>(null);
+  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [loadingMember, setLoadingMember] = useState(false);
 
   const loadContributions = async () => {
     setLoading(true);
@@ -109,6 +110,12 @@ export function MosqueKhairatContributions({
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           contribution.payment_reference
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.member?.membership_number
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          contribution.member?.full_name
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           contribution.notes?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -153,6 +160,23 @@ export function MosqueKhairatContributions({
       toast.error(t('paymentsTable.failedToUpdatePaymentStatus'));
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleMemberClick = async (memberId: string) => {
+    if (!memberId) return;
+    
+    setLoadingMember(true);
+    setIsMemberModalOpen(true);
+    try {
+      const member = await getKhairatMemberById(memberId);
+      setSelectedMember(member);
+    } catch (error) {
+      console.error('Error loading member details:', error);
+      toast.error(t('paymentsTable.failedToLoadMemberDetails') || 'Failed to load member details');
+      setIsMemberModalOpen(false);
+    } finally {
+      setLoadingMember(false);
     }
   };
 
@@ -214,7 +238,7 @@ export function MosqueKhairatContributions({
     {
       accessorKey: 'contributor_name',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('paymentsTable.name')} />
+        <DataTableColumnHeader column={column} title={t('paymentsTable.payerName')} />
       ),
       cell: ({ row }) => {
         const contributorName = row.getValue('contributor_name') as string;
@@ -223,6 +247,40 @@ export function MosqueKhairatContributions({
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{contributorName || t('paymentsTable.anonymous')}</span>
           </div>
+        );
+      },
+    },
+    {
+      id: 'member',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('paymentsTable.member')} />
+      ),
+      cell: ({ row }) => {
+        const contribution = row.original;
+        const member = contribution.member;
+        const memberId = contribution.khairat_member_id;
+        
+        // Only show if there's a linked member via khairat_member_id
+        if (!memberId || !member) {
+          return <span className="text-muted-foreground text-sm">-</span>;
+        }
+        
+        // Show membership number if available, otherwise show member ID
+        return (
+          <button
+            onClick={() => handleMemberClick(memberId)}
+            className="flex flex-col gap-1 hover:opacity-80 transition-opacity text-left"
+          >
+            {member.membership_number ? (
+              <span className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
+                {member.membership_number}
+              </span>
+            ) : (
+              <span className="font-mono text-xs text-muted-foreground hover:underline cursor-pointer">
+                {memberId.slice(0, 8).toUpperCase()}
+              </span>
+            )}
+          </button>
         );
       },
     },
@@ -305,66 +363,27 @@ export function MosqueKhairatContributions({
       cell: ({ row }) => {
         const contribution = row.original;
         const isUpdating = updating === contribution.id;
-        const isCashPayment = contribution.payment_method === 'cash';
 
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{t('paymentsTable.openMenu')}</span>
-                {isUpdating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MoreHorizontal className="h-4 w-4" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('paymentsTable.actions')}</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedContribution(contribution);
-                  setIsModalOpen(true);
-                }}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                {t('paymentsTable.viewDetails')}
-              </DropdownMenuItem>
-              {/* Only allow status changes for cash payments */}
-              {isCashPayment && (
-                <>
-                  <DropdownMenuSeparator />
-                  {contribution.status === 'pending' && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => handleStatusUpdate(contribution.id, 'completed')}
-                        disabled={isUpdating}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        {t('paymentsTable.markAsCompleted')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleStatusUpdate(contribution.id, 'cancelled')}
-                        disabled={isUpdating}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        {t('paymentsTable.cancel')}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {contribution.status === 'completed' && (
-                    <DropdownMenuItem
-                      onClick={() => handleStatusUpdate(contribution.id, 'pending')}
-                      disabled={isUpdating}
-                    >
-                      <Clock className="mr-2 h-4 w-4" />
-                      {t('paymentsTable.markAsPending')}
-                    </DropdownMenuItem>
-                  )}
-                </>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSelectedContribution(contribution);
+                setIsModalOpen(true);
+              }}
+              className="h-8 w-8 p-0"
+              title={t('paymentsTable.viewDetails') || 'View Details'}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Edit className="h-4 w-4" />
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Button>
+          </div>
         );
       },
     },
@@ -439,10 +458,21 @@ export function MosqueKhairatContributions({
                 )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    {t('paymentsTable.name')}
+                    {t('paymentsTable.payerName')}
                   </label>
                   <p className="text-sm">{selectedContribution.contributor_name || t('paymentsTable.anonymous')}</p>
                 </div>
+                {selectedContribution.khairat_member_id && selectedContribution.member && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.member')}
+                    </label>
+                    <p className="text-sm font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      {selectedContribution.member.membership_number || 
+                       selectedContribution.khairat_member_id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     {t('paymentsTable.amount')}
@@ -495,6 +525,186 @@ export function MosqueKhairatContributions({
                   <PaymentReceiptView contributionId={selectedContribution.id} />
                 </div>
               )}
+              
+              {/* Status update actions for cash payments */}
+              {selectedContribution.payment_method === 'cash' && (
+                <div className="pt-4 border-t">
+                  <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                    {t('paymentsTable.actions')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedContribution.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => {
+                            handleStatusUpdate(selectedContribution.id, 'completed');
+                            setIsModalOpen(false);
+                          }}
+                          disabled={updating === selectedContribution.id}
+                        >
+                          {updating === selectedContribution.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          {t('paymentsTable.markAsCompleted')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            handleStatusUpdate(selectedContribution.id, 'cancelled');
+                            setIsModalOpen(false);
+                          }}
+                          disabled={updating === selectedContribution.id}
+                        >
+                          {updating === selectedContribution.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4 mr-2" />
+                          )}
+                          {t('paymentsTable.cancel')}
+                        </Button>
+                      </>
+                    )}
+                    {selectedContribution.status === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          handleStatusUpdate(selectedContribution.id, 'pending');
+                          setIsModalOpen(false);
+                        }}
+                        disabled={updating === selectedContribution.id}
+                      >
+                        {updating === selectedContribution.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Clock className="h-4 w-4 mr-2" />
+                        )}
+                        {t('paymentsTable.markAsPending')}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Member Details Modal */}
+      <Dialog open={isMemberModalOpen} onOpenChange={setIsMemberModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('paymentsTable.memberDetails') || 'Member Details'}</DialogTitle>
+            <DialogDescription>
+              {t('paymentsTable.memberDetailsDescription') || 'View detailed information about this member'}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingMember ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedMember ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {selectedMember.membership_number && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.memberIdLabel') || 'Member ID'}:
+                    </label>
+                    <p className="text-sm font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      {selectedMember.membership_number}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('paymentsTable.name') || 'Name'}:
+                  </label>
+                  <p className="text-sm">{selectedMember.full_name || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('paymentsTable.status') || 'Status'}:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(selectedMember.status)}
+                    {getStatusBadge(selectedMember.status)}
+                  </div>
+                </div>
+                {selectedMember.ic_passport_number && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('payPage.icNumberLabel') || 'IC Number'}:
+                    </label>
+                    <p className="text-sm font-mono">{selectedMember.ic_passport_number}</p>
+                  </div>
+                )}
+                {selectedMember.phone && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('payPage.mobileNumberLabel') || 'Phone'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.phone}</p>
+                  </div>
+                )}
+                {selectedMember.email && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('payPage.emailLabel') || 'Email'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.email}</p>
+                  </div>
+                )}
+                {selectedMember.address && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.address') || 'Address'}:
+                    </label>
+                    <p className="text-sm">{selectedMember.address}</p>
+                  </div>
+                )}
+                {selectedMember.joined_date && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.joinedDate') || 'Joined Date'}:
+                    </label>
+                    <p className="text-sm">{new Date(selectedMember.joined_date).toLocaleDateString('en-MY')}</p>
+                  </div>
+                )}
+                {selectedMember.created_at && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t('paymentsTable.createdAt') || 'Created At'}:
+                    </label>
+                    <p className="text-sm">{formatDate(selectedMember.created_at)}</p>
+                  </div>
+                )}
+              </div>
+              {selectedMember.notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('paymentsTable.notes') || 'Notes'}:
+                  </label>
+                  <p className="text-sm">{selectedMember.notes}</p>
+                </div>
+              )}
+              {selectedMember.admin_notes && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t('paymentsTable.adminNotes') || 'Admin Notes'}:
+                  </label>
+                  <p className="text-sm">{selectedMember.admin_notes}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              {t('paymentsTable.memberNotFound') || 'Member not found'}
             </div>
           )}
         </DialogContent>

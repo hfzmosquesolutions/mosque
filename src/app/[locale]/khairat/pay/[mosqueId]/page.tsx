@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -43,7 +44,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMosque, getMosqueKhairatSettings, createKhairatContribution, checkOnboardingStatus, isUserMosqueAdmin } from '@/lib/api';
+import { getMosque, getMosqueKhairatSettings, createKhairatContribution, checkOnboardingStatus } from '@/lib/api';
 import { getKhairatMembers } from '@/lib/api/khairat-members';
 import { Mosque, MosqueKhairatSettings } from '@/types/database';
 import { toast } from 'sonner';
@@ -54,6 +55,64 @@ import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeade
 import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
+
+// Helper function to mask email for privacy
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email;
+  const [username, domain] = email.split('@');
+  if (username.length <= 1) {
+    return `*@${domain}`;
+  }
+  const firstChar = username[0];
+  const maskedUsername = firstChar + '*'.repeat(Math.min(username.length - 1, 6));
+  return `${maskedUsername}@${domain}`;
+}
+
+// Helper function to mask name for privacy (shows first name + first letter of last part)
+function maskName(name: string): string {
+  if (!name || name.trim().length === 0) return name;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return name;
+  
+  // Show first name fully if it's short, otherwise show first few characters
+  const firstName = parts[0];
+  if (firstName.length <= 4) {
+    // Short first name - show fully
+    if (parts.length === 1) return firstName;
+    // Show first name + first letter of last part + asterisks
+    const lastPart = parts[parts.length - 1];
+    return `${firstName} ${lastPart[0]}***`;
+  } else {
+    // Long first name - show first 4 chars + asterisks
+    if (parts.length === 1) return `${firstName.substring(0, 4)}***`;
+    const lastPart = parts[parts.length - 1];
+    return `${firstName.substring(0, 4)}*** ${lastPart[0]}***`;
+  }
+}
+
+// Helper function to mask phone number for privacy
+function maskPhone(phone: string): string {
+  if (!phone || phone.trim().length === 0) return phone;
+  // Remove all non-digit characters for processing
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  if (digitsOnly.length <= 4) {
+    // Very short number - mask all but first digit
+    return digitsOnly[0] + '*'.repeat(digitsOnly.length - 1);
+  } else if (digitsOnly.length <= 7) {
+    // Medium length - show first 2-3 digits, mask rest
+    const showLength = Math.floor(digitsOnly.length / 3);
+    return digitsOnly.substring(0, showLength) + '*'.repeat(digitsOnly.length - showLength);
+  } else {
+    // Standard phone number - show first 3-4 digits and last 2-3 digits
+    const showStart = Math.min(4, Math.floor(digitsOnly.length / 3));
+    const showEnd = Math.min(3, Math.floor(digitsOnly.length / 4));
+    const start = digitsOnly.substring(0, showStart);
+    const end = digitsOnly.substring(digitsOnly.length - showEnd);
+    const masked = '*'.repeat(Math.max(3, digitsOnly.length - showStart - showEnd));
+    return `${start}${masked}${end}`;
+  }
+}
 
 function KhairatPayPageContent() {
   const params = useParams();
@@ -72,6 +131,7 @@ function KhairatPayPageContent() {
   const [payerName, setPayerName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentReceipts, setPaymentReceipts] = useState<File[]>([]);
+  const [hasReceiptInDialog, setHasReceiptInDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [payerEmail, setPayerEmail] = useState(user?.email || '');
   const [payerMobile, setPayerMobile] = useState('');
@@ -83,7 +143,6 @@ function KhairatPayPageContent() {
     bank_transfer: true,
     cash: true,
   });
-  const [isMosqueAdmin, setIsMosqueAdmin] = useState(false);
   const [isKhairatMember, setIsKhairatMember] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(true);
   const [icNumber, setIcNumber] = useState('');
@@ -105,15 +164,25 @@ function KhairatPayPageContent() {
     amount: number;
     paymentMethod: string;
     payerName: string;
+    payerEmail?: string;
+    payerMobile?: string;
     status: string;
     memberId?: string;
     membershipNumber?: string;
+    memberName?: string;
   } | null>(null);
 
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Sync hasReceiptInDialog when dialog opens or paymentReceipts changes
+  useEffect(() => {
+    if (isReceiptModalOpen) {
+      setHasReceiptInDialog(paymentReceipts.length > 0);
+    }
+  }, [isReceiptModalOpen, paymentReceipts.length]);
 
   // Check for persisted success state on mount
   useEffect(() => {
@@ -260,26 +329,9 @@ function KhairatPayPageContent() {
           setMosque(mosqueRes.data);
         }
 
-        // Check if user is mosque admin (only if logged in)
-        let isAdmin = false;
-        if (user?.id) {
-          try {
-            const adminCheck = await isUserMosqueAdmin(user.id, mosqueId);
-            isAdmin = adminCheck;
-            setIsMosqueAdmin(adminCheck);
-          } catch (error) {
-            console.error('Error checking admin status:', error);
-          }
-        }
-
         // Don't auto-check membership - user must verify manually
-        // Admin can always view (but not submit)
-        if (isAdmin) {
-          setIsKhairatMember(true);
-        } else {
-          // All users (logged in or not) need to verify membership manually
-          setIsKhairatMember(false);
-        }
+        // All users (logged in or not) need to verify membership manually
+        setIsKhairatMember(false);
 
         // Fetch khairat settings
         const settingsRes = await getMosqueKhairatSettings(mosqueId);
@@ -312,8 +364,8 @@ function KhairatPayPageContent() {
           await checkPaymentProvider(mosqueId);
         }
 
-        // Pre-populate data if user is logged in and NOT admin
-        if (user?.id && !isAdmin) {
+        // Pre-populate data if user is logged in
+        if (user?.id) {
           // Fetch user profile for auto-fill
           const { data, error } = await supabase
             .from('user_profiles')
@@ -486,12 +538,6 @@ function KhairatPayPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent submission if user is mosque admin
-    if (isMosqueAdmin) {
-      toast.error('Mosque administrators cannot submit payments. This page is for viewing purposes only.');
-      return;
-    }
-
     // For non-logged in users, must have verified membership by IC
     if (!user && !isKhairatMember) {
       toast.error('Please verify your membership by entering your IC number first');
@@ -510,7 +556,7 @@ function KhairatPayPageContent() {
 
     // Validate online payment fields (ToyyibPay only)
     if (paymentMethod === 'toyyibpay') {
-      const mobileForValidation = (verifiedMemberInfo?.phone || payerMobile || '').trim();
+      const mobileForValidation = payerMobile.trim();
       if (!mobileForValidation) {
         toast.error('Mobile number is required for ToyyibPay');
         return;
@@ -526,17 +572,34 @@ function KhairatPayPageContent() {
       return;
     }
 
+    // Validate required fields
+    if (!payerName || !payerName.trim()) {
+      toast.error('Please enter payer name');
+      return;
+    }
+
+    if (!payerEmail || !payerEmail.trim()) {
+      toast.error('Please enter email address');
+      return;
+    }
+
+    if (!payerMobile || !payerMobile.trim()) {
+      toast.error('Please enter mobile number');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Use registered information if available, otherwise use form fields
-      const finalPayerName = verifiedMemberInfo?.full_name || payerName || undefined;
-      const finalPayerEmail = verifiedMemberInfo?.email || payerEmail || undefined;
-      const finalPayerMobile = verifiedMemberInfo?.phone || payerMobile || undefined;
+      // Always use form field values - user can pay for someone else
+      const finalPayerName = payerName.trim();
+      const finalPayerEmail = payerEmail.trim();
+      const finalPayerMobile = payerMobile.trim();
 
       const paymentData = {
         mosque_id: mosqueId,
         contributor_id: user?.id || undefined, // Can be null for non-logged in users
         contributor_name: finalPayerName,
+        khairat_member_id: verifiedMemberId || undefined, // Primary reference to link payment to member
         amount: parseFloat(amount),
         payment_method: paymentMethod,
         payment_reference: verifiedMembershipNumber || undefined,
@@ -627,10 +690,13 @@ function KhairatPayPageContent() {
             paymentId: response.data.payment_id,
             amount: parseFloat(amount),
             paymentMethod: paymentMethod,
-            payerName: finalPayerName || user?.email || 'Anonymous',
+            payerName: finalPayerName,
+            payerEmail: finalPayerEmail,
+            payerMobile: finalPayerMobile,
             status: 'pending',
             memberId: verifiedMemberId || undefined,
             membershipNumber: verifiedMembershipNumber || undefined,
+            memberName: verifiedMemberInfo?.full_name || undefined,
           };
           setSubmittedContribution(contributionData);
           setSubmittedSuccessfully(true);
@@ -640,6 +706,7 @@ function KhairatPayPageContent() {
             ...contributionData,
             memberId: verifiedMemberId || undefined,
             membershipNumber: verifiedMembershipNumber || undefined,
+            memberName: verifiedMemberInfo?.full_name || undefined,
           }));
         }
       } else {
@@ -708,9 +775,13 @@ function KhairatPayPageContent() {
 
     const details = [
       submittedContribution.paymentId ? ['Payment ID:', submittedContribution.paymentId] : null,
+      (submittedContribution.membershipNumber || submittedContribution.memberId) ? ['Member ID:', submittedContribution.membershipNumber || submittedContribution.memberId?.slice(0, 8).toUpperCase() || 'N/A'] : null,
+      submittedContribution.memberName ? ['Member Name:', maskName(submittedContribution.memberName)] : null,
       ['Amount:', `RM ${submittedContribution.amount.toFixed(2)}`],
       ['Payment Method:', submittedContribution.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A'],
-      ['Payer Name:', submittedContribution.payerName],
+      ['Payer Name:', submittedContribution.payerName || 'N/A'],
+      submittedContribution.payerEmail ? ['Payer Email:', maskEmail(submittedContribution.payerEmail)] : null,
+      submittedContribution.payerMobile ? ['Payer Mobile:', maskPhone(submittedContribution.payerMobile)] : null,
       ['Status:', submittedContribution.status.toUpperCase()],
       ['Date:', paymentDate],
     ].filter(Boolean) as [string, string][];
@@ -726,17 +797,25 @@ function KhairatPayPageContent() {
 
     yPos += 5;
 
-    // Note for bank transfer/cash
+    // Note Section (always shown, standardized like claim receipt)
+    doc.setDrawColor(255, 193, 7); // amber
+    doc.setFillColor(255, 251, 235); // amber-50
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 15, 3, 3, 'FD');
+    doc.setTextColor(146, 64, 14); // amber-800
+    doc.setFontSize(9);
+    
+    let noteText = '';
     if (submittedContribution.paymentMethod === 'bank_transfer' || submittedContribution.paymentMethod === 'cash') {
-      doc.setDrawColor(255, 193, 7); // amber
-      doc.setFillColor(255, 251, 235); // amber-50
-      doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 15, 3, 3, 'FD');
-      doc.setTextColor(146, 64, 14); // amber-800
-      doc.setFontSize(9);
-      doc.text('Note: Payment receipt has been uploaded and will be reviewed by the mosque administrator.', margin + 5, yPos + 10, { maxWidth: pageWidth - 2 * margin - 10 });
-      doc.setTextColor(0, 0, 0);
-      yPos += 20;
+      noteText = 'Note: Payment receipt has been uploaded and will be reviewed by the mosque administrator.';
+    } else if (submittedContribution.paymentMethod === 'online') {
+      noteText = 'Note: Your payment has been processed successfully. This receipt serves as confirmation of your contribution.';
+    } else {
+      noteText = 'Note: Your payment has been submitted and will be processed by the mosque administrator.';
     }
+    
+    doc.text(noteText, margin + 5, yPos + 10, { maxWidth: pageWidth - 2 * margin - 10 });
+    doc.setTextColor(0, 0, 0);
+    yPos += 20;
 
     // Footer
     yPos = doc.internal.pageSize.getHeight() - 30;
@@ -825,7 +904,7 @@ function KhairatPayPageContent() {
                       <span className="text-slate-600 dark:text-slate-400">
                         {tKhairat('payPage.successPayerNameLabel')}:
                       </span>
-                      <span className="font-medium">{submittedContribution.payerName}</span>
+                      <span className="font-medium">{submittedContribution.payerName ? maskName(submittedContribution.payerName) : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-600 dark:text-slate-400">
@@ -948,8 +1027,8 @@ function KhairatPayPageContent() {
     );
   }
 
-  // Show IC verification form for all users who haven't verified yet (except admin)
-  if (!isKhairatMember && !isMosqueAdmin && !checkingMembership) {
+  // Show IC verification form for all users who haven't verified yet
+  if (!isKhairatMember && !checkingMembership) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950">
         <KhairatStandardHeader
@@ -1039,7 +1118,7 @@ function KhairatPayPageContent() {
   }
 
   // Show registration required message if logged in but not a member
-  if (user && !isKhairatMember && !isMosqueAdmin) {
+  if (user && !isKhairatMember) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950">
         <KhairatStandardHeader
@@ -1100,16 +1179,6 @@ function KhairatPayPageContent() {
         iconColor="text-orange-600 dark:text-orange-400"
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
-        {/* Admin Alert */}
-        {isMosqueAdmin && (
-          <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>{tKhairat('payPage.viewOnlyTitle')}</strong> {tKhairat('payPage.viewOnlyDescription')}
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Membership Verification Status */}
         {(verifiedICNumber || verifiedMemberId) && isKhairatMember && (
           <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
@@ -1121,7 +1190,9 @@ function KhairatPayPageContent() {
               {verifiedICNumber && (
                 <div className="flex items-center gap-2 ml-6">
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedICNumber}</span>
+                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                      {verifiedICNumber.slice(0, 6) + '******'}
+                    </span>
                   </p>
                   {(verifiedMemberInfo?.status || isKhairatMember) && (
                     <Badge 
@@ -1148,44 +1219,20 @@ function KhairatPayPageContent() {
                 </p>
               )}
               
-              {/* Display Registered Information */}
-              {verifiedMemberInfo && (verifiedMemberInfo.full_name || verifiedMemberInfo.email || verifiedMemberInfo.phone) && (
+              {/* Display Name (Masked) for Confirmation */}
+              {verifiedMemberInfo?.full_name && (
                 <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
-                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {tKhairat('payPage.registeredInformationLabel') || 'Registered Information'}
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    {verifiedMemberInfo.full_name && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.payerNameLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {verifiedMemberInfo.full_name}
-                        </span>
-                      </div>
-                    )}
-                    {verifiedMemberInfo.email && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.emailLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1 break-all">
-                          {verifiedMemberInfo.email}
-                        </span>
-                      </div>
-                    )}
-                    {verifiedMemberInfo.phone && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.mobileNumberLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {verifiedMemberInfo.phone}
-                        </span>
-                      </div>
-                    )}
+                  <div className="flex items-start gap-3">
+                    <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                      {tKhairat('payPage.memberNameLabel') || 'Member Name'}:
+                    </span>
+                    <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
+                      {maskName(verifiedMemberInfo.full_name)}
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {tKhairat('payPage.confirmMemberInfo')}
+                  </p>
                 </div>
               )}
             </div>
@@ -1202,59 +1249,56 @@ function KhairatPayPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Show editable fields only if no registered information available */}
-              {(!verifiedMemberInfo || (!verifiedMemberInfo.full_name && !verifiedMemberInfo.email && !verifiedMemberInfo.phone)) && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="payer_name">
-                      {tKhairat('payPage.payerNameLabel')}
-                    </Label>
-                    <Input
-                      id="payer_name"
-                      value={payerName}
-                      onChange={(e) => setPayerName(e.target.value)}
-                      placeholder={tKhairat('payPage.payerNamePlaceholder')}
-                      disabled={isMosqueAdmin}
-                    />
-                  </div>
+              {/* Always show payment information fields - user can pay for someone else */}
+              <div className="space-y-2">
+                <Label htmlFor="payer_name">
+                  {tKhairat('payPage.payerNameLabel')} <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="payer_name"
+                  value={payerName}
+                  onChange={(e) => setPayerName(e.target.value)}
+                  placeholder={tKhairat('payPage.payerNamePlaceholder')}
+                  required
+                />
+              </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="payer_email">
-                        {tKhairat('payPage.emailLabel')}
-                      </Label>
-                      <Input
-                        id="payer_email"
-                        type="email"
-                        value={payerEmail}
-                        onChange={(e) => setPayerEmail(e.target.value)}
-                        placeholder={tKhairat('payPage.emailPlaceholder')}
-                        disabled={isMosqueAdmin || (user !== null && user !== undefined)}
-                        className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
-                      />
-                      {user && (
-                        <p className="text-xs text-muted-foreground">
-                          {tKhairat('payPage.emailFromAccount')}
-                        </p>
-                      )}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payer_email">
+                    {tKhairat('payPage.emailLabel')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="payer_email"
+                    type="email"
+                    value={payerEmail}
+                    onChange={(e) => setPayerEmail(e.target.value)}
+                    placeholder={tKhairat('payPage.emailPlaceholder')}
+                    disabled={user !== null && user !== undefined}
+                    className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
+                    required
+                  />
+                  {user && (
+                    <p className="text-xs text-muted-foreground">
+                      {tKhairat('payPage.emailFromAccount')}
+                    </p>
+                  )}
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="payer_mobile">
-                        {tKhairat('payPage.mobileNumberLabel')}
-                      </Label>
-                      <Input
-                        id="payer_mobile"
-                        type="tel"
-                        value={payerMobile}
-                        onChange={(e) => setPayerMobile(e.target.value)}
-                        placeholder={tKhairat('payPage.mobileNumberPlaceholder')}
-                        disabled={isMosqueAdmin}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="payer_mobile">
+                    {tKhairat('payPage.mobileNumberLabel')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="payer_mobile"
+                    type="tel"
+                    value={payerMobile}
+                    onChange={(e) => setPayerMobile(e.target.value)}
+                    placeholder={tKhairat('payPage.mobileNumberPlaceholder')}
+                    required
+                  />
+                </div>
+              </div>
 
               {/* Payment Method Selection */}
               <div className="space-y-2">
@@ -1346,7 +1390,7 @@ function KhairatPayPageContent() {
                     <div className="space-y-2">
                       <Label htmlFor="amount">
                         {tKhairat('payPage.amountLabel')}{' '}
-                        {!isMosqueAdmin && <span className="text-red-500">*</span>}
+                        <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="amount"
@@ -1367,10 +1411,7 @@ function KhairatPayPageContent() {
                           }
                         }}
                         placeholder={tKhairat('payPage.amountPlaceholder')}
-                        required={!isMosqueAdmin}
-                        disabled={isMosqueAdmin}
-                        readOnly={isMosqueAdmin}
-                        className={isMosqueAdmin ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
+                        required
                         pattern="[0-9]*\.?[0-9]{0,2}"
                       />
                     </div>
@@ -1487,12 +1528,20 @@ function KhairatPayPageContent() {
               {(paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && (
                 <div className="space-y-2">
                   <Label>Payment Receipt</Label>
-                  <Dialog open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen}>
+                  <Dialog 
+                    open={isReceiptModalOpen} 
+                    onOpenChange={(open) => {
+                      setIsReceiptModalOpen(open);
+                      if (!open) {
+                        // Reset dialog state when closed
+                        setHasReceiptInDialog(false);
+                      }
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={isMosqueAdmin}
                         className="w-full"
                       >
                         {paymentReceipts.length > 0 ? (
@@ -1521,21 +1570,39 @@ function KhairatPayPageContent() {
                         <PaymentReceiptUpload
                           onReceiptsChange={(receipts) => {
                             // Handle both File[] and PaymentReceipt[] types
-                            if (receipts.length > 0 && receipts[0] instanceof File) {
-                              setPaymentReceipts(receipts as File[]);
+                            if (receipts && Array.isArray(receipts) && receipts.length > 0) {
+                              if (receipts[0] instanceof File) {
+                                // New files to upload - update state immediately
+                                setPaymentReceipts(receipts as File[]);
+                                setHasReceiptInDialog(true);
+                              } else {
+                                // Already uploaded receipts (PaymentReceipt[]), convert to empty array
+                                // since we only need files for new uploads
+                                setPaymentReceipts([]);
+                                setHasReceiptInDialog(false);
+                              }
                             } else {
-                              // If receipts are already uploaded (PaymentReceipt[]), convert to empty array
-                              // since we only need files for new uploads
+                              // No receipts - clear the array
                               setPaymentReceipts([]);
+                              setHasReceiptInDialog(false);
                             }
                           }}
                           maxFiles={1}
-                          disabled={isMosqueAdmin}
                         />
                         <p className="text-xs text-muted-foreground mt-3">
                           {tKhairat('payPage.uploadReceiptHelp')}
                         </p>
                       </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          onClick={() => setIsReceiptModalOpen(false)}
+                          disabled={!hasReceiptInDialog && paymentReceipts.length === 0}
+                          className="w-full sm:w-auto"
+                        >
+                          {tKhairat('payPage.confirm') || 'Confirm'}
+                        </Button>
+                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -1551,7 +1618,6 @@ function KhairatPayPageContent() {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={tKhairat('payPage.notesPlaceholder')}
                   rows={3}
-                  disabled={isMosqueAdmin}
                 />
               </div>
             </CardContent>
@@ -1562,7 +1628,6 @@ function KhairatPayPageContent() {
             <Button
               type="submit"
               disabled={
-                isMosqueAdmin ||
                 submitting ||
                 !amount ||
                 !paymentMethod ||
