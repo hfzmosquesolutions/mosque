@@ -166,10 +166,10 @@ export function PaymentReceiptUpload({
     
     // Notify parent component about pending files (outside of setState to avoid React warning)
     if (!contributionId && onReceiptsChange) {
-      // Use setTimeout to defer the callback to avoid updating during render
-      setTimeout(() => {
+      // Use requestAnimationFrame for better timing with React state updates
+      requestAnimationFrame(() => {
         onReceiptsChange(updatedFiles.map(f => f.file));
-      }, 0);
+      });
     }
     
     // Clear the input
@@ -258,11 +258,12 @@ export function PaymentReceiptUpload({
     const updatedFiles = uploadedFiles.filter(f => f.id !== fileId);
     setUploadedFiles(updatedFiles);
     
-    // Notify parent component (outside of setState)
+    // Notify parent component immediately
     if (!contributionId && onReceiptsChange) {
-      setTimeout(() => {
+      // Use requestAnimationFrame for better timing with React state updates
+      requestAnimationFrame(() => {
         onReceiptsChange(updatedFiles.map(f => f.file));
-      }, 0);
+      });
     }
   };
 

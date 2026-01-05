@@ -54,12 +54,12 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
   const baseNavigation = [
     {
       name: t('dashboard'),
-      href: '/dashboard',
+      href: hasAdminAccess ? '/dashboard' : '/my-dashboard',
       icon: Home,
     },
   ];
 
-  // Only show admin features - no user dashboard needed
+  // Admin-only features
   if (hasAdminAccess) {
     baseNavigation.push({
       name: t('members'),

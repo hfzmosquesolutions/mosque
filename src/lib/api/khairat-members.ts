@@ -25,6 +25,12 @@ export interface KhairatMemberUpdateData {
   admin_notes?: string;
   notes?: string;
   joined_date?: string;
+  // User-editable fields
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  application_reason?: string;
 }
 
 /**
@@ -520,7 +526,9 @@ export async function withdrawKhairatMembership(memberId: string) {
 }
 
 /**
- * Update khairat member (admin only)
+ * Update khairat member
+ * - Users can update their own data (full_name, phone, email, address, application_reason)
+ * - Admins can update all fields including status, admin_notes, etc.
  */
 export async function updateKhairatMember(memberId: string, updateData: KhairatMemberUpdateData) {
   const { data: user } = await supabase.auth.getUser();
@@ -528,22 +536,25 @@ export async function updateKhairatMember(memberId: string, updateData: KhairatM
     throw new Error('Authentication required');
   }
 
-  // Check if user is mosque admin or system admin
-  const { data: userProfile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.user.id)
-    .single();
-
+  // Get member record to check ownership
   const { data: member } = await supabase
     .from('khairat_members')
-    .select('mosque_id')
+    .select('mosque_id, user_id')
     .eq('id', memberId)
     .single();
 
   if (!member) {
     throw new Error('Khairat member not found');
   }
+
+  // Check permissions
+  const isOwner = member.user_id === user.user.id;
+  
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.user.id)
+    .single();
 
   const { data: mosqueAdmin } = await supabase
     .from('mosques')
@@ -554,8 +565,22 @@ export async function updateKhairatMember(memberId: string, updateData: KhairatM
   const isAdmin = userProfile?.role === 'admin';
   const isMosqueAdmin = mosqueAdmin?.user_id === user.user.id;
 
-  if (!isAdmin && !isMosqueAdmin) {
-    throw new Error('Forbidden: Only mosque admins or system admins can update members');
+  // Determine what can be updated
+  const isAdminOrMosqueAdmin = isAdmin || isMosqueAdmin;
+  
+  if (!isOwner && !isAdminOrMosqueAdmin) {
+    throw new Error('Forbidden: You can only update your own records or must be an admin');
+  }
+
+  // If user is owner (not admin), restrict what they can update
+  if (isOwner && !isAdminOrMosqueAdmin) {
+    // Users can only update personal data fields, not admin fields
+    const allowedFields = ['full_name', 'phone', 'email', 'address', 'application_reason'];
+    const restrictedFields = Object.keys(updateData).filter(key => !allowedFields.includes(key));
+    
+    if (restrictedFields.length > 0) {
+      throw new Error(`You can only update: ${allowedFields.join(', ')}. Contact admin for other changes.`);
+    }
   }
 
   const { data: updatedMember, error } = await supabase

@@ -25,6 +25,64 @@ import { useAuth } from '@/contexts/AuthContext';
 import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
 import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
 
+// Helper function to mask email for privacy
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email;
+  const [username, domain] = email.split('@');
+  if (username.length <= 1) {
+    return `*@${domain}`;
+  }
+  const firstChar = username[0];
+  const maskedUsername = firstChar + '*'.repeat(Math.min(username.length - 1, 6));
+  return `${maskedUsername}@${domain}`;
+}
+
+// Helper function to mask name for privacy (shows first name + first letter of last part)
+function maskName(name: string): string {
+  if (!name || name.trim().length === 0) return name;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return name;
+  
+  // Show first name fully if it's short, otherwise show first few characters
+  const firstName = parts[0];
+  if (firstName.length <= 4) {
+    // Short first name - show fully
+    if (parts.length === 1) return firstName;
+    // Show first name + first letter of last part + asterisks
+    const lastPart = parts[parts.length - 1];
+    return `${firstName} ${lastPart[0]}***`;
+  } else {
+    // Long first name - show first 4 chars + asterisks
+    if (parts.length === 1) return `${firstName.substring(0, 4)}***`;
+    const lastPart = parts[parts.length - 1];
+    return `${firstName.substring(0, 4)}*** ${lastPart[0]}***`;
+  }
+}
+
+// Helper function to mask phone number for privacy
+function maskPhone(phone: string): string {
+  if (!phone || phone.trim().length === 0) return phone;
+  // Remove all non-digit characters for processing
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  if (digitsOnly.length <= 4) {
+    // Very short number - mask all but first digit
+    return digitsOnly[0] + '*'.repeat(digitsOnly.length - 1);
+  } else if (digitsOnly.length <= 7) {
+    // Medium length - show first 2-3 digits, mask rest
+    const showLength = Math.floor(digitsOnly.length / 3);
+    return digitsOnly.substring(0, showLength) + '*'.repeat(digitsOnly.length - showLength);
+  } else {
+    // Standard phone number - show first 3-4 digits and last 2-3 digits
+    const showStart = Math.min(4, Math.floor(digitsOnly.length / 3));
+    const showEnd = Math.min(3, Math.floor(digitsOnly.length / 4));
+    const start = digitsOnly.substring(0, showStart);
+    const end = digitsOnly.substring(digitsOnly.length - showEnd);
+    const masked = '*'.repeat(Math.max(3, digitsOnly.length - showStart - showEnd));
+    return `${start}${masked}${end}`;
+  }
+}
+
 interface KhairatStatusResponse {
   success: boolean;
   registration: {
@@ -320,7 +378,9 @@ function KhairatStatusPageContent() {
               {verifiedICNumber && (
                 <div className="flex items-center gap-2 ml-6">
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedICNumber}</span>
+                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                      {verifiedICNumber.slice(0, 6) + '******'}
+                    </span>
                   </p>
                   {statusResult.registration.status && (
                     <Badge 
@@ -347,44 +407,39 @@ function KhairatStatusPageContent() {
                 </p>
               )}
               
-              {/* Display Registered Information */}
+              {/* Display Name, Email, and Phone (Masked for Privacy) */}
               {(statusResult.registration.full_name || statusResult.registration.email || statusResult.registration.phone) && (
-                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
-                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {tKhairat('payPage.registeredInformationLabel') || 'Registered Information'}
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    {statusResult.registration.full_name && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.payerNameLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {statusResult.registration.full_name}
-                        </span>
-                      </div>
-                    )}
-                    {statusResult.registration.email && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.emailLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1 break-all">
-                          {statusResult.registration.email}
-                        </span>
-                      </div>
-                    )}
-                    {statusResult.registration.phone && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.mobileNumberLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {statusResult.registration.phone}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6 space-y-2">
+                  {statusResult.registration.full_name && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.payerNameLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
+                        {maskName(statusResult.registration.full_name)}
+                      </span>
+                    </div>
+                  )}
+                  {statusResult.registration.email && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.emailLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 break-all text-sm">
+                        {maskEmail(statusResult.registration.email)}
+                      </span>
+                    </div>
+                  )}
+                  {statusResult.registration.phone && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.mobileNumberLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
+                        {maskPhone(statusResult.registration.phone)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

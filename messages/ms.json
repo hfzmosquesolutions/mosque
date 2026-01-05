@@ -53,7 +53,14 @@
     "system": "Sistem",
     "english": "English",
     "malay": "Bahasa Malaysia",
-    "arabic": "العربية"
+    "arabic": "العربية",
+    "memberId": "ID Ahli",
+    "icNumber": "Nombor IC",
+    "createdAt": "Dicipta Pada",
+    "adminNotes": "Nota Pentadbir",
+    "memberNotFound": "Ahli tidak dijumpai",
+    "memberDetails": "Butiran Ahli",
+    "memberDetailsDescription": "Lihat maklumat terperinci tentang ahli ini"
   },
   "navigation": {
     "home": "Utama",
@@ -1173,7 +1180,11 @@
       "awaitingReview": "Menunggu Semakan",
       "readyForPayment": "Sedia untuk Pembayaran"
     },
-    "mosque": "Masjid"
+    "mosque": "Masjid",
+    "personInCharge": "Orang Bertanggungjawab",
+    "personInChargeName": "Nama Orang Bertanggungjawab",
+    "personInChargePhone": "Telefon Orang Bertanggungjawab",
+    "personInChargeRelationship": "Hubungan"
   },
   "paymentGateway": {
     "title": "Gerbang Pembayaran",
@@ -1642,6 +1653,14 @@
     "khairatClaimDescriptionPlaceholder": "Terangkan situasi anda dan keperluan bantuan kewangan",
     "supportingDocumentsTitle": "Dokumen Sokongan",
     "supportingDocumentsDescription": "Muat naik dokumen seperti bil perubatan, sijil kematian, atau bukti sokongan lain",
+    "personInChargeTitle": "Orang Bertanggungjawab (Pilihan)",
+    "personInChargeDescription": "Jika orang lain memohon bagi pihak ahli, sila isi maklumat hubungan di bawah.",
+    "personInChargeNameLabel": "Nama",
+    "personInChargeNamePlaceholder": "Masukkan nama orang bertanggungjawab",
+    "personInChargeRelationshipLabel": "Hubungan",
+    "personInChargeRelationshipPlaceholder": "cth., anak lelaki, anak perempuan, pasangan, adik-beradik",
+    "personInChargePhoneLabel": "Nombor Telefon",
+    "personInChargePhonePlaceholder": "Masukkan nombor telefon",
     "uploadSupportingDocuments": "Muat Naik Dokumen Sokongan",
     "uploadSupportingDocumentsHelp": "Muat naik imej, PDF, atau dokumen untuk menyokong tuntutan anda",
     "maxFilesInfo": "Maks {maxFiles} fail, 10MB setiap satu. Disokong: JPEG, PNG, PDF, DOC, TXT",
@@ -1655,6 +1674,22 @@
     "supportingDocumentsRequired": "Sila muat naik sekurang-kurangnya satu dokumen sokongan",
     "khairatClaimSubmitted": "Tuntutan khairat berjaya dihantar!",
     "errorSubmittingKhairatClaim": "Gagal menghantar tuntutan khairat",
+    "claimSuccess": {
+      "title": "Tuntutan Berjaya Dihantar",
+      "subtitle": "Tuntutan anda telah dihantar kepada {mosqueName}",
+      "thankYou": "Terima kasih atas penghantaran anda!",
+      "submittedMessage": "Tuntutan anda kepada {mosqueName} telah berjaya dihantar dan kini menunggu semakan oleh pentadbir masjid.",
+      "claimDetails": "Butiran Tuntutan",
+      "claimId": "ID Tuntutan",
+      "titleLabel": "Tajuk",
+      "requestedAmount": "Jumlah Diminta",
+      "status": "Status",
+      "description": "Penerangan",
+      "downloadReceipt": "Muat Turun Resit",
+      "makeNewClaim": "Buat Tuntutan Baru",
+      "backToMosque": "Kembali ke Masjid",
+      "viewMyClaims": "Lihat Tuntutan Saya"
+    },
     "visitMosque": "Lawati Masjid",
     "manageApplication": "Urus Permohonan",
     "viewAndManageApplication": "Lihat dan urus permohonan khairat anda",
@@ -1726,6 +1761,7 @@
       "paymentSummaryTitle": "Ringkasan Pembayaran",
       "totalAmountLabel": "Jumlah Keseluruhan",
       "memberIdLabel": "ID Ahli",
+      "memberNameLabel": "Nama Ahli",
       "registeredInformationLabel": "Maklumat Berdaftar",
       "registeredInformationNote": "Maklumat ini adalah dari pendaftaran anda dan tidak boleh diedit di sini.",
       "submitPayment": "Hantar Pembayaran",
@@ -1767,10 +1803,14 @@
       "filesCount": "{current} / {max} fail",
       "uploadedCount": "{count} dimuat naik",
       "filesToUploadTitle": "Fail untuk Dimuat Naik",
-      "uploadedReceiptsTitle": "Resit Dimuat Naik"
+      "uploadedReceiptsTitle": "Resit Dimuat Naik",
+      "confirm": "Sahkan",
+      "confirmMemberInfo": "Sila sahkan maklumat di atas dan masukkan butiran pembayaran di bawah"
     },
     "paymentsTable": {
       "name": "Nama",
+      "payerName": "Nama Pembayar",
+      "member": "Ahli",
       "amount": "Jumlah",
       "status": "Status",
       "paymentMethod": "Kaedah Pembayaran",
@@ -1800,7 +1840,16 @@
       "paymentStatusUpdated": "Status pembayaran berjaya dikemas kini",
       "failedToUpdateStatus": "Gagal mengemas kini status",
       "failedToUpdatePaymentStatus": "Gagal mengemas kini status pembayaran",
-      "failedToLoadPayments": "Gagal memuatkan pembayaran"
+      "failedToLoadPayments": "Gagal memuatkan pembayaran",
+      "memberDetails": "Butiran Ahli",
+      "memberDetailsDescription": "Lihat maklumat terperinci tentang ahli ini",
+      "failedToLoadMemberDetails": "Gagal memuatkan butiran ahli",
+      "memberNotFound": "Ahli tidak dijumpai",
+      "address": "Alamat",
+      "joinedDate": "Tarikh Sertai",
+      "createdAt": "Dicipta Pada",
+      "adminNotes": "Nota Admin",
+      "memberIdLabel": "ID Ahli"
     },
     "userPaymentsTable": {
       "mosque": "Masjid",
@@ -2101,6 +2150,7 @@
       "dependentsDescriptionGuestHas": "{count} tanggungan ditambah ke pendaftaran anda",
       "dependentsDescriptionEmpty": "Tambah tanggungan untuk didaftarkan dalam khairat",
       "addDependentButton": "Tambah Tanggungan",
+      "addAnotherDependent": "Tambah Tanggungan Lagi",
       "addDependentTitle": "Tambah Tanggungan Baharu",
       "addDependentDescription": "Isi butiran di bawah untuk menambah tanggungan",
       "saveToProfile": "Simpan tanggungan ini ke profil saya untuk kegunaan akan datang",
@@ -2117,7 +2167,41 @@
       "submitApplication": "Hantar Permohonan",
       "dependentValidation": "Sila isi ruangan wajib (Nama dan Hubungan)",
       "emailFromAccount": "E-mel dari akaun anda",
-      "emailGuestHint": "Berikan e-mel anda untuk menerima makluman tentang permohonan"
+      "emailGuestHint": "Berikan e-mel anda untuk menerima makluman tentang permohonan",
+      "checkIC": {
+        "buttonTitle": "Semak sama ada IC sudah didaftar",
+        "helpText": "Klik ikon carian untuk menyemak sama ada nombor IC ini sudah didaftar",
+        "icRequired": "Sila masukkan nombor IC terlebih dahulu",
+        "invalidIC": "Format nombor IC tidak sah",
+        "checkFailed": "Gagal menyemak pendaftaran IC. Sila cuba lagi.",
+        "alreadyRegistered": "Nombor IC ini sudah didaftar dengan status: {status}",
+        "alreadyRegisteredWarning": "Nombor IC ini sudah didaftar. Anda mungkin perlu menyemak status permohonan sedia ada.",
+        "notRegistered": "Nombor IC ini belum didaftar. Anda boleh meneruskan dengan pendaftaran.",
+        "notRegisteredSuccess": "Nombor IC tersedia untuk pendaftaran.",
+        "statusLabel": "Status"
+      },
+      "success": {
+        "title": "Permohonan Berjaya Dihantar!",
+        "subtitle": "Pendaftaran Khairat anda telah diterima",
+        "thankYou": "Terima kasih kerana mendaftar!",
+        "submittedMessage": "Permohonan Khairat anda untuk {mosqueName} telah berjaya dihantar dan kini menunggu semakan oleh pentadbir masjid.",
+        "applicationDetails": "Butiran Permohonan",
+        "name": "Nama",
+        "ic": "IC",
+        "phone": "Telefon",
+        "email": "E-mel",
+        "mosque": "Masjid",
+        "whatHappensNext": "Apa yang seterusnya?",
+        "nextStep1": "Pentadbir masjid akan menyemak permohonan anda",
+        "nextStep2": "Anda akan dimaklumkan sebaik sahaja keputusan dibuat",
+        "nextStep3": "Anda boleh menyemak status permohonan anda menggunakan nombor IC di halaman profil masjid",
+        "nextStep4Guest": "Untuk mengedit maklumat anda kemudian, sila",
+        "createAccount": "buat akaun",
+        "nextStep4GuestOr": "atau hubungi pentadbir masjid",
+        "nextStep4User": "Anda boleh mengedit maklumat anda pada bila-bila masa dari papan pemuka anda",
+        "backToMosque": "Kembali ke Masjid",
+        "goToDashboard": "Pergi ke Papan Pemuka"
+      }
     }
   },
   "kariahManagement": {
@@ -2527,7 +2611,6 @@
     "viewPublicPage": "Lihat Halaman",
     "publicPage": "Pratonton",
     "kariah": "Ahli Kariah",
-    "organizationPeople": "Kakitangan Organisasi",
     "claims": {
       "title": "Tuntutan"
     },
@@ -2792,6 +2875,8 @@
       "icNumber": "Nombor IC",
       "icNumberRequired": "Nombor IC *",
       "icNumberOptional": "Nombor IC (Pilihan)",
+      "membershipNumber": "ID Ahli",
+      "membershipNumberOptional": "ID Ahli (Pilihan)",
       "phone": "Telefon",
       "phoneOptional": "Telefon (Pilihan)",
       "email": "E-mel",
@@ -2805,6 +2890,8 @@
       "notesOptional": "Nota (Pilihan)",
       "enterFullName": "Masukkan nama penuh",
       "enterIcNumber": "Masukkan nombor IC",
+      "invalidIcNumber": "Nombor IC tidak sah. Sila masukkan nombor IC Malaysia 12 digit yang sah.",
+      "enterMembershipNumber": "Masukkan ID ahli",
       "enterPhoneNumber": "Masukkan nombor telefon",
       "enterEmailAddress": "Masukkan alamat e-mel",
       "enterAddress": "Masukkan alamat",

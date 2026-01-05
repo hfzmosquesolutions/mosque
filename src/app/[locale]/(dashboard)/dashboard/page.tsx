@@ -37,6 +37,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTranslations } from 'next-intl';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
+import { useRouter } from 'next/navigation';
 import { getMosqueKhairatContributions, getMosqueClaims, getMosque, getMosqueClaimCounts } from '@/lib/api';
 import { getMembershipStatistics } from '@/lib/api/kariah-memberships';
 import { getKhairatStatistics } from '@/lib/api/khairat-members';
@@ -303,11 +304,10 @@ function DashboardContent() {
   };
 
 
-  // ProtectedRoute already handles access control
-  // If we reach here, user is authenticated and has admin access
   // Wait for role loading to complete before rendering
   const isLoading = roleLoading || onboardingLoading || !onboardingCompleted;
 
+  // Admin dashboard only (non-admins are redirected to /my-dashboard)
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -490,8 +490,25 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+  const router = useRouter();
+
+  // Redirect regular users to their own dashboard
+  // Wait for role loading to complete before redirecting to prevent loops
+  useEffect(() => {
+    if (user && !roleLoading && !isAdmin) {
+      router.push('/my-dashboard');
+    }
+  }, [user, isAdmin, roleLoading, router]);
+
+  // Don't render anything while checking admin status or if redirecting
+  if (roleLoading || (user && !isAdmin)) {
+    return null;
+  }
+
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requireAdmin={true}>
       <DashboardContent />
     </ProtectedRoute>
   );

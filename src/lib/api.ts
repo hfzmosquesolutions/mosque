@@ -739,7 +739,7 @@ export async function getMosqueKhairatContributions(
   mosqueId: string,
   limit = 20,
   offset = 0
-): Promise<PaginatedResponse<KhairatContribution & { contributor?: UserProfile }>> {
+): Promise<PaginatedResponse<KhairatContribution & { contributor?: UserProfile; member?: { id: string; membership_number?: string | null; full_name?: string } }>> {
   try {
     const { data, error, count } = await supabase
       .from('khairat_contributions')
@@ -749,6 +749,11 @@ export async function getMosqueKhairatContributions(
           id,
           full_name,
           phone
+        ),
+        member:khairat_members!khairat_member_id(
+          id,
+          membership_number,
+          full_name
         )
       `, { count: 'exact' })
       .eq('mosque_id', mosqueId)
@@ -1234,9 +1239,7 @@ export async function getClaims(
     if (filters?.mosque_id) {
       params.append('mosqueId', filters.mosque_id);
     }
-    if (filters?.claimant_id) {
-      params.append('claimantId', filters.claimant_id);
-    }
+    // Removed claimant_id filter - we use khairat_member_id instead
     if (filters?.status) {
       params.append('status', filters.status);
     }
@@ -1365,6 +1368,9 @@ export async function createClaim(
         reason: claimData.title,
         description: claimData.description,
         priority: claimData.priority,
+        personInChargeName: claimData.person_in_charge_name,
+        personInChargePhone: claimData.person_in_charge_phone,
+        personInChargeRelationship: claimData.person_in_charge_relationship,
       }),
     });
 
@@ -1475,15 +1481,30 @@ export async function getUserClaims(
   offset = 0
 ): Promise<PaginatedResponse<KhairatClaimWithDetails>> {
   try {
-    // Build query parameters
-    const params = new URLSearchParams();
-    params.append('claimantId', userId);
+    // Since we removed claimant_id filtering, we need to filter by khairat_member_id instead
+    // First, get the user's khairat memberships
+    const { getKhairatMembers } = await import('./api/khairat-members');
+    const userMemberships = await getKhairatMembers({ user_id: userId });
     
-    // Calculate page from offset
-    const page = Math.floor(offset / limit) + 1;
-    params.append('page', page.toString());
-    params.append('limit', limit.toString());
-
+    if (!userMemberships || userMemberships.length === 0) {
+      // User has no khairat memberships, return empty
+      return { 
+        data: [], 
+        count: 0, 
+        page: 1, 
+        limit, 
+        total_pages: 0, 
+        has_next: false, 
+        has_prev: false 
+      };
+    }
+    
+    // Get all claims (no filtering by claimant_id anymore)
+    // We'll filter client-side by khairat_member_id
+    const params = new URLSearchParams();
+    params.append('page', '1');
+    params.append('limit', '1000'); // Fetch all to filter client-side
+    
     const response = await fetch(`/api/khairat-claims?${params.toString()}`);
     const result = await response.json();
 
@@ -1491,7 +1512,7 @@ export async function getUserClaims(
       return { 
         data: [], 
         count: 0, 
-        page: Math.floor(offset / limit) + 1, 
+        page: 1, 
         limit, 
         total_pages: 0, 
         has_next: false, 
@@ -1499,23 +1520,34 @@ export async function getUserClaims(
       };
     }
 
-    const totalPages = result.pagination?.totalPages || 0;
-    const currentPage = result.pagination?.page || 1;
+    // Filter claims by user's khairat_member_ids
+    const memberIds = new Set(userMemberships.map(m => m.id));
+    const userClaims = (result.data || []).filter((claim: KhairatClaimWithDetails) => 
+      claim.khairat_member_id && memberIds.has(claim.khairat_member_id)
+    );
+    
+    // Apply pagination to filtered results
+    const page = Math.floor(offset / limit) + 1;
+    const from = offset;
+    const to = from + limit;
+    const paginatedClaims = userClaims.slice(from, to);
+    const totalPages = Math.ceil(userClaims.length / limit);
 
     return {
-      data: result.data || [],
-      count: result.pagination?.total || 0,
-      page: currentPage,
+      data: paginatedClaims,
+      count: userClaims.length,
+      page,
       limit,
       total_pages: totalPages,
-      has_next: result.pagination?.hasNext || false,
-      has_prev: result.pagination?.hasPrev || false
+      has_next: page < totalPages,
+      has_prev: page > 1
     };
-  } catch {
+  } catch (error) {
+    console.error('Error fetching user claims:', error);
     return { 
       data: [], 
       count: 0, 
-      page: Math.floor(offset / limit) + 1, 
+      page: 1, 
       limit, 
       total_pages: 0, 
       has_next: false, 

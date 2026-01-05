@@ -12,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { 
   CheckCircle, 
-  Clock, 
   Heart, 
   X, 
   Users, 
@@ -22,12 +21,15 @@ import {
   CheckCircle2,
   Plus,
   UserPlus,
-  Building
+  Building,
+  Search
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserProfile, getUserDependents, getMosque, checkOnboardingStatus, createUserDependent, isUserMosqueAdmin } from '@/lib/api';
-import { submitKhairatApplication, getKhairatMembers } from '@/lib/api/khairat-members';
+import { useAdminAccess } from '@/hooks/useUserRole';
+import { getDashboardUrlSync } from '@/lib/utils/dashboard';
+import { getUserProfile, getUserDependents, getMosque, checkOnboardingStatus, createUserDependent } from '@/lib/api';
+import { submitKhairatApplication } from '@/lib/api/khairat-members';
 import { bulkCreateKhairatMemberDependents } from '@/lib/api/khairat-member-dependents';
 import { UserProfile, UserDependent, Mosque, CreateKhairatMemberDependent } from '@/types/database';
 import { toast } from 'sonner';
@@ -55,7 +57,9 @@ function KhairatRegisterPageContent() {
   // Register translations live under khairat.register in messages/*.json
   const tKhairat = useTranslations('khairat');
   const tRegister = useTranslations('khairat.register');
+  const tKhairatManagement = useTranslations('khairatManagement');
   const { user } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -64,27 +68,30 @@ function KhairatRegisterPageContent() {
   const [userDependents, setUserDependents] = useState<UserDependent[]>([]);
   const [selectedDependentIds, setSelectedDependentIds] = useState<Set<string>>(new Set());
   const [tempDependents, setTempDependents] = useState<Array<Omit<UserDependent, 'id' | 'user_id' | 'created_at' | 'updated_at'>>>([]);
-  const [currentStatus, setCurrentStatus] = useState<'approved' | 'active' | 'pending' | 'withdrawn' | 'rejected' | 'inactive' | null>(null);
-  const [adminNotes, setAdminNotes] = useState<string | null>(null);
-  const [isMosqueAdmin, setIsMosqueAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [showAddDependentForm, setShowAddDependentForm] = useState(false);
   const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false);
   const [submittedMemberId, setSubmittedMemberId] = useState<string | null>(null);
   const [savingDependent, setSavingDependent] = useState(false);
-  const [newDependent, setNewDependent] = useState({
-    full_name: '',
-    relationship: '',
-    ic_passport_number: '',
-    date_of_birth: '',
-    gender: 'male',
-    phone: '',
-    email: '',
-    address: '',
-    emergency_contact: false,
-    notes: '',
-  });
+  const [newDependents, setNewDependents] = useState<Array<{
+    id: string;
+    full_name: string;
+    relationship: string;
+    ic_passport_number: string;
+    date_of_birth: string;
+    gender: string;
+    phone: string;
+    email: string;
+    address: string;
+    emergency_contact: boolean;
+    notes: string;
+  }>>([]);
   const [saveToProfile, setSaveToProfile] = useState(true);
+  const [checkingIC, setCheckingIC] = useState(false);
+  const [icCheckResult, setIcCheckResult] = useState<{
+    found: boolean;
+    status?: string;
+    message?: string;
+  } | null>(null);
 
   // Form state for application
   const [formData, setFormData] = useState({
@@ -113,20 +120,8 @@ function KhairatRegisterPageContent() {
           setMosque(mosqueRes.data);
         }
 
-        // Check if user is mosque admin (only if logged in)
-        let isAdmin = false;
+        // Pre-populate data if user is logged in
         if (user?.id) {
-          try {
-            const adminCheck = await isUserMosqueAdmin(user.id, mosqueId);
-            isAdmin = adminCheck;
-            setIsMosqueAdmin(adminCheck);
-          } catch (error) {
-            console.error('Error checking admin status:', error);
-          }
-        }
-
-        // Only pre-populate data if user is logged in and NOT admin
-        if (user?.id && !isAdmin) {
           // Fetch user profile
           const profileRes = await getUserProfile(user.id);
           if (profileRes.success && profileRes.data) {
@@ -150,46 +145,134 @@ function KhairatRegisterPageContent() {
           }
         }
 
-        // Check existing application status (only if logged in)
-        if (user?.id) {
-          try {
-            const existingMembers = await getKhairatMembers({
-              mosque_id: mosqueId,
-              user_id: user.id,
-            });
-            
-            if (existingMembers && existingMembers.length > 0) {
-              const latestMember = existingMembers[0];
-              setCurrentStatus(latestMember.status as any);
-              if (latestMember.admin_notes) {
-                setAdminNotes(latestMember.admin_notes);
-              }
-            }
-          } catch (error) {
-            console.error('Error checking existing application:', error);
-          }
-        }
-
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load registration form');
       } finally {
         setLoading(false);
-        setCheckingAdmin(false);
       }
     };
 
     fetchData();
   }, [user?.id, mosqueId, locale]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Helper function to get translated status text
+  const getStatusText = (status: string): string => {
+    const normalized = status.toLowerCase();
     
-    // Prevent submission if user is mosque admin
-    if (isMosqueAdmin) {
-      toast.error('Mosque administrators cannot submit applications. This page is for viewing purposes only.');
+    switch (normalized) {
+      case 'active':
+        return tKhairatManagement('active') || 'Active';
+      case 'approved':
+        return tKhairatManagement('approved') || 'Approved';
+      case 'pending':
+        return tKhairatManagement('pending') || 'Pending';
+      case 'under_review':
+        return tKhairatManagement('under_review') || 'Under Review';
+      case 'rejected':
+        return tKhairatManagement('rejected') || 'Rejected';
+      case 'suspended':
+        return tKhairatManagement('suspended') || 'Suspended';
+      case 'inactive':
+        return tKhairatManagement('inactive') || 'Inactive';
+      case 'withdrawn':
+        return tKhairatManagement('withdrawn') || 'Withdrawn';
+      default:
+        return status;
+    }
+  };
+
+  // Helper function to get badge styling based on status
+  const getStatusBadgeClassName = (status: string): string => {
+    const normalized = status.toLowerCase();
+    
+    switch (normalized) {
+      case 'active':
+      case 'approved':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+      case 'pending':
+      case 'under_review':
+        return 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
+      case 'rejected':
+      case 'suspended':
+        return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
+      case 'inactive':
+      case 'withdrawn':
+        return 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800';
+      default:
+        return 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-800';
+    }
+  };
+
+  const handleCheckIC = async () => {
+    if (!formData.ic_passport_number || !formData.ic_passport_number.trim()) {
+      toast.error(tRegister('checkIC.icRequired') || 'Please enter your IC number');
       return;
     }
+
+    if (!isValidMalaysiaIc(formData.ic_passport_number)) {
+      toast.error(tRegister('checkIC.invalidIC') || 'Invalid IC number format');
+      return;
+    }
+
+    setCheckingIC(true);
+    setIcCheckResult(null);
+    
+    try {
+      const normalizedIc = normalizeMalaysiaIc(formData.ic_passport_number);
+      const response = await fetch('/api/khairat-members/check-by-ic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mosqueId,
+          ic: normalizedIc,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to check IC registration');
+      }
+
+      const members = data.members || [];
+      
+      if (members.length > 0) {
+        const latestMember = members[0];
+        const translatedStatus = getStatusText(latestMember.status);
+        setIcCheckResult({
+          found: true,
+          status: latestMember.status,
+          message: tRegister('checkIC.alreadyRegistered', { status: translatedStatus }) || 
+                   `This IC number is already registered with status: ${translatedStatus}`,
+        });
+        toast.warning(tRegister('checkIC.alreadyRegisteredWarning') || 
+                     'This IC number is already registered. You may need to check your existing application status.');
+      } else {
+        setIcCheckResult({
+          found: false,
+          message: tRegister('checkIC.notRegistered') || 
+                   'This IC number is not registered. You can proceed with registration.',
+        });
+        toast.success(tRegister('checkIC.notRegisteredSuccess') || 
+                     'IC number is available for registration.');
+      }
+    } catch (error: any) {
+      console.error('Error checking IC:', error);
+      toast.error(error?.message || tRegister('checkIC.checkFailed') || 'Failed to check IC registration');
+      setIcCheckResult({
+        found: false,
+        message: tRegister('checkIC.checkFailed') || 'Failed to check registration status',
+      });
+    } finally {
+      setCheckingIC(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     if (!formData.full_name || !formData.ic_passport_number || !formData.phone || !formData.email || !formData.address) {
       toast.error('Please fill in all required fields');
@@ -217,9 +300,26 @@ function KhairatRegisterPageContent() {
       const memberId = result.member?.id || (result as any).memberId;
       let dependentsToAdd: Array<Omit<CreateKhairatMemberDependent, 'khairat_member_id'>> = [];
 
+      // Include all dependents from the form array
+      const formDependents = newDependents
+        .filter(dep => dep.full_name && dep.relationship)
+        .map(dep => ({
+          full_name: dep.full_name,
+          relationship: dep.relationship,
+          ic_passport_number: dep.ic_passport_number || undefined,
+          date_of_birth: dep.date_of_birth || undefined,
+          gender: dep.gender || undefined,
+          phone: dep.phone || undefined,
+          email: dep.email || undefined,
+          address: dep.address || undefined,
+          emergency_contact: dep.emergency_contact || false,
+          notes: dep.notes || undefined,
+        }));
+      dependentsToAdd = [...dependentsToAdd, ...formDependents];
+
       if (user && selectedDependentIds.size > 0 && memberId) {
         // For logged in users, get selected dependents from userDependents
-        dependentsToAdd = userDependents
+        const selectedDeps = userDependents
           .filter(dep => selectedDependentIds.has(dep.id))
           .map(dep => ({
             full_name: dep.full_name,
@@ -233,9 +333,10 @@ function KhairatRegisterPageContent() {
             emergency_contact: dep.emergency_contact || false,
             notes: undefined,
           }));
+        dependentsToAdd = [...dependentsToAdd, ...selectedDeps];
       } else if (!user && tempDependents.length > 0 && memberId) {
         // For non-logged in users, use temporary dependents
-        dependentsToAdd = tempDependents.map(dep => ({
+        const tempDeps = tempDependents.map(dep => ({
           full_name: dep.full_name,
           relationship: dep.relationship,
           ic_passport_number: undefined,
@@ -247,6 +348,7 @@ function KhairatRegisterPageContent() {
           emergency_contact: dep.emergency_contact || false,
           notes: undefined,
         }));
+        dependentsToAdd = [...dependentsToAdd, ...tempDeps];
       }
 
       if (dependentsToAdd.length > 0 && memberId) {
@@ -302,8 +404,8 @@ function KhairatRegisterPageContent() {
           mosque={mosque}
           locale={locale}
           mosqueId={mosqueId}
-          title="Application Submitted Successfully!"
-          subtitle="Your Khairat registration has been received"
+          title={tRegister('success.title')}
+          subtitle={tRegister('success.subtitle')}
           icon={CheckCircle2}
           iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
           iconColor="text-emerald-600 dark:text-emerald-400"
@@ -314,40 +416,40 @@ function KhairatRegisterPageContent() {
               <Alert className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <AlertDescription className="text-emerald-800 dark:text-emerald-200">
-                  <strong>Thank you for your registration!</strong>
+                  <strong>{tRegister('success.thankYou')}</strong>
                   <p className="mt-2">
-                    Your Khairat application for <strong>{mosque?.name}</strong> has been submitted successfully and is now pending review by the mosque administrator.
+                    {tRegister('success.submittedMessage', { mosqueName: mosque?.name || '' })}
                   </p>
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-3">
                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <h4 className="font-semibold mb-2">Application Details</h4>
+                  <h4 className="font-semibold mb-2">{tRegister('success.applicationDetails')}</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Name:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{tRegister('success.name')}:</span>
                       <span className="font-medium">{formData.full_name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">IC:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{tRegister('success.ic')}:</span>
                       <span className="font-medium">{formData.ic_passport_number}</span>
                     </div>
                     {formData.phone && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">Phone:</span>
+                        <span className="text-slate-600 dark:text-slate-400">{tRegister('success.phone')}:</span>
                         <span className="font-medium">{formData.phone}</span>
                       </div>
                     )}
                     {formData.email && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">Email:</span>
+                        <span className="text-slate-600 dark:text-slate-400">{tRegister('success.email')}:</span>
                         <span className="font-medium">{formData.email}</span>
                       </div>
                     )}
                     {mosque?.name && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">Mosque:</span>
+                        <span className="text-slate-600 dark:text-slate-400">{tRegister('success.mosque')}:</span>
                         <span className="font-medium">{mosque.name}</span>
                       </div>
                     )}
@@ -357,12 +459,24 @@ function KhairatRegisterPageContent() {
 
                 <div className="pt-4 space-y-2">
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    <strong>What happens next?</strong>
+                    <strong>{tRegister('success.whatHappensNext')}</strong>
                   </p>
                   <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-                    <li>The mosque administrator will review your application</li>
-                    <li>You will be notified once a decision is made</li>
-                    <li>You can check your application status using your IC number on the mosque profile page</li>
+                    <li>{tRegister('success.nextStep1')}</li>
+                    <li>{tRegister('success.nextStep2')}</li>
+                    <li>{tRegister('success.nextStep3')}</li>
+                    {!user && (
+                      <li>
+                        {tRegister('success.nextStep4Guest')}{' '}
+                        <Link href={`/${locale}/signup`} className="text-emerald-600 hover:underline">
+                          {tRegister('success.createAccount')}
+                        </Link>
+                        {' '}{tRegister('success.nextStep4GuestOr')}
+                      </li>
+                    )}
+                    {user && (
+                      <li>{tRegister('success.nextStep4User')}</li>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -370,66 +484,15 @@ function KhairatRegisterPageContent() {
               <div className="pt-4 flex gap-4">
                 <Link href={`/${locale}/mosques/${mosqueId}`} className="flex-1">
                   <Button variant="outline" className="w-full">
-                    Back to Mosque
+                    {tRegister('success.backToMosque')}
                   </Button>
                 </Link>
                 {user && (
-                  <Link href={`/${locale}/dashboard`} className="flex-1">
+                  <Link href={`/${locale}${getDashboardUrlSync(hasAdminAccess)}`} className="flex-1">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      Go to Dashboard
+                      {tRegister('success.goToDashboard')}
                     </Button>
                   </Link>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // If user already has an application (and is logged in), show status
-  if (user && currentStatus && currentStatus !== null) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-950">
-        <KhairatStandardHeader
-          mosque={mosque}
-          locale={locale}
-          mosqueId={mosqueId}
-          title="Khairat Registration Status"
-          subtitle={`Your application status for ${mosque?.name || 'the mosque'}`}
-          icon={UserPlus}
-          iconBgColor="bg-blue-50 dark:bg-blue-950/20"
-          iconColor="text-blue-600 dark:text-blue-400"
-        />
-        <div className="max-w-3xl mx-auto px-4 pb-12">
-          <Card>
-            <CardContent>
-              <div className="space-y-4">
-                {currentStatus === 'active' && (
-                  <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <AlertDescription className="text-green-800 dark:text-green-200">
-                      <strong>Active Member</strong> - You are an active member of this mosque's Khairat program.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {currentStatus === 'pending' && (
-                  <Alert className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                    <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                      <strong>Application Pending</strong> - Your application is under review. You will be notified once a decision is made.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {currentStatus === 'rejected' && adminNotes && (
-                  <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                    <AlertDescription className="text-red-800 dark:text-red-200">
-                      <strong>Application Rejected</strong>
-                      <p className="mt-2">{adminNotes}</p>
-                    </AlertDescription>
-                  </Alert>
                 )}
               </div>
             </CardContent>
@@ -452,17 +515,6 @@ function KhairatRegisterPageContent() {
         iconColor="text-blue-600 dark:text-blue-400"
       />
       <div className="max-w-3xl mx-auto px-4 pb-12">
-
-        {/* Admin Alert */}
-        {isMosqueAdmin && (
-          <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>{tRegister('viewOnlyModeTitle')}</strong> {tRegister('viewOnlyModeDescription')}
-            </AlertDescription>
-          </Alert>
-        )}
-
 
         {/* Registration Info */}
         {mosqueId && (
@@ -492,7 +544,6 @@ function KhairatRegisterPageContent() {
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   placeholder={tRegister('fullNamePlaceholder')}
                   required
-                  disabled={isMosqueAdmin}
                 />
               </div>
 
@@ -501,18 +552,79 @@ function KhairatRegisterPageContent() {
                   {tRegister('icNumber')}{' '}
                   <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="ic_passport_number"
-                  value={formData.ic_passport_number}
-                  onChange={(e) => {
-                    const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
-                    setFormData({ ...formData, ic_passport_number: normalized });
-                  }}
-                  placeholder={tRegister('icNumberPlaceholder')}
-                  required
-                  disabled={isMosqueAdmin}
-                  maxLength={12}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="ic_passport_number"
+                    value={formData.ic_passport_number}
+                    onChange={(e) => {
+                      const normalized = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                      setFormData({ ...formData, ic_passport_number: normalized });
+                      // Clear check result when IC changes
+                      setIcCheckResult(null);
+                    }}
+                    placeholder={tRegister('icNumberPlaceholder')}
+                    required
+                    maxLength={12}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && formData.ic_passport_number.trim()) {
+                        e.preventDefault();
+                        handleCheckIC();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleCheckIC}
+                    disabled={checkingIC || !formData.ic_passport_number.trim() || !isValidMalaysiaIc(formData.ic_passport_number)}
+                    variant="outline"
+                    size="default"
+                    className="shrink-0"
+                    title={tRegister('checkIC.buttonTitle') || 'Check if IC is already registered'}
+                  >
+                    {checkingIC ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {icCheckResult && (
+                  <Alert 
+                    className={icCheckResult.found 
+                      ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800" 
+                      : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                    }
+                  >
+                    {icCheckResult.found ? (
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    )}
+                    <AlertDescription 
+                      className={icCheckResult.found 
+                        ? "text-amber-800 dark:text-amber-200" 
+                        : "text-emerald-800 dark:text-emerald-200"
+                      }
+                    >
+                      {icCheckResult.message}
+                      {icCheckResult.found && icCheckResult.status && (
+                        <div className="mt-2 text-sm">
+                          <strong>{tRegister('checkIC.statusLabel') || 'Status'}:</strong>{' '}
+                          <Badge 
+                            variant="outline" 
+                            className={`ml-1 ${getStatusBadgeClassName(icCheckResult.status)}`}
+                          >
+                            {getStatusText(icCheckResult.status)}
+                          </Badge>
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {tRegister('checkIC.helpText') || 'Click the search icon to check if this IC number is already registered'}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -528,7 +640,6 @@ function KhairatRegisterPageContent() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder={tRegister('phoneNumberPlaceholder')}
                     required
-                    disabled={isMosqueAdmin}
                   />
                 </div>
 
@@ -548,7 +659,7 @@ function KhairatRegisterPageContent() {
                         : tRegister('emailPlaceholder')
                     }
                     required
-                    disabled={isMosqueAdmin || (user !== null && user !== undefined)}
+                    disabled={user !== null && user !== undefined}
                     className={user ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
                   />
                   {user && (
@@ -576,7 +687,6 @@ function KhairatRegisterPageContent() {
                   placeholder={tRegister('addressPlaceholder')}
                   rows={3}
                   required
-                  disabled={isMosqueAdmin}
                 />
               </div>
 
@@ -587,7 +697,6 @@ function KhairatRegisterPageContent() {
                 <Textarea
                   id="application_reason"
                   value={formData.application_reason}
-                  disabled={isMosqueAdmin}
                   onChange={(e) => setFormData({ ...formData, application_reason: e.target.value })}
                   placeholder={tRegister('applicationReasonPlaceholder')}
                   rows={4}
@@ -613,211 +722,17 @@ function KhairatRegisterPageContent() {
                         : tRegister('dependentsDescriptionEmpty')}
                     </CardDescription>
                   </div>
-                  {((user && userDependents.length > 0) || (!user && tempDependents.length > 0)) && !isMosqueAdmin && (
+                  {!showAddDependentForm && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowAddDependentForm(true)}
-                      disabled={isMosqueAdmin}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {tRegister('addDependentButton')}
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Existing Dependents List (for logged in users) */}
-                {user && userDependents.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {userDependents.map((dependent) => (
-                    <Card key={dependent.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={selectedDependentIds.has(dependent.id)}
-                      onCheckedChange={(checked) => {
-                        if (isMosqueAdmin) return;
-                        const newSet = new Set(selectedDependentIds);
-                        if (checked) {
-                          newSet.add(dependent.id);
-                        } else {
-                          newSet.delete(dependent.id);
-                        }
-                        setSelectedDependentIds(newSet);
-                      }}
-                      className="mt-1"
-                      disabled={isMosqueAdmin}
-                    />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{dependent.full_name}</p>
-                            <Badge variant="outline" className="text-xs">
-                              {dependent.relationship}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                            {dependent.date_of_birth && (
-                              <p>
-                                {tRegister('dateOfBirth')}: {new Date(dependent.date_of_birth).toLocaleDateString()}
-                              </p>
-                            )}
-                            {dependent.phone && (
-                              <p>
-                                {tRegister('phoneNumber')}: {dependent.phone}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-                {/* Add Dependent Form */}
-                {!isMosqueAdmin && (showAddDependentForm || (user ? userDependents.length === 0 : tempDependents.length === 0)) && (
-                <Card className="border-2 border-dashed border-slate-300 dark:border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      {tRegister('addDependentTitle')}
-                    </CardTitle>
-                    <CardDescription>
-                      {tRegister('addDependentDescription')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_full_name">
-                          {tRegister('fullName')}{' '}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="dep_full_name"
-                          value={newDependent.full_name}
-                          onChange={(e) => setNewDependent({ ...newDependent, full_name: e.target.value })}
-                          placeholder={tRegister('fullNamePlaceholder')}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_relationship">
-                          {tRegister('relationship')}{' '}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="dep_relationship"
-                          value={newDependent.relationship}
-                          onChange={(e) => setNewDependent({ ...newDependent, relationship: e.target.value })}
-                          placeholder={tRegister('relationshipPlaceholder')}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_ic">{tRegister('icNumber')}</Label>
-                        <Input
-                          id="dep_ic"
-                          value={newDependent.ic_passport_number}
-                          onChange={(e) =>
-                            setNewDependent({
-                              ...newDependent,
-                              ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
-                            })
-                          }
-                          placeholder={tRegister('icNumberPlaceholder')}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_dob">{tRegister('dateOfBirth')}</Label>
-                        <Input
-                          id="dep_dob"
-                          type="date"
-                          value={newDependent.date_of_birth}
-                          onChange={(e) => setNewDependent({ ...newDependent, date_of_birth: e.target.value })}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_gender">{tRegister('gender')}</Label>
-                        <Select
-                          value={newDependent.gender}
-                          onValueChange={(value) => setNewDependent({ ...newDependent, gender: value })}
-                          disabled={isMosqueAdmin}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={tRegister('selectGender')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">{tRegister('genderMale')}</SelectItem>
-                            <SelectItem value="female">{tRegister('genderFemale')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_phone">{tRegister('phoneNumber')}</Label>
-                        <Input
-                          id="dep_phone"
-                          type="tel"
-                          value={newDependent.phone}
-                          onChange={(e) => setNewDependent({ ...newDependent, phone: e.target.value })}
-                          placeholder={tRegister('phoneNumberPlaceholder')}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_email">{tRegister('email')}</Label>
-                        <Input
-                          id="dep_email"
-                          type="email"
-                          value={newDependent.email}
-                          onChange={(e) => setNewDependent({ ...newDependent, email: e.target.value })}
-                          placeholder={tRegister('emailPlaceholder')}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_address">{tRegister('address')}</Label>
-                        <Textarea
-                          id="dep_address"
-                          value={newDependent.address}
-                          onChange={(e) => setNewDependent({ ...newDependent, address: e.target.value })}
-                          placeholder={tRegister('addressPlaceholder')}
-                          rows={2}
-                          disabled={isMosqueAdmin}
-                        />
-                      </div>
-                    </div>
-
-                    {user && (
-                      <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox
-                          id="save_to_profile"
-                          checked={saveToProfile}
-                          onCheckedChange={(checked) => setSaveToProfile(checked === true)}
-                          disabled={isMosqueAdmin}
-                        />
-                        <Label htmlFor="save_to_profile" className="text-sm font-normal cursor-pointer">
-                              {tRegister('saveToProfile')}
-                        </Label>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowAddDependentForm(false);
-                          setNewDependent({
+                      onClick={() => {
+                        setShowAddDependentForm(true);
+                        // Initialize with one empty dependent form
+                        if (newDependents.length === 0) {
+                          setNewDependents([{
+                            id: `dep-${Date.now()}`,
                             full_name: '',
                             relationship: '',
                             ic_passport_number: '',
@@ -828,319 +743,253 @@ function KhairatRegisterPageContent() {
                             address: '',
                             emergency_contact: false,
                             notes: '',
-                          });
-                        }}
-                        className="flex-1"
-                        disabled={isMosqueAdmin}
-                      >
-                        {tMosquePage('cancel') || 'Cancel'}
-                      </Button>
+                          }]);
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {tRegister('addDependentButton')}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Dependents are tracked but not displayed as cards - they'll be included in submission */}
+
+                {/* Add Dependent Forms */}
+                {showAddDependentForm && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h3 className="text-lg font-semibold">{tRegister('dependentsTitle')}</h3>
+                        <p className="text-sm text-muted-foreground">{tRegister('addDependentDescription')}</p>
+                      </div>
                       <Button
                         type="button"
-                        onClick={async () => {
-                          if (isMosqueAdmin) return;
-                          if (!newDependent.full_name || !newDependent.relationship) {
-                            toast.error(tRegister('dependentValidation'));
-                            return;
-                          }
-
-                          setSavingDependent(true);
-                          try {
-                            if (user) {
-                              // If save to profile, save to user_dependents first
-                              let dependentId: string | null = null;
-                              
-                              if (saveToProfile && user.id) {
-                                const result = await createUserDependent({
-                                  user_id: user.id,
-                                  full_name: newDependent.full_name,
-                                  relationship: newDependent.relationship,
-                                  date_of_birth: newDependent.date_of_birth || undefined,
-                                  gender: newDependent.gender,
-                                  phone: newDependent.phone || undefined,
-                                  email: newDependent.email || undefined,
-                                  address: newDependent.address || undefined,
-                                  emergency_contact: newDependent.emergency_contact,
-                                });
-
-                                if (result.success && result.data) {
-                                  dependentId = result.data.id;
-                                  // Add to list and auto-select
-                                  setUserDependents([...userDependents, result.data]);
-                                  setSelectedDependentIds(new Set([...selectedDependentIds, result.data.id]));
-                                  toast.success('Dependent saved to your profile and added to selection');
-                                } else {
-                                  throw new Error(result.error || 'Failed to save dependent');
-                                }
-                              } else {
-                                // Create temporary dependent object for selection
-                                const tempDependent: UserDependent = {
-                                  id: `temp-${Date.now()}`,
-                                  user_id: user.id,
-                                  full_name: newDependent.full_name,
-                                  relationship: newDependent.relationship,
-                                  date_of_birth: newDependent.date_of_birth,
-                                  gender: newDependent.gender,
-                                  phone: newDependent.phone,
-                                  email: newDependent.email,
-                                  address: newDependent.address,
-                                  emergency_contact: newDependent.emergency_contact,
-                                  created_at: new Date().toISOString(),
-                                  updated_at: new Date().toISOString(),
-                                };
-                                setUserDependents([...userDependents, tempDependent]);
-                                setSelectedDependentIds(new Set([...selectedDependentIds, tempDependent.id]));
-                                toast.success('Dependent added to selection');
-                              }
-                            } else {
-                              // For non-logged in users, add to temporary dependents
-                              setTempDependents([...tempDependents, {
-                                full_name: newDependent.full_name,
-                                relationship: newDependent.relationship,
-                                date_of_birth: newDependent.date_of_birth,
-                                gender: newDependent.gender,
-                                phone: newDependent.phone,
-                                email: newDependent.email,
-                                address: newDependent.address,
-                                emergency_contact: newDependent.emergency_contact,
-                              }]);
-                              toast.success('Dependent added to your registration');
-                            }
-
-                            // Reset form
-                            setNewDependent({
-                              full_name: '',
-                              relationship: '',
-                              ic_passport_number: '',
-                              date_of_birth: '',
-                              gender: 'male',
-                              phone: '',
-                              email: '',
-                              address: '',
-                              emergency_contact: false,
-                              notes: '',
-                            });
-                            setShowAddDependentForm(false);
-                          } catch (error: any) {
-                            console.error('Error saving dependent:', error);
-                            toast.error(error?.message || 'Failed to save dependent');
-                          } finally {
-                            setSavingDependent(false);
-                          }
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddDependentForm(false);
+                          setNewDependents([]);
                         }}
-                        disabled={isMosqueAdmin || savingDependent || !newDependent.full_name || !newDependent.relationship}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                       >
-                        {savingDependent ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {tMosquePage('saving') || 'Saving...'}
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-2" />
-                            {tRegister('addDependentButton')}
-                          </>
-                        )}
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Temporary Dependents List (for non-logged in users) */}
-              {!user && tempDependents.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {tempDependents.map((dependent, index) => (
-                    <Card key={`temp-${index}`} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{dependent.full_name}</p>
-                            <Badge variant="outline" className="text-xs">
-                              {dependent.relationship}
-                            </Badge>
-                            {!isMosqueAdmin && (
+                    {newDependents.map((dependent, index) => (
+                      <Card key={dependent.id} className="border-2 border-dashed border-slate-300 dark:border-slate-700">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="text-lg">
+                                {tRegister('addDependentTitle')} {newDependents.length > 1 ? `#${index + 1}` : ''}
+                              </CardTitle>
+                              <CardDescription>
+                                {tRegister('addDependentDescription')}
+                              </CardDescription>
+                            </div>
+                            {newDependents.length > 1 && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  const newTemp = [...tempDependents];
-                                  newTemp.splice(index, 1);
-                                  setTempDependents(newTemp);
+                                  setNewDependents(newDependents.filter((_, i) => i !== index));
                                 }}
-                                className="h-6 w-6 p-0 ml-auto"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
-                          <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                            {dependent.date_of_birth && (
-                              <p>DOB: {new Date(dependent.date_of_birth).toLocaleDateString()}</p>
-                            )}
-                            {dependent.phone && (
-                              <p>Phone: {dependent.phone}</p>
-                            )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_full_name_${index}`}>
+                                {tRegister('fullName')}{' '}
+                                <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id={`dep_full_name_${index}`}
+                                value={dependent.full_name}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].full_name = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('fullNamePlaceholder')}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_relationship_${index}`}>
+                                {tRegister('relationship')}{' '}
+                                <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id={`dep_relationship_${index}`}
+                                value={dependent.relationship}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].relationship = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('relationshipPlaceholder')}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_ic_${index}`}>{tRegister('icNumber')}</Label>
+                              <Input
+                                id={`dep_ic_${index}`}
+                                value={dependent.ic_passport_number}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].ic_passport_number = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('icNumberPlaceholder')}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_dob_${index}`}>{tRegister('dateOfBirth')}</Label>
+                              <Input
+                                id={`dep_dob_${index}`}
+                                type="date"
+                                value={dependent.date_of_birth}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].date_of_birth = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_gender_${index}`}>{tRegister('gender')}</Label>
+                              <Select
+                                value={dependent.gender}
+                                onValueChange={(value) => {
+                                  const updated = [...newDependents];
+                                  updated[index].gender = value;
+                                  setNewDependents(updated);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={tRegister('selectGender')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="male">{tRegister('genderMale')}</SelectItem>
+                                  <SelectItem value="female">{tRegister('genderFemale')}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`dep_phone_${index}`}>{tRegister('phoneNumber')}</Label>
+                              <Input
+                                id={`dep_phone_${index}`}
+                                type="tel"
+                                value={dependent.phone}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].phone = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('phoneNumberPlaceholder')}
+                              />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                              <Label htmlFor={`dep_email_${index}`}>{tRegister('email')}</Label>
+                              <Input
+                                id={`dep_email_${index}`}
+                                type="email"
+                                value={dependent.email}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].email = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('emailPlaceholder')}
+                              />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                              <Label htmlFor={`dep_address_${index}`}>{tRegister('address')}</Label>
+                              <Textarea
+                                id={`dep_address_${index}`}
+                                value={dependent.address}
+                                onChange={(e) => {
+                                  const updated = [...newDependents];
+                                  updated[index].address = e.target.value;
+                                  setNewDependents(updated);
+                                }}
+                                placeholder={tRegister('addressPlaceholder')}
+                                rows={2}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                        </CardContent>
+                      </Card>
+                    ))}
 
-              {user && selectedDependentIds.size > 0 && userDependents.length > 0 && (
-                <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                    {tRegister('dependentsSelectedSummary', {
-                      count: selectedDependentIds.size,
-                    })}
-                  </p>
-                </div>
-              )}
-              {!user && tempDependents.length > 0 && (
-                <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                    {tRegister('dependentsGuestSummary', {
-                      count: tempDependents.length,
-                    })}
-                  </p>
-                </div>
-              )}
-
-              {/* Show disabled form for admins when no dependents */}
-              {isMosqueAdmin && userDependents.length === 0 && tempDependents.length === 0 && (
-                <Card className="border-2 border-dashed border-slate-300 dark:border-slate-700 opacity-50">
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      {tRegister('addDependentTitle')}
-                    </CardTitle>
-                    <CardDescription>
-                      {tRegister('addDependentDescription')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_full_name_disabled">
-                          {tRegister('fullName')}{' '}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="dep_full_name_disabled"
-                          placeholder={tRegister('fullNamePlaceholder')}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_relationship_disabled">
-                          {tRegister('relationship')}{' '}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="dep_relationship_disabled"
-                          placeholder={tRegister('relationshipPlaceholder')}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_ic_disabled">{tRegister('icNumber')}</Label>
-                        <Input
-                          id="dep_ic_disabled"
-                          placeholder={tRegister('icNumberPlaceholder')}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_dob_disabled">{tRegister('dateOfBirth')}</Label>
-                        <Input
-                          id="dep_dob_disabled"
-                          type="date"
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_gender_disabled">{tRegister('gender')}</Label>
-                        <Select disabled>
-                          <SelectTrigger>
-                            <SelectValue placeholder={tRegister('selectGender')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">{tRegister('genderMale')}</SelectItem>
-                            <SelectItem value="female">{tRegister('genderFemale')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="dep_phone_disabled">{tRegister('phoneNumber')}</Label>
-                        <Input
-                          id="dep_phone_disabled"
-                          type="tel"
-                          placeholder={tRegister('phoneNumberPlaceholder')}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_email_disabled">{tRegister('email')}</Label>
-                        <Input
-                          id="dep_email_disabled"
-                          type="email"
-                          placeholder={tRegister('emailPlaceholder')}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="dep_address_disabled">{tRegister('address')}</Label>
-                        <Textarea
-                          id="dep_address_disabled"
-                          placeholder={tRegister('addressPlaceholder')}
-                          rows={2}
-                          disabled
-                        />
-                      </div>
-                    </div>
-
-                    {user && (
-                      <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox
-                          id="save_to_profile_disabled"
-                          disabled
-                        />
-                        <Label htmlFor="save_to_profile_disabled" className="text-sm font-normal">
-                          {tRegister('saveToProfile')}
-                        </Label>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        disabled
-                      >
-                        {tMosquePage('cancel') || 'Cancel'}
-                      </Button>
-                      <Button
-                        type="button"
-                        disabled
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                      >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setNewDependents([...newDependents, {
+                          id: `dep-${Date.now()}-${Math.random()}`,
+                          full_name: '',
+                          relationship: '',
+                          ic_passport_number: '',
+                          date_of_birth: '',
+                          gender: 'male',
+                          phone: '',
+                          email: '',
+                          address: '',
+                          emergency_contact: false,
+                          notes: '',
+                        }]);
+                      }}
+                      className="w-full"
+                    >
                         <Plus className="h-4 w-4 mr-2" />
-                        {tRegister('addDependentButton')}
-                      </Button>
+                        {tRegister('addAnotherDependent') || 'Add Another Dependent'}
+                    </Button>
+                    {newDependents.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        {tRegister('dependentFormNote') || 'Fill in the dependent information above. It will be included when you submit the registration form.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+              {/* Temporary Dependents List (for non-logged in users) */}
+
+              {/* Show summary only when form is not visible */}
+              {!showAddDependentForm && (
+                <>
+                  {user && selectedDependentIds.size > 0 && userDependents.length > 0 && (
+                    <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                      <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                        {tRegister('dependentsSelectedSummary', {
+                          count: selectedDependentIds.size,
+                        })}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                  {!user && tempDependents.length > 0 && (
+                    <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                      <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                        {tRegister('dependentsGuestSummary', {
+                          count: tempDependents.length,
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -1149,7 +998,7 @@ function KhairatRegisterPageContent() {
           <div className="pt-6">
             <Button
               type="submit"
-              disabled={isMosqueAdmin || submitting || !formData.full_name || !formData.ic_passport_number || !formData.phone || !formData.email || !formData.address}
+              disabled={submitting || !formData.full_name || !formData.ic_passport_number || !formData.phone || !formData.email || !formData.address}
               className="w-full bg-emerald-600 hover:bg-emerald-700 h-11"
               size="lg"
             >

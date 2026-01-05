@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { getDashboardUrl } from '@/lib/utils/dashboard';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
@@ -219,7 +220,9 @@ function OnboardingContent() {
         }
         
         // Force a full page reload to ensure all hooks refresh with new admin status
-        const redirectTo = pendingReturnUrl || '/dashboard';
+        // Get correct dashboard URL based on admin status
+        const dashboardUrl = await getDashboardUrl(user?.id);
+        const redirectTo = pendingReturnUrl || dashboardUrl;
         window.location.href = redirectTo;
       } else {
         toast.error(result.error || t('onboardingFailed'));

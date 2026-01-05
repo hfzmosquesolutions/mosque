@@ -103,21 +103,21 @@ export function ProtectedRoute({
       return; // Don't proceed until double-check completes
     }
 
-    if (!requireAuth && user && hasAdminAccess) {
-      // Redirect authenticated admin users away from auth pages
+    if (!requireAuth && user) {
+      // Redirect authenticated users away from auth pages
       const returnUrl = 
         (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) ||
         searchParams.get('returnUrl') ||
-        '/dashboard';
+        (hasAdminAccess ? '/dashboard' : '/my-dashboard');
       
       if (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) {
         sessionStorage.removeItem('returnUrl');
       }
       
-      if (returnUrl && returnUrl !== '/dashboard') {
+      if (returnUrl && returnUrl !== '/dashboard' && returnUrl !== '/my-dashboard') {
         window.location.href = returnUrl;
       } else {
-        router.push('/dashboard');
+        router.push(hasAdminAccess ? '/dashboard' : '/my-dashboard');
       }
     }
   }, [user, loading, adminLoading, hasAdminAccess, router, redirectTo, requireAuth, requireAdmin, searchParams]);

@@ -390,6 +390,35 @@ export function UserClaimsTable({ showHeader = true }: UserClaimsTableProps) {
                 </div>
               )}
 
+              {/* Person in Charge Information */}
+              {(selectedClaim.person_in_charge_name || selectedClaim.person_in_charge_phone || selectedClaim.person_in_charge_relationship) && (
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    {t('personInCharge')}
+                  </label>
+                  <div className="space-y-2">
+                    {selectedClaim.person_in_charge_name && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">{t('personInChargeName')}: </span>
+                        <span className="text-sm font-medium">{selectedClaim.person_in_charge_name}</span>
+                      </div>
+                    )}
+                    {selectedClaim.person_in_charge_phone && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">{t('personInChargePhone')}: </span>
+                        <span className="text-sm font-medium">{selectedClaim.person_in_charge_phone}</span>
+                      </div>
+                    )}
+                    {selectedClaim.person_in_charge_relationship && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">{t('personInChargeRelationship')}: </span>
+                        <span className="text-sm font-medium">{selectedClaim.person_in_charge_relationship}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Supporting Documents */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold mb-4">

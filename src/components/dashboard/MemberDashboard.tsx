@@ -38,7 +38,6 @@ import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 import { getUserNotifications, markNotificationAsRead } from '@/lib/api/notifications';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
-import { QuickActions } from './QuickActions';
 import { MemberStatsCards } from './MemberStatsCards';
 import { MemberRecentActivity } from './MemberRecentActivity';
 import { MemberQuickInsights } from './MemberQuickInsights';
@@ -348,8 +347,8 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
         activeClaimsAmount={activeClaimsAmount}
       />
 
-      {/* Getting Started and Quick Actions - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Getting Started */}
+      <div className="grid grid-cols-1 gap-6">
         <MemberGettingStarted 
           totalContributed={totalContributed}
           dependentsCount={dependentsCount}
@@ -358,7 +357,6 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
           hasRegisteredForKhairat={hasRegisteredForKhairat}
           hasFoundMosque={hasFoundMosque}
         />
-        <QuickActions />
       </div>
 
       {/* Member-specific content */}

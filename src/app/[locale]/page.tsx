@@ -14,6 +14,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess } from '@/hooks/useUserRole';
+import { getDashboardUrlSync } from '@/lib/utils/dashboard';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -44,6 +46,7 @@ import { Mosque } from '@/types/database';
 
 export default function Home() {
   const { user } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('homepage');
@@ -546,7 +549,7 @@ export default function Home() {
           <div className="text-center mt-16">
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               {user ? (
-                <Link href="/dashboard">
+                <Link href={getDashboardUrlSync(hasAdminAccess)}>
                   <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3">
                     <ArrowRight className="mr-2 h-5 w-5" />
                     {t('goToDashboard')}
@@ -665,7 +668,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {user ? (
-              <Link href="/dashboard">
+              <Link href={getDashboardUrlSync(hasAdminAccess)}>
                 <Button size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 px-8 py-3">
                   <ArrowRight className="mr-2 h-5 w-5" />
                   {t('goToDashboard')}

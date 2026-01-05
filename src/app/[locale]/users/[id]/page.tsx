@@ -20,12 +20,15 @@ import { getUserProfile } from '@/lib/api';
 import { UserProfile } from '@/types/database';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess } from '@/hooks/useUserRole';
+import { getDashboardUrlSync } from '@/lib/utils/dashboard';
 
 export default function PublicUserProfilePage() {
   const t = useTranslations('users');
   const tCommon = useTranslations('common');
   const params = useParams();
   const { user: currentUser } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
   const userId = params.id as string;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -124,7 +127,7 @@ export default function PublicUserProfilePage() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {error || t('profileNotFoundDescription')}
             </p>
-            <Link href="/dashboard">
+            <Link href={getDashboardUrlSync(hasAdminAccess)}>
               <Button className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 {t('backToDashboard')}
@@ -146,7 +149,7 @@ export default function PublicUserProfilePage() {
         
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Link href="/dashboard">
+          <Link href={getDashboardUrlSync(hasAdminAccess)}>
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               {tCommon('back')}

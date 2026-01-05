@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMosque, checkOnboardingStatus, createClaim, uploadClaimDocument, isUserMosqueAdmin } from '@/lib/api';
+import { getMosque, checkOnboardingStatus, createClaim, uploadClaimDocument } from '@/lib/api';
 import { Mosque } from '@/types/database';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -33,6 +33,64 @@ import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader'
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
+
+// Helper function to mask email for privacy
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email;
+  const [username, domain] = email.split('@');
+  if (username.length <= 1) {
+    return `*@${domain}`;
+  }
+  const firstChar = username[0];
+  const maskedUsername = firstChar + '*'.repeat(Math.min(username.length - 1, 6));
+  return `${maskedUsername}@${domain}`;
+}
+
+// Helper function to mask name for privacy (shows first name + first letter of last part)
+function maskName(name: string): string {
+  if (!name || name.trim().length === 0) return name;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return name;
+  
+  // Show first name fully if it's short, otherwise show first few characters
+  const firstName = parts[0];
+  if (firstName.length <= 4) {
+    // Short first name - show fully
+    if (parts.length === 1) return firstName;
+    // Show first name + first letter of last part + asterisks
+    const lastPart = parts[parts.length - 1];
+    return `${firstName} ${lastPart[0]}***`;
+  } else {
+    // Long first name - show first 4 chars + asterisks
+    if (parts.length === 1) return `${firstName.substring(0, 4)}***`;
+    const lastPart = parts[parts.length - 1];
+    return `${firstName.substring(0, 4)}*** ${lastPart[0]}***`;
+  }
+}
+
+// Helper function to mask phone number for privacy
+function maskPhone(phone: string): string {
+  if (!phone || phone.trim().length === 0) return phone;
+  // Remove all non-digit characters for processing
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  if (digitsOnly.length <= 4) {
+    // Very short number - mask all but first digit
+    return digitsOnly[0] + '*'.repeat(digitsOnly.length - 1);
+  } else if (digitsOnly.length <= 7) {
+    // Medium length - show first 2-3 digits, mask rest
+    const showLength = Math.floor(digitsOnly.length / 3);
+    return digitsOnly.substring(0, showLength) + '*'.repeat(digitsOnly.length - showLength);
+  } else {
+    // Standard phone number - show first 3-4 digits and last 2-3 digits
+    const showStart = Math.min(4, Math.floor(digitsOnly.length / 3));
+    const showEnd = Math.min(3, Math.floor(digitsOnly.length / 4));
+    const start = digitsOnly.substring(0, showStart);
+    const end = digitsOnly.substring(digitsOnly.length - showEnd);
+    const masked = '*'.repeat(Math.max(3, digitsOnly.length - showStart - showEnd));
+    return `${start}${masked}${end}`;
+  }
+}
 
 function KhairatClaimPageContent() {
   const params = useParams();
@@ -50,7 +108,9 @@ function KhairatClaimPageContent() {
   const [claimAmount, setClaimAmount] = useState('');
   const [claimDescription, setClaimDescription] = useState('');
   const [claimDocuments, setClaimDocuments] = useState<File[]>([]);
-  const [isMosqueAdmin, setIsMosqueAdmin] = useState(false);
+  const [personInChargeName, setPersonInChargeName] = useState('');
+  const [personInChargePhone, setPersonInChargePhone] = useState('');
+  const [personInChargeRelationship, setPersonInChargeRelationship] = useState('');
   const [isKhairatMember, setIsKhairatMember] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(true);
   const [icNumber, setIcNumber] = useState('');
@@ -80,18 +140,53 @@ function KhairatClaimPageContent() {
   }, []);
 
   // Check for persisted success state on mount
+  // Only show success page if we have saved data AND it's from a recent submission (within same session)
   useEffect(() => {
     const savedSuccess = sessionStorage.getItem(`claim-success-${mosqueId}`);
     if (savedSuccess) {
       try {
         const savedData = JSON.parse(savedSuccess);
-        setSubmittedClaim(savedData);
-        setSubmittedSuccessfully(true);
-        sessionStorage.removeItem(`claim-success-${mosqueId}`); // Clear after loading
+        // Check if this is a fresh navigation (not a page refresh)
+        // We'll use a timestamp to determine if it's recent
+        const savedTimestamp = sessionStorage.getItem(`claim-success-timestamp-${mosqueId}`);
+        const now = Date.now();
+        
+        // Only show success if it was saved within the last 5 seconds (likely a page refresh)
+        // If older, it means user navigated away and came back - clear it
+        if (savedTimestamp && (now - parseInt(savedTimestamp)) < 5000) {
+          setSubmittedClaim(savedData);
+          setSubmittedSuccessfully(true);
+        } else {
+          // Clear old success data
+          sessionStorage.removeItem(`claim-success-${mosqueId}`);
+          sessionStorage.removeItem(`claim-success-timestamp-${mosqueId}`);
+          setSubmittedSuccessfully(false);
+          setSubmittedClaim(null);
+        }
       } catch (error) {
         console.error('Error loading saved claim data:', error);
+        // Clear invalid data
+        sessionStorage.removeItem(`claim-success-${mosqueId}`);
+        sessionStorage.removeItem(`claim-success-timestamp-${mosqueId}`);
+        setSubmittedSuccessfully(false);
+        setSubmittedClaim(null);
       }
+    } else {
+      // If no saved success state, ensure we're not in success mode
+      setSubmittedSuccessfully(false);
+      setSubmittedClaim(null);
     }
+  }, [mosqueId]);
+
+  // Clear success state when component unmounts or mosqueId changes
+  useEffect(() => {
+    return () => {
+      // Clear sessionStorage when navigating away
+      sessionStorage.removeItem(`claim-success-${mosqueId}`);
+      sessionStorage.removeItem(`claim-success-timestamp-${mosqueId}`);
+      setSubmittedSuccessfully(false);
+      setSubmittedClaim(null);
+    };
   }, [mosqueId]);
 
   // Fetch initial data (no login required)
@@ -105,29 +200,12 @@ function KhairatClaimPageContent() {
           setMosque(mosqueRes.data);
         }
 
-        // Check if user is mosque admin (only if logged in)
-        let isAdmin = false;
-        if (user?.id) {
-          try {
-            const adminCheck = await isUserMosqueAdmin(user.id, mosqueId);
-            isAdmin = adminCheck;
-            setIsMosqueAdmin(adminCheck);
-          } catch (error) {
-            console.error('Error checking admin status:', error);
-          }
-        }
-
         // Don't auto-check membership - user must verify manually
-        // Admin can always view (but not submit)
-        if (isAdmin) {
-          setIsKhairatMember(true);
-        } else {
-          // All users (logged in or not) need to verify membership manually
-          setIsKhairatMember(false);
-        }
+        // All users (logged in or not) need to verify membership manually
+        setIsKhairatMember(false);
 
-        // Pre-fill IC number if user is logged in and NOT admin
-        if (user?.id && !isAdmin) {
+        // Pre-fill IC number if user is logged in
+        if (user?.id) {
           // Fetch user profile for auto-fill
           const { data, error } = await supabase
             .from('user_profiles')
@@ -374,12 +452,6 @@ function KhairatClaimPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent submission if user is mosque admin
-    if (isMosqueAdmin) {
-      toast.error('Mosque administrators cannot submit claims. This page is for viewing purposes only.');
-      return;
-    }
-
     if (!mosque) return;
     
     if (!claimTitle || !claimAmount) {
@@ -387,14 +459,13 @@ function KhairatClaimPageContent() {
       return;
     }
 
-    // Require at least one supporting document
-    if (claimDocuments.length === 0) {
-      toast.error(
-        t('supportingDocumentsRequired') ||
-          'Please upload at least one supporting document'
-      );
+    // khairat_member_id is required (must verify membership first)
+    if (!verifiedKhairatMemberId) {
+      toast.error('Please verify your membership by IC number first');
       return;
     }
+
+    // Documents are now optional - no validation needed
 
     const amountNum = parseFloat(claimAmount);
     if (!(amountNum > 0)) {
@@ -405,13 +476,16 @@ function KhairatClaimPageContent() {
     setSubmitting(true);
     try {
       const payload = {
-        claimant_id: user?.id || undefined, // Optional for anonymous submissions
-        khairat_member_id: verifiedKhairatMemberId || undefined, // Pass verified member ID (required for anonymous)
+        claimant_id: user?.id || undefined, // Optional, for reference
+        khairat_member_id: verifiedKhairatMemberId, // Required - must verify membership first
         mosque_id: mosque.id,
         title: claimTitle,
         description: claimDescription || undefined,
         requested_amount: amountNum,
         priority: 'medium' as const,
+        person_in_charge_name: personInChargeName || undefined,
+        person_in_charge_phone: personInChargePhone || undefined,
+        person_in_charge_relationship: personInChargeRelationship || undefined,
       };
 
       const res = await createClaim(payload as any);
@@ -451,8 +525,9 @@ function KhairatClaimPageContent() {
         setSubmittedClaim(submittedClaimData);
         setSubmittedSuccessfully(true);
         
-        // Persist to sessionStorage in case of page refresh
+        // Persist to sessionStorage in case of page refresh (with timestamp)
         sessionStorage.setItem(`claim-success-${mosqueId}`, JSON.stringify(submittedClaimData));
+        sessionStorage.setItem(`claim-success-timestamp-${mosqueId}`, Date.now().toString());
       } else {
         toast.error((res as any)?.error || t('errorSubmittingKhairatClaim') || 'Failed to submit claim');
       }
@@ -486,8 +561,8 @@ function KhairatClaimPageContent() {
     );
   }
 
-  // Show registration required message if not a member and not admin
-  if (!isKhairatMember && !isMosqueAdmin) {
+  // Show registration required message if not a member
+  if (!isKhairatMember) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950">
         <KhairatStandardHeader
@@ -584,8 +659,8 @@ function KhairatClaimPageContent() {
           mosque={mosque}
           locale={locale}
           mosqueId={mosqueId}
-          title="Claim Submitted Successfully"
-          subtitle={`Your claim has been submitted to ${mosque?.name || 'the mosque'}`}
+          title={tKhairat('claimSuccess.title')}
+          subtitle={tKhairat('claimSuccess.subtitle', { mosqueName: mosque?.name || t('mosque') })}
           icon={CheckCircle2}
           iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
           iconColor="text-emerald-600 dark:text-emerald-400"
@@ -596,29 +671,29 @@ function KhairatClaimPageContent() {
               <Alert className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <AlertDescription className="text-emerald-800 dark:text-emerald-200">
-                  <strong>Thank you for your submission!</strong>
+                  <strong>{tKhairat('claimSuccess.thankYou')}</strong>
                   <p className="mt-2">
-                    Your claim to <strong>{mosque?.name}</strong> has been submitted successfully and is now pending review by the mosque administrator.
+                    {tKhairat('claimSuccess.submittedMessage', { mosqueName: mosque?.name || t('mosque') })}
                   </p>
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-3">
                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <h4 className="font-semibold mb-2">Claim Details</h4>
+                  <h4 className="font-semibold mb-2">{tKhairat('claimSuccess.claimDetails')}</h4>
                   <div className="space-y-2 text-sm">
                     {submittedClaim.claimId && (
                       <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-                        <span className="text-slate-600 dark:text-slate-400">Claim ID:</span>
+                        <span className="text-slate-600 dark:text-slate-400">{tKhairat('claimSuccess.claimId')}:</span>
                         <span className="font-medium font-mono">{submittedClaim.claimId}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Title:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{tKhairat('claimSuccess.titleLabel')}:</span>
                       <span className="font-medium">{submittedClaim.title}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Requested Amount:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{tKhairat('claimSuccess.requestedAmount')}:</span>
                       <span className="font-medium">
                         {new Intl.NumberFormat('ms-MY', {
                           style: 'currency',
@@ -627,7 +702,7 @@ function KhairatClaimPageContent() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">Status:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{tKhairat('claimSuccess.status')}:</span>
                       <Badge 
                         variant={
                           submittedClaim.status === 'approved' ? 'default' :
@@ -642,7 +717,7 @@ function KhairatClaimPageContent() {
                     </div>
                     {submittedClaim.description && (
                       <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                        <span className="text-slate-600 dark:text-slate-400 block mb-1">Description:</span>
+                        <span className="text-slate-600 dark:text-slate-400 block mb-1">{tKhairat('claimSuccess.description')}:</span>
                         <span className="font-medium">{submittedClaim.description}</span>
                       </div>
                     )}
@@ -657,39 +732,48 @@ function KhairatClaimPageContent() {
                   className="w-full"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Download Receipt
+                  {tKhairat('claimSuccess.downloadReceipt')}
                 </Button>
                 <div className="flex gap-4">
                   <Button
                     onClick={() => {
+                      // Clear all state
                       setSubmittedSuccessfully(false);
                       setSubmittedClaim(null);
                       setClaimTitle('');
                       setClaimAmount('');
                       setClaimDescription('');
                       setClaimDocuments([]);
+                      setPersonInChargeName('');
+                      setPersonInChargePhone('');
+                      setPersonInChargeRelationship('');
                       setVerifiedICNumber(null);
                       setVerifiedKhairatMemberId(null);
+                      setVerifiedMembershipNumber(null);
+                      setVerifiedMemberInfo(null);
                       setIsKhairatMember(false);
                       setIcNumber('');
+                      // Clear sessionStorage
+                      sessionStorage.removeItem(`claim-success-${mosqueId}`);
+                      sessionStorage.removeItem(`claim-success-timestamp-${mosqueId}`);
                       window.scrollTo(0, 0);
                     }}
                     variant="outline"
                     className="flex-1"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Make New Claim
+                    {tKhairat('claimSuccess.makeNewClaim')}
                   </Button>
                   <Link href={`/${locale}/mosques/${mosqueId}`} className="flex-1">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      Back to Mosque
+                      {tKhairat('claimSuccess.backToMosque')}
                     </Button>
                   </Link>
                 </div>
                 {user && (
                   <Link href={`/${locale}/claims`} className="block">
                     <Button variant="outline" className="w-full">
-                      View My Claims
+                      {tKhairat('claimSuccess.viewMyClaims')}
                     </Button>
                   </Link>
                 )}
@@ -715,16 +799,6 @@ function KhairatClaimPageContent() {
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
 
-        {/* Admin Alert */}
-        {isMosqueAdmin && (
-          <Alert className="mb-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <strong>{tKhairat('viewOnlyModeTitle')}</strong> {tKhairat('viewOnlyModeDescription')}
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Membership Verification Status */}
         {(verifiedICNumber || verifiedKhairatMemberId) && isKhairatMember && (
           <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
@@ -736,7 +810,9 @@ function KhairatClaimPageContent() {
               {verifiedICNumber && (
                 <div className="flex items-center gap-2 ml-6">
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedICNumber}</span>
+                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                      {verifiedICNumber.slice(0, 6) + '******'}
+                    </span>
                   </p>
                   {(verifiedMemberInfo?.status || isKhairatMember) && (
                     <Badge 
@@ -763,44 +839,39 @@ function KhairatClaimPageContent() {
                 </p>
               )}
               
-              {/* Display Registered Information */}
-              {verifiedMemberInfo && (verifiedMemberInfo.full_name || verifiedMemberInfo.email || verifiedMemberInfo.phone) && (
-                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
-                  <p className="text-xs font-semibold mb-2 uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {tKhairat('payPage.registeredInformationLabel') || 'Registered Information'}
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    {verifiedMemberInfo.full_name && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.payerNameLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {verifiedMemberInfo.full_name}
-                        </span>
-                      </div>
-                    )}
-                    {verifiedMemberInfo.email && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.emailLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1 break-all">
-                          {verifiedMemberInfo.email}
-                        </span>
-                      </div>
-                    )}
-                    {verifiedMemberInfo.phone && (
-                      <div className="flex items-start gap-3">
-                        <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px]">
-                          {tKhairat('payPage.mobileNumberLabel')}:
-                        </span>
-                        <span className="text-slate-900 dark:text-slate-100 flex-1">
-                          {verifiedMemberInfo.phone}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              {/* Display Name, Email, and Phone (Masked for Privacy) */}
+              {(verifiedMemberInfo?.full_name || verifiedMemberInfo?.email || verifiedMemberInfo?.phone) && (
+                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6 space-y-2">
+                  {verifiedMemberInfo.full_name && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.payerNameLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
+                        {maskName(verifiedMemberInfo.full_name)}
+                      </span>
+                    </div>
+                  )}
+                  {verifiedMemberInfo.email && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.emailLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 break-all text-sm">
+                        {maskEmail(verifiedMemberInfo.email)}
+                      </span>
+                    </div>
+                  )}
+                  {verifiedMemberInfo.phone && (
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
+                        {tKhairat('payPage.mobileNumberLabel')}:
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
+                        {maskPhone(verifiedMemberInfo.phone)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -825,9 +896,8 @@ function KhairatClaimPageContent() {
                   id="claim_title"
                   value={claimTitle}
                   onChange={(e) => setClaimTitle(e.target.value)}
-                  placeholder={tKhairat('khairatClaimTitlePlaceholder') || 'E.g. Funeral assistance, Medical expenses'}
+                    placeholder={tKhairat('khairatClaimTitlePlaceholder') || 'E.g. Funeral assistance, Medical expenses'}
                   required
-                  disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
                   {tKhairat('claimTitleHelp')}
@@ -847,7 +917,6 @@ function KhairatClaimPageContent() {
                   onChange={(e) => setClaimAmount(e.target.value)}
                   placeholder={tKhairat('payPage.amountPlaceholder') || 'Enter amount'}
                   required
-                  disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
                   {tKhairat('claimAmountHelp')}
@@ -864,11 +933,61 @@ function KhairatClaimPageContent() {
                   value={claimDescription}
                   onChange={(e) => setClaimDescription(e.target.value)}
                   placeholder={tKhairat('khairatClaimDescriptionPlaceholder') || 'Describe your situation and need for financial assistance'}
-                  disabled={isMosqueAdmin}
                 />
                 <p className="text-xs text-muted-foreground">
                   {tKhairat('claimDescriptionHelp')}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Person in Charge Information */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                {tKhairat('personInChargeTitle') || 'Person in Charge (Optional)'}
+              </CardTitle>
+              <CardDescription>
+                {tKhairat('personInChargeDescription') || 'If someone else is applying on behalf of the member (e.g., family member applying for deceased member), please provide their contact information.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="person_in_charge_name">
+                    {tKhairat('personInChargeNameLabel') || 'Name'}
+                  </Label>
+                  <Input
+                    id="person_in_charge_name"
+                    value={personInChargeName}
+                    onChange={(e) => setPersonInChargeName(e.target.value)}
+                    placeholder={tKhairat('personInChargeNamePlaceholder') || 'Enter name of person in charge'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="person_in_charge_relationship">
+                    {tKhairat('personInChargeRelationshipLabel') || 'Relationship'}
+                  </Label>
+                  <Input
+                    id="person_in_charge_relationship"
+                    value={personInChargeRelationship}
+                    onChange={(e) => setPersonInChargeRelationship(e.target.value)}
+                    placeholder={tKhairat('personInChargeRelationshipPlaceholder') || 'e.g., son, daughter, spouse, brother'}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="person_in_charge_phone">
+                    {tKhairat('personInChargePhoneLabel') || 'Phone Number'}
+                  </Label>
+                  <Input
+                    id="person_in_charge_phone"
+                    type="tel"
+                    value={personInChargePhone}
+                    onChange={(e) => setPersonInChargePhone(e.target.value)}
+                    placeholder={tKhairat('personInChargePhonePlaceholder') || 'Enter phone number'}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -878,7 +997,7 @@ function KhairatClaimPageContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
-                {tKhairat('supportingDocumentsTitle')} <span className="text-red-500">*</span>
+                {tKhairat('supportingDocumentsTitle')}
               </CardTitle>
               <CardDescription>
                 {tKhairat('supportingDocumentsDescription')}
@@ -894,7 +1013,6 @@ function KhairatClaimPageContent() {
                   }
                 }}
                 maxFiles={5}
-                disabled={isMosqueAdmin}
               />
               {claimDocuments.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -910,7 +1028,7 @@ function KhairatClaimPageContent() {
           <div className="pt-6">
             <Button
               type="submit"
-              disabled={isMosqueAdmin || submitting || !claimTitle || !claimAmount}
+              disabled={submitting || !claimTitle || !claimAmount || !verifiedKhairatMemberId}
               className="w-full bg-emerald-600 hover:bg-emerald-700 h-11"
               size="lg"
             >

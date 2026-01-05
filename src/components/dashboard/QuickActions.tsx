@@ -44,7 +44,7 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({ pendingClaimsCount = 0, pendingRegistrationsCount = 0 }: QuickActionsProps) {
-  const { isAdmin, mosqueId } = useUserRole();
+  const { isAdmin, mosqueId, loading: roleLoading } = useUserRole();
   const t = useTranslations('dashboard');
 
   const getActionCopy = (key: string) => ({
@@ -161,6 +161,38 @@ export function QuickActions({ pendingClaimsCount = 0, pendingRegistrationsCount
       iconColor: 'text-indigo-600 dark:text-indigo-400',
     },
   ];
+
+  // Don't render actions until role is determined to prevent flash
+  if (roleLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5 text-blue-600" />
+            {t('quickActions')}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t('loading')}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl border bg-muted/50 animate-pulse"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-3 rounded-xl bg-muted w-12 h-12"></div>
+                  <div className="h-4 w-20 bg-muted rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const actions = isAdmin ? adminActions : memberActions;
 
