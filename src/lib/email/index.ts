@@ -6,11 +6,13 @@ export { generateWelcomeEmailTemplate } from './templates/welcome';
 export { generatePasswordResetTemplate } from './templates/password-reset';
 export { generateSignupConfirmationTemplate } from './templates/signup-confirmation';
 export { generateResetPasswordEmail, type ResetPasswordEmailData } from './templates/reset-password';
+export { generateKhairatRegistrationTemplate } from './templates/khairat-registration';
 
 // Export template types
 export type { WelcomeEmailProps } from './templates/welcome';
 export type { PasswordResetProps } from './templates/password-reset';
 export type { SignupConfirmationProps } from './templates/signup-confirmation';
+export type { KhairatRegistrationNotificationProps } from './templates/khairat-registration';
 
 // Email types for common use cases
 export interface BaseEmailProps {

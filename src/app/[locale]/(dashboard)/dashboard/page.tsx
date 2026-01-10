@@ -441,7 +441,7 @@ function DashboardContent() {
               <StatsCard
                 title={t('totalContributed')}
                 value={`RM ${totalContributed.toLocaleString()}`}
-                subtitle="Total khairat received"
+                subtitle={t('totalContributedSubtitle')}
                 icon={DollarSign}
                 {...StatsCardColors.emerald}
               />
@@ -465,7 +465,7 @@ function DashboardContent() {
               <StatsCard
                 title={t('successfulClaims')}
                 value={successfulClaimsCount}
-                subtitle="Successful khairat claims"
+                subtitle={t('successfulClaimsSubtitle')}
                 icon={TrendingUp}
                 {...StatsCardColors.orange}
               />

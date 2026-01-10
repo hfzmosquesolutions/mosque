@@ -110,6 +110,7 @@ function KhairatStatusPageContent() {
   const tKhairat = useTranslations('khairat');
   const tMosquePage = useTranslations('mosquePage');
   const tDashboard = useTranslations('dashboard');
+  const tClaims = useTranslations('claims');
   const { user } = useAuth();
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
@@ -214,6 +215,93 @@ function KhairatStatusPageContent() {
       return 'destructive' as const;
     }
     return 'outline' as const;
+  };
+
+  const translateStatus = (status?: string): string => {
+    if (!status) return '';
+    const normalized = status.toLowerCase();
+    
+    // Payment-related statuses (completed, failed)
+    const paymentStatuses = ['completed', 'failed'];
+    if (paymentStatuses.includes(normalized)) {
+      try {
+        const paymentTranslated = tKhairat(`paymentsTable.${normalized}` as any);
+        // Check if it's a valid translation (not containing the key path or namespace indicators)
+        if (paymentTranslated && typeof paymentTranslated === 'string' && 
+            !paymentTranslated.toLowerCase().includes('payment') && 
+            !paymentTranslated.toLowerCase().includes('table') &&
+            paymentTranslated.length < 50) {
+          return paymentTranslated;
+        }
+      } catch (e) {
+        // Translation not found, use fallback
+      }
+      // Explicit fallbacks for payment statuses
+      if (normalized === 'completed') {
+        return locale === 'ms' ? 'Selesai' : 'Completed';
+      }
+      if (normalized === 'failed') {
+        return locale === 'ms' ? 'Gagal' : 'Failed';
+      }
+    }
+    
+    // Try khairat namespace directly (active, approved, inactive, pending, suspended, under_review, rejected, withdrawn)
+    const khairatStatuses = ['active', 'approved', 'inactive', 'pending', 'suspended', 'under_review', 'rejected', 'withdrawn'];
+    if (khairatStatuses.includes(normalized)) {
+      try {
+        const khairatTranslated = tKhairat(normalized as any);
+        // Check if it's a valid translation (not containing the key path or namespace indicators)
+        if (khairatTranslated && typeof khairatTranslated === 'string' && 
+            !khairatTranslated.toLowerCase().includes('khairat') && 
+            !khairatTranslated.toLowerCase().includes('status') &&
+            khairatTranslated.length < 50) { // Valid translations are usually short
+          return khairatTranslated;
+        }
+      } catch (e) {
+        // Translation not found, use fallback
+      }
+      // Explicit fallbacks for common statuses
+      const fallbacks: Record<string, { ms: string; en: string }> = {
+        active: { ms: 'Aktif', en: 'Active' },
+        approved: { ms: 'Diluluskan', en: 'Approved' },
+        inactive: { ms: 'Tidak Aktif', en: 'Inactive' },
+        pending: { ms: 'Menunggu', en: 'Pending' },
+        suspended: { ms: 'Digantung', en: 'Suspended' },
+        under_review: { ms: 'Dalam Semakan', en: 'Under Review' },
+        rejected: { ms: 'Ditolak', en: 'Rejected' },
+        withdrawn: { ms: 'Ditarik balik', en: 'Withdrawn' },
+      };
+      if (fallbacks[normalized]) {
+        return locale === 'ms' ? fallbacks[normalized].ms : fallbacks[normalized].en;
+      }
+    }
+    
+    // Try to get translation from claims.status namespace (for claim-specific statuses like paid, cancelled)
+    const claimStatuses = ['paid', 'cancelled'];
+    if (claimStatuses.includes(normalized)) {
+      try {
+        const claimsTranslated = tClaims(`status.${normalized}` as any);
+        // Check if it's a valid translation (not containing the key path or namespace indicators)
+        if (claimsTranslated && typeof claimsTranslated === 'string' && 
+            !claimsTranslated.toLowerCase().includes('claims') && 
+            !claimsTranslated.toLowerCase().includes('status') &&
+            claimsTranslated.length < 50) {
+          return claimsTranslated;
+        }
+      } catch (e) {
+        // Translation not found, use fallback
+      }
+      // Explicit fallbacks for claim statuses
+      if (normalized === 'paid') {
+        return locale === 'ms' ? 'Dibayar' : 'Paid';
+      }
+      if (normalized === 'cancelled') {
+        return locale === 'ms' ? 'Dibatalkan' : 'Cancelled';
+      }
+    }
+    
+    // Fallback: return capitalized status
+    return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
   };
 
   const handleEditIc = () => {
@@ -392,11 +480,7 @@ function KhairatStatusPageContent() {
                       }
                       className="capitalize"
                     >
-                      {statusResult.registration.status === 'active' ? (locale === 'ms' ? 'Aktif' : 'Active') :
-                       statusResult.registration.status === 'approved' ? (locale === 'ms' ? 'Diluluskan' : 'Approved') :
-                       statusResult.registration.status === 'inactive' ? (locale === 'ms' ? 'Tidak Aktif' : 'Inactive') :
-                       statusResult.registration.status === 'pending' ? (locale === 'ms' ? 'Menunggu' : 'Pending') :
-                       statusResult.registration.status || (locale === 'ms' ? 'Aktif' : 'Active')}
+                      {translateStatus(statusResult.registration.status) || (locale === 'ms' ? 'Aktif' : 'Active')}
                     </Badge>
                   )}
                 </div>
@@ -582,7 +666,7 @@ function KhairatStatusPageContent() {
                           </p>
                         </div>
                         <Badge variant={getStatusBadgeVariant(claim.status)} className="w-fit">
-                          {claim.status}
+                          {translateStatus(claim.status)}
                         </Badge>
                       </div>
                     ))}
@@ -648,7 +732,7 @@ function KhairatStatusPageContent() {
                             </Badge>
                           )}
                           <Badge variant={getStatusBadgeVariant(p.status)} className="capitalize">
-                            {p.status}
+                            {translateStatus(p.status)}
                           </Badge>
                         </div>
                       </div>

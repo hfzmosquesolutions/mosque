@@ -242,6 +242,13 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
     if (withdrawnOrRejectedRecords.length > 0) {
       const latestWithdrawnOrRejected = withdrawnOrRejectedRecords[0];
 
+      // Get mosque info for email notification
+      const { data: mosqueData } = await supabase
+        .from('mosques')
+        .select('id, name')
+        .eq('id', mosque_id)
+        .single();
+
       // Update the withdrawn/rejected application to pending instead of creating new
       const { error: updateError } = await supabase
         .from('khairat_members')
@@ -262,6 +269,36 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
 
       if (updateError) {
         throw new Error(`Failed to reactivate application: ${updateError.message}`);
+      }
+
+      // Send email notification to mosque admin for reactivated application
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+        const response = await fetch(`${appUrl}/api/email/khairat-registration`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            mosqueId: mosque_id,
+            applicantName: full_name || 'N/A',
+            applicantIC: ic_passport_number || 'N/A',
+            applicantPhone: phone,
+            applicantEmail: email,
+            applicantAddress: address,
+            applicationReason: application_reason,
+            memberId: latestWithdrawnOrRejected.id,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Failed to send email notification to mosque admin:', errorData);
+          // Don't throw error for email failure - application was successful
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification to mosque admin:', emailError);
+        // Don't throw error for email failure - application was successful
       }
 
       return {
@@ -324,6 +361,36 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
       console.error('Failed to create notification:', notificationError);
       // Don't throw error for notification failure
     }
+  }
+
+  // Send email notification to mosque admin
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    const response = await fetch(`${appUrl}/api/email/khairat-registration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mosqueId: mosque_id,
+        applicantName: full_name || 'N/A',
+        applicantIC: ic_passport_number || 'N/A',
+        applicantPhone: phone,
+        applicantEmail: email,
+        applicantAddress: address,
+        applicationReason: application_reason,
+        memberId: member.id,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Failed to send email notification to mosque admin:', errorData);
+      // Don't throw error for email failure - application was successful
+    }
+  } catch (emailError) {
+    console.error('Error sending email notification to mosque admin:', emailError);
+    // Don't throw error for email failure - application was successful
   }
 
   return {
