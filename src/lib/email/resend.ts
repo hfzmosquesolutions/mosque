@@ -99,6 +99,50 @@ export class EmailService {
       html,
     });
   }
+
+  async sendKhairatRegistrationEmail({
+    to,
+    adminName,
+    mosqueName,
+    applicantName,
+    applicantIC,
+    applicantPhone,
+    applicantEmail,
+    applicantAddress,
+    applicationReason,
+    reviewUrl,
+  }: {
+    to: string;
+    adminName: string;
+    mosqueName: string;
+    applicantName: string;
+    applicantIC: string;
+    applicantPhone?: string;
+    applicantEmail?: string;
+    applicantAddress?: string;
+    applicationReason?: string;
+    reviewUrl: string;
+  }) {
+    const { generateKhairatRegistrationTemplate } = await import('./templates/khairat-registration');
+    
+    const html = generateKhairatRegistrationTemplate({
+      adminName,
+      mosqueName,
+      applicantName,
+      applicantIC,
+      applicantPhone,
+      applicantEmail,
+      applicantAddress,
+      applicationReason,
+      reviewUrl,
+    });
+
+    return this.sendEmail({
+      to,
+      subject: `New Khairat Registration - ${mosqueName}`,
+      html,
+    });
+  }
 }
 
 export const emailService = EmailService.getInstance();

@@ -240,10 +240,10 @@ function OnboardingContent() {
       <div className="text-center mb-6">
         <Users className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">
-          Mosque Administrator Information
+          {t('mosqueAdministratorInformation')}
         </h3>
         <p className="text-slate-600 dark:text-slate-400">
-          Enter your personal information as the mosque administrator
+          {t('mosqueAdministratorInformationDescription')}
         </p>
       </div>
 
@@ -333,17 +333,17 @@ function OnboardingContent() {
       <Card className="bg-slate-50 dark:bg-slate-800">
         <CardContent className="p-6 space-y-4">
           <div>
-            <h4 className="font-semibold mb-2">Mosque Administrator Information</h4>
+            <h4 className="font-semibold mb-2">{t('mosqueAdministratorInformation')}</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-slate-600 dark:text-slate-400">
-                  {t('name')}:
+                  {t('reviewStepAdministratorName')}:
                 </span>
                 <p className="font-medium">{data.fullName}</p>
               </div>
               <div>
                 <span className="text-slate-600 dark:text-slate-400">
-                  {t('phone')}:
+                  {t('reviewStepPhone')}:
                 </span>
                 <p className="font-medium">{data.phone}</p>
               </div>
@@ -366,18 +366,18 @@ function OnboardingContent() {
                     <p className="text-slate-600 dark:text-slate-400 mb-1">
                       {t('mosqueAddress')}:
                     </p>
-                    <div className="text-sm space-y-1">
-                      <p className="font-medium">{data.mosqueAddressData.address_line1}</p>
-                      {data.mosqueAddressData.address_line2 && (
-                        <p className="font-medium">{data.mosqueAddressData.address_line2}</p>
-                      )}
-                      <p className="font-medium">
-                        {[data.mosqueAddressData.city, data.mosqueAddressData.state, data.mosqueAddressData.postcode]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </p>
-                      <p className="font-medium">{data.mosqueAddressData.country}</p>
-                    </div>
+                    <p className="text-sm font-medium leading-relaxed">
+                      {[
+                        data.mosqueAddressData.address_line1,
+                        data.mosqueAddressData.address_line2,
+                        data.mosqueAddressData.city,
+                        data.mosqueAddressData.state,
+                        data.mosqueAddressData.postcode,
+                        data.mosqueAddressData.country
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
                   </div>
                 )}
               </div>
@@ -396,7 +396,7 @@ function OnboardingContent() {
           <CardHeader className="text-center">
             <div className="mb-6">
               <CardTitle className="text-3xl font-bold mb-2">
-                Setup Your Mosque
+                {t('setupYourMosque')}
               </CardTitle>
               <CardDescription className="text-lg">
                 {t('stepOf', { step, total: 3 })}
