@@ -65,6 +65,7 @@ export default function MosqueProfilePage() {
   const { user } = useAuth();
   const t = useTranslations('mosquePage');
   const tKhairat = useTranslations('khairat');
+  const tOnboarding = useTranslations('onboarding');
 
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [contributionPrograms, setContributionPrograms] = useState<any[]>([]);
@@ -654,9 +655,19 @@ export default function MosqueProfilePage() {
               
               {/* Mosque Name and Address */}
               <div className="text-white min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1.5 leading-tight drop-shadow-lg">
-                  {mosque.name}
-                </h1>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight drop-shadow-lg">
+                    {mosque.name}
+                  </h1>
+                  {mosque.institution_type && (
+                    <Badge 
+                      variant="secondary" 
+                      className="bg-white/20 text-white border-white/30 hover:bg-white/30 text-xs sm:text-sm"
+                    >
+                      {mosque.institution_type === 'mosque' ? tOnboarding('mosque') : tOnboarding('surau')}
+                    </Badge>
+                  )}
+                </div>
                 {mosque.address && (
                   <div className="flex items-start text-white/95 drop-shadow-md">
                     <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 mt-0.5 flex-shrink-0" />

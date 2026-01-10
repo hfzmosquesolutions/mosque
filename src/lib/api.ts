@@ -184,6 +184,7 @@ export async function completeOnboarding(
           state: onboardingData.mosqueAddressData?.state,
           postcode: onboardingData.mosqueAddressData?.postcode,
           country: onboardingData.mosqueAddressData?.country,
+          institution_type: onboardingData.institutionType || 'mosque', // Default to mosque if not specified
           user_id: userId, // Set the creator as the mosque owner
           is_private: false, // Default to public profile
           settings: {
