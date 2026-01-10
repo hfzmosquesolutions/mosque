@@ -122,7 +122,7 @@ export default function Header() {
                       className="flex items-center gap-2 h-10"
                     >
                       <Languages className="h-4 w-4" />
-                      <span>{languageNames[locale]}</span>
+                      <span>{tCommon('language')}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -241,7 +241,7 @@ export default function Header() {
                   >
                     <span className="flex items-center gap-2">
                       <Languages className="h-4 w-4" />
-                      <span>{languageNames[locale]}</span>
+                      <span>{tCommon('language')}</span>
                     </span>
                   </Button>
                 </DropdownMenuTrigger>

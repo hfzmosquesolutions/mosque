@@ -64,6 +64,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationPeopleManagement } from '@/components/admin/OrganizationPeopleManagement';
 import { updateMosqueSettings } from '@/lib/api';
 import { PageLoading } from '@/components/ui/page-loading';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -122,6 +129,7 @@ function MosqueProfileContent() {
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const t = useTranslations('mosquePage');
+  const tOnboarding = useTranslations('onboarding');
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<MosqueProfileData>(
     getDefaultMosqueProfile()
@@ -206,6 +214,7 @@ function MosqueProfileContent() {
 
         const mosqueData: MosqueProfileData = {
           ...response.data,
+          institution_type: response.data.institution_type || 'mosque',
           // Extract additional fields from settings if they exist
           established_year:
             (response.data.settings as MosqueSettings)?.established_year || '',
@@ -359,6 +368,7 @@ function MosqueProfileContent() {
         website: profile.website || undefined,
         logo_url: profile.logo_url || undefined,
         banner_url: profile.banner_url || undefined,
+        institution_type: profile.institution_type || 'mosque',
         settings: {
           ...profile.settings,
           established_year: profile.established_year,
@@ -487,6 +497,23 @@ function MosqueProfileContent() {
                       value={profile.name}
                       onChange={(e) => updateProfile('name', e.target.value)}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="institutionType">
+                      {tOnboarding('institutionType')}
+                    </Label>
+                    <Select
+                      value={profile.institution_type || 'mosque'}
+                      onValueChange={(value) => updateProfile('institution_type', value as 'mosque' | 'surau')}
+                    >
+                      <SelectTrigger id="institutionType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mosque">{tOnboarding('mosque')}</SelectItem>
+                        <SelectItem value="surau">{tOnboarding('surau')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="establishedYear">

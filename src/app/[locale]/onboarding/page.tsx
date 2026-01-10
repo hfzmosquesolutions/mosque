@@ -36,6 +36,13 @@ import {
 import { useTranslations } from 'next-intl';
 import { AddressForm, parseAddressString, formatAddressForDisplay } from '@/components/ui/address-form';
 import { AddressData } from '@/types/database';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface OnboardingData {
   // Personal Information
@@ -51,6 +58,7 @@ interface OnboardingData {
   mosqueName?: string;
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
+  institutionType?: 'mosque' | 'surau';
 }
 
 function OnboardingContent() {
@@ -63,6 +71,7 @@ function OnboardingContent() {
     address: '',
     icPassportNumber: '',
     accountType: 'admin', // Always admin for mosque administrators
+    institutionType: 'mosque', // Default to mosque
     mosqueAddressData: {
       address_line1: '',
       address_line2: '',
@@ -105,6 +114,7 @@ function OnboardingContent() {
                   const mosque = mosqueResponse.data;
                   updatedData.mosqueName = mosque.name;
                   updatedData.mosqueAddress = mosque.address || '';
+                  updatedData.institutionType = mosque.institution_type || 'mosque';
                   
                   // Parse existing address or use structured address fields
                   updatedData.mosqueAddressData = mosque.address_line1 
@@ -193,6 +203,7 @@ function OnboardingContent() {
         mosqueName: data.mosqueName,
         mosqueAddress: data.mosqueAddress,
         mosqueAddressData: data.mosqueAddressData,
+        institutionType: data.institutionType || 'mosque',
       });
 
       if (result.success) {
@@ -298,6 +309,22 @@ function OnboardingContent() {
             </div>
 
             <div>
+              <Label htmlFor="institutionType">{t('institutionType')} *</Label>
+              <Select
+                value={data.institutionType || 'mosque'}
+                onValueChange={(value) => updateData('institutionType', value as 'mosque' | 'surau')}
+              >
+                <SelectTrigger id="institutionType" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mosque">{t('mosque')}</SelectItem>
+                  <SelectItem value="surau">{t('surau')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <AddressForm
                 value={data.mosqueAddressData || {
                   address_line1: '',
@@ -353,6 +380,16 @@ function OnboardingContent() {
           <div>
             <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
+                {data.institutionType && (
+                  <p className="mb-2">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {t('institutionType')}:
+                    </span>{' '}
+                    <span className="font-medium">
+                      {data.institutionType === 'mosque' ? t('mosque') : t('surau')}
+                    </span>
+                  </p>
+                )}
                 {data.mosqueName && (
                   <p>
                     <span className="text-slate-600 dark:text-slate-400">

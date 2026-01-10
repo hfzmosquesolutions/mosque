@@ -31,6 +31,8 @@ export type NotificationCategory =
 // CORE INTERFACES
 // =============================================
 
+export type InstitutionType = 'mosque' | 'surau';
+
 export interface Mosque {
   id: string;
   name: string;
@@ -48,6 +50,7 @@ export interface Mosque {
   logo_url?: string | null; // URL to the mosque logo image
   banner_url?: string | null; // URL to the mosque banner image
   user_id: string; // References auth.users(id) - mosque owner/creator
+  institution_type?: InstitutionType; // Type of institution: mosque or surau
   settings?: Record<string, unknown>; // JSON object for mosque-specific settings
   is_private: boolean; // Whether the mosque profile is private
   created_at: string;
@@ -464,6 +467,7 @@ export interface OnboardingData {
   mosqueName?: string;
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
+  institutionType?: InstitutionType;
 }
 
 // Event creation/update form

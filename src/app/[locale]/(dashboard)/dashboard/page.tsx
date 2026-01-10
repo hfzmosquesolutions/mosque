@@ -348,7 +348,7 @@ function DashboardContent() {
                   </h1>
                   <p className="text-white/90 text-sm sm:text-base">
                     {mosqueName 
-                      ? `Administrator for ${mosqueName}`
+                      ? t('administratorFor', { mosqueName })
                       : t('adminRole')
                     }
                   </p>
@@ -372,7 +372,7 @@ function DashboardContent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-80">
                     <div className="p-4">
-                      <h3 className="font-semibold text-sm mb-3">Notifications</h3>
+                      <h3 className="font-semibold text-sm mb-3">{t('notifications')}</h3>
                       {notifications.length > 0 ? (
                         <div className="space-y-1">
                           {notifications.map((notification, index) => {
