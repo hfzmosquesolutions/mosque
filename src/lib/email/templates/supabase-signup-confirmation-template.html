@@ -1,15 +1,3 @@
-export interface SignupConfirmationProps {
-  userName?: string;
-  confirmationURL: string;
-  mosqueName?: string;
-}
-
-export function generateSignupConfirmationTemplate({
-  userName = 'User',
-  confirmationURL,
-  mosqueName = 'Mosque Community'
-}: SignupConfirmationProps): string {
-  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,6 +192,13 @@ export function generateSignupConfirmationTemplate({
       font-weight: 600;
     }
     
+    .footer-message {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 24px 0 0 0;
+    }
+    
     .divider {
       height: 1px;
       background-color: #e5e7eb;
@@ -226,13 +221,6 @@ export function generateSignupConfirmationTemplate({
     .footer-text strong {
       color: #374151;
       font-weight: 600;
-    }
-    
-    .footer-message {
-      color: #6b7280;
-      font-size: 14px;
-      line-height: 1.6;
-      margin: 24px 0 0 0;
     }
     
     .footer-small {
@@ -272,7 +260,7 @@ export function generateSignupConfirmationTemplate({
           <p class="subtitle">Welcome to khairatkita</p>
         </div>
         
-        <p class="greeting">Hello ${userName},</p>
+        <p class="greeting">Hello,</p>
         
         <p class="message">
           Thank you for joining khairatkita! We're excited to have you as part of our digital ummah.
@@ -283,7 +271,7 @@ export function generateSignupConfirmationTemplate({
         </p>
         
         <div class="cta">
-          <a href="${confirmationURL}" class="cta-button">Confirm Your Email Address</a>
+          <a href="{{ .ConfirmationURL }}" class="cta-button">Confirm Your Email Address</a>
         </div>
         
         <div class="notice">
@@ -301,7 +289,7 @@ export function generateSignupConfirmationTemplate({
         
         <div class="link-fallback">
           <p><strong>Alternative access:</strong> Use this direct link if needed:</p>
-          <p>${confirmationURL}</p>
+          <p>{{ .ConfirmationURL }}</p>
         </div>
         
         <p class="footer-message">
@@ -313,7 +301,7 @@ export function generateSignupConfirmationTemplate({
         <div class="footer">
           <p class="footer-text">
             <strong>Barakallahu feeki</strong><br>
-            ${mosqueName} Team
+            khairatkita Team
           </p>
           <p class="footer-small">
             You're receiving this email because you recently created an account on khairatkita.com.
@@ -324,5 +312,4 @@ export function generateSignupConfirmationTemplate({
   </div>
 </body>
 </html>
-  `.trim();
-}
+

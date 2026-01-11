@@ -67,9 +67,9 @@ export async function POST(request: NextRequest) {
 
     const adminName = adminProfile?.full_name || adminUser.user.email.split('@')[0] || 'Mosque Administrator';
 
-    // Build review URL
+    // Build review URL - redirect to members page where admin can check status
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const reviewUrl = `${appUrl}/mosques/${mosqueId}?tab=khairat&memberId=${memberId || ''}`;
+    const reviewUrl = `${appUrl}/ms/members`;
 
     // Send email notification
     const result = await emailService.sendKhairatRegistrationEmail({
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 
 
 
