@@ -9,6 +9,15 @@ export const resend = new Resend(process.env.RESEND_API_KEY);
 // Default sender email - should be configured in environment
 export const DEFAULT_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@yourmosque.com';
 
+// Default sender name
+export const DEFAULT_SENDER_NAME = 'khairatkita';
+
+// Format from field with sender name
+function formatFromEmail(email: string, name?: string): string {
+  const senderName = name || DEFAULT_SENDER_NAME;
+  return `${senderName} <${email}>`;
+}
+
 // Email service class for handling different types of emails
 export class EmailService {
   private static instance: EmailService;
@@ -30,15 +39,20 @@ export class EmailService {
     subject,
     html,
     from = DEFAULT_FROM_EMAIL,
+    fromName,
   }: {
     to: string | string[];
     subject: string;
     html: string;
     from?: string;
+    fromName?: string;
   }) {
     try {
+      // Format from field with sender name
+      const formattedFrom = formatFromEmail(from, fromName);
+      
       const result = await this.resendClient.emails.send({
-        from,
+        from: formattedFrom,
         to,
         subject,
         html,
