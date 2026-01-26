@@ -2862,6 +2862,7 @@
     "registerDialog": {
       "title": "Register New Member",
       "description": "Register a new khairat member directly. The member will be created with active status.",
+      "registerSingleMember": "Register Single Member",
       "registerWithoutAccount": "Register without user account (direct data entry)",
       "fullName": "Full Name",
       "fullNameRequired": "Full Name *",
@@ -2923,6 +2924,43 @@
       "cancel": "Cancel",
       "rejectApplication": "Reject Application",
       "rejecting": "Rejecting..."
+    },
+    "bulkUpload": {
+      "bulkUploadMembers": "Bulk Upload Members",
+      "title": "Bulk Upload Members",
+      "description": "Upload a CSV file to register multiple members at once",
+      "downloadTemplate": "Download CSV Template",
+      "selectCsvFile": "Select CSV File",
+      "csvFormatHint": "CSV should include: full_name, ic_passport_number, membership_number (optional), phone (optional), email (optional), address (optional), notes (optional)",
+      "preview": "Preview",
+      "records": "records",
+      "fullName": "Full Name",
+      "icNumber": "IC Number",
+      "membershipNumber": "Membership ID",
+      "phone": "Phone",
+      "email": "Email",
+      "showingFirst50": "Showing first 50 records",
+      "total": "total",
+      "showing": "Showing",
+      "of": "of",
+      "page": "Page",
+      "previous": "Previous",
+      "next": "Next",
+      "requiredFields": "Required fields",
+      "optionalFields": "Optional fields",
+      "duplicateNote": "Note: Members with duplicate IC numbers or membership IDs will be skipped.",
+      "cancel": "Cancel",
+      "uploading": "Uploading...",
+      "uploadMembers": "Upload Members",
+      "invalidFileFormat": "Invalid file format. Please select a CSV file.",
+      "csvMustHaveHeaderAndData": "CSV must have at least a header row and one data row",
+      "errorParsingCsv": "Error parsing CSV file",
+      "pleaseSelectFileAndReview": "Please select a file and review the data",
+      "noValidRecordsFound": "No valid records found",
+      "uploadedWithErrors": "Uploaded {count} member(s) with {errors} error(s)",
+      "uploadedWithSkipped": "Uploaded {count} member(s), {skipped} skipped",
+      "successfullyUploaded": "Successfully uploaded {count} member(s)",
+      "failedToUpload": "Failed to upload members"
     }
   },
   "docs": {
@@ -3055,7 +3093,110 @@
       "paymentsTitle": "Payment & Billing",
       "paymentsDesc": "Configure payment gateways and manage subscriptions",
       "legacyDataTitle": "Legacy Data Import",
-      "legacyDataDesc": "Import and match historical records"
+      "legacyDataDesc": "Import and match historical records",
+      "tutorialTitle": "Complete Tutorial",
+      "tutorialDesc": "Step-by-step guide to using the platform"
+    },
+    "tutorial": {
+      "title": "Complete Tutorial",
+      "description": "A comprehensive step-by-step guide to help you get the most out of khairatkita platform",
+      "backToDocs": "Back to Docs",
+      "chaptersTitle": "Chapters",
+      "chapters": {
+        "introduction": "Introduction",
+        "gettingStarted": "Getting Started",
+        "findingMosques": "Finding & Joining Mosques",
+        "makingContributions": "Making Contributions",
+        "managingProfile": "Managing Your Profile",
+        "tips": "Tips & Best Practices"
+      },
+      "introduction": {
+        "content1": "Welcome to khairatkita! This tutorial will guide you through the essential features and help you get started with the platform. Whether you're a community member looking to contribute or a mosque administrator managing your community, this guide covers everything you need to know.",
+        "content2": "Follow along step-by-step, and by the end of this tutorial, you'll be comfortable navigating the platform and using its key features.",
+        "note": "Quick Note",
+        "noteContent": "This tutorial covers the basics. For more detailed information on specific features, check out the individual guide pages in the documentation section."
+      },
+      "gettingStarted": {
+        "step1": {
+          "title": "Create Your Account",
+          "item1": "Visit the homepage and click on 'Sign Up'",
+          "item2": "Enter your email and create a secure password, or sign up with Google",
+          "item3": "Verify your email address if required"
+        },
+        "step2": {
+          "title": "Complete Your Profile",
+          "content": "After signing up, complete the onboarding process:",
+          "item1": "Enter your personal information (name, phone, address)",
+          "item2": "Choose your account type (Community Member or Mosque Administrator)",
+          "item3": "Review and confirm your information"
+        }
+      },
+      "findingMosques": {
+        "content1": "One of the first things you'll want to do is find and join mosques in your area. Here's how:",
+        "step1": {
+          "title": "Navigate to My Mosques",
+          "content": "Click on 'My Mosques' in the sidebar navigation to access the mosque discovery page"
+        },
+        "step2": {
+          "title": "Search for Mosques",
+          "content": "Use the search function to find mosques by name or location. You can also browse mosques in your area"
+        },
+        "step3": {
+          "title": "Join a Mosque",
+          "content": "Click on a mosque to view its details, then apply for kariah membership or join khairat programs"
+        }
+      },
+      "makingContributions": {
+        "content1": "Making contributions to support your mosque community is simple and secure:",
+        "step1": {
+          "title": "Select a Mosque",
+          "content": "Choose the mosque you want to contribute to from your 'My Mosques' page"
+        },
+        "step2": {
+          "title": "Choose Contribution Type",
+          "content": "Select whether you want to make a khairat contribution or another type of payment"
+        },
+        "step3": {
+          "title": "Complete Payment",
+          "content": "Enter the amount, review your details, and complete the secure payment process"
+        }
+      },
+      "managingProfile": {
+        "content1": "Keep your profile up to date to ensure smooth interactions with mosques:",
+        "feature1": {
+          "title": "Personal Information",
+          "content": "Update your name, contact details, and address in the Profile section"
+        },
+        "feature2": {
+          "title": "Dependents",
+          "content": "Add and manage family members who are part of your khairat membership"
+        },
+        "feature3": {
+          "title": "Payment History",
+          "content": "View all your past contributions and payments in one place"
+        },
+        "feature4": {
+          "title": "Account Settings",
+          "content": "Manage your password, email preferences, and notification settings"
+        }
+      },
+      "tips": {
+        "tip1": {
+          "title": "Keep Your Profile Updated",
+          "content": "Regularly update your contact information and dependents list to ensure mosques can reach you when needed"
+        },
+        "tip2": {
+          "title": "Set Up Payment Methods",
+          "content": "Add your preferred payment methods early to make contributions faster and more convenient"
+        },
+        "tip3": {
+          "title": "Check Notifications",
+          "content": "Stay informed about your membership applications, contribution confirmations, and important updates from your mosques"
+        }
+      },
+      "needHelp": "Need More Help?",
+      "needHelpContent": "If you have questions or need more detailed information, explore our other documentation pages for specific features.",
+      "exploreMoreDocs": "Explore More Documentation"
     },
     "myMosques": {
       "title": "My Mosques",

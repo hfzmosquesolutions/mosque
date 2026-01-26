@@ -53,6 +53,8 @@ import {
   Trash2,
   Edit,
   Plus,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,6 +65,7 @@ import {
   updateKhairatMember,
   withdrawKhairatMembership,
   deleteKhairatMember,
+  bulkCreateKhairatMembers,
 } from '@/lib/api/khairat-members';
 import { KhairatMember } from '@/types/database';
 import { supabase } from '@/lib/supabase';
@@ -72,12 +75,16 @@ interface KhairatManagementProps {
   mosqueId: string;
   createDialogOpen?: boolean;
   onCreateDialogChange?: (open: boolean) => void;
+  bulkUploadDialogOpen?: boolean;
+  onBulkUploadDialogChange?: (open: boolean) => void;
 }
 
 export function KhairatManagement({
   mosqueId,
   createDialogOpen: externalCreateDialogOpen,
   onCreateDialogChange,
+  bulkUploadDialogOpen: externalBulkUploadDialogOpen,
+  onBulkUploadDialogChange,
 }: KhairatManagementProps) {
   const { user } = useAuth();
   const t = useTranslations('khairatManagement');
@@ -92,6 +99,19 @@ export function KhairatManagement({
   const [processing, setProcessing] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [internalCreateDialogOpen, setInternalCreateDialogOpen] = useState(false);
+  
+  // Bulk upload state
+  const [internalBulkUploadDialogOpen, setInternalBulkUploadDialogOpen] = useState(false);
+  const bulkUploadDialogOpen = externalBulkUploadDialogOpen !== undefined 
+    ? externalBulkUploadDialogOpen 
+    : internalBulkUploadDialogOpen;
+  const setBulkUploadDialogOpen = onBulkUploadDialogChange || setInternalBulkUploadDialogOpen;
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewPage, setPreviewPage] = useState(1);
+  const previewItemsPerPage = 10;
   
   // Use external dialog state if provided, otherwise use internal state
   const createDialogOpen = externalCreateDialogOpen !== undefined 
@@ -332,6 +352,142 @@ export function KhairatManagement({
     }
   };
 
+  // Bulk upload handlers
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        setSelectedFile(file);
+        await parseCSVForPreview(file);
+      } else {
+        toast.error(t('bulkUpload.invalidFileFormat') || 'Please select a CSV file');
+        event.target.value = '';
+      }
+    }
+  };
+
+  const parseCSVForPreview = async (file: File) => {
+    try {
+      const text = await file.text();
+      const lines = text
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
+
+      if (lines.length < 2) {
+        toast.error(t('bulkUpload.csvMustHaveHeaderAndData') || 'CSV must have at least a header row and one data row');
+        return;
+      }
+
+      const headers = lines[0]
+        .split(',')
+        .map((h) => h.trim().replace(/"/g, ''));
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        // Parse CSV line handling quoted values
+        for (let j = 0; j < lines[i].length; j++) {
+          const char = lines[i][j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim().replace(/^"|"$/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim().replace(/^"|"$/g, '')); // Add the last value
+
+        const record: any = {};
+        headers.forEach((header, index) => {
+          record[header] = values[index] || '';
+        });
+
+        data.push(record);
+      }
+
+      setPreviewData(data);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      toast.error(t('bulkUpload.errorParsingCsv') || 'Error parsing CSV file');
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile || !previewData.length) {
+      toast.error(t('bulkUpload.pleaseSelectFileAndReview') || 'Please select a file and review the data');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Validate and clean the preview data
+      const validMembers = previewData
+        .filter((record) => {
+          return record.ic_passport_number && record.full_name;
+        })
+        .map((record) => ({
+          full_name: record.full_name?.trim() || '',
+          ic_passport_number: record.ic_passport_number?.trim() || '',
+          membership_number: record.membership_number?.trim() || undefined,
+          phone: record.phone?.trim() || undefined,
+          email: record.email?.trim() || undefined,
+          address: record.address?.trim() || undefined,
+          notes: record.notes?.trim() || undefined,
+        }));
+
+      if (validMembers.length === 0) {
+        toast.error(t('bulkUpload.noValidRecordsFound') || 'No valid records found');
+        return;
+      }
+
+      const result = await bulkCreateKhairatMembers({
+        mosque_id: mosqueId,
+        members: validMembers,
+      });
+
+      if (result.errors && result.errors.length > 0) {
+        toast.warning(
+          t('bulkUpload.uploadedWithErrors', { 
+            count: result.created_count,
+            errors: result.errors.length 
+          }) || `Uploaded ${result.created_count} member(s) with ${result.errors.length} error(s)`
+        );
+        console.error('Upload errors:', result.errors);
+      } else if (result.skipped && result.skipped.length > 0) {
+        toast.warning(
+          t('bulkUpload.uploadedWithSkipped', { 
+            count: result.created_count,
+            skipped: result.skipped.length 
+          }) || `Uploaded ${result.created_count} member(s), ${result.skipped.length} skipped`
+        );
+      } else {
+        toast.success(
+          t('bulkUpload.successfullyUploaded', { count: result.created_count }) || 
+          `Successfully uploaded ${result.created_count} member(s)`
+        );
+      }
+
+      setSelectedFile(null);
+      setPreviewData([]);
+      setShowPreview(false);
+      setPreviewPage(1);
+      setBulkUploadDialogOpen(false);
+      loadMembers();
+    } catch (error: any) {
+      console.error('Error uploading members:', error);
+      toast.error(error?.message || t('bulkUpload.failedToUpload') || 'Failed to upload members');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       // Application statuses
@@ -516,6 +672,175 @@ export function KhairatManagement({
 
   return (
     <div className="space-y-6">
+      {/* Bulk Upload Dialog */}
+      <Dialog open={bulkUploadDialogOpen} onOpenChange={setBulkUploadDialogOpen}>
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>{t('bulkUpload.title') || 'Bulk Upload Members'}</DialogTitle>
+            <DialogDescription>
+              {t('bulkUpload.description') || 'Upload a CSV file to register multiple members at once'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 flex-1 overflow-y-auto min-h-0 pr-1">
+            {/* Download Template Button */}
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/khairat-members-bulk-upload-template.csv';
+                  link.download = 'khairat-members-bulk-upload-template.csv';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="w-full"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {t('bulkUpload.downloadTemplate') || 'Download CSV Template'}
+              </Button>
+            </div>
+
+            {/* File Upload */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                {t('bulkUpload.selectCsvFile') || 'Select CSV File'}
+              </label>
+              <Input
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('bulkUpload.csvFormatHint') || 'CSV should include: full_name, ic_passport_number, membership_number (optional), phone (optional), email (optional), address (optional), notes (optional)'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('bulkUpload.duplicateNote') || 'Note: Members with duplicate IC numbers or membership IDs will be skipped.'}
+              </p>
+            </div>
+
+            {/* Preview Table */}
+            {showPreview && previewData.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    {t('bulkUpload.preview') || 'Preview'} ({previewData.length} {t('bulkUpload.records') || 'records'})
+                  </label>
+                </div>
+                <div className="border rounded-md overflow-hidden">
+                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-background z-10">
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">{t('bulkUpload.fullName') || 'Full Name'}</TableHead>
+                          <TableHead className="min-w-[120px]">{t('bulkUpload.icNumber') || 'IC Number'}</TableHead>
+                          <TableHead className="min-w-[120px]">{t('bulkUpload.membershipNumber') || 'Membership ID'}</TableHead>
+                          <TableHead className="min-w-[120px]">{t('bulkUpload.phone') || 'Phone'}</TableHead>
+                          <TableHead className="min-w-[150px]">{t('bulkUpload.email') || 'Email'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData
+                          .slice(
+                            (previewPage - 1) * previewItemsPerPage,
+                            previewPage * previewItemsPerPage
+                          )
+                          .map((record, index) => (
+                            <TableRow key={(previewPage - 1) * previewItemsPerPage + index}>
+                              <TableCell className="font-medium">{record.full_name || '-'}</TableCell>
+                              <TableCell className="font-mono text-xs">{record.ic_passport_number || '-'}</TableCell>
+                              <TableCell>{record.membership_number || '-'}</TableCell>
+                              <TableCell>{record.phone || '-'}</TableCell>
+                              <TableCell className="text-sm">{record.email || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Pagination Controls */}
+                  {previewData.length > previewItemsPerPage && (
+                    <div className="flex items-center justify-between border-t px-4 py-3 bg-muted/50">
+                      <div className="text-sm text-muted-foreground">
+                        {t('bulkUpload.showing') || 'Showing'}{' '}
+                        {(previewPage - 1) * previewItemsPerPage + 1} -{' '}
+                        {Math.min(previewPage * previewItemsPerPage, previewData.length)}{' '}
+                        {t('bulkUpload.of') || 'of'} {previewData.length}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}
+                          disabled={previewPage === 1}
+                        >
+                          {t('bulkUpload.previous') || 'Previous'}
+                        </Button>
+                        <div className="text-sm text-muted-foreground">
+                          {t('bulkUpload.page') || 'Page'} {previewPage} {t('bulkUpload.of') || 'of'}{' '}
+                          {Math.ceil(previewData.length / previewItemsPerPage)}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPreviewPage((p) =>
+                              Math.min(
+                                Math.ceil(previewData.length / previewItemsPerPage),
+                                p + 1
+                              )
+                            )
+                          }
+                          disabled={
+                            previewPage >= Math.ceil(previewData.length / previewItemsPerPage)
+                          }
+                        >
+                          {t('bulkUpload.next') || 'Next'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBulkUploadDialogOpen(false);
+                setSelectedFile(null);
+                setPreviewData([]);
+                setShowPreview(false);
+                setPreviewPage(1);
+              }}
+              disabled={uploading}
+            >
+              {t('bulkUpload.cancel') || 'Cancel'}
+            </Button>
+            <Button
+              onClick={handleBulkUpload}
+              disabled={uploading || !showPreview || previewData.length === 0}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('bulkUpload.uploading') || 'Uploading...'}
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {t('bulkUpload.uploadMembers') || 'Upload Members'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Data Table */}
       <DataTable
         columns={columns}
