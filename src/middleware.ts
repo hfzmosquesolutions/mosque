@@ -6,7 +6,8 @@ import { locales } from './i18n';
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale: 'ms',
-  localePrefix: 'always'
+  localePrefix: 'always',
+  localeDetection: false
 });
 
 export default function middleware(request: NextRequest) {

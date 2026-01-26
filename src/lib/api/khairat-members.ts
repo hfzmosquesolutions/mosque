@@ -876,3 +876,70 @@ export async function getKhairatStatistics(mosqueId: string) {
 
   return statistics;
 }
+
+/**
+ * Bulk create khairat members from CSV data
+ */
+export async function bulkCreateKhairatMembers(data: {
+  mosque_id: string;
+  members: Array<{
+    full_name: string;
+    ic_passport_number: string;
+    membership_number?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    notes?: string;
+  }>;
+}) {
+  const { data: user } = await supabase.auth.getUser();
+  
+  if (!user.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { mosque_id, members } = data;
+
+  if (!mosque_id || !members || !Array.isArray(members) || members.length === 0) {
+    throw new Error('Mosque ID and members array are required');
+  }
+
+  try {
+    // Get current user ID
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Call the server-side API route to handle bulk creation
+    const response = await fetch('/api/khairat-members/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mosque_id,
+        members,
+        user_id: user.user.id, // Pass user_id for authentication
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to bulk create members');
+    }
+
+    const result = await response.json();
+    
+    return {
+      message: result.message,
+      created_count: result.created_count,
+      errors: result.errors || [],
+      skipped: result.skipped || [],
+      insert_errors: result.insert_errors || [],
+    };
+  } catch (error) {
+    console.error('Error bulk creating members:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to bulk create members');
+  }
+}

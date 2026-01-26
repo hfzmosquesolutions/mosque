@@ -2881,6 +2881,7 @@
     "registerDialog": {
       "title": "Daftar Ahli Baharu",
       "description": "Daftar ahli khairat baharu secara terus. Ahli akan dicipta dengan status aktif.",
+      "registerSingleMember": "Daftar Ahli Tunggal",
       "registerWithoutAccount": "Daftar tanpa akaun pengguna (masukan data terus)",
       "fullName": "Nama Penuh",
       "fullNameRequired": "Nama Penuh *",
@@ -2942,6 +2943,43 @@
       "cancel": "Batal",
       "rejectApplication": "Tolak Permohonan",
       "rejecting": "Menolak..."
+    },
+    "bulkUpload": {
+      "bulkUploadMembers": "Muat Naik Ahli Pukal",
+      "title": "Muat Naik Ahli Pukal",
+      "description": "Muat naik fail CSV untuk mendaftarkan beberapa ahli sekaligus",
+      "downloadTemplate": "Muat Turun Templat CSV",
+      "selectCsvFile": "Pilih Fail CSV",
+      "csvFormatHint": "CSV perlu mengandungi: full_name, ic_passport_number, membership_number (pilihan), phone (pilihan), email (pilihan), address (pilihan), notes (pilihan)",
+      "preview": "Pratonton",
+      "records": "rekod",
+      "fullName": "Nama Penuh",
+      "icNumber": "Nombor IC",
+      "membershipNumber": "Nombor Keahlian",
+      "phone": "Telefon",
+      "email": "E-mel",
+      "showingFirst50": "Menunjukkan 50 rekod pertama",
+      "total": "jumlah",
+      "showing": "Menunjukkan",
+      "of": "daripada",
+      "page": "Halaman",
+      "previous": "Sebelum",
+      "next": "Seterus",
+      "requiredFields": "Medan wajib",
+      "optionalFields": "Medan pilihan",
+      "duplicateNote": "Nota: Ahli dengan nombor IC atau nombor keahlian yang sama akan dilangkau.",
+      "cancel": "Batal",
+      "uploading": "Sedang memuat naik...",
+      "uploadMembers": "Muat Naik Ahli",
+      "invalidFileFormat": "Format fail tidak sah. Sila pilih fail CSV.",
+      "csvMustHaveHeaderAndData": "CSV perlu mempunyai sekurang-kurangnya baris header dan satu baris data",
+      "errorParsingCsv": "Ralat menghurai fail CSV",
+      "pleaseSelectFileAndReview": "Sila pilih fail dan semak data",
+      "noValidRecordsFound": "Tiada rekod yang sah dijumpai",
+      "uploadedWithErrors": "Dimuat naik {count} ahli dengan {errors} ralat",
+      "uploadedWithSkipped": "Dimuat naik {count} ahli, {skipped} dilangkau",
+      "successfullyUploaded": "Berjaya memuat naik {count} ahli",
+      "failedToUpload": "Gagal memuat naik ahli"
     }
   },
   "docs": {
@@ -2975,7 +3013,110 @@
       "paymentsTitle": "Pembayaran & Bil",
       "paymentsDesc": "Konfigurasikan gateway pembayaran dan urus langganan",
       "legacyDataTitle": "Import Data Warisan",
-      "legacyDataDesc": "Import dan padankan rekod sejarah"
+      "legacyDataDesc": "Import dan padankan rekod sejarah",
+      "tutorialTitle": "Tutorial Lengkap",
+      "tutorialDesc": "Panduan langkah demi langkah untuk menggunakan platform"
+    },
+    "tutorial": {
+      "title": "Tutorial Lengkap",
+      "description": "Panduan langkah demi langkah yang komprehensif untuk membantu anda memanfaatkan platform khairatkita sepenuhnya",
+      "backToDocs": "Kembali ke Dokumentasi",
+      "chaptersTitle": "Bab",
+      "chapters": {
+        "introduction": "Pengenalan",
+        "gettingStarted": "Mula Menggunakan",
+        "findingMosques": "Mencari & Menyertai Masjid",
+        "makingContributions": "Membuat Sumbangan",
+        "managingProfile": "Mengurus Profil Anda",
+        "tips": "Tips & Amalan Terbaik"
+      },
+      "introduction": {
+        "content1": "Selamat datang ke khairatkita! Tutorial ini akan membimbing anda melalui ciri-ciri penting dan membantu anda mula menggunakan platform. Sama ada anda ahli komuniti yang ingin menyumbang atau pentadbir masjid yang mengurus komuniti anda, panduan ini merangkumi semua yang perlu anda ketahui.",
+        "content2": "Ikuti langkah demi langkah, dan pada akhir tutorial ini, anda akan selesa menavigasi platform dan menggunakan ciri-ciri utamanya.",
+        "note": "Nota Pantas",
+        "noteContent": "Tutorial ini merangkumi asas-asas. Untuk maklumat lebih terperinci mengenai ciri-ciri tertentu, lihat halaman panduan individu di bahagian dokumentasi."
+      },
+      "gettingStarted": {
+        "step1": {
+          "title": "Buat Akaun Anda",
+          "item1": "Lawati halaman utama dan klik 'Daftar'",
+          "item2": "Masukkan e-mel anda dan buat kata laluan yang selamat, atau daftar dengan Google",
+          "item3": "Sahkan alamat e-mel anda jika diperlukan"
+        },
+        "step2": {
+          "title": "Lengkapkan Profil Anda",
+          "content": "Selepas mendaftar, lengkapkan proses onboarding:",
+          "item1": "Masukkan maklumat peribadi anda (nama, telefon, alamat)",
+          "item2": "Pilih jenis akaun anda (Ahli Komuniti atau Pentadbir Masjid)",
+          "item3": "Semak dan sahkan maklumat anda"
+        }
+      },
+      "findingMosques": {
+        "content1": "Salah satu perkara pertama yang anda ingin lakukan ialah mencari dan menyertai masjid di kawasan anda. Begini caranya:",
+        "step1": {
+          "title": "Navigasi ke Masjid Saya",
+          "content": "Klik 'Masjid Saya' di bar navigasi sisi untuk mengakses halaman penemuan masjid"
+        },
+        "step2": {
+          "title": "Cari Masjid",
+          "content": "Gunakan fungsi carian untuk mencari masjid mengikut nama atau lokasi. Anda juga boleh melayari masjid di kawasan anda"
+        },
+        "step3": {
+          "title": "Sertai Masjid",
+          "content": "Klik pada masjid untuk melihat butirannya, kemudian mohon keahlian kariah atau sertai program khairat"
+        }
+      },
+      "makingContributions": {
+        "content1": "Membuat sumbangan untuk menyokong komuniti masjid anda adalah mudah dan selamat:",
+        "step1": {
+          "title": "Pilih Masjid",
+          "content": "Pilih masjid yang anda ingin sumbangkan dari halaman 'Masjid Saya' anda"
+        },
+        "step2": {
+          "title": "Pilih Jenis Sumbangan",
+          "content": "Pilih sama ada anda ingin membuat sumbangan khairat atau jenis pembayaran lain"
+        },
+        "step3": {
+          "title": "Lengkapkan Pembayaran",
+          "content": "Masukkan jumlah, semak butiran anda, dan lengkapkan proses pembayaran yang selamat"
+        }
+      },
+      "managingProfile": {
+        "content1": "Pastikan profil anda sentiasa dikemas kini untuk memastikan interaksi yang lancar dengan masjid:",
+        "feature1": {
+          "title": "Maklumat Peribadi",
+          "content": "Kemas kini nama, butiran hubungan, dan alamat anda di bahagian Profil"
+        },
+        "feature2": {
+          "title": "Tanggungan",
+          "content": "Tambah dan urus ahli keluarga yang merupakan sebahagian daripada keahlian khairat anda"
+        },
+        "feature3": {
+          "title": "Sejarah Pembayaran",
+          "content": "Lihat semua sumbangan dan pembayaran lepas anda di satu tempat"
+        },
+        "feature4": {
+          "title": "Tetapan Akaun",
+          "content": "Urus kata laluan, pilihan e-mel, dan tetapan notifikasi anda"
+        }
+      },
+      "tips": {
+        "tip1": {
+          "title": "Kekalkan Profil Anda Dikemas Kini",
+          "content": "Kemas kini maklumat hubungan dan senarai tanggungan anda secara berkala untuk memastikan masjid dapat menghubungi anda apabila diperlukan"
+        },
+        "tip2": {
+          "title": "Sediakan Kaedah Pembayaran",
+          "content": "Tambah kaedah pembayaran pilihan anda lebih awal untuk menjadikan sumbangan lebih cepat dan mudah"
+        },
+        "tip3": {
+          "title": "Semak Notifikasi",
+          "content": "Kekal dimaklumkan tentang permohonan keahlian, pengesahan sumbangan, dan kemas kini penting dari masjid anda"
+        }
+      },
+      "needHelp": "Perlukan Bantuan Lagi?",
+      "needHelpContent": "Jika anda mempunyai soalan atau memerlukan maklumat yang lebih terperinci, terokai halaman dokumentasi lain kami untuk ciri-ciri tertentu.",
+      "exploreMoreDocs": "Terokai Dokumentasi Lain"
     },
     "about": {
       "title": "Mengenai khairatkita",

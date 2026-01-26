@@ -1,0 +1,4 @@
+full_name,ic_passport_number,membership_number,phone,email,address,notes
+Ahmad bin Ali,123456789012,MEM001,0123456789,ahmad@example.com,"123 Jalan Masjid, Taman Sejahtera, 50000 Kuala Lumpur",Active member since 2020
+Fatimah binti Hassan,234567890123,MEM002,0198765432,fatimah@example.com,"45 Lorong Bahagia, 51000 Kuala Lumpur",
+Muhammad bin Ibrahim,345678901234,,0134567890,,,"Member without membership number"
