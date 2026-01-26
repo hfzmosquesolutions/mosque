@@ -629,7 +629,7 @@ function KhairatPayPageContent() {
                   payerName: finalPayerName?.trim() || '',
                   payerEmail: finalPayerEmail?.trim() || '',
                   payerMobile: finalPayerMobile?.trim() || undefined,
-                  description: `Khairat contribution - ${mosqueId}`,
+                  description: `Khairat Payment - ${mosqueId}`,
                   membershipNumber: verifiedMembershipNumber || undefined,
                   providerType: paymentMethod,
                 }),
@@ -797,7 +797,7 @@ function KhairatPayPageContent() {
 
     yPos += 5;
 
-    // Note Section (always shown, standardized like claim receipt)
+    // Note Section (standardized like claim receipt)
     doc.setDrawColor(255, 193, 7); // amber
     doc.setFillColor(255, 251, 235); // amber-50
     doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 15, 3, 3, 'FD');
@@ -806,11 +806,11 @@ function KhairatPayPageContent() {
     
     let noteText = '';
     if (submittedContribution.paymentMethod === 'bank_transfer' || submittedContribution.paymentMethod === 'cash') {
-      noteText = 'Note: Payment receipt has been uploaded and will be reviewed by the mosque administrator.';
-    } else if (submittedContribution.paymentMethod === 'online') {
-      noteText = 'Note: Your payment has been processed successfully. This receipt serves as confirmation of your contribution.';
+      noteText = 'Note: Your payment has been submitted and will be reviewed by the mosque administrator.';
+    } else if (submittedContribution.paymentMethod === 'toyyibpay' || submittedContribution.paymentMethod === 'online_payment') {
+      noteText = 'Note: Your payment has been submitted and will be reviewed by the mosque administrator.';
     } else {
-      noteText = 'Note: Your payment has been submitted and will be processed by the mosque administrator.';
+      noteText = 'Note: Your payment has been submitted and will be reviewed by the mosque administrator.';
     }
     
     doc.text(noteText, margin + 5, yPos + 10, { maxWidth: pageWidth - 2 * margin - 10 });
@@ -825,7 +825,7 @@ function KhairatPayPageContent() {
 
     doc.setFontSize(9);
     doc.setTextColor(128, 128, 128);
-    doc.text('Thank you for your payment!', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Thank you for your submission!', pageWidth / 2, yPos, { align: 'center' });
     yPos += 5;
     doc.text('This is a system-generated receipt.', pageWidth / 2, yPos, { align: 'center' });
 

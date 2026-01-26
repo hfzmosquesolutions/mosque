@@ -348,7 +348,7 @@ export function KhairatContributionForm({
                   payerName: payerName.trim(),
                   payerEmail: payerEmail.trim(),
                   payerMobile: payerMobile.trim() || undefined,
-                  description: `Khairat contribution - ${selectedMosqueId}`,
+                  description: `Khairat Payment - ${selectedMosqueId}`,
                   providerType: paymentMethod,
                 }),
               }
@@ -495,7 +495,7 @@ export function KhairatContributionForm({
                 Khairat Not Available
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                This mosque has not enabled khairat contributions yet. Please check back later or contact the mosque for more information.
+                This mosque has not enabled khairat payments yet. Please check back later or contact the mosque for more information.
               </p>
             </div>
             <DialogFooter>

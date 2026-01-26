@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         payerName,
         payerEmail,
         payerMobile,
-        description: description || `Khairat contribution for ${payerName}`,
+        description: description || `Khairat Payment for ${payerName}`,
         reference: membershipNumber || undefined,
       });
     } else if (providerType === 'toyyibpay') {
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         payerName,
         payerEmail,
         payerMobile,
-        description: description || `Khairat contribution for ${payerName}`,
+        description: description || `Khairat Payment for ${payerName}`,
         reference: membershipNumber || undefined,
       });
 
