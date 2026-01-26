@@ -102,7 +102,7 @@ export default function DocumentationPage() {
                     {/* Introduction */}
                     <section
                       id="introduction"
-                      ref={(el) => (sectionRefs.current['introduction'] = el)}
+                      ref={(el) => { sectionRefs.current['introduction'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Introduction</h2>
@@ -125,7 +125,7 @@ export default function DocumentationPage() {
                     {/* Getting Started */}
                     <section
                       id="getting-started"
-                      ref={(el) => (sectionRefs.current['getting-started'] = el)}
+                      ref={(el) => { sectionRefs.current['getting-started'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Getting Started</h2>
@@ -194,7 +194,7 @@ export default function DocumentationPage() {
                     {/* Dashboard Overview */}
                     <section
                       id="dashboard"
-                      ref={(el) => (sectionRefs.current['dashboard'] = el)}
+                      ref={(el) => { sectionRefs.current['dashboard'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Dashboard Overview</h2>
@@ -239,7 +239,7 @@ export default function DocumentationPage() {
                     {/* Mosque Profile */}
                     <section
                       id="mosque-profile"
-                      ref={(el) => (sectionRefs.current['mosque-profile'] = el)}
+                      ref={(el) => { sectionRefs.current['mosque-profile'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Mosque Profile Management</h2>
@@ -324,7 +324,7 @@ export default function DocumentationPage() {
                     {/* Khairat Members */}
                     <section
                       id="khairat-members"
-                      ref={(el) => (sectionRefs.current['khairat-members'] = el)}
+                      ref={(el) => { sectionRefs.current['khairat-members'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Khairat Members Management</h2>
@@ -360,7 +360,7 @@ export default function DocumentationPage() {
                     {/* Payments */}
                     <section
                       id="payments"
-                      ref={(el) => (sectionRefs.current['payments'] = el)}
+                      ref={(el) => { sectionRefs.current['payments'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Payments & Settings</h2>
@@ -425,7 +425,7 @@ export default function DocumentationPage() {
                     {/* Claims */}
                     <section
                       id="claims"
-                      ref={(el) => (sectionRefs.current['claims'] = el)}
+                      ref={(el) => { sectionRefs.current['claims'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Claims Management</h2>
@@ -457,7 +457,7 @@ export default function DocumentationPage() {
                     {/* Billing */}
                     <section
                       id="billing"
-                      ref={(el) => (sectionRefs.current['billing'] = el)}
+                      ref={(el) => { sectionRefs.current['billing'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">Billing & Subscription</h2>

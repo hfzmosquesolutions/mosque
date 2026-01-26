@@ -112,7 +112,7 @@ export default function TutorialPage() {
                     {/* Introduction */}
                     <section
                       id="introduction"
-                      ref={(el) => (sectionRefs.current['introduction'] = el)}
+                      ref={(el) => { sectionRefs.current['introduction'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.introduction')}</h2>
@@ -129,7 +129,7 @@ export default function TutorialPage() {
                     {/* Getting Started */}
                     <section
                       id="getting-started"
-                      ref={(el) => (sectionRefs.current['getting-started'] = el)}
+                      ref={(el) => { sectionRefs.current['getting-started'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.gettingStarted')}</h2>
@@ -157,7 +157,7 @@ export default function TutorialPage() {
                     {/* Finding Mosques */}
                     <section
                       id="finding-mosques"
-                      ref={(el) => (sectionRefs.current['finding-mosques'] = el)}
+                      ref={(el) => { sectionRefs.current['finding-mosques'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.findingMosques')}</h2>
@@ -198,7 +198,7 @@ export default function TutorialPage() {
                     {/* Making Contributions */}
                     <section
                       id="making-contributions"
-                      ref={(el) => (sectionRefs.current['making-contributions'] = el)}
+                      ref={(el) => { sectionRefs.current['making-contributions'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.makingContributions')}</h2>
@@ -230,7 +230,7 @@ export default function TutorialPage() {
                     {/* Managing Profile */}
                     <section
                       id="managing-profile"
-                      ref={(el) => (sectionRefs.current['managing-profile'] = el)}
+                      ref={(el) => { sectionRefs.current['managing-profile'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.managingProfile')}</h2>
@@ -268,7 +268,7 @@ export default function TutorialPage() {
                     {/* Tips */}
                     <section
                       id="tips"
-                      ref={(el) => (sectionRefs.current['tips'] = el)}
+                      ref={(el) => { sectionRefs.current['tips'] = el; }}
                       className="scroll-mt-6"
                     >
                       <h2 className="text-3xl font-semibold mb-4">{t('chapters.tips')}</h2>
