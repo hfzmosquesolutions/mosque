@@ -957,44 +957,11 @@ function KhairatPayPageContent() {
                   <Download className="h-4 w-4 mr-2" />
                   {tKhairat('payPage.downloadReceipt')}
                 </Button>
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => {
-                      setSubmittedSuccessfully(false);
-                      setSubmittedContribution(null);
-                      setAmount('');
-                      setPayerName('');
-                      setPaymentMethod('');
-                      setPaymentReceipts([]);
-                      setNotes('');
-                      setPayerMobile('');
-                      setVerifiedICNumber(null);
-                      setVerifiedMemberId(null);
-                      setVerifiedMembershipNumber(null);
-                      setVerifiedMemberInfo(null);
-                      setIsKhairatMember(false);
-                      setIcNumber('');
-                      window.scrollTo(0, 0);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <HandCoins className="h-4 w-4 mr-2" />
-                    {tKhairat('payPage.makeNewPayment')}
+                <Link href={`/${locale}/mosques/${mosqueId}`} className="block">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    {tKhairat('payPage.backToMosque')}
                   </Button>
-                  <Link href={`/${locale}/mosques/${mosqueId}`} className="flex-1">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      {tKhairat('payPage.backToMosque')}
-                    </Button>
-                  </Link>
-                </div>
-                {user && (
-                  <Link href={`/${locale}/payments`} className="block">
-                    <Button variant="outline" className="w-full">
-                      {tKhairat('payPage.viewPaymentHistory')}
-                    </Button>
-                  </Link>
-                )}
+                </Link>
               </div>
             </CardContent>
           </Card>

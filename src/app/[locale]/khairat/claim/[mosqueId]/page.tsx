@@ -734,49 +734,11 @@ function KhairatClaimPageContent() {
                   <Download className="h-4 w-4 mr-2" />
                   {tKhairat('claimSuccess.downloadReceipt')}
                 </Button>
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => {
-                      // Clear all state
-                      setSubmittedSuccessfully(false);
-                      setSubmittedClaim(null);
-                      setClaimTitle('');
-                      setClaimAmount('');
-                      setClaimDescription('');
-                      setClaimDocuments([]);
-                      setPersonInChargeName('');
-                      setPersonInChargePhone('');
-                      setPersonInChargeRelationship('');
-                      setVerifiedICNumber(null);
-                      setVerifiedKhairatMemberId(null);
-                      setVerifiedMembershipNumber(null);
-                      setVerifiedMemberInfo(null);
-                      setIsKhairatMember(false);
-                      setIcNumber('');
-                      // Clear sessionStorage
-                      sessionStorage.removeItem(`claim-success-${mosqueId}`);
-                      sessionStorage.removeItem(`claim-success-timestamp-${mosqueId}`);
-                      window.scrollTo(0, 0);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    {tKhairat('claimSuccess.makeNewClaim')}
+                <Link href={`/${locale}/mosques/${mosqueId}`} className="block">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    {tKhairat('claimSuccess.backToMosque')}
                   </Button>
-                  <Link href={`/${locale}/mosques/${mosqueId}`} className="flex-1">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                      {tKhairat('claimSuccess.backToMosque')}
-                    </Button>
-                  </Link>
-                </div>
-                {user && (
-                  <Link href={`/${locale}/claims`} className="block">
-                    <Button variant="outline" className="w-full">
-                      {tKhairat('claimSuccess.viewMyClaims')}
-                    </Button>
-                  </Link>
-                )}
+                </Link>
               </div>
             </CardContent>
           </Card>

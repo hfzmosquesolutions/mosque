@@ -2656,6 +2656,9 @@
     },
     "choosePlanTitle": "Pilih Pelan Anda",
     "choosePlanSubtitle": "Pilih pelan yang paling sesuai dengan keperluan masjid anda",
+    "monthly": "Bulanan",
+    "annual": "Tahunan",
+    "savePercentage": "Jimat 20%",
     "subscription": {
       "currentTitle": "Langganan Semasa",
       "currentDescription": "Urus langganan dan bil anda",
@@ -2768,7 +2771,7 @@
       "pickPlanDescription": "Pilih pelan yang sesuai dengan masjid anda. Boleh tukar atau hentikan pada bila-bila masa.",
       "monthly": "Bulanan",
       "annual": "Tahunan",
-      "savePercentage": "(jimat ±20%)",
+      "savePercentage": "Jimat 20%",
       "free": "Percuma",
       "getStartedEssentials": "Terbaik untuk surau & masjid kecil",
       "standard": "Standard",

@@ -16,6 +16,32 @@ export async function GET(request: NextRequest) {
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error && data?.user) {
+      // Check if user has completed onboarding
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('onboarding_completed')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      // If user hasn't completed onboarding, redirect to onboarding page
+      if (!profile || !profile.onboarding_completed) {
+        // Determine locale from returnUrl or default to 'ms'
+        const locale = returnUrl?.match(/^\/(en|ms)\//)?.[1] || 'ms';
+        const onboardingUrl = `/${locale}/onboarding`;
+        
+        const response = NextResponse.redirect(`${requestUrl.origin}${onboardingUrl}`);
+        // Store returnUrl in a cookie as backup (expires in 5 minutes) for after onboarding
+        if (returnUrl) {
+          response.cookies.set('returnUrl', returnUrl, {
+            maxAge: 300, // 5 minutes
+            httpOnly: false,
+            sameSite: 'lax',
+          });
+        }
+        return response;
+      }
+
+      // User has completed onboarding, proceed with normal redirect
       // Get correct dashboard URL based on admin status
       const dashboardUrl = await getDashboardUrl(data.user.id);
       // Redirect to returnUrl if provided, otherwise correct dashboard

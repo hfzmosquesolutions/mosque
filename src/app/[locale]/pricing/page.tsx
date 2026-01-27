@@ -14,15 +14,9 @@ export default function PricingPage() {
   const t = useTranslations('billing.pricing');
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
 
-  const prices = useMemo(
-    () => ({
-      monthly: { free: 0, standard: 79, pro: 399 },
-      annual: { free: 0, standard: 39, pro: 319 }, // billed monthly equivalent (20% discount)
-    }),
-    []
-  );
+  // Prices are now calculated from STRIPE_CONFIG in PricingPlanCard component
 
-  const periodSuffix = billing === "monthly" ? "/mo" : "/mo (billed yearly)";
+  const periodSuffix = billing === "monthly" ? "/mo" : "/year";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
@@ -42,31 +36,51 @@ export default function PricingPage() {
         </div>
 
         {/* Billing toggle */}
-        <div className="flex items-center justify-center gap-2 mb-10">
-          <button
-            type="button"
-            onClick={() => setBilling("monthly")}
-            className={`px-4 py-2 rounded-md border text-sm transition ${
-              billing === "monthly"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-            }`}
-            aria-pressed={billing === "monthly"}
-          >
-            {t('monthly')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBilling("annual")}
-            className={`px-4 py-2 rounded-md border text-sm transition ${
-              billing === "annual"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-            }`}
-            aria-pressed={billing === "annual"}
-          >
-            {t('annual')} <span className="ml-1 text-emerald-700 dark:text-emerald-300">{t('savePercentage')}</span>
-          </button>
+        <div className="flex items-center justify-center mb-10">
+          <div className="relative inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-1.5 shadow-sm border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setBilling("monthly")}
+              className={`relative z-10 px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap w-[140px] ${
+                billing === "monthly"
+                  ? "text-white"
+                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+              aria-pressed={billing === "monthly"}
+            >
+              <span className="relative z-10">{t('monthly')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBilling("annual")}
+              className={`relative z-10 px-4 py-3 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap w-[160px] ${
+                billing === "annual"
+                  ? "text-white"
+                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+              aria-pressed={billing === "annual"}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span>{t('annual')}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 ${
+                  billing === "annual" 
+                    ? "bg-white/25 text-white" 
+                    : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                }`}>
+                  {t('savePercentage')}
+                </span>
+              </span>
+            </button>
+            {/* Sliding indicator */}
+            <div
+              className={`absolute top-1.5 bottom-1.5 rounded-full bg-emerald-600 shadow-md transition-all duration-300 ease-in-out z-0 ${
+                billing === "monthly" 
+                  ? "left-1.5 w-[140px]" 
+                  : "right-1.5 w-[160px]"
+              }`}
+              aria-hidden="true"
+            />
+          </div>
         </div>
 
         {/* Plans */}
@@ -76,7 +90,8 @@ export default function PricingPage() {
             billing={billing}
             buttonText={t('getStarted')}
             buttonClassName="w-full"
-            onSelectPlan={(plan) => {
+            onSelectPlan={async (plan) => {
+              // For pricing page, redirect to signup (billing will be handled after signup)
               window.location.href = '/signup';
             }}
           />
@@ -86,7 +101,8 @@ export default function PricingPage() {
             showRecommended={true}
             buttonText={t('startStandard')}
             buttonClassName="w-full bg-emerald-600 hover:bg-emerald-700"
-            onSelectPlan={(plan) => {
+            onSelectPlan={async (plan) => {
+              // For pricing page, redirect to signup (billing will be handled after signup)
               window.location.href = '/signup';
             }}
           />
@@ -96,7 +112,8 @@ export default function PricingPage() {
             buttonText={t('startPro')}
             buttonVariant="outline"
             buttonClassName="w-full"
-            onSelectPlan={(plan) => {
+            onSelectPlan={async (plan) => {
+              // For pricing page, redirect to signup (billing will be handled after signup)
               window.location.href = '/signup';
             }}
           />

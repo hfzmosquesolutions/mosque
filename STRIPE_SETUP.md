@@ -19,8 +19,13 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Stripe Price IDs (create these in your Stripe dashboard)
-STRIPE_PREMIUM_PRICE_ID=price_your_premium_price_id
-STRIPE_ENTERPRISE_PRICE_ID=price_your_enterprise_price_id
+# Monthly prices
+STRIPE_STANDARD_PRICE_ID=price_your_standard_monthly_price_id
+STRIPE_PRO_PRICE_ID=price_your_pro_monthly_price_id
+
+# Yearly prices (for discounted annual subscriptions)
+STRIPE_STANDARD_PRICE_ID_YEARLY=price_your_standard_yearly_price_id
+STRIPE_PRO_PRICE_ID_YEARLY=price_your_pro_yearly_price_id
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -28,26 +33,46 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## 3. Create Products and Prices in Stripe
 
-### Premium Plan (RM 99/month)
+### Standard Plan
+
+#### Monthly Subscription (RM 79/month)
 1. Go to Products in your Stripe Dashboard
 2. Create a new product:
-   - Name: "Mosque Management Premium"
-   - Description: "Premium features for mosque management"
+   - Name: "Mosque Management Standard"
+   - Description: "Standard features for mosque management"
 3. Add a recurring price:
-   - Price: RM 99.00
+   - Price: RM 79.00
    - Billing period: Monthly
    - Currency: MYR
-4. Copy the Price ID and add it to `STRIPE_PREMIUM_PRICE_ID`
+4. Copy the Price ID and add it to `STRIPE_STANDARD_PRICE_ID`
 
-### Enterprise Plan (RM 299/month)
-1. Create another product:
-   - Name: "Mosque Management Enterprise"
-   - Description: "Enterprise features for large organizations"
+#### Yearly Subscription (RM 758.40/year - Save 20%)
+1. In the same product (or create a new one), add another recurring price:
+   - Price: RM 758.40
+   - Billing period: Yearly
+   - Currency: MYR
+2. Copy the Price ID and add it to `STRIPE_STANDARD_PRICE_ID_YEARLY`
+
+### Pro Plan
+
+#### Monthly Subscription (RM 399/month)
+1. Create a new product:
+   - Name: "Mosque Management Pro"
+   - Description: "Pro features for large organizations"
 2. Add a recurring price:
-   - Price: RM 299.00
+   - Price: RM 399.00
    - Billing period: Monthly
    - Currency: MYR
-3. Copy the Price ID and add it to `STRIPE_ENTERPRISE_PRICE_ID`
+3. Copy the Price ID and add it to `STRIPE_PRO_PRICE_ID`
+
+#### Yearly Subscription (RM 3,830.40/year - Save 20%)
+1. In the same product (or create a new one), add another recurring price:
+   - Price: RM 3,830.40
+   - Billing period: Yearly
+   - Currency: MYR
+2. Copy the Price ID and add it to `STRIPE_PRO_PRICE_ID_YEARLY`
+
+**Note:** Yearly prices offer approximately 20% discount compared to monthly billing (equivalent to paying for 10 months, getting 12 months).
 
 ## 4. Webhook Setup
 
@@ -94,7 +119,7 @@ psql -h your-db-host -U your-username -d your-database -f supabase/migrations/20
 - Community member registration
 - Basic khairat overview
 
-### Premium Tier (RM 99/month)
+### Standard Tier (RM 79/month or RM 758.40/year)
 - Everything in Free
 - Khairat management
 - Advanced kariah management
@@ -102,8 +127,8 @@ psql -h your-db-host -U your-username -d your-database -f supabase/migrations/20
 - Payment processing
 - Priority support
 
-### Enterprise Tier (RM 299/month)
-- Everything in Premium
+### Pro Tier (RM 399/month or RM 3,830.40/year)
+- Everything in Standard
 - Multi-mosque support
 - API access
 - Custom integrations
@@ -121,7 +146,7 @@ import { FeatureGate } from '@/components/subscription/FeatureGate';
 <FeatureGate
   mosqueId={mosqueId}
   featureName="khairat_management"
-  requiredPlan="premium"
+  requiredPlan="standard"
   onUpgrade={() => window.location.href = '/billing'}
 >
   {/* Premium content */}
