@@ -38,6 +38,7 @@ function BillingContent() {
   const [subscription, setSubscription] = useState<MosqueSubscription | UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
   const searchParams = useSearchParams();
   const isSuccess = searchParams?.get('success') === 'true';
   const isCanceled = searchParams?.get('canceled') === 'true';
@@ -158,6 +159,7 @@ function BillingContent() {
           mosqueId,
           userId: user?.id,
           plan,
+          billing,
           adminEmail,
           adminName
         }),
@@ -263,10 +265,59 @@ function BillingContent() {
             </div>
           </div>
 
+          {/* Billing toggle */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-1.5 shadow-sm border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setBilling('monthly')}
+                className={`relative z-10 px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap w-[140px] ${
+                  billing === 'monthly'
+                    ? 'text-white'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+                aria-pressed={billing === 'monthly'}
+              >
+                <span className="relative z-10">{t('monthly') || 'Monthly'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBilling('annual')}
+                className={`relative z-10 px-4 py-3 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap w-[160px] ${
+                  billing === 'annual'
+                    ? 'text-white'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+                aria-pressed={billing === 'annual'}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <span>{t('annual') || 'Annual'}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 ${
+                    billing === 'annual' 
+                      ? 'bg-white/25 text-white' 
+                      : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                  }`}>
+                    {t('savePercentage') || '20% off'}
+                  </span>
+                </span>
+              </button>
+              {/* Sliding indicator */}
+              <div
+                className={`absolute top-1.5 bottom-1.5 rounded-full bg-emerald-600 shadow-md transition-all duration-300 ease-in-out z-0 ${
+                  billing === 'monthly' 
+                    ? 'left-1.5 w-[140px]' 
+                    : 'right-1.5 w-[160px]'
+                }`}
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <PricingPlanCard
               plan="free"
               currentPlan={currentPlan}
+              billing={billing}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'free'}
               showRecommended={false}
@@ -274,6 +325,7 @@ function BillingContent() {
             <PricingPlanCard
               plan="standard"
               currentPlan={currentPlan}
+              billing={billing}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'standard'}
               showRecommended={true}
@@ -281,6 +333,7 @@ function BillingContent() {
             <PricingPlanCard
               plan="pro"
               currentPlan={currentPlan}
+              billing={billing}
               onSelectPlan={handleUpgrade}
               loading={upgrading === 'pro'}
               showRecommended={false}

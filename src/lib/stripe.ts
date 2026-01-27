@@ -20,6 +20,7 @@ export const STRIPE_CONFIG = {
     free: {
       name: 'Free',
       price: 0,
+      price_yearly: 0,
       features: [
         'Basic mosque profile',
         'Community member registration'
@@ -31,8 +32,10 @@ export const STRIPE_CONFIG = {
     },
     standard: {
       name: 'Standard',
-      price: 7900, // RM 79.00 in cents
+      price: 7900, // RM 79.00 in cents (monthly)
+      price_yearly: 75840, // RM 758.40 in cents (yearly, 20% discount: 79 * 12 * 0.8 = 758.4)
       stripe_price_id: process.env.STRIPE_STANDARD_PRICE_ID,
+      stripe_price_id_yearly: process.env.STRIPE_STANDARD_PRICE_ID_YEARLY,
       features: [
         'Everything in Free',
         'Khairat management',
@@ -48,8 +51,10 @@ export const STRIPE_CONFIG = {
     },
     pro: {
       name: 'Pro',
-      price: 39900, // RM 399.00 in cents
+      price: 39900, // RM 399.00 in cents (monthly)
+      price_yearly: 383040, // RM 3,830.40 in cents (yearly, 20% discount: 399 * 12 * 0.8 = 3830.4)
       stripe_price_id: process.env.STRIPE_PRO_PRICE_ID,
+      stripe_price_id_yearly: process.env.STRIPE_PRO_PRICE_ID_YEARLY,
       features: [
         'Everything in Standard',
         'Multi-mosque support',

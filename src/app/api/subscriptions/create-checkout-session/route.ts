@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mosqueId, userId, plan, adminEmail: providedAdminEmail, adminName: providedAdminName } = await request.json();
+    const { mosqueId, userId, plan, billing = 'monthly', adminEmail: providedAdminEmail, adminName: providedAdminName } = await request.json();
 
     if ((!mosqueId && !userId) || !plan) {
       return NextResponse.json(
@@ -137,11 +137,14 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session
     const planConfig = STRIPE_CONFIG.plans[plan as keyof typeof STRIPE_CONFIG.plans];
-    const priceId = 'stripe_price_id' in planConfig ? planConfig.stripe_price_id : undefined;
+    const isYearly = billing === 'yearly' || billing === 'annual';
+    const priceId = isYearly 
+      ? ('stripe_price_id_yearly' in planConfig ? planConfig.stripe_price_id_yearly : undefined)
+      : ('stripe_price_id' in planConfig ? planConfig.stripe_price_id : undefined);
     
     if (!priceId) {
       return NextResponse.json(
-        { error: 'Price ID not configured for this plan' },
+        { error: `Price ID not configured for this plan (${billing})` },
         { status: 400 }
       );
     }
@@ -161,13 +164,15 @@ export async function POST(request: NextRequest) {
       metadata: {
         user_id: billingUserId || '',
         mosque_id: mosqueId || '',
-        plan: plan
+        plan: plan,
+        billing: billing
       },
       subscription_data: {
         metadata: {
           user_id: billingUserId || '',
           mosque_id: mosqueId || '',
-          plan: plan
+          plan: plan,
+          billing: billing
         }
       }
     });

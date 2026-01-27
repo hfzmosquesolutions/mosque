@@ -2606,6 +2606,9 @@
     },
     "choosePlanTitle": "Choose Your Plan",
     "choosePlanSubtitle": "Select the plan that best fits your mosque's needs",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "savePercentage": "20% off",
     "subscription": {
       "currentTitle": "Current Subscription",
       "currentDescription": "Manage your subscription and billing",
@@ -2717,7 +2720,7 @@
       "pickPlanDescription": "Pick a plan that fits your community. Upgrade or cancel anytime.",
       "monthly": "Monthly",
       "annual": "Annual",
-      "savePercentage": "(save ~20%)",
+      "savePercentage": "20% off",
       "free": "Free",
       "getStartedEssentials": "Get started with essentials",
       "standard": "Standard",

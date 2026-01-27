@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, CreditCard, Building2, Banknote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { SubscriptionPlan } from '@/lib/stripe';
+import { SubscriptionPlan, STRIPE_CONFIG } from '@/lib/stripe';
 
 interface PricingPlanCardProps {
   plan: SubscriptionPlan;
@@ -18,9 +18,12 @@ interface PricingPlanCardProps {
   buttonClassName?: string;
 }
 
-const prices = {
-  monthly: { free: 0, standard: 79, pro: 399 },
-  annual: { free: 0, standard: 39, pro: 319 },
+const getPrice = (plan: SubscriptionPlan, billing: 'monthly' | 'annual') => {
+  const planConfig = STRIPE_CONFIG.plans[plan];
+  if (billing === 'annual' && 'price_yearly' in planConfig) {
+    return planConfig.price_yearly / 100; // Convert cents to RM
+  }
+  return planConfig.price / 100; // Convert cents to RM
 };
 
 export function PricingPlanCard({
@@ -36,7 +39,7 @@ export function PricingPlanCard({
 }: PricingPlanCardProps) {
   const t = useTranslations('billing.pricing');
   const isCurrentPlan = currentPlan === plan;
-  const periodSuffix = billing === 'monthly' ? '/mo' : '/mo (billed yearly)';
+  const periodSuffix = billing === 'monthly' ? '/mo' : '/year';
   const isPopular = plan === 'standard' && showRecommended;
 
   const getMemberCount = () => {
@@ -90,7 +93,7 @@ export function PricingPlanCard({
       <CardContent className="flex flex-col flex-grow">
         <div className="flex items-baseline gap-2">
           <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            RM{prices[billing][plan]}
+            RM{getPrice(plan, billing)}
           </div>
           <div className="text-slate-500 text-sm">{periodSuffix}</div>
         </div>
