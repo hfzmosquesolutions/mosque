@@ -209,8 +209,11 @@ export const AppSidebar = React.memo(function AppSidebar() {
           claimCount = Number((claimCountsData as any).successful || 0);
         }
 
-        if (!('error' in membersCountResult) && typeof membersCountResult.count === 'number') {
-          applicationCount = membersCountResult.count || 0;
+        // Supabase returns a response object that includes a `count` field when `head: true` is used.
+        // We cast to `any` here to keep the logic simple while still performing proper runtime checks.
+        const membersCountResultTyped = membersCountResult as any;
+        if (!('error' in membersCountResultTyped) && typeof membersCountResultTyped.count === 'number') {
+          applicationCount = membersCountResultTyped.count || 0;
         }
 
         const hasIncomplete =
