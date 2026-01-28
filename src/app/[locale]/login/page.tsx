@@ -54,7 +54,12 @@ function LoginPageContent() {
     try {
       const result = await signIn(email, password);
       if (result?.error) {
-        toast.error(result.error);
+        // Handle common auth errors with translations
+        if (result.error.toLowerCase().includes('email not confirmed')) {
+          toast.error(t('emailNotConfirmed'));
+        } else {
+          toast.error(result.error);
+        }
         setLoading(false);
         return;
       }

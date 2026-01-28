@@ -138,10 +138,11 @@ function KhairatPayPageContent() {
   const [hasOnlinePayment, setHasOnlinePayment] = useState(false);
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [checkingPaymentProvider, setCheckingPaymentProvider] = useState(false);
+  // By default, no payment methods are enabled until mosque explicitly configures them.
   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState({
-    online_payment: true,
-    bank_transfer: true,
-    cash: true,
+    online_payment: false,
+    bank_transfer: false,
+    cash: false,
   });
   const [isKhairatMember, setIsKhairatMember] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(true);
@@ -342,18 +343,20 @@ function KhairatPayPageContent() {
 
         // Load payment method settings from mosque
         let paymentMethodsEnabled = {
-          online_payment: true,
-          bank_transfer: true,
-          cash: true,
+          online_payment: false,
+          bank_transfer: false,
+          cash: false,
         };
         
         if (mosqueRes.success && mosqueRes.data) {
           const settings = mosqueRes.data.settings as Record<string, any> | undefined;
           const paymentMethods = settings?.enabled_payment_methods || {};
+
+          // Only treat methods as enabled when explicitly set to true.
           paymentMethodsEnabled = {
-            online_payment: paymentMethods.online_payment !== false,
-            bank_transfer: paymentMethods.bank_transfer !== false,
-            cash: paymentMethods.cash !== false,
+            online_payment: paymentMethods.online_payment === true,
+            bank_transfer: paymentMethods.bank_transfer === true,
+            cash: paymentMethods.cash === true,
           };
           
           setEnabledPaymentMethods(paymentMethodsEnabled);

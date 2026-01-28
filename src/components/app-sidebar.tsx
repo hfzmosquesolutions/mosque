@@ -26,9 +26,10 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
 import { RUNTIME_FEATURES, FEATURES } from '@/lib/utils';
-import { getMosque } from '@/lib/api';
+import { getMosque, getMosqueKhairatContributions, getMosqueClaimCounts } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import type { Mosque } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 import {
   Sidebar,
   SidebarContent,
@@ -49,6 +50,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId?: string | null) => {
   const baseNavigation = [
@@ -112,6 +114,7 @@ export const AppSidebar = React.memo(function AppSidebar() {
   const locale = useLocale();
   const [mosque, setMosque] = useState<Mosque | null>(null);
   const [mosqueLoading, setMosqueLoading] = useState(false);
+  const [hasIncompleteAdminSetup, setHasIncompleteAdminSetup] = useState(false);
 
   const navigation = React.useMemo(
     () => getNavigation(hasAdminAccess, t, locale, mosqueId),
@@ -141,6 +144,91 @@ export const AppSidebar = React.memo(function AppSidebar() {
 
     fetchMosqueData();
   }, [mosqueId]);
+
+  // Admin setup indicator so admins can see if there are pending setup steps from anywhere.
+  useEffect(() => {
+    const fetchAdminSetupStatus = async () => {
+      if (!hasAdminAccess || !mosqueId) {
+        setHasIncompleteAdminSetup(false);
+        return;
+      }
+
+      try {
+        const [mosqueResponse, contributionsResponse, claimCountsData, membersCountResult] =
+          await Promise.all([
+            getMosque(mosqueId),
+            getMosqueKhairatContributions(mosqueId),
+            getMosqueClaimCounts(mosqueId),
+            supabase
+              .from('khairat_members')
+              .select('id', { count: 'exact', head: true })
+              .eq('mosque_id', mosqueId),
+          ]);
+
+        let hasMosqueProfile = false;
+        let hasPaymentSetup = false;
+        let applicationCount = 0;
+        let contributionCount = 0;
+        let claimCount = 0;
+
+        if ('success' in mosqueResponse && mosqueResponse.success && mosqueResponse.data) {
+          const mosqueData = mosqueResponse.data as any;
+          hasMosqueProfile = Boolean(mosqueData.name);
+
+          const paymentSettings = (mosqueData.settings || {}) as {
+            enabled_payment_methods?: {
+              online_payment?: boolean;
+              bank_transfer?: boolean;
+              cash?: boolean;
+            };
+            paymentsConfigured?: boolean;
+            paymentProvidersConfigured?: boolean;
+            hasPaymentProvider?: boolean;
+          };
+
+          const hasAnyEnabledPaymentMethod =
+            Boolean(paymentSettings.enabled_payment_methods?.online_payment) ||
+            Boolean(paymentSettings.enabled_payment_methods?.bank_transfer) ||
+            Boolean(paymentSettings.enabled_payment_methods?.cash);
+
+          hasPaymentSetup =
+            hasAnyEnabledPaymentMethod ||
+            Boolean(paymentSettings?.paymentsConfigured) ||
+            Boolean(paymentSettings?.paymentProvidersConfigured) ||
+            Boolean(paymentSettings?.hasPaymentProvider);
+        }
+
+        if ('data' in contributionsResponse && contributionsResponse.data) {
+          const completedContributions = (contributionsResponse.data as any[]).filter(
+            (c) => c.status === 'completed'
+          );
+          contributionCount = completedContributions.length;
+        }
+
+        if (claimCountsData && typeof claimCountsData === 'object' && 'successful' in claimCountsData) {
+          claimCount = Number((claimCountsData as any).successful || 0);
+        }
+
+        if (!('error' in membersCountResult) && typeof membersCountResult.count === 'number') {
+          applicationCount = membersCountResult.count || 0;
+        }
+
+        const hasIncomplete =
+          !hasMosqueProfile ||
+          !hasPaymentSetup ||
+          applicationCount === 0 ||
+          contributionCount === 0 ||
+          claimCount === 0;
+
+        setHasIncompleteAdminSetup(hasIncomplete);
+      } catch (error) {
+        console.error('Error fetching admin setup status for sidebar:', error);
+        setHasIncompleteAdminSetup(false);
+      }
+    };
+
+    fetchAdminSetupStatus();
+  }, [hasAdminAccess, mosqueId]);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -194,6 +282,8 @@ export const AppSidebar = React.memo(function AppSidebar() {
                 : navigation.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname.includes(item.href);
+                    const isDashboard =
+                      item.href === '/dashboard' || item.href === '/my-dashboard';
 
                     return (
                       <SidebarMenuItem key={item.name}>
@@ -201,12 +291,19 @@ export const AppSidebar = React.memo(function AppSidebar() {
                           asChild
                           isActive={isActive}
                           tooltip={item.name}
-                          className={isActive ? "bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm" : ""}
+                          className={
+                            isActive
+                              ? 'bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 font-medium shadow-xs backdrop-blur-sm'
+                              : ''
+                          }
                         >
                           <Link href={item.href}>
                             <span className="flex items-center gap-2">
                               <Icon className="size-4" />
                               <span>{item.name}</span>
+                              {isDashboard && hasAdminAccess && hasIncompleteAdminSetup && (
+                                <span className="ml-1 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 border border-amber-100 shadow-sm" />
+                              )}
                             </span>
                           </Link>
                         </SidebarMenuButton>

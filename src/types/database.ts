@@ -470,6 +470,12 @@ export interface OnboardingData {
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
   institutionType?: InstitutionType;
+  // Extended mosque profile fields collected during onboarding
+  mosqueDescription?: string;
+  mosquePhone?: string;
+  mosqueEmail?: string;
+  mosqueLogoUrl?: string;
+  mosqueBannerUrl?: string;
 }
 
 // Event creation/update form

@@ -58,11 +58,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Mark initial load as complete after processing the first event
+      // Handle first auth event (including email confirmation links)
       if (isInitialLoad.current) {
+        // Detect if this initial sign-in came from an email confirmation/signup link
+        if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
+          const url = window.location.href;
+          const fromSignupLink =
+            url.includes('type=signup') ||
+            url.includes('#access_token=') ||
+            url.includes('token_type=bearer');
+
+          if (fromSignupLink) {
+            const locale =
+              window.location.pathname.match(/^\/(en|ms)\//)?.[1] || 'ms';
+            if (locale === 'en') {
+              toast.success(
+                'Your email has been confirmed. Your account is now active and you are signed in.'
+              );
+            } else {
+              toast.success(
+                'Emel anda telah disahkan. Akaun anda kini aktif dan anda telah log masuk.'
+              );
+            }
+          }
+        }
+
+        // Mark initial load as complete after processing the first event
         isInitialLoad.current = false;
         previousUserId.current = currentUserId;
-        return; // Don't show toast for initial session restoration
+        return; // Don't show generic toast for initial session restoration
       }
 
       // Only show toast messages for actual auth events

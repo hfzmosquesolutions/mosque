@@ -249,10 +249,11 @@ export function KhairatContributionForm({
         
         const isFreePlan = subscriptionPlan === 'free';
         
+        // Only treat methods as enabled when explicitly set to true.
         const paymentMethodsEnabled = {
-          online_payment: isFreePlan ? false : (paymentMethods.online_payment !== false),
-          bank_transfer: paymentMethods.bank_transfer !== false,
-          cash: paymentMethods.cash !== false,
+          online_payment: isFreePlan ? false : paymentMethods.online_payment === true,
+          bank_transfer: paymentMethods.bank_transfer === true,
+          cash: paymentMethods.cash === true,
         };
         
         setEnabledPaymentMethods(paymentMethodsEnabled);
