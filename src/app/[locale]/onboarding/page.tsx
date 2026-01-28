@@ -51,6 +51,9 @@ interface OnboardingData {
   address: string;
   icPassportNumber: string;
 
+  // Mosque admin role within the organisation
+  mosqueRole?: string;
+
   // Role Selection (admin only now)
   accountType: 'admin' | '';
 
@@ -70,6 +73,7 @@ function OnboardingContent() {
     phone: '',
     address: '',
     icPassportNumber: '',
+    mosqueRole: '',
     accountType: 'admin', // Always admin for mosque administrators
     institutionType: 'mosque', // Default to mosque
     mosqueAddressData: {
@@ -102,6 +106,7 @@ function OnboardingContent() {
             address: profile.address || '',
             icPassportNumber: profile.ic_passport_number || '',
             accountType: 'admin', // Always admin
+            // If we later store mosque role in preferences, we can prefill it here
           };
 
           // If user is admin, try to fetch mosque data
@@ -169,7 +174,7 @@ function OnboardingContent() {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!data.fullName || !data.phone) {
+      if (!data.fullName || !data.phone || !data.mosqueRole) {
         toast.error(t('fillRequiredFields'));
         return;
       }
@@ -260,7 +265,7 @@ function OnboardingContent() {
 
       <div className="space-y-4">
         <div>
-          <Label htmlFor="fullName">{t('fullName')} *</Label>
+          <Label htmlFor="fullName">{t('fullName')}</Label>
           <Input
             id="fullName"
             value={data.fullName}
@@ -271,7 +276,7 @@ function OnboardingContent() {
         </div>
 
         <div>
-          <Label htmlFor="phone">{t('phoneNumber')} *</Label>
+          <Label htmlFor="phone">{t('phoneNumber')}</Label>
           <Input
             id="phone"
             value={data.phone}
@@ -279,6 +284,30 @@ function OnboardingContent() {
             placeholder={t('enterPhoneNumber')}
             className="mt-1"
           />
+        </div>
+
+        <div>
+          <Label htmlFor="mosqueRole">{t('mosqueRoleLabel')}</Label>
+          <Select
+            value={data.mosqueRole || ''}
+            onValueChange={(value) => updateData('mosqueRole', value)}
+          >
+            <SelectTrigger id="mosqueRole" className="mt-1">
+              <SelectValue placeholder={t('mosqueRolePlaceholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="chairman">{t('mosqueRoleChairman')}</SelectItem>
+              <SelectItem value="deputy_chairman">{t('mosqueRoleDeputyChairman')}</SelectItem>
+              <SelectItem value="secretary">{t('mosqueRoleSecretary')}</SelectItem>
+              <SelectItem value="treasurer">{t('mosqueRoleTreasurer')}</SelectItem>
+              <SelectItem value="committee_member">{t('mosqueRoleCommittee')}</SelectItem>
+              <SelectItem value="imam">{t('mosqueRoleImam')}</SelectItem>
+              <SelectItem value="bilal">{t('mosqueRoleBilal')}</SelectItem>
+              <SelectItem value="staff">{t('mosqueRoleStaff')}</SelectItem>
+              <SelectItem value="volunteer">{t('mosqueRoleVolunteer')}</SelectItem>
+              <SelectItem value="other">{t('mosqueRoleOther')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
@@ -298,7 +327,7 @@ function OnboardingContent() {
         <div className="space-y-4">
           <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="mosqueName">{t('mosqueName')} *</Label>
+              <Label htmlFor="mosqueName">{t('mosqueName')}</Label>
               <Input
                 id="mosqueName"
                 value={data.mosqueName || ''}
@@ -309,7 +338,7 @@ function OnboardingContent() {
             </div>
 
             <div>
-              <Label htmlFor="institutionType">{t('institutionType')} *</Label>
+              <Label htmlFor="institutionType">{t('institutionType')}</Label>
               <Select
                 value={data.institutionType || 'mosque'}
                 onValueChange={(value) => updateData('institutionType', value as 'mosque' | 'surau')}
@@ -347,38 +376,76 @@ function OnboardingContent() {
     );
   };
 
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold mb-2">{t('reviewConfirm')}</h3>
-        <p className="text-slate-600 dark:text-slate-400">
-          {t('reviewConfirmDescription')}
-        </p>
-      </div>
+  const renderStep3 = () => {
+    const getMosqueRoleLabel = () => {
+      switch (data.mosqueRole) {
+        case 'chairman':
+          return t('mosqueRoleChairman');
+        case 'deputy_chairman':
+          return t('mosqueRoleDeputyChairman');
+        case 'secretary':
+          return t('mosqueRoleSecretary');
+        case 'treasurer':
+          return t('mosqueRoleTreasurer');
+        case 'committee_member':
+          return t('mosqueRoleCommittee');
+        case 'imam':
+          return t('mosqueRoleImam');
+        case 'bilal':
+          return t('mosqueRoleBilal');
+        case 'staff':
+          return t('mosqueRoleStaff');
+        case 'volunteer':
+          return t('mosqueRoleVolunteer');
+        case 'other':
+          return t('mosqueRoleOther');
+        default:
+          return '';
+      }
+    };
 
-      <Card className="bg-slate-50 dark:bg-slate-800">
-        <CardContent className="p-6 space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">{t('mosqueAdministratorInformation')}</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">
-                  {t('reviewStepAdministratorName')}:
-                </span>
-                <p className="font-medium">{data.fullName}</p>
-              </div>
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">
-                  {t('reviewStepPhone')}:
-                </span>
-                <p className="font-medium">{data.phone}</p>
+    const mosqueRoleLabel = getMosqueRoleLabel();
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">{t('reviewConfirm')}</h3>
+          <p className="text-slate-600 dark:text-slate-400">
+            {t('reviewConfirmDescription')}
+          </p>
+        </div>
+
+        <Card className="bg-slate-50 dark:bg-slate-800">
+          <CardContent className="p-6 space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2">{t('mosqueAdministratorInformation')}</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('reviewStepAdministratorName')}:
+                  </span>
+                  <p className="font-medium">{data.fullName}</p>
+                </div>
+                <div>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('reviewStepPhone')}:
+                  </span>
+                  <p className="font-medium">{data.phone}</p>
+                </div>
+                {mosqueRoleLabel && (
+                  <div>
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {t('reviewStepMosqueRole')}:
+                    </span>
+                    <p className="font-medium">{mosqueRoleLabel}</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          <div>
-            <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
+            <div>
+              <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
                 {data.institutionType && (
                   <p className="mb-2">
@@ -410,7 +477,7 @@ function OnboardingContent() {
                         data.mosqueAddressData.city,
                         data.mosqueAddressData.state,
                         data.mosqueAddressData.postcode,
-                        data.mosqueAddressData.country
+                        data.mosqueAddressData.country,
                       ]
                         .filter(Boolean)
                         .join(', ')}
@@ -418,12 +485,12 @@ function OnboardingContent() {
                   </div>
                 )}
               </div>
-          </div>
-
-        </CardContent>
-      </Card>
-    </div>
-  );
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">

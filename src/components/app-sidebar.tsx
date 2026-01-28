@@ -86,16 +86,19 @@ const getNavigation = (hasAdminAccess: boolean, t: any, locale: string, mosqueId
       href: '/mosque-profile',
       icon: Building,
     });
-  }
-
-  // Add billing link only for admin users
-  if (hasAdminAccess) {
     baseNavigation.push({
       name: t('billing'),
       href: '/billing',
       icon: CreditCard,
     });
   }
+
+  // Account settings is always last, for all users
+  baseNavigation.push({
+    name: t('accountSettings'),
+    href: '/account',
+    icon: Settings,
+  });
 
   return baseNavigation;
 };

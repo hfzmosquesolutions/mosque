@@ -5,7 +5,7 @@ import { getMosqueSubscription, getUserSubscription, isFeatureAvailable } from '
 import { MosqueSubscription, UserSubscription } from '@/lib/subscription';
 import { SubscriptionPlan } from '@/lib/stripe';
 import { useUserRole } from './useUserRole';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export function useSubscription(mosqueId: string) {
   const [subscription, setSubscription] = useState<MosqueSubscription | UserSubscription | null>(null);
@@ -32,8 +32,6 @@ export function useSubscription(mosqueId: string) {
         // 1. Try to find the mosque owner
         // 2. Check if the mosque owner has a user_subscription
         // 3. If not, check if the mosque has a mosque_subscription (legacy)
-        
-        const supabase = createClient();
         
         // Get mosque owner ID
         const { data: mosqueData, error: mosqueError } = await supabase

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useUserRole';
 import { Card, CardContent } from '@/components/ui/card';
+import { checkOnboardingStatus } from '@/lib/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -24,6 +25,7 @@ export function ProtectedRoute({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
 
   useEffect(() => {
     // Don't do anything while still loading
@@ -103,28 +105,105 @@ export function ProtectedRoute({
       return; // Don't proceed until double-check completes
     }
 
+    // For all authenticated internal routes (admin or member),
+    // enforce onboarding completion so users can't bypass onboarding
+    if (requireAuth && user && !isCheckingOnboarding) {
+      const path = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isOnboardingPath = path.includes('/onboarding');
+
+      // Don't enforce while already on the onboarding page itself
+      if (!isOnboardingPath) {
+        setIsCheckingOnboarding(true);
+        const enforceOnboarding = async () => {
+          try {
+            const onboardingCompleted = await checkOnboardingStatus(user.id);
+
+            if (!onboardingCompleted) {
+              const localeMatch = path.match(/^\/(en|ms)\//);
+              const locale = localeMatch?.[1] || 'ms';
+              const onboardingUrl = `/${locale}/onboarding`;
+
+              // Store current path to return after onboarding (if not already stored)
+              if (
+                typeof window !== 'undefined' &&
+                path &&
+                path !== '/dashboard' &&
+                !path.includes('/onboarding')
+              ) {
+                const existingPendingUrl = sessionStorage.getItem('pendingReturnUrl');
+                if (!existingPendingUrl || path.includes('/mosques/')) {
+                  sessionStorage.setItem('pendingReturnUrl', path);
+                }
+              }
+
+              if (path !== onboardingUrl) {
+                router.push(onboardingUrl);
+              }
+              return;
+            }
+          } catch (error) {
+            console.error(
+              '[ProtectedRoute] Error enforcing onboarding for protected route:',
+              error
+            );
+            // On error, be safe and redirect to onboarding
+            const localeMatch = path.match(/^\/(en|ms)\//);
+            const locale = localeMatch?.[1] || 'ms';
+            router.push(`/${locale}/onboarding`);
+          } finally {
+            setIsCheckingOnboarding(false);
+          }
+        };
+
+        enforceOnboarding();
+      }
+    }
+
     if (!requireAuth && user) {
       // Redirect authenticated users away from auth pages
-      const returnUrl = 
-        (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) ||
-        searchParams.get('returnUrl') ||
-        (hasAdminAccess ? '/dashboard' : '/my-dashboard');
+      // First check onboarding status
+      const checkOnboardingAndRedirect = async () => {
+        try {
+          const onboardingCompleted = await checkOnboardingStatus(user.id);
+          
+          if (!onboardingCompleted) {
+            // User hasn't completed onboarding, redirect to onboarding
+            const locale = window.location.pathname.match(/^\/(en|ms)\//)?.[1] || 'ms';
+            const onboardingUrl = `/${locale}/onboarding`;
+            router.push(onboardingUrl);
+            return;
+          }
+          
+          // User has completed onboarding, proceed with normal redirect
+          const returnUrl = 
+            (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) ||
+            searchParams.get('returnUrl') ||
+            (hasAdminAccess ? '/dashboard' : '/my-dashboard');
+          
+          if (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) {
+            sessionStorage.removeItem('returnUrl');
+          }
+          
+          if (returnUrl && returnUrl !== '/dashboard' && returnUrl !== '/my-dashboard') {
+            window.location.href = returnUrl;
+          } else {
+            router.push(hasAdminAccess ? '/dashboard' : '/my-dashboard');
+          }
+        } catch (error) {
+          console.error('[ProtectedRoute] Error checking onboarding status:', error);
+          // On error, redirect to onboarding to be safe
+          const locale = window.location.pathname.match(/^\/(en|ms)\//)?.[1] || 'ms';
+          router.push(`/${locale}/onboarding`);
+        }
+      };
       
-      if (typeof window !== 'undefined' && sessionStorage.getItem('returnUrl')) {
-        sessionStorage.removeItem('returnUrl');
-      }
-      
-      if (returnUrl && returnUrl !== '/dashboard' && returnUrl !== '/my-dashboard') {
-        window.location.href = returnUrl;
-      } else {
-        router.push(hasAdminAccess ? '/dashboard' : '/my-dashboard');
-      }
+      checkOnboardingAndRedirect();
     }
   }, [user, loading, adminLoading, hasAdminAccess, router, redirectTo, requireAuth, requireAdmin, searchParams]);
 
   // CRITICAL: Don't render children while still loading authentication/admin status
   // This prevents any flash of content or premature access denied messages
-  if (loading || adminLoading || isCheckingAdmin) {
+  if (loading || adminLoading || isCheckingAdmin || isCheckingOnboarding) {
     return null;
   }
 

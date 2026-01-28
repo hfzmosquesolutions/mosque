@@ -3,7 +3,6 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
-import { useOnboardingRedirect } from '@/hooks/useOnboardingStatus';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PaymentProviderSettings } from '@/components/settings/PaymentProviderSettings';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -46,7 +45,6 @@ function PaymentSettingsContent() {
   const tBilling = useTranslations('billing.pricing');
   const locale = useLocale();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
-  const { isCompleted, isLoading: onboardingLoading } = useOnboardingRedirect();
   const { mosqueId } = useUserMosque();
   const { plan, loading: subscriptionLoading } = useSubscription(mosqueId || '');
   const isFreePlan = plan === 'free';
@@ -285,10 +283,10 @@ function PaymentSettingsContent() {
   };
 
 
-  // ProtectedRoute already handles access control
-  // If we reach here, user is authenticated and has admin access
-  // Wait for loading to complete before rendering
-  if (onboardingLoading || !isCompleted || adminLoading || subscriptionLoading) {
+  // ProtectedRoute already handles access control and onboarding enforcement.
+  // If we reach here, user is authenticated and has admin access.
+  // Wait for loading to complete before rendering.
+  if (adminLoading || subscriptionLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-start justify-between">

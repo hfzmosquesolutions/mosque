@@ -169,52 +169,73 @@ export async function completeOnboarding(
       }
 
       if (existingMosque) {
-        return { success: false, error: 'You can only create one mosque. You already own a mosque.' };
-      }
+        // User already has a mosque – update that record instead of creating a new one
+        const { error: updateError } = await supabase
+          .from('mosques')
+          .update({
+            name: onboardingData.mosqueName,
+            address: onboardingData.mosqueAddress,
+            address_line1: onboardingData.mosqueAddressData?.address_line1,
+            address_line2: onboardingData.mosqueAddressData?.address_line2,
+            city: onboardingData.mosqueAddressData?.city,
+            state: onboardingData.mosqueAddressData?.state,
+            postcode: onboardingData.mosqueAddressData?.postcode,
+            country: onboardingData.mosqueAddressData?.country,
+            institution_type: onboardingData.institutionType || 'mosque',
+          })
+          .eq('id', existingMosque.id);
 
-      // Create new mosque with user_id as the owner
-      const { data: mosque, error: mosqueError } = await supabase
-        .from('mosques')
-        .insert({
-          name: onboardingData.mosqueName,
-          address: onboardingData.mosqueAddress,
-          address_line1: onboardingData.mosqueAddressData?.address_line1,
-          address_line2: onboardingData.mosqueAddressData?.address_line2,
-          city: onboardingData.mosqueAddressData?.city,
-          state: onboardingData.mosqueAddressData?.state,
-          postcode: onboardingData.mosqueAddressData?.postcode,
-          country: onboardingData.mosqueAddressData?.country,
-          institution_type: onboardingData.institutionType || 'mosque', // Default to mosque if not specified
-          user_id: userId, // Set the creator as the mosque owner
-          is_private: false, // Default to public profile
-          settings: {
-            enabled_services: [
-              'kariah_management',
-              'khairat_management', 
-              'organization_people',
-              'mosque_profile'
-            ],
-            kariah_registration: {
-              requirements: '',
-              benefits: '',
-              custom_message: ''
+        if (updateError) {
+          console.error('Mosque update error:', updateError);
+          return { success: false, error: `Failed to update mosque: ${updateError.message}` };
+        }
+
+        mosqueId = existingMosque.id;
+      } else {
+        // Create new mosque with user_id as the owner
+        const { data: mosque, error: mosqueError } = await supabase
+          .from('mosques')
+          .insert({
+            name: onboardingData.mosqueName,
+            address: onboardingData.mosqueAddress,
+            address_line1: onboardingData.mosqueAddressData?.address_line1,
+            address_line2: onboardingData.mosqueAddressData?.address_line2,
+            city: onboardingData.mosqueAddressData?.city,
+            state: onboardingData.mosqueAddressData?.state,
+            postcode: onboardingData.mosqueAddressData?.postcode,
+            country: onboardingData.mosqueAddressData?.country,
+            institution_type: onboardingData.institutionType || 'mosque', // Default to mosque if not specified
+            user_id: userId, // Set the creator as the mosque owner
+            is_private: false, // Default to public profile
+            settings: {
+              enabled_services: [
+                'kariah_management',
+                'khairat_management',
+                'organization_people',
+                'mosque_profile',
+              ],
+              kariah_registration: {
+                requirements: '',
+                benefits: '',
+                custom_message: '',
+              },
+              khairat_registration: {
+                requirements: '',
+                benefits: '',
+                custom_message: '',
+              },
             },
-            khairat_registration: {
-              requirements: '',
-              benefits: '',
-              custom_message: ''
-            }
-          }
-        })
-        .select()
-        .single();
+          })
+          .select()
+          .single();
 
-      if (mosqueError) {
-        console.error('Mosque creation error:', mosqueError);
-        return { success: false, error: `Failed to create mosque: ${mosqueError.message}` };
+        if (mosqueError) {
+          console.error('Mosque creation error:', mosqueError);
+          return { success: false, error: `Failed to create mosque: ${mosqueError.message}` };
+        }
+
+        mosqueId = mosque.id;
       }
-
-      mosqueId = mosque.id;
     }
 
     // Update user profile with onboarding data (removed mosque_id)
@@ -225,6 +246,7 @@ export async function completeOnboarding(
       ic_passport_number: onboardingData.icPassportNumber,
       account_type: onboardingData.accountType as 'member' | 'admin',
       role: onboardingData.accountType === 'admin' ? 'admin' : 'member',
+      mosque_admin_role: onboardingData.mosqueRole,
       onboarding_completed: true,
       onboarding_completed_at: new Date().toISOString(),
       is_profile_private: false, // Default to public profile

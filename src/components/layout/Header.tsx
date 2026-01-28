@@ -53,6 +53,7 @@ export default function Header() {
     '/mosque-profile',
     '/billing',
     '/profile',
+    '/account',
     '/dependents',
     '/my-mosques',
     '/payment-settings',

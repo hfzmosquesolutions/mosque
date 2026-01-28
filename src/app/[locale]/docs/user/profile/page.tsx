@@ -45,59 +45,6 @@ export default function ProfilePage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">{t('accountSettings')}</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xl font-medium mb-2">{t('passwordManagement')}</h3>
-                  <ol className="list-decimal list-inside space-y-2 ml-4">
-                    <li>{t('passwordItem1')}</li>
-                    <li>{t('passwordItem2')}</li>
-                    <li>{t('passwordItem3')}</li>
-                    <li>{t('passwordItem4')}</li>
-                    <li>{t('passwordItem5')}</li>
-                    <li>{t('passwordItem6')}</li>
-                  </ol>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-medium mb-2">{t('emailPreferences')}</h3>
-                  <p className="mb-3">{t('emailPreferencesDesc')}</p>
-                  <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li>{t('emailItem1')}</li>
-                    <li>{t('emailItem2')}</li>
-                    <li>{t('emailItem3')}</li>
-                    <li>{t('emailItem4')}</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-medium mb-2">{t('languagePreferences')}</h3>
-                  <p className="mb-3">
-                    {t('languagePreferencesDesc')}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold mb-4">{t('security')}</h2>
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <h4 className="font-semibold mb-2">{t('twoFactor')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {t('twoFactorDesc')}
-                  </p>
-                </div>
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <h4 className="font-semibold mb-2">{t('activeSessions')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {t('activeSessionsDesc')}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section>
               <h2 className="text-2xl font-semibold mb-4">{t('accountDeletion')}</h2>
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                 <h4 className="font-semibold mb-2">{t('deletingAccount')}</h4>

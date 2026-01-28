@@ -68,6 +68,7 @@ export interface UserProfile {
   membership_type?: MembershipType;
   role: UserRole;
   status: UserStatus;
+  mosque_admin_role?: string; // More specific organisational role in the mosque/surau
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   date_of_birth?: string;
@@ -463,6 +464,7 @@ export interface OnboardingData {
   phone: string;
   address: string;
   icPassportNumber: string;
+  mosqueRole?: string;
   accountType: UserAccountType | '';
   mosqueName?: string;
   mosqueAddress?: string;
