@@ -103,7 +103,8 @@
     "loginError": "Invalid email or password",
     "signupError": "Failed to create account",
     "loginSuccess": "Successfully logged in",
-    "signupSuccess": "Account created successfully",
+    "signupSuccess": "Account created successfully. Please check your email to confirm your account.",
+    "emailNotConfirmed": "Email not confirmed. Please check your inbox for the confirmation link to activate your account.",
     "welcomeBack": "Welcome Back",
     "signInToAccount": "Sign in to your account",
     "createNewAccount": "Create New Account",
@@ -213,16 +214,16 @@
         "description": "Set up payment providers and billing settings"
       },
       "firstApplication": {
-        "title": "Approve First Khairat Member Registration",
-        "description": "Approve your first khairat member registration"
+        "title": "Register First Khairat Member",
+        "description": "Register and approve your first khairat member"
       },
       "firstPayment": {
         "title": "Receive First Khairat Payment",
         "description": "Collect your first khairat contribution from the community"
       },
       "firstClaim": {
-        "title": "Process First Khairat Claim",
-        "description": "Support members by approving your first khairat claim"
+        "title": "Receive First Khairat Claim",
+        "description": "Support members by receiving and approving your first khairat claim"
       }
     },
     "stepPriority": {
@@ -761,8 +762,8 @@
     "membershipDetailsDescription": "Additional information for your membership",
     "memberAccountSetup": "Member Account Setup",
     "memberAccountSetupDescription": "Your member account is ready to be created. You'll have access to all community features and services.",
-    "mosqueSetup": "Mosque Setup",
-    "mosqueSetupDescription": "Configure your mosque administration settings",
+    "mosqueSetup": "About Your Mosque",
+    "mosqueSetupDescription": "Information and images that will appear on your mosque's public profile page",
     "whatWouldYouLikeToDo": "What would you like to do?",
     "joinExistingMosque": "Join Existing Mosque",
     "joinExistingMosqueDescription": "Connect to an existing mosque",
@@ -784,6 +785,8 @@
     "name": "Name",
     "phone": "Phone",
     "mosqueInformation": "Mosque Information",
+    "mosqueDescriptionLabel": "About your mosque",
+    "mosqueDescriptionPlaceholder": "Briefly introduce your mosque, key activities, and mission. (Max ~500 characters)",
     "action": "Action",
     "address": "Address",
     "home": "Home",
@@ -1283,6 +1286,7 @@
     "establishedYearPlaceholder": "e.g., 1995",
     "description": "Description",
     "descriptionPlaceholder": "Describe your mosque and its mission...",
+    "descriptionHelper": "This text appears on your public mosque page so visitors can quickly understand your mosque, its activities, and its mission.",
     "capacity": "Capacity",
     "capacityPlaceholder": "e.g., 500",
     "imamName": "Imam Name",

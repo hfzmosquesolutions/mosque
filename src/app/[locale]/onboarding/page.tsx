@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-// import { Textarea } from '@/components/ui/textarea'; // Will use Input for now
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -43,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface OnboardingData {
   // Personal Information
@@ -62,12 +62,22 @@ interface OnboardingData {
   mosqueAddress?: string;
   mosqueAddressData?: AddressData;
   institutionType?: 'mosque' | 'surau';
+  // Extended mosque profile fields
+  mosqueDescription?: string;
+  mosquePhone?: string;
+  mosqueEmail?: string;
+  mosqueLogoUrl?: string;
+  mosqueBannerUrl?: string;
 }
 
 function OnboardingContent() {
   const t = useTranslations('onboarding');
+  const tMosque = useTranslations('mosquePage');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [hasCompleted, setHasCompleted] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     fullName: '',
     phone: '',
@@ -85,6 +95,11 @@ function OnboardingContent() {
       country: 'Malaysia',
       full_address: '',
     },
+    mosqueDescription: '',
+    mosquePhone: '',
+    mosqueEmail: '',
+    mosqueLogoUrl: '',
+    mosqueBannerUrl: '',
   });
   const { user, signOut } = useAuth();
   const router = useRouter();
@@ -98,6 +113,11 @@ function OnboardingContent() {
         const response = await getUserProfile(user.id);
         if (response.success && response.data) {
           const profile = response.data;
+
+          // If onboarding already completed, don't show the wizard again
+          if (profile.onboarding_completed) {
+            setProfileCompleted(true);
+          }
 
           // Populate form with existing data
           const updatedData: Partial<OnboardingData> = {
@@ -120,6 +140,11 @@ function OnboardingContent() {
                   updatedData.mosqueName = mosque.name;
                   updatedData.mosqueAddress = mosque.address || '';
                   updatedData.institutionType = mosque.institution_type || 'mosque';
+                  updatedData.mosqueDescription = mosque.description || '';
+                  updatedData.mosquePhone = mosque.phone || '';
+                  updatedData.mosqueEmail = mosque.email || '';
+                  updatedData.mosqueLogoUrl = mosque.logo_url || '';
+                  updatedData.mosqueBannerUrl = mosque.banner_url || '';
                   
                   // Parse existing address or use structured address fields
                   updatedData.mosqueAddressData = mosque.address_line1 
@@ -154,11 +179,26 @@ function OnboardingContent() {
       } catch (error) {
         console.error('Error fetching user profile:', error);
         // Don't show error toast as this is just pre-population
+      } finally {
+        setInitializing(false);
       }
     };
 
     fetchUserData();
   }, [user?.id]);
+
+  // If onboarding already completed (user revisits /onboarding), redirect them to dashboard
+  useEffect(() => {
+    const redirectIfCompleted = async () => {
+      if (!user?.id) return;
+      const dashboardUrl = await getDashboardUrl(user.id);
+      window.location.href = dashboardUrl;
+    };
+
+    if (profileCompleted && !hasCompleted) {
+      redirectIfCompleted();
+    }
+  }, [profileCompleted, hasCompleted, user?.id]);
 
   const updateData = (field: keyof OnboardingData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -178,9 +218,18 @@ function OnboardingContent() {
         toast.error(t('fillRequiredFields'));
         return;
       }
-    } else if (step === 2 && !data.mosqueName) {
-      toast.error(t('enterMosqueName'));
-      return;
+    } else if (step === 2) {
+      if (
+        !data.mosqueName ||
+        !data.mosqueAddress ||
+        !data.mosquePhone ||
+        !data.mosqueEmail ||
+        !data.mosqueLogoUrl ||
+        !data.mosqueBannerUrl
+      ) {
+        toast.error(t('fillRequiredFields'));
+        return;
+      }
     }
     setStep((prev) => prev + 1);
   };
@@ -209,9 +258,15 @@ function OnboardingContent() {
         mosqueAddress: data.mosqueAddress,
         mosqueAddressData: data.mosqueAddressData,
         institutionType: data.institutionType || 'mosque',
+        mosqueDescription: data.mosqueDescription,
+        mosquePhone: data.mosquePhone,
+        mosqueEmail: data.mosqueEmail,
+        mosqueLogoUrl: data.mosqueLogoUrl,
+        mosqueBannerUrl: data.mosqueBannerUrl,
       });
 
       if (result.success) {
+        setHasCompleted(true);
         toast.success(t('onboardingCompleted'));
         
         // Wait a moment for database to update
@@ -324,7 +379,7 @@ function OnboardingContent() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="space-y-4 mt-4">
             <div>
               <Label htmlFor="mosqueName">{t('mosqueName')}</Label>
@@ -369,6 +424,65 @@ function OnboardingContent() {
                 showFullAddress={false}
                 className="mt-1"
               />
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="mosquePhone">{tMosque('phoneNumber')}</Label>
+                <Input
+                  id="mosquePhone"
+                  value={data.mosquePhone || ''}
+                  onChange={(e) => updateData('mosquePhone', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="mosqueEmail">{tMosque('emailAddress')}</Label>
+                <Input
+                  id="mosqueEmail"
+                  type="email"
+                  value={data.mosqueEmail || ''}
+                  onChange={(e) => updateData('mosqueEmail', e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="mosqueDescription">{t('mosqueDescriptionLabel')}</Label>
+                <Textarea
+                  id="mosqueDescription"
+                  value={data.mosqueDescription || ''}
+                  onChange={(e) => updateData('mosqueDescription', e.target.value)}
+                  rows={3}
+                  className="mt-1"
+                  placeholder={t('mosqueDescriptionPlaceholder')}
+                />
+              </div>
+
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ImageUpload
+                  label={tMosque('mosqueLogo')}
+                  description={tMosque('mosqueLogoDescription')}
+                  currentImageUrl={data.mosqueLogoUrl || undefined}
+                  onImageUpload={(url) => setData((prev) => ({ ...prev, mosqueLogoUrl: url }))}
+                  onImageRemove={() => setData((prev) => ({ ...prev, mosqueLogoUrl: '' }))}
+                  aspectRatio="square"
+                  filePrefix="logo"
+                />
+                <ImageUpload
+                  label={tMosque('mosqueBanner')}
+                  description={tMosque('mosqueBannerDescription')}
+                  currentImageUrl={data.mosqueBannerUrl || undefined}
+                  onImageUpload={(url) => setData((prev) => ({ ...prev, mosqueBannerUrl: url }))}
+                  onImageRemove={() => setData((prev) => ({ ...prev, mosqueBannerUrl: '' }))}
+                  aspectRatio="banner"
+                  filePrefix="banner"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -484,6 +598,70 @@ function OnboardingContent() {
                     </p>
                   </div>
                 )}
+                {data.mosqueDescription && (
+                  <div className="mt-2">
+                    <p className="text-slate-600 dark:text-slate-400 mb-1">
+                      {t('mosqueDescriptionLabel')}:
+                    </p>
+                    <p className="text-sm font-medium leading-relaxed whitespace-pre-line">
+                      {data.mosqueDescription}
+                    </p>
+                  </div>
+                )}
+                {(data.mosquePhone || data.mosqueEmail) && (
+                  <div className="mt-2 space-y-1">
+                    {data.mosquePhone && (
+                      <p>
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {tMosque('phoneNumber')}:
+                        </span>{' '}
+                        <span className="font-medium">{data.mosquePhone}</span>
+                      </p>
+                    )}
+                    {data.mosqueEmail && (
+                      <p>
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {tMosque('emailAddress')}:
+                        </span>{' '}
+                        <span className="font-medium break-all">
+                          {data.mosqueEmail}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {(data.mosqueLogoUrl || data.mosqueBannerUrl) && (
+                  <div className="mt-3 space-y-3">
+                    {data.mosqueLogoUrl && (
+                      <div>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs mb-1">
+                          {tMosque('mosqueLogo')}
+                        </p>
+                        <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                          <img
+                            src={data.mosqueLogoUrl}
+                            alt="Mosque logo preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {data.mosqueBannerUrl && (
+                      <div>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs mb-1">
+                          {tMosque('mosqueBanner')}
+                        </p>
+                        <div className="w-full max-w-xs h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                          <img
+                            src={data.mosqueBannerUrl}
+                            alt="Mosque banner preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -491,6 +669,30 @@ function OnboardingContent() {
       </div>
     );
   };
+
+  if (hasCompleted || profileCompleted || initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold mb-2">
+                {hasCompleted || profileCompleted
+                  ? t('onboardingCompleted')
+                  : t('setupAccount')}
+              </CardTitle>
+              <CardDescription>
+                {t('completing')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4 py-6">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">

@@ -48,10 +48,11 @@ function PaymentSettingsContent() {
   const { mosqueId } = useUserMosque();
   const { plan, loading: subscriptionLoading } = useSubscription(mosqueId || '');
   const isFreePlan = plan === 'free';
+  // By default, no payment methods are enabled. Admin must explicitly configure and enable them.
   const [paymentMethods, setPaymentMethods] = useState({
-    online_payment: true,
-    bank_transfer: true,
-    cash: true,
+    online_payment: false,
+    bank_transfer: false,
+    cash: false,
   });
   const [loadingMethods, setLoadingMethods] = useState(true);
   const [savingPaymentMethods, setSavingPaymentMethods] = useState(false);
@@ -111,10 +112,13 @@ function PaymentSettingsContent() {
         // For free plan, force disable online payment
         const currentPlan = plan || 'free';
         const isFree = currentPlan === 'free';
+
+        // Only treat methods as enabled when explicitly set to true.
+        // This ensures new mosques start with all methods disabled until configured.
         setPaymentMethods({
-          online_payment: isFree ? false : (enabledPaymentMethods.online_payment !== false),
-          bank_transfer: enabledPaymentMethods.bank_transfer !== false,
-          cash: enabledPaymentMethods.cash !== false,
+          online_payment: isFree ? false : enabledPaymentMethods.online_payment === true,
+          bank_transfer: enabledPaymentMethods.bank_transfer === true,
+          cash: enabledPaymentMethods.cash === true,
         });
         
         setBankTransferDetails({
@@ -142,8 +146,32 @@ function PaymentSettingsContent() {
 
   const handlePaymentMethodToggle = async (method: 'online_payment' | 'bank_transfer' | 'cash', enabled: boolean) => {
     if (method === 'online_payment' && enabled && isFreePlan) {
-      toast.error(t('paymentProviderSettings.onlinePaymentRequiresUpgrade') || 'Online payment requires Standard or Pro plan. Please upgrade to use this feature.');
+      toast.error(
+        t('paymentProviderSettings.onlinePaymentRequiresUpgrade') ||
+          'Online payment requires Standard or Pro plan. Please upgrade to use this feature.'
+      );
       return;
+    }
+
+    // For bank transfer and cash, require basic configuration details before enabling.
+    if (method === 'bank_transfer' && enabled) {
+      if (!bankTransferDetails.bank_name || !bankTransferDetails.account_number) {
+        toast.error(
+          t('paymentProviderSettings.bankDetailsRequiredBeforeEnable') ||
+            'Please fill in bank name and account number before enabling bank transfer.'
+        );
+        return;
+      }
+    }
+
+    if (method === 'cash' && enabled) {
+      if (!cashDetails.payment_location) {
+        toast.error(
+          t('paymentProviderSettings.cashDetailsRequiredBeforeEnable') ||
+            'Please fill in payment location before enabling cash payments.'
+        );
+        return;
+      }
     }
     const updatedMethods = { ...paymentMethods, [method]: enabled };
     if (isFreePlan) {

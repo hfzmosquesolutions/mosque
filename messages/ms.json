@@ -103,7 +103,8 @@
     "loginError": "Emel atau kata laluan tidak sah",
     "signupError": "Gagal membuat akaun",
     "loginSuccess": "Berjaya log masuk",
-    "signupSuccess": "Akaun berjaya dibuat",
+    "signupSuccess": "Akaun berjaya dibuat. Sila semak emel anda untuk pautan pengesahan akaun.",
+    "emailNotConfirmed": "Emel belum disahkan. Sila semak emel anda untuk pautan pengesahan bagi mengaktifkan akaun.",
     "welcomeBack": "Selamat Kembali",
     "signInToAccount": "Log masuk ke akaun anda",
     "createNewAccount": "Daftar Akaun Baru",
@@ -214,16 +215,16 @@
         "description": "Pilih cara bayaran dan tetapan bil"
       },
       "firstApplication": {
-        "title": "Lulus Ahli Khairat Pertama",
-        "description": "Sahkan pendaftaran ahli pertama"
+        "title": "Daftar Ahli Khairat Pertama",
+        "description": "Daftarkan dan sahkan ahli khairat pertama"
       },
       "firstPayment": {
         "title": "Terima Bayaran Khairat Pertama",
         "description": "Kutip sumbangan khairat pertama"
       },
       "firstClaim": {
-        "title": "Proses Tuntutan Pertama",
-        "description": "Luluskan tuntutan ahli"
+        "title": "Terima Tuntutan Pertama",
+        "description": "Terima dan luluskan tuntutan khairat pertama"
       }
     },
     "stepPriority": {
@@ -790,8 +791,8 @@
     "membershipDetailsDescription": "Maklumat tambahan untuk keahlian anda",
     "memberAccountSetup": "Persediaan Akaun Ahli",
     "memberAccountSetupDescription": "Akaun ahli anda sedia untuk dicipta. Anda akan mempunyai akses kepada semua ciri dan perkhidmatan komuniti.",
-    "mosqueSetup": "Maklumat Masjid",
-    "mosqueSetupDescription": "Isi maklumat asas masjid anda",
+    "mosqueSetup": "Tentang Masjid Anda",
+    "mosqueSetupDescription": "Maklumat dan gambar yang akan dipaparkan di halaman profil awam masjid anda",
     "whatWouldYouLikeToDo": "Apa yang ingin anda lakukan?",
     "joinExistingMosque": "Sertai Masjid Sedia Ada",
     "joinExistingMosqueDescription": "Sambung ke masjid yang sedia ada",
@@ -813,6 +814,8 @@
     "name": "Nama",
     "phone": "Telefon",
     "mosqueInformation": "Maklumat Masjid",
+    "mosqueDescriptionLabel": "Tentang masjid anda",
+    "mosqueDescriptionPlaceholder": "Perkenalkan serba sedikit tentang masjid, aktiviti utama dan misi. (Anggaran maks ~500 aksara)",
     "action": "Tindakan",
     "address": "Alamat",
     "home": "Utama",
@@ -1324,6 +1327,7 @@
     "establishedYearPlaceholder": "cth., 1995",
     "description": "Penerangan",
     "descriptionPlaceholder": "Terangkan masjid dan misi anda...",
+    "descriptionHelper": "Bahagian ini akan dipaparkan di halaman awam masjid anda supaya orang ramai faham serba sedikit tentang masjid, aktiviti dan misi anda.",
     "capacity": "Kapasiti",
     "capacityPlaceholder": "cth., 500",
     "imamName": "Nama Imam",

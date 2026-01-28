@@ -238,11 +238,25 @@ function DashboardContent() {
   const unsettledClaimsCount = claimCounts.unsettled;
 
   const paymentSettings = (mosqueData?.settings || {}) as {
+    enabled_payment_methods?: {
+      online_payment?: boolean;
+      bank_transfer?: boolean;
+      cash?: boolean;
+    };
     paymentsConfigured?: boolean;
     paymentProvidersConfigured?: boolean;
     hasPaymentProvider?: boolean;
   };
+
+  // Consider payment setup complete when at least one khairat payment method is active,
+  // or when legacy payment flags indicate configuration.
+  const hasAnyEnabledPaymentMethod =
+    Boolean(paymentSettings.enabled_payment_methods?.online_payment) ||
+    Boolean(paymentSettings.enabled_payment_methods?.bank_transfer) ||
+    Boolean(paymentSettings.enabled_payment_methods?.cash);
+
   const hasPaymentSetup =
+    hasAnyEnabledPaymentMethod ||
     Boolean(paymentSettings?.paymentsConfigured) ||
     Boolean(paymentSettings?.paymentProvidersConfigured) ||
     Boolean(paymentSettings?.hasPaymentProvider);

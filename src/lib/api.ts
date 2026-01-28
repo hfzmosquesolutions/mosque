@@ -175,6 +175,11 @@ export async function completeOnboarding(
           .update({
             name: onboardingData.mosqueName,
             address: onboardingData.mosqueAddress,
+            description: onboardingData.mosqueDescription,
+            phone: onboardingData.mosquePhone,
+            email: onboardingData.mosqueEmail,
+            logo_url: onboardingData.mosqueLogoUrl,
+            banner_url: onboardingData.mosqueBannerUrl,
             address_line1: onboardingData.mosqueAddressData?.address_line1,
             address_line2: onboardingData.mosqueAddressData?.address_line2,
             city: onboardingData.mosqueAddressData?.city,
@@ -198,6 +203,11 @@ export async function completeOnboarding(
           .insert({
             name: onboardingData.mosqueName,
             address: onboardingData.mosqueAddress,
+            description: onboardingData.mosqueDescription,
+            phone: onboardingData.mosquePhone,
+            email: onboardingData.mosqueEmail,
+            logo_url: onboardingData.mosqueLogoUrl,
+            banner_url: onboardingData.mosqueBannerUrl,
             address_line1: onboardingData.mosqueAddressData?.address_line1,
             address_line2: onboardingData.mosqueAddressData?.address_line2,
             city: onboardingData.mosqueAddressData?.city,

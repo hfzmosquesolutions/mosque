@@ -73,7 +73,7 @@ export function AdminGettingStarted({
       title: t('adminSetupSteps.firstApplication.title'),
       description: t('adminSetupSteps.firstApplication.description'),
       icon: Heart,
-      href: '/mosque-profile?tab=khairat-applications',
+      href: '/members',
       completed: applicationCount > 0,
       priority: 'medium',
     },
@@ -138,9 +138,10 @@ export function AdminGettingStarted({
           {steps.map((step, index) => {
             const IconComponent = step.icon;
             return (
-              <div
+              <Link
                 key={step.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${
+                href={step.href}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                   step.completed 
                     ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800' 
                     : 'bg-card hover:bg-muted/50 border-border'
@@ -188,15 +189,19 @@ export function AdminGettingStarted({
                       {t('stepStatus.completed')}
                     </Badge>
                   ) : (
-                    <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
-                      <Link href={step.href} className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs pointer-events-none opacity-80"
+                    >
+                      <span className="flex items-center gap-1">
                         {t('stepStatus.setupAction')}
                         <ArrowRight className="h-3 w-3" />
-                      </Link>
+                      </span>
                     </Button>
                   )}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
