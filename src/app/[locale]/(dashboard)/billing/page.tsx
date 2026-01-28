@@ -231,8 +231,11 @@ function BillingContent() {
       {/* Header with Title */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          {t('pageTitle')}
+          {t('title')}
         </h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          {t('description')}
+        </p>
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-6">

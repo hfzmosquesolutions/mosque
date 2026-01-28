@@ -157,7 +157,7 @@ export default function PublicUserProfilePage() {
           </Link>
           <div className="flex items-center gap-2">
             {isOwnProfile && (
-              <Link href="/profile">
+              <Link href="/account">
                 <Button variant="outline" className="gap-2">
                   <User className="h-4 w-4" />
                   {t('editProfile')}
@@ -378,7 +378,7 @@ export default function PublicUserProfilePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-2">
                   {isOwnProfile && (
-                    <Link href="/profile">
+                    <Link href="/account">
                       <Button variant="ghost" className="w-full justify-start p-3 h-auto">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 bg-emerald-100 dark:bg-emerald-800">
                           <User className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -453,7 +453,7 @@ export default function PublicUserProfilePage() {
               {isOwnProfile && (
                 <p className="mt-2">
                   <Link
-                    href="/profile"
+                    href="/account"
                     className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                   >
                     {t('editProfileSettings')}

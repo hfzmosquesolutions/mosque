@@ -401,13 +401,16 @@ function MosqueProfileContent() {
   const isPageLoading = onboardingLoading || !isCompleted || adminLoading || isLoading || settingsLoading;
 
   return (
-    <DashboardLayout title={t('profile')}>
+    <DashboardLayout title={t('mosquePage')}>
       <div className="space-y-6">
          {/* Header with Title */}
          <div>
            <h1 className="text-3xl font-bold tracking-tight">
              {t('mosquePage')}
            </h1>
+           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+             {t('manageProfile')}
+           </p>
          </div>
 
          {isPageLoading ? (

@@ -536,7 +536,7 @@ export function KariahApplicationForm() {
                   )}
 
                   <div className="flex justify-end pt-2">
-                    <Link href="/profile">
+                    <Link href="/account">
                       <Button variant="outline" size="sm">
                         <Edit className="h-3 w-3 mr-2" />
                         {t('updateProfile')}

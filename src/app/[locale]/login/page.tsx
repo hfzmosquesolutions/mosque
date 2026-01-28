@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useUserRole';
+import { checkOnboardingStatus } from '@/lib/api';
 
 function LoginPageContent() {
   const t = useTranslations('auth');
@@ -70,27 +71,52 @@ function LoginPageContent() {
           const { supabase } = await import('@/lib/supabase');
           const { data: { user: authUser } } = await supabase.auth.getUser();
           
+          if (!authUser?.id) {
+            console.error('No user found after login');
+            setLoading(false);
+            return;
+          }
+
+          // Check onboarding status first
+          const onboardingCompleted = await checkOnboardingStatus(authUser.id);
+          
+          if (!onboardingCompleted) {
+            // User hasn't completed onboarding, redirect to onboarding
+            const locale = window.location.pathname.match(/^\/(en|ms)\//)?.[1] || 'ms';
+            const onboardingUrl = `/${locale}/onboarding`;
+            
+            // Store returnUrl for after onboarding (only if it's a specific URL, not default dashboard)
+            if (storedReturnUrl && storedReturnUrl !== '/dashboard' && storedReturnUrl !== '/my-dashboard') {
+              sessionStorage.setItem('pendingReturnUrl', storedReturnUrl);
+            }
+            
+            window.location.href = onboardingUrl;
+            return;
+          }
+          
           let redirectUrl = storedReturnUrl;
           
           // If redirecting to dashboard, check admin status
           if (redirectUrl === '/dashboard' || redirectUrl.includes('/dashboard')) {
-            if (authUser?.id) {
-              const { data: mosqueData } = await supabase
-                .from('mosques')
-                .select('id')
-                .eq('user_id', authUser.id)
-                .maybeSingle();
-              
-              // Redirect to appropriate dashboard
-              redirectUrl = mosqueData ? '/dashboard' : '/my-dashboard';
-            } else {
-              redirectUrl = '/my-dashboard';
-            }
+            const { data: mosqueData } = await supabase
+              .from('mosques')
+              .select('id')
+              .eq('user_id', authUser.id)
+              .maybeSingle();
+            
+            // Redirect to appropriate dashboard
+            redirectUrl = mosqueData ? '/dashboard' : '/my-dashboard';
           }
           
           // Clear sessionStorage
           if (sessionStorage.getItem('returnUrl')) {
             sessionStorage.removeItem('returnUrl');
+          }
+          
+          // Ensure redirectUrl has locale prefix
+          const locale = window.location.pathname.match(/^\/(en|ms)\//)?.[1] || 'ms';
+          if (!redirectUrl.startsWith(`/${locale}/`) && !redirectUrl.startsWith('/en/') && !redirectUrl.startsWith('/ms/')) {
+            redirectUrl = `/${locale}${redirectUrl.startsWith('/') ? redirectUrl : '/' + redirectUrl}`;
           }
           
           // Redirect to appropriate dashboard
