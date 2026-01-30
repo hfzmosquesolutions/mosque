@@ -2692,7 +2692,9 @@
       },
       "planLabel": "Pelan",
       "nextBillingDate": "Tarikh Bil Seterusnya",
+      "billingPeriod": "Tempoh Bil",
       "manageBilling": "Urus Bil",
+      "manageInStripe": "Lihat tarikh tepat di Stripe",
       "cancelsAtPeriodEnd": "Akan dibatalkan pada akhir tempoh",
       "na": "Tiada"
     },
@@ -2718,6 +2720,7 @@
     "processing": "Sedang diproses...",
     "cta": {
       "currentPlan": "Pelan Semasa",
+      "manageSubscription": "Urus Langganan",
       "getStarted": "Mula Sekarang",
       "upgrade": "Naik Taraf"
     },

@@ -120,6 +120,16 @@ function BillingContent() {
   const handleUpgrade = async (plan: SubscriptionPlan) => {
     if ((!user?.id && !mosqueId) || plan === 'free') return;
 
+    // Check if user already has an active subscription
+    const hasActiveSubscription = subscription && 
+      (subscription.status === 'active' || subscription.status === 'trialing');
+
+    // If user has active subscription, redirect to Stripe Customer Portal to change plan
+    if (hasActiveSubscription) {
+      await handleManageBilling();
+      return;
+    }
+
     setUpgrading(plan);
     
     try {
@@ -210,6 +220,8 @@ function BillingContent() {
 
   const currentPlan = subscription?.plan || 'free';
   const features = getFeaturesForPlan(currentPlan);
+  const hasActiveSubscription = subscription && 
+    (subscription.status === 'active' || subscription.status === 'trialing');
 
   return (
     <div className="space-y-6">
@@ -321,7 +333,8 @@ function BillingContent() {
               plan="free"
               currentPlan={currentPlan}
               billing={billing}
-              onSelectPlan={handleUpgrade}
+              onSelectPlan={hasActiveSubscription && currentPlan === 'free' ? undefined : handleUpgrade}
+              onManageSubscription={hasActiveSubscription && currentPlan === 'free' ? handleManageBilling : undefined}
               loading={upgrading === 'free'}
               showRecommended={false}
             />
@@ -329,7 +342,8 @@ function BillingContent() {
               plan="standard"
               currentPlan={currentPlan}
               billing={billing}
-              onSelectPlan={handleUpgrade}
+              onSelectPlan={hasActiveSubscription && currentPlan === 'standard' ? undefined : handleUpgrade}
+              onManageSubscription={hasActiveSubscription && currentPlan === 'standard' ? handleManageBilling : undefined}
               loading={upgrading === 'standard'}
               showRecommended={true}
             />
@@ -337,7 +351,8 @@ function BillingContent() {
               plan="pro"
               currentPlan={currentPlan}
               billing={billing}
-              onSelectPlan={handleUpgrade}
+              onSelectPlan={hasActiveSubscription && currentPlan === 'pro' ? undefined : handleUpgrade}
+              onManageSubscription={hasActiveSubscription && currentPlan === 'pro' ? handleManageBilling : undefined}
               loading={upgrading === 'pro'}
               showRecommended={false}
             />
