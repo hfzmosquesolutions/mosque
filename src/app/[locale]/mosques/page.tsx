@@ -87,7 +87,6 @@ export default function MosquesPage() {
     if (q && q !== searchQuery) {
       setSearchQuery(q);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
 

@@ -6,15 +6,15 @@ import { PaymentService } from '@/lib/payments/payment-service';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { 
+    const { 
       providerType, 
-      apiKey, 
       collectionId, 
-      secretKey, 
       categoryCode, 
       isSandbox = true,
       mosqueId
     } = body;
+    let apiKey = body.apiKey;
+    let secretKey = body.secretKey;
 
     if (!providerType) {
       return NextResponse.json(

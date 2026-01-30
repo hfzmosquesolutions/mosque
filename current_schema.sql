@@ -68,8 +68,11 @@ CREATE TABLE public.khairat_claims (
   approved_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  khairat_member_id uuid,
+  khairat_member_id uuid NOT NULL CHECK (khairat_member_id IS NOT NULL),
   claim_id character varying UNIQUE,
+  person_in_charge_name character varying,
+  person_in_charge_phone character varying,
+  person_in_charge_relationship character varying,
   CONSTRAINT khairat_claims_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_claims_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
   CONSTRAINT khairat_claims_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.user_profiles(id),
@@ -93,8 +96,10 @@ CREATE TABLE public.khairat_contributions (
   bill_id text,
   mosque_id uuid NOT NULL,
   payment_id character varying UNIQUE,
+  khairat_member_id uuid,
   CONSTRAINT khairat_contributions_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_contributions_contributor_id_fkey1 FOREIGN KEY (contributor_id) REFERENCES public.user_profiles(id),
+  CONSTRAINT khairat_contributions_khairat_member_id_fkey FOREIGN KEY (khairat_member_id) REFERENCES public.khairat_members(id),
   CONSTRAINT khairat_contributions_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
 CREATE TABLE public.khairat_member_dependents (
@@ -196,6 +201,8 @@ CREATE TABLE public.mosque_payment_providers (
   updated_at timestamp with time zone DEFAULT now(),
   toyyibpay_secret_key text,
   toyyibpay_category_code text,
+  credentials_encrypted_at timestamp with time zone,
+  encryption_version integer DEFAULT 1,
   CONSTRAINT mosque_payment_providers_pkey PRIMARY KEY (id),
   CONSTRAINT mosque_payment_providers_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id)
 );
@@ -220,6 +227,7 @@ CREATE TABLE public.mosques (
   state text,
   postcode text,
   country text DEFAULT 'Malaysia'::text,
+  institution_type text DEFAULT 'mosque'::text CHECK (institution_type = ANY (ARRAY['mosque'::text, 'surau'::text])),
   CONSTRAINT mosques_pkey PRIMARY KEY (id),
   CONSTRAINT mosques_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -370,6 +378,7 @@ CREATE TABLE public.user_profiles (
   updated_at timestamp with time zone DEFAULT now(),
   is_profile_private boolean DEFAULT false,
   ic_passport_number text,
+  mosque_admin_role text,
   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );

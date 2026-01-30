@@ -1,18 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Star } from "lucide-react";
 import { PricingPlanCard } from "@/components/subscription/PricingPlanCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserSubscription } from "@/lib/subscription";
+import { SubscriptionPlan } from "@/lib/stripe";
 
 type BillingPeriod = "monthly" | "annual";
 
 export default function PricingPage() {
   const t = useTranslations('billing.pricing');
+  const { user } = useAuth();
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
+  const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | undefined>(undefined);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      if (!user?.id) {
+        setLoadingSubscription(false);
+        return;
+      }
+
+      try {
+        const subscription = await getUserSubscription(user.id);
+        if (subscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+          setCurrentPlan(subscription.plan);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription:', error);
+      } finally {
+        setLoadingSubscription(false);
+      }
+    };
+
+    fetchSubscription();
+  }, [user?.id]);
 
   // Prices are now calculated from STRIPE_CONFIG in PricingPlanCard component
 
@@ -88,6 +116,7 @@ export default function PricingPage() {
           <PricingPlanCard
             plan="free"
             billing={billing}
+            currentPlan={currentPlan}
             buttonText={t('getStarted')}
             buttonClassName="w-full"
             onSelectPlan={async (plan) => {
@@ -98,7 +127,8 @@ export default function PricingPage() {
           <PricingPlanCard
             plan="standard"
             billing={billing}
-            showRecommended={true}
+            currentPlan={currentPlan}
+            showRecommended={!currentPlan || currentPlan === 'free'}
             buttonText={t('startStandard')}
             buttonClassName="w-full bg-emerald-600 hover:bg-emerald-700"
             onSelectPlan={async (plan) => {
@@ -109,6 +139,7 @@ export default function PricingPage() {
           <PricingPlanCard
             plan="pro"
             billing={billing}
+            currentPlan={currentPlan}
             buttonText={t('startPro')}
             buttonVariant="outline"
             buttonClassName="w-full"
