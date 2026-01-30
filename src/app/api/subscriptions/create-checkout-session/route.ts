@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve admin user's email and name from request (required)
-    let adminEmail: string | undefined = providedAdminEmail;
+    const adminEmail: string | undefined = providedAdminEmail;
     let adminName: string | undefined = providedAdminName;
 
     if (!adminEmail) {

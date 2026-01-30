@@ -1,0 +1,6 @@
+# Configuration for stripe-webhook Edge Function
+# This disables JWT verification since Stripe webhooks don't send Supabase JWT tokens
+# Security is maintained through Stripe webhook signature verification
+
+[verify_jwt]
+enabled = false

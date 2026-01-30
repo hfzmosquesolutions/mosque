@@ -40,7 +40,7 @@ export function PricingPlanCard({
   const t = useTranslations('billing.pricing');
   const isCurrentPlan = currentPlan === plan;
   const periodSuffix = billing === 'monthly' ? '/mo' : '/year';
-  const isPopular = plan === 'standard' && showRecommended;
+  const isPopular = plan === 'standard' && showRecommended && !isCurrentPlan;
 
   const getMemberCount = () => {
     if (plan === 'free') return t('upToMembers', { count: 50 });
