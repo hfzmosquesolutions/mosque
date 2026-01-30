@@ -56,6 +56,7 @@ export interface UserSubscription {
   stripe_subscription_id?: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  billing_period?: 'monthly' | 'yearly' | 'annual';
   current_period_start?: string;
   current_period_end?: string;
   cancel_at_period_end: boolean;

@@ -10,6 +10,7 @@ interface PricingPlanCardProps {
   plan: SubscriptionPlan;
   currentPlan?: SubscriptionPlan;
   onSelectPlan?: (plan: SubscriptionPlan) => void;
+  onManageSubscription?: () => void;
   loading?: boolean;
   billing?: 'monthly' | 'annual';
   showRecommended?: boolean;
@@ -30,6 +31,7 @@ export function PricingPlanCard({
   plan,
   currentPlan,
   onSelectPlan,
+  onManageSubscription,
   loading = false,
   billing = 'monthly',
   showRecommended = false,
@@ -52,6 +54,9 @@ export function PricingPlanCard({
   
   const getButtonText = () => {
     if (buttonText) return buttonText;
+    if (isCurrentPlan && onManageSubscription) {
+      return tBilling('cta.manageSubscription') || 'Manage Subscription';
+    }
     if (isCurrentPlan) return tBilling('cta.currentPlan') || 'Current Plan';
     if (plan === 'free') return t('getStarted');
     if (plan === 'standard') return t('startStandard');
@@ -160,8 +165,14 @@ export function PricingPlanCard({
         
         <div className="mt-auto pt-6">
           <Button
-            onClick={onSelectPlan ? () => onSelectPlan(plan) : undefined}
-            disabled={loading || (isCurrentPlan && !onSelectPlan)}
+            onClick={
+              isCurrentPlan && onManageSubscription
+                ? onManageSubscription
+                : onSelectPlan
+                ? () => onSelectPlan(plan)
+                : undefined
+            }
+            disabled={loading || (isCurrentPlan && !onSelectPlan && !onManageSubscription)}
             variant={getButtonVariant()}
             className={getButtonClassName()}
           >
@@ -171,7 +182,7 @@ export function PricingPlanCard({
                 Processing...
               </>
             ) : (
-              isCurrentPlan && !onSelectPlan ? (tBilling('cta.currentPlan') || 'Current Plan') : getButtonText()
+              getButtonText()
             )}
           </Button>
         </div>

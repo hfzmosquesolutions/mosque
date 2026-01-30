@@ -112,6 +112,14 @@ serve(async (req) => {
       .eq("stripe_event_id", event.id)
       .single();
 
+    // Critical events that should always be reprocessed (subscription state changes)
+    const criticalEvents = [
+      'customer.subscription.deleted',
+      'customer.subscription.updated',
+      'customer.subscription.created'
+    ];
+    const isCriticalEvent = criticalEvents.includes(event.type);
+
     // Store the event if it doesn't exist, or update processed flag
     if (!existingEvent) {
       const { error: insertError } = await supabaseClient.from("subscription_webhook_events").insert({
@@ -124,7 +132,9 @@ serve(async (req) => {
       if (insertError) {
         console.error("Error storing event:", insertError);
       }
-    } else if (existingEvent.processed) {
+    } else if (existingEvent.processed && !isCriticalEvent) {
+      // Skip non-critical events that were already processed
+      // But always reprocess critical subscription events to ensure state is correct
       return new Response(
         JSON.stringify({ received: true, message: "Event already processed" }),
         {
@@ -132,6 +142,13 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    } else if (existingEvent.processed && isCriticalEvent) {
+      // Reset processed flag for critical events to allow reprocessing
+      console.log(`Reprocessing critical event: ${event.type} (${event.id})`);
+      await supabaseClient
+        .from("subscription_webhook_events")
+        .update({ processed: false })
+        .eq("stripe_event_id", event.id);
     }
 
     // Process the event
@@ -227,6 +244,7 @@ async function handleCheckoutSessionCompleted(
 ) {
   const userId = (session.metadata as any)?.user_id || undefined;
   const plan = session.metadata?.plan;
+  const billing = session.metadata?.billing || 'monthly'; // Get billing period from metadata
 
   if (!plan) {
     console.error("Missing plan in checkout session metadata");
@@ -245,6 +263,9 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
+  // Normalize billing period (annual -> yearly)
+  const billingPeriod = billing === 'annual' ? 'yearly' : billing;
+
   // Upsert with plan and subscription IDs
   // Note: Period dates will be updated by customer.subscription.created event
   // which fires after checkout completes and has accurate subscription data
@@ -252,6 +273,7 @@ async function handleCheckoutSessionCompleted(
     user_id: userId,
     plan: plan as any,
     status: "active",
+    billing_period: billingPeriod,
     external_subscription_id: session.subscription as string,
     stripe_subscription_id: session.subscription as string,
     // Use temporary dates - will be updated by subscription.created event
@@ -282,6 +304,7 @@ async function handleSubscriptionCreated(
 ) {
   const userId = (subscription.metadata as any)?.user_id || undefined;
   const plan = subscription.metadata?.plan;
+  const billing = subscription.metadata?.billing || 'monthly'; // Get billing period from metadata
 
   if (!userId) {
     console.error("Missing user_id in subscription metadata");
@@ -300,12 +323,27 @@ async function handleSubscriptionCreated(
     return;
   }
 
+  // Normalize billing period (annual -> yearly)
+  const billingPeriod = billing === 'annual' ? 'yearly' : billing;
+
+  // Determine billing period from subscription interval if not in metadata
+  let finalBillingPeriod = billingPeriod;
+  if (subscription.items?.data?.[0]?.price?.recurring?.interval) {
+    const interval = subscription.items.data[0].price.recurring.interval;
+    if (interval === 'year') {
+      finalBillingPeriod = 'yearly';
+    } else if (interval === 'month') {
+      finalBillingPeriod = 'monthly';
+    }
+  }
+
   const upsertPayload = {
     user_id: userId,
     external_subscription_id: subscription.id,
     stripe_subscription_id: subscription.id,
     plan: plan as any,
     status: subscription.status as any,
+    billing_period: finalBillingPeriod,
     current_period_start: toISOString(subscription.current_period_start),
     current_period_end: toISOString(subscription.current_period_end),
     cancel_at_period_end: subscription.cancel_at_period_end,
@@ -341,13 +379,26 @@ async function handleSubscriptionUpdated(
     current_period_end: toISOString((subscription as any).current_period_end),
     cancel_at_period_end: subscription.cancel_at_period_end,
     canceled_at: toISOString(subscription.canceled_at),
+    // If subscription is canceled, downgrade to free plan
+    plan: (subscription.status === 'canceled' || subscription.status === 'unpaid') ? 'free' as any : undefined,
   } as any;
 
+  // Remove undefined fields from payload
+  if (updatePayload.plan === undefined) {
+    delete updatePayload.plan;
+  }
+
   if (userId) {
-    await supabase
+    const { error } = await supabase
       .from("user_subscriptions")
       .update(updatePayload)
       .eq("user_id", userId);
+    
+    if (error) {
+      console.error("Error updating subscription:", error);
+    } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
+      console.log(`Subscription canceled: user ${userId} downgraded to free plan`);
+    }
   }
 }
 
@@ -358,13 +409,24 @@ async function handleSubscriptionDeleted(
   const userId = (subscription.metadata as any)?.user_id || undefined;
   const updatePayload = {
     status: "canceled",
+    plan: "free" as any,
     canceled_at: new Date().toISOString(),
+    // Clear subscription IDs since subscription is deleted
+    external_subscription_id: null,
+    stripe_subscription_id: null,
   } as any;
+  
   if (userId) {
-    await supabase
+    const { error } = await supabase
       .from("user_subscriptions")
       .update(updatePayload)
       .eq("user_id", userId);
+    
+    if (error) {
+      console.error("Error updating subscription after deletion:", error);
+    } else {
+      console.log(`Subscription deleted: user ${userId} downgraded to free plan`);
+    }
   }
 }
 

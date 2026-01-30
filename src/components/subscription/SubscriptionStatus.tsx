@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, CreditCard, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { getUserSubscription, getUserSubscriptionInvoices, formatPrice } from '@/lib/subscription';
 import { UserSubscription, UserSubscriptionInvoice } from '@/lib/subscription';
-import { SubscriptionPlan, type SubscriptionStatus as StripeSubscriptionStatus } from '@/lib/stripe';
+import { SubscriptionPlan, type SubscriptionStatus as StripeSubscriptionStatus, STRIPE_CONFIG } from '@/lib/stripe';
 import { useTranslations } from 'next-intl';
 
 interface SubscriptionStatusProps {
@@ -101,17 +101,30 @@ export function SubscriptionStatus({ userId, onManageBilling }: SubscriptionStat
     });
   };
 
-  const getPlanPrice = (plan: SubscriptionPlan) => {
-    switch (plan) {
-      case 'free':
-        return t('planPrice.free');
-      case 'standard':
-        return t('planPrice.standard');
-      case 'pro':
-        return t('planPrice.pro');
-      default:
-        return t('unknown');
+  const getPlanPrice = (plan: SubscriptionPlan, billingPeriod?: string) => {
+    const planConfig = STRIPE_CONFIG.plans[plan];
+    
+    if (!planConfig) {
+      return t('unknown');
     }
+
+    if (plan === 'free') {
+      return t('planPrice.free');
+    }
+
+    // If yearly/annual, show yearly price
+    if (billingPeriod === 'yearly' || billingPeriod === 'annual') {
+      if ('price_yearly' in planConfig && planConfig.price_yearly) {
+        const yearlyPrice = planConfig.price_yearly / 100; // Convert cents to RM
+        // Also show monthly equivalent for clarity
+        const monthlyEquivalent = yearlyPrice / 12;
+        return `RM ${yearlyPrice.toFixed(2)}/year (RM ${monthlyEquivalent.toFixed(2)}/month)`;
+      }
+    }
+
+    // Default to monthly price
+    const monthlyPrice = planConfig.price / 100; // Convert cents to RM
+    return `RM ${monthlyPrice.toFixed(2)}/month`;
   };
 
   return (
@@ -134,32 +147,14 @@ export function SubscriptionStatus({ userId, onManageBilling }: SubscriptionStat
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400 mb-1">
-                {t('subscription.planLabel')}
-              </h4>
-              <p className="text-lg font-semibold capitalize">{subscription.plan}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {getPlanPrice(subscription.plan)}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400 mb-1">
-                {t('subscription.nextBillingDate')}
-              </h4>
-              <p className="text-lg font-semibold">
-                {subscription.current_period_end 
-                  ? formatDate(subscription.current_period_end)
-                  : t('subscription.na')
-                }
-              </p>
-              {subscription.cancel_at_period_end && (
-                <p className="text-sm text-orange-600 dark:text-orange-400">
-                  {t('subscription.cancelsAtPeriodEnd')}
-                </p>
-              )}
-            </div>
+          <div>
+            <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400 mb-1">
+              {t('subscription.planLabel')}
+            </h4>
+            <p className="text-lg font-semibold capitalize">{subscription.plan}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {getPlanPrice(subscription.plan, subscription.billing_period)}
+            </p>
           </div>
 
           {onManageBilling && (

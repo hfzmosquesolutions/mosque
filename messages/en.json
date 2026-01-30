@@ -2643,7 +2643,9 @@
       },
       "planLabel": "Plan",
       "nextBillingDate": "Next Billing Date",
+      "billingPeriod": "Billing Period",
       "manageBilling": "Manage Billing",
+      "manageInStripe": "View exact dates in Stripe",
       "cancelsAtPeriodEnd": "Cancels at period end",
       "na": "N/A"
     },
@@ -2669,6 +2671,7 @@
     "processing": "Processing...",
     "cta": {
       "currentPlan": "Current Plan",
+      "manageSubscription": "Manage Subscription",
       "getStarted": "Get Started",
       "upgrade": "Upgrade"
     },
