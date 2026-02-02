@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Settings,
   Loader2,
@@ -20,6 +21,7 @@ import {
   CreditCard,
   AlertCircle,
   CheckCircle,
+  Info,
 } from 'lucide-react';
 import {
   getMosqueKhairatSettings,
@@ -206,6 +208,14 @@ export function MosqueKhairatSettings({
               <p className="text-xs text-muted-foreground">
                 Set a fixed amount for all khairat contributions, or leave empty for flexible pricing
               </p>
+              {settings.payment_methods?.includes('toyyibpay') && (
+                <Alert className="mt-2">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    Please include the ToyyibPay transaction fee in your price to ensure you receive the full intended amount.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Target Amount */}
@@ -255,7 +265,7 @@ export function MosqueKhairatSettings({
             <div className="space-y-3">
               <Label className="text-base font-medium">Payment Methods</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {['cash', 'bank_transfer', 'billplz', 'toyyibpay'].map((method) => (
+                {['cash', 'bank_transfer', 'toyyibpay'].map((method) => (
                   <div key={method} className="flex items-center space-x-2">
                     <input
                       type="checkbox"

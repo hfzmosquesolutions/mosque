@@ -88,16 +88,27 @@ export function useUserRole(): UserRoleData {
           }
         }
         
+        // Determine admin status: user is admin if they own a mosque OR if their account_type is 'admin'
+        const isAdminByAccountType = profileData?.account_type === 'admin';
+        const isAdminByMosque = !!mosqueData;
+        const isAdmin = isAdminByAccountType || isAdminByMosque;
+        
         if (mosqueData) {
           setIsMosqueOwner(true);
           setIsAdmin(true);
           setMosqueId(mosqueData.id);
           console.log('[HOOK] useUserRole - ✅ User is admin, owns mosque:', mosqueData.id);
+        } else if (isAdminByAccountType) {
+          // User is admin by account_type but doesn't own a mosque yet (skipped mosque registration)
+          setIsMosqueOwner(false);
+          setIsAdmin(true);
+          setMosqueId(null);
+          console.log('[HOOK] useUserRole - ✅ User is admin (account_type=admin) but no mosque yet (userId:', user.id + ')');
         } else {
           setIsMosqueOwner(false);
           setIsAdmin(false);
           setMosqueId(null);
-          console.log('[HOOK] useUserRole - ❌ User does not own a mosque (userId:', user.id + ')');
+          console.log('[HOOK] useUserRole - ❌ User is not admin (userId:', user.id + ')');
         }
       } catch (err) {
         console.error('[HOOK] useUserRole - Error fetching user role:', err);

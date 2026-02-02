@@ -114,9 +114,22 @@ function OnboardingContent() {
         if (response.success && response.data) {
           const profile = response.data;
 
-          // If onboarding already completed, don't show the wizard again
+          // If onboarding already completed, check if user has a mosque
+          // If no mosque, allow them to complete mosque registration
           if (profile.onboarding_completed) {
-            setProfileCompleted(true);
+            try {
+              const mosqueId = await getUserMosqueId(user.id);
+              if (mosqueId) {
+                // User has completed onboarding and has a mosque - redirect to dashboard
+                setProfileCompleted(true);
+              } else {
+                // User has completed onboarding but no mosque - allow them to register mosque
+                // Don't set profileCompleted, so they can complete mosque registration
+              }
+            } catch (error) {
+              // Error checking mosque - allow access to complete registration
+              console.error('Error checking mosque:', error);
+            }
           }
 
           // Populate form with existing data
@@ -218,20 +231,14 @@ function OnboardingContent() {
         toast.error(t('fillRequiredFields'));
         return;
       }
-    } else if (step === 2) {
-      if (
-        !data.mosqueName ||
-        !data.mosqueAddress ||
-        !data.mosquePhone ||
-        !data.mosqueEmail ||
-        !data.mosqueLogoUrl ||
-        !data.mosqueBannerUrl
-      ) {
-        toast.error(t('fillRequiredFields'));
-        return;
-      }
     }
+    // Step 2 (mosque registration) is now optional - no validation needed
     setStep((prev) => prev + 1);
+  };
+
+  const handleSkipMosqueRegistration = () => {
+    // Skip to review step without requiring mosque information
+    setStep(3);
   };
 
   const handleBack = () => {
@@ -375,7 +382,7 @@ function OnboardingContent() {
           <Building className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">{t('mosqueSetup')}</h3>
           <p className="text-slate-600 dark:text-slate-400">
-            {t('mosqueSetupDescription')}
+            {t('mosqueSetupDescriptionOptional')}
           </p>
         </div>
 
@@ -561,24 +568,30 @@ function OnboardingContent() {
             <div>
               <h4 className="font-semibold mb-2">{t('mosqueInformation')}</h4>
               <div className="text-sm">
-                {data.institutionType && (
-                  <p className="mb-2">
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {t('institutionType')}:
-                    </span>{' '}
-                    <span className="font-medium">
-                      {data.institutionType === 'mosque' ? t('mosque') : t('surau')}
-                    </span>
+                {!data.mosqueName ? (
+                  <p className="text-slate-500 dark:text-slate-400 italic">
+                    {t('mosqueRegistrationSkipped')}
                   </p>
-                )}
-                {data.mosqueName && (
-                  <p>
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {t('mosqueName')}:
-                    </span>{' '}
-                    <span className="font-medium">{data.mosqueName}</span>
-                  </p>
-                )}
+                ) : (
+                  <>
+                    {data.institutionType && (
+                      <p className="mb-2">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {t('institutionType')}:
+                        </span>{' '}
+                        <span className="font-medium">
+                          {data.institutionType === 'mosque' ? t('mosque') : t('surau')}
+                        </span>
+                      </p>
+                    )}
+                    {data.mosqueName && (
+                      <p>
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {t('mosqueName')}:
+                        </span>{' '}
+                        <span className="font-medium">{data.mosqueName}</span>
+                      </p>
+                    )}
                 {data.mosqueAddressData && data.mosqueAddressData.address_line1 && (
                   <div className="mt-2">
                     <p className="text-slate-600 dark:text-slate-400 mb-1">
@@ -662,6 +675,8 @@ function OnboardingContent() {
                     )}
                   </div>
                 )}
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
@@ -735,13 +750,24 @@ function OnboardingContent() {
               </Button>
 
               {step < 3 ? (
-                <Button
-                  onClick={handleNext}
-                  className="flex items-center gap-2"
-                >
-                  {t('next')}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {step === 2 && (
+                    <Button
+                      variant="ghost"
+                      onClick={handleSkipMosqueRegistration}
+                      className="flex items-center gap-2"
+                    >
+                      {t('skip')}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleNext}
+                    className="flex items-center gap-2"
+                  >
+                    {t('next')}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
                 <Button
                   onClick={handleComplete}

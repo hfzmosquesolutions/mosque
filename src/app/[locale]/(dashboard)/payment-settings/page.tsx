@@ -6,7 +6,7 @@ import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PaymentProviderSettings } from '@/components/settings/PaymentProviderSettings';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Lock } from 'lucide-react';
+import { AlertCircle, Lock, Info, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { 
@@ -39,13 +39,14 @@ import { CheckCircle, Save } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { MosqueKhairatSettings } from '@/types/database';
 import { PageLoading } from '@/components/ui/page-loading';
+import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
 
 function PaymentSettingsContent() {
   const t = useTranslations('khairat');
   const tBilling = useTranslations('billing.pricing');
   const locale = useLocale();
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
-  const { mosqueId } = useUserMosque();
+  const { mosqueId, loading: mosqueLoading } = useUserMosque();
   const { plan, loading: subscriptionLoading } = useSubscription(mosqueId || '');
   const isFreePlan = plan === 'free';
   // By default, no payment methods are enabled. Admin must explicitly configure and enable them.
@@ -92,6 +93,10 @@ function PaymentSettingsContent() {
     if (mosqueId) {
       loadPaymentMethods();
       loadKhairatSettings();
+    } else {
+      // If no mosque, stop loading states
+      setLoadingMethods(false);
+      setLoadingKhairatSettings(false);
     }
   }, [mosqueId, plan]);
 
@@ -314,7 +319,8 @@ function PaymentSettingsContent() {
   // ProtectedRoute already handles access control and onboarding enforcement.
   // If we reach here, user is authenticated and has admin access.
   // Wait for loading to complete before rendering.
-  if (adminLoading || subscriptionLoading) {
+  // If no mosque, don't wait for subscription loading (which depends on mosque)
+  if (adminLoading || (mosqueId && subscriptionLoading) || mosqueLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-start justify-between">
@@ -334,6 +340,7 @@ function PaymentSettingsContent() {
 
   return (
     <div className="space-y-6">
+      <MosqueSetupBanner />
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -515,6 +522,23 @@ function PaymentSettingsContent() {
                             {t('paymentProviderSettings.fixedPriceHint') || 
                              'Leave empty to allow any amount. If set, this will be the fixed amount for online payments.'}
                           </p>
+                          <Alert className="mt-2">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription className="text-xs">
+                              <div className="space-y-2">
+                                <p>{t('paymentProviderSettings.includeToyyibPayFee')}</p>
+                                <a
+                                  href="https://www.toyyibpay.com/pricing-plans/"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                                >
+                                  {t('paymentProviderSettings.viewToyyibPayPricing') || 'View ToyyibPay Pricing'}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
                         </div>
 
                         <div>

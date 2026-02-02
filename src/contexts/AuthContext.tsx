@@ -24,6 +24,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const isInitialLoad = useRef(true);
   const previousUserId = useRef<string | null>(null);
+  const userCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
+
+  // Function to verify if user still exists in database
+  const verifyUserExists = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('[AuthContext] Error checking user existence:', error);
+        return false;
+      }
+      
+      return !!data;
+    } catch (error) {
+      console.error('[AuthContext] Exception checking user existence:', error);
+      return false;
+    }
+  };
+
+  // Function to handle user deletion - sign out if user doesn't exist
+  const handleUserDeletion = async (userId: string) => {
+    const userExists = await verifyUserExists(userId);
+    if (!userExists) {
+      console.log('[AuthContext] User no longer exists in database, signing out...');
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      toast.error('Your account has been deleted. You have been signed out.');
+    }
+  };
 
   useEffect(() => {
     // Get initial session
@@ -38,6 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         previousUserId.current = session?.user?.id ?? null;
+        
+        // Verify user exists on initial load
+        if (session?.user?.id) {
+          await handleUserDeletion(session.user.id);
+        }
       }
       setLoading(false);
     };
@@ -57,6 +97,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Update current user ID ref
+      currentUserIdRef.current = session?.user?.id ?? null;
+
+      // Verify user exists when session changes (especially on SIGNED_IN)
+      if (session?.user?.id && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        await handleUserDeletion(session.user.id);
+      }
+
+      // Clear previous interval if user signed out
+      if (!session?.user?.id && userCheckInterval.current) {
+        clearInterval(userCheckInterval.current);
+        userCheckInterval.current = null;
+      }
+
+      // Set up periodic check for user existence (every 30 seconds)
+      if (session?.user?.id && !userCheckInterval.current) {
+        userCheckInterval.current = setInterval(async () => {
+          const userId = currentUserIdRef.current;
+          if (userId) {
+            await handleUserDeletion(userId);
+          }
+        }, 30000); // Check every 30 seconds
+      }
 
       // Handle first auth event (including email confirmation links)
       if (isInitialLoad.current) {
@@ -101,6 +165,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      if (userCheckInterval.current) {
+        clearInterval(userCheckInterval.current);
+        userCheckInterval.current = null;
+      }
     };
   }, []);
 
