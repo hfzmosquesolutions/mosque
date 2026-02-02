@@ -9,6 +9,7 @@ import { MosqueKhairatContributions } from '@/components/khairat/MosqueKhairatCo
 import { UserPaymentsTable } from '@/components/khairat/UserPaymentsTable';
 import { PageLoading } from '@/components/ui/page-loading';
 import { useAuth } from '@/contexts/AuthContext';
+import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
 
 function PaymentHistoryContent() {
   const t = useTranslations('khairat');
@@ -41,6 +42,7 @@ function PaymentHistoryContent() {
 
   return (
     <div className="space-y-6">
+      {hasAdminAccess && <MosqueSetupBanner />}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           {t('khairatPayments')}

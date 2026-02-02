@@ -121,9 +121,23 @@ function ResetPasswordContent() {
 
     setLoading(true);
     try {
-      // Password update functionality not implemented yet
-      toast.error('Password update is not available yet');
-      return;
+      // Update the user's password using Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) {
+        toast.error(error.message || t('passwordUpdateError'));
+        return;
+      }
+
+      // Password updated successfully
+      setPasswordUpdated(true);
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
     } catch (error: any) {
       toast.error(error?.message || t('passwordUpdateError'));
     } finally {

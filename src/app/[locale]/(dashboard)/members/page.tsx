@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, Upload, UserPlus, ChevronDown } from 'lucide-react';
+import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
 
 function KhairatMembersContent() {
   const t = useTranslations('khairatManagement');
@@ -27,6 +28,7 @@ function KhairatMembersContent() {
 
   return (
     <div className="space-y-6">
+      <MosqueSetupBanner />
       {/* Header with Title, Description, and Register Button */}
       <div className="flex items-start justify-between gap-4">
         <div>

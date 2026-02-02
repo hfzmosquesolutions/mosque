@@ -71,6 +71,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
 
 // Extended mosque interface for profile editing
 interface MosqueProfileData extends Mosque {
@@ -172,9 +173,15 @@ function MosqueProfileContent() {
     try {
       const userMosqueId = await getUserMosqueId(user.id);
       setMosqueId(userMosqueId);
+      // If no mosque, set loading to false so we can show the banner
+      if (!userMosqueId) {
+        setIsLoading(false);
+        setSettingsLoading(false);
+      }
     } catch (error) {
       console.error('Error loading user mosque:', error);
       setIsLoading(false);
+      setSettingsLoading(false);
     }
   }, [user]);
 
@@ -398,11 +405,14 @@ function MosqueProfileContent() {
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access
   // Wait for loading to complete before rendering
-  const isPageLoading = onboardingLoading || !isCompleted || adminLoading || isLoading || settingsLoading;
+  // If no mosque, don't wait for mosque-dependent loading states
+  const isPageLoading = onboardingLoading || !isCompleted || adminLoading || 
+    (mosqueId ? (isLoading || settingsLoading) : false);
 
   return (
     <DashboardLayout title={t('mosquePage')}>
       <div className="space-y-6">
+        {!mosqueId && <MosqueSetupBanner />}
          {/* Header with Title */}
          <div>
            <h1 className="text-3xl font-bold tracking-tight">

@@ -15,13 +15,25 @@ export async function getDashboardUrl(userId?: string | null): Promise<string> {
 
   try {
     const { supabase } = await import('@/lib/supabase');
+    
+    // Check if user owns a mosque
     const { data: mosqueData } = await supabase
       .from('mosques')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
 
-    return mosqueData ? '/dashboard' : '/my-dashboard';
+    // Also check account_type from user profile
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('account_type')
+      .eq('id', userId)
+      .maybeSingle();
+
+    // User is admin if they own a mosque OR if their account_type is 'admin'
+    const isAdmin = !!mosqueData || profileData?.account_type === 'admin';
+    
+    return isAdmin ? '/dashboard' : '/my-dashboard';
   } catch (error) {
     console.error('Error checking admin status for dashboard URL:', error);
     return '/my-dashboard'; // Default to user dashboard on error

@@ -10,6 +10,7 @@ import { UserClaimsTable } from '@/components/khairat/UserClaimsTable';
 import { useSafeAsync } from '@/hooks/useSafeAsync';
 import { PageLoading } from '@/components/ui/page-loading';
 import { useAuth } from '@/contexts/AuthContext';
+import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
 
 function KhairatClaimsContent() {
   const t = useTranslations('claims');
@@ -28,6 +29,7 @@ function KhairatClaimsContent() {
 
   return (
     <div className="space-y-6">
+      {hasAdminAccess && <MosqueSetupBanner />}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           {t('khairatClaims')}

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import {
   CreditCard,
@@ -101,6 +102,7 @@ export function PaymentProviderSettings() {
   const [showSignatureKey, setShowSignatureKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acknowledgedMoneyHandling, setAcknowledgedMoneyHandling] = useState(false);
 
   useEffect(() => {
     if (!isAdmin || !mosqueId) {
@@ -166,6 +168,11 @@ export function PaymentProviderSettings() {
 
   const handleSave = async () => {
     if (!mosqueId) return;
+
+    if (!acknowledgedMoneyHandling) {
+      toast.error(t('paymentProviderSettings.acknowledgmentRequired'));
+      return;
+    }
 
     try {
       setSaving(true);
@@ -468,7 +475,7 @@ export function PaymentProviderSettings() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        {/* Provider Selection */}
+        {/* Provider Selection - ToyyibPay only */}
         <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
           <Label className="text-sm font-medium">{t('paymentProviderSettings.paymentProvider')}:</Label>
           <div className="flex items-center gap-4">
@@ -484,21 +491,6 @@ export function PaymentProviderSettings() {
                 className="w-4 h-4"
               />
               <span className="text-sm">ToyyibPay</span>
-              <Badge variant="outline" className="ml-1 text-xs">Recommended</Badge>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="provider"
-                value="billplz"
-                checked={selectedProvider === 'billplz'}
-                onChange={(e) =>
-                  setSelectedProvider(e.target.value as ProviderType)
-                }
-                className="w-4 h-4"
-              />
-              <span className="text-sm">Billplz</span>
-              <Badge variant="outline" className="ml-1 text-xs">Advanced</Badge>
             </label>
           </div>
         </div>
@@ -725,9 +717,48 @@ export function PaymentProviderSettings() {
           </AlertDescription>
         </Alert>
 
+        {/* Acknowledgment Checkbox */}
+        <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+          <Checkbox
+            id="acknowledge-money-handling"
+            checked={acknowledgedMoneyHandling}
+            onCheckedChange={(checked) => setAcknowledgedMoneyHandling(checked === true)}
+            className="mt-1"
+          />
+          <div className="flex-1 space-y-1">
+            <Label
+              htmlFor="acknowledge-money-handling"
+              className="text-sm font-medium leading-none cursor-pointer"
+            >
+              {(() => {
+                const key = 'paymentProviderSettings.acknowledgmentTitle';
+                const translation = t(key);
+                // Check if translation failed (returns key path)
+                if (translation.includes('khairat.paymentProviderSettings.acknowledgmentTitle') || 
+                    translation === 'paymentProviderSettings.acknowledgmentTitle') {
+                  return 'I acknowledge and understand the payment handling terms';
+                }
+                return translation;
+              })()}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {(() => {
+                const key = 'paymentProviderSettings.acknowledgmentDescription';
+                const translation = t(key);
+                // Check if translation failed (returns key path)
+                if (translation.includes('khairat.paymentProviderSettings.acknowledgmentDescription') || 
+                    translation === 'paymentProviderSettings.acknowledgmentDescription') {
+                  return 'I understand that this platform does not store or hold any funds. All payment transactions are processed directly through ToyyibPay, and this system only displays transaction records for administrative purposes. All funds are held and managed by ToyyibPay in accordance with their terms and conditions.';
+                }
+                return translation;
+              })()}
+            </p>
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex items-center gap-3 pt-4">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !acknowledgedMoneyHandling}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

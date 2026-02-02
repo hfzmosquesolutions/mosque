@@ -456,6 +456,25 @@ export function KhairatContributionForm({
     }
   }, [paymentMethod, khairatSettings, getFixedPriceForMethod]);
 
+  // Set ToyyibPay as default payment method when available and enabled
+  useEffect(() => {
+    if (
+      selectedMosqueId &&
+      !paymentMethod && // Only set if no payment method is selected
+      availableProviders.includes('toyyibpay') &&
+      enabledPaymentMethods.online_payment &&
+      hasOnlinePayment &&
+      !checkingPaymentProvider
+    ) {
+      setPaymentMethod('toyyibpay');
+      // Set amount based on fixed price for ToyyibPay if available
+      const fixedPrice = getFixedPriceForMethod('toyyibpay');
+      if (fixedPrice && fixedPrice > 0) {
+        setAmount(fixedPrice.toString());
+      }
+    }
+  }, [selectedMosqueId, availableProviders, enabledPaymentMethods.online_payment, hasOnlinePayment, checkingPaymentProvider, paymentMethod, getFixedPriceForMethod]);
+
   const handleClose = () => {
     setSelectedMosqueId(preselectedMosqueId || '');
     setAmount('');

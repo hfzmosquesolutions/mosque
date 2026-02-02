@@ -70,7 +70,7 @@ function ForgotPasswordContent() {
             <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
               <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <AlertDescription className="text-emerald-700 dark:text-emerald-300">
-                We sent a reset link to <strong>{email}</strong>
+                {t('weSentResetLinkTo')} <strong>{email}</strong>
               </AlertDescription>
             </Alert>
 
@@ -80,7 +80,7 @@ function ForgotPasswordContent() {
                 variant="outline"
                 className="w-full"
               >
-                Send Another Link
+                {t('sendAnotherLink')}
               </Button>
 
               <Button
