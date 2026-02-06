@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Validate and prepare members for insertion
     const membersToInsert: any[] = [];
+    const membersWithDependents: Array<{ memberIndex: number; dependents: any[] }> = [];
     const errors: string[] = [];
     const skipped: string[] = [];
 
@@ -148,6 +149,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Parse dependents if provided (can be JSON string or array)
+      let dependents: any[] = [];
+      if (member.dependents) {
+        try {
+          if (typeof member.dependents === 'string') {
+            dependents = JSON.parse(member.dependents);
+          } else if (Array.isArray(member.dependents)) {
+            dependents = member.dependents;
+          }
+        } catch (e) {
+          errors.push(`Row ${rowNumber}: Invalid dependents format (must be valid JSON array)`);
+        }
+      }
+
       // Prepare member data
       membersToInsert.push({
         mosque_id,
@@ -161,6 +176,25 @@ export async function POST(request: NextRequest) {
         status: 'active',
         joined_date: new Date().toISOString().split('T')[0],
       });
+
+      // Store dependents for later insertion (after member is created)
+      if (dependents.length > 0) {
+        membersWithDependents.push({
+          memberIndex: membersToInsert.length - 1,
+          dependents: dependents.filter(dep => dep.full_name && dep.relationship).map(dep => ({
+            full_name: dep.full_name?.trim() || '',
+            relationship: dep.relationship?.trim() || '',
+            ic_passport_number: dep.ic_passport_number?.trim() || undefined,
+            date_of_birth: dep.date_of_birth || undefined,
+            gender: dep.gender || undefined,
+            phone: dep.phone?.trim() || undefined,
+            email: dep.email?.trim() || undefined,
+            address: dep.address?.trim() || undefined,
+            emergency_contact: dep.emergency_contact || false,
+            notes: dep.notes?.trim() || undefined,
+          })),
+        });
+      }
     }
 
     if (membersToInsert.length === 0) {
@@ -178,6 +212,8 @@ export async function POST(request: NextRequest) {
     const batchSize = 100;
     const insertedMembers: any[] = [];
     const insertErrors: string[] = [];
+    let dependentsCreated = 0;
+    const dependentsErrors: string[] = [];
 
     for (let i = 0; i < membersToInsert.length; i += batchSize) {
       const batch = membersToInsert.slice(i, i + batchSize);
@@ -191,16 +227,46 @@ export async function POST(request: NextRequest) {
         insertErrors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${batchError.message}`);
       } else if (batchResult) {
         insertedMembers.push(...batchResult);
+
+        // Create dependents for the inserted members in this batch
+        // Map inserted members by their original index in membersToInsert
+        for (let j = 0; j < batchResult.length; j++) {
+          const originalIndex = i + j;
+          const memberWithDeps = membersWithDependents.find(m => m.memberIndex === originalIndex);
+          
+          if (memberWithDeps && memberWithDeps.dependents.length > 0) {
+            const createdMember = batchResult[j];
+            
+            if (createdMember) {
+              const dependentsToInsert = memberWithDeps.dependents.map(dep => ({
+                ...dep,
+                khairat_member_id: createdMember.id,
+              }));
+
+              const { error: depsError } = await supabaseAdmin
+                .from('khairat_member_dependents')
+                .insert(dependentsToInsert);
+
+              if (depsError) {
+                dependentsErrors.push(`Row ${originalIndex + 2}: Failed to create dependents - ${depsError.message}`);
+              } else {
+                dependentsCreated += dependentsToInsert.length;
+              }
+            }
+          }
+        }
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully created ${insertedMembers.length} member(s)`,
+      message: `Successfully created ${insertedMembers.length} member(s)${dependentsCreated > 0 ? ` with ${dependentsCreated} dependent(s)` : ''}`,
       created_count: insertedMembers.length,
+      dependents_created: dependentsCreated,
       errors: errors.length > 0 ? errors : undefined,
       skipped: skipped.length > 0 ? skipped : undefined,
       insert_errors: insertErrors.length > 0 ? insertErrors : undefined,
+      dependents_errors: dependentsErrors.length > 0 ? dependentsErrors : undefined,
     });
   } catch (error: any) {
     console.error('Error in bulk member creation:', error);

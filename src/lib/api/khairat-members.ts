@@ -13,6 +13,7 @@ export interface KhairatMemberCreateData {
   mosque_id: string;
   ic_passport_number?: string;
   application_reason?: string;
+  original_registration_date?: string; // Historical registration date for legacy members
   // Member data fields (collected for all users)
   full_name?: string;
   phone?: string;
@@ -25,8 +26,11 @@ export interface KhairatMemberUpdateData {
   admin_notes?: string;
   notes?: string;
   joined_date?: string;
+  original_registration_date?: string; // Historical registration date for legacy members
+  membership_number?: string;
   // User-editable fields
   full_name?: string;
+  ic_passport_number?: string;
   phone?: string;
   email?: string;
   address?: string;
@@ -890,6 +894,7 @@ export async function bulkCreateKhairatMembers(data: {
     email?: string;
     address?: string;
     notes?: string;
+    dependents?: any; // JSON array or array of dependent objects
   }>;
 }) {
   const { data: user } = await supabase.auth.getUser();
@@ -934,9 +939,11 @@ export async function bulkCreateKhairatMembers(data: {
     return {
       message: result.message,
       created_count: result.created_count,
+      dependents_created: result.dependents_created || 0,
       errors: result.errors || [],
       skipped: result.skipped || [],
       insert_errors: result.insert_errors || [],
+      dependents_errors: result.dependents_errors || [],
     };
   } catch (error) {
     console.error('Error bulk creating members:', error);

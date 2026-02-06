@@ -237,21 +237,9 @@ export function KhairatContributionForm({
         const settings = mosqueRes.data.settings as Record<string, any> | undefined;
         const paymentMethods = settings?.enabled_payment_methods || {};
         
-        // Check subscription plan
-        const { getEffectiveSubscription } = await import('@/lib/subscription');
-        let subscriptionPlan = 'free';
-        try {
-          const subscription = await getEffectiveSubscription(mosqueId);
-          subscriptionPlan = subscription?.plan || 'free';
-        } catch (error) {
-          console.error('Error fetching subscription:', error);
-        }
-        
-        const isFreePlan = subscriptionPlan === 'free';
-        
         // Only treat methods as enabled when explicitly set to true.
         const paymentMethodsEnabled = {
-          online_payment: isFreePlan ? false : paymentMethods.online_payment === true,
+          online_payment: paymentMethods.online_payment === true,
           bank_transfer: paymentMethods.bank_transfer === true,
           cash: paymentMethods.cash === true,
         };
