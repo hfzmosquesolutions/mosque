@@ -1,4 +1,4 @@
-full_name,ic_passport_number,membership_number,phone,email,address,notes
-Ahmad bin Ali,123456789012,MEM001,0123456789,ahmad@example.com,"123 Jalan Masjid, Taman Sejahtera, 50000 Kuala Lumpur",Active member since 2020
-Fatimah binti Hassan,234567890123,MEM002,0198765432,fatimah@example.com,"45 Lorong Bahagia, 51000 Kuala Lumpur",
-Muhammad bin Ibrahim,345678901234,,0134567890,,,"Member without membership number"
+full_name,ic_passport_number,membership_number,phone,email,address,notes,dependents
+Ahmad bin Ali,123456789012,MEM001,0123456789,ahmad@example.com,"123 Jalan Masjid, Taman Sejahtera, 50000 Kuala Lumpur",Active member since 2020,"[{""full_name"":""Siti binti Ahmad"",""relationship"":""spouse"",""ic_passport_number"":""987654321098"",""date_of_birth"":""1985-05-15"",""gender"":""female"",""phone"":""0123456788""},{""full_name"":""Ali bin Ahmad"",""relationship"":""child"",""ic_passport_number"":""111111111111"",""date_of_birth"":""2010-01-20"",""gender"":""male""}]"
+Fatimah binti Hassan,234567890123,MEM002,0198765432,fatimah@example.com,"45 Lorong Bahagia, 51000 Kuala Lumpur",,"[{""full_name"":""Hassan bin Abdullah"",""relationship"":""spouse"",""ic_passport_number"":""222222222222"",""date_of_birth"":""1980-03-10"",""gender"":""male""}]"
+Muhammad bin Ibrahim,345678901234,,0134567890,,,"Member without membership number",

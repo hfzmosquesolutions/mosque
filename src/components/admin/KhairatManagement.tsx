@@ -61,13 +61,20 @@ import { formatDistanceToNow } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   getKhairatMembers,
+  getKhairatMemberById,
   reviewKhairatApplication,
   updateKhairatMember,
   withdrawKhairatMembership,
   deleteKhairatMember,
   bulkCreateKhairatMembers,
 } from '@/lib/api/khairat-members';
-import { KhairatMember } from '@/types/database';
+import {
+  bulkCreateKhairatMemberDependents,
+  updateKhairatMemberDependent,
+  deleteKhairatMemberDependent,
+  createKhairatMemberDependent,
+} from '@/lib/api/khairat-member-dependents';
+import { KhairatMember, CreateKhairatMemberDependent } from '@/types/database';
 import { supabase } from '@/lib/supabase';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
@@ -98,6 +105,41 @@ export function KhairatManagement({
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [isEditingMember, setIsEditingMember] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    full_name: string;
+    ic_passport_number: string;
+    membership_number: string;
+    phone: string;
+    email: string;
+    address: string;
+    notes: string;
+    status: 'pending' | 'approved' | 'rejected' | 'under_review' | 'withdrawn' | 'active' | 'inactive' | 'suspended';
+    original_registration_date: string;
+  }>({
+    full_name: '',
+    ic_passport_number: '',
+    membership_number: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+    status: 'active',
+    original_registration_date: '',
+  });
+  const [editDependents, setEditDependents] = useState<Array<{
+    id?: string;
+    full_name: string;
+    relationship: string;
+    ic_passport_number: string;
+    date_of_birth: string;
+    gender: string;
+    phone: string;
+    email: string;
+    address: string;
+    emergency_contact: boolean;
+    notes: string;
+  }>>([]);
   const [internalCreateDialogOpen, setInternalCreateDialogOpen] = useState(false);
   
   // Bulk upload state
@@ -112,6 +154,14 @@ export function KhairatManagement({
   const [uploading, setUploading] = useState(false);
   const [previewPage, setPreviewPage] = useState(1);
   const previewItemsPerPage = 10;
+  const [uploadResult, setUploadResult] = useState<{
+    errors?: string[];
+    skipped?: string[];
+    dependents_errors?: string[];
+    created_count: number;
+    dependents_created?: number;
+  } | null>(null);
+  const [showErrorsDialog, setShowErrorsDialog] = useState(false);
   
   // Use external dialog state if provided, otherwise use internal state
   const createDialogOpen = externalCreateDialogOpen !== undefined 
@@ -126,7 +176,22 @@ export function KhairatManagement({
     email: '',
     address: '',
     notes: '',
+    original_registration_date: new Date().toISOString().split('T')[0], // Default to today
   });
+  const [memberDependents, setMemberDependents] = useState<Array<{
+    id: string;
+    full_name: string;
+    relationship: string;
+    ic_passport_number: string;
+    date_of_birth: string;
+    gender: string;
+    phone: string;
+    email: string;
+    address: string;
+    emergency_contact: boolean;
+    notes: string;
+  }>>([]);
+  const [showDependentsForm, setShowDependentsForm] = useState(false);
 
   const loadMembers = async () => {
     setLoading(true);
@@ -259,6 +324,150 @@ export function KhairatManagement({
     }
   };
 
+  const handleEditMember = (member: KhairatMember) => {
+    // Switch to edit mode - dialog should already be open
+    setIsEditingMember(true);
+    setEditForm({
+      full_name: member.full_name || '',
+      ic_passport_number: member.ic_passport_number || '',
+      membership_number: member.membership_number || '',
+      phone: member.phone || '',
+      email: member.email || '',
+      address: member.address || '',
+      notes: member.notes || '',
+      status: member.status,
+      original_registration_date: member.original_registration_date || new Date(member.created_at).toISOString().split('T')[0],
+    });
+    // Initialize dependents for editing
+    setEditDependents(
+      member.dependents?.map((dep: any) => ({
+        id: dep.id,
+        full_name: dep.full_name || '',
+        relationship: dep.relationship || '',
+        ic_passport_number: dep.ic_passport_number || '',
+        date_of_birth: dep.date_of_birth ? new Date(dep.date_of_birth).toISOString().split('T')[0] : '',
+        gender: dep.gender || '',
+        phone: dep.phone || '',
+        email: dep.email || '',
+        address: dep.address || '',
+        emergency_contact: dep.emergency_contact || false,
+        notes: dep.notes || '',
+      })) || []
+    );
+  };
+
+  const handleSaveMember = async () => {
+    if (!selectedMember) return;
+
+    setProcessing(true);
+    try {
+      // Validate IC if changed
+      let normalizedIc = editForm.ic_passport_number;
+      if (editForm.ic_passport_number && editForm.ic_passport_number !== selectedMember.ic_passport_number) {
+        normalizedIc = normalizeMalaysiaIc(editForm.ic_passport_number).slice(0, 12);
+        if (!isValidMalaysiaIc(normalizedIc)) {
+          toast.error('Invalid IC number. Please enter a valid 12-digit Malaysian IC number.');
+          setProcessing(false);
+          return;
+        }
+      }
+
+      // Update member
+      await updateKhairatMember(selectedMember.id, {
+        full_name: editForm.full_name || undefined,
+        ic_passport_number: normalizedIc || undefined,
+        membership_number: editForm.membership_number || undefined,
+        phone: editForm.phone || undefined,
+        email: editForm.email || undefined,
+        address: editForm.address || undefined,
+        notes: editForm.notes || undefined,
+        status: editForm.status,
+        original_registration_date: editForm.original_registration_date || undefined,
+      });
+
+      // Handle dependents
+      const existingDependentIds = selectedMember.dependents?.map((d: any) => d.id) || [];
+      const currentDependentIds = editDependents.filter(d => d.id).map(d => d.id!);
+      const dependentsToDelete = existingDependentIds.filter((id: string) => !currentDependentIds.includes(id));
+
+      // Delete removed dependents
+      for (const dependentId of dependentsToDelete) {
+        const result = await deleteKhairatMemberDependent(dependentId);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete dependent');
+        }
+      }
+
+      // Update or create dependents
+      for (const dependent of editDependents) {
+        if (dependent.id) {
+          // Update existing dependent
+          const result = await updateKhairatMemberDependent(dependent.id, {
+            full_name: dependent.full_name,
+            relationship: dependent.relationship,
+            ic_passport_number: dependent.ic_passport_number,
+            date_of_birth: dependent.date_of_birth || undefined,
+            gender: dependent.gender || undefined,
+            phone: dependent.phone || undefined,
+            email: dependent.email || undefined,
+            address: dependent.address || undefined,
+            emergency_contact: dependent.emergency_contact,
+            notes: dependent.notes || undefined,
+          });
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to update dependent');
+          }
+        } else {
+          // Create new dependent
+          const result = await createKhairatMemberDependent({
+            khairat_member_id: selectedMember.id,
+            full_name: dependent.full_name,
+            relationship: dependent.relationship,
+            ic_passport_number: dependent.ic_passport_number,
+            date_of_birth: dependent.date_of_birth || undefined,
+            gender: dependent.gender || undefined,
+            phone: dependent.phone || undefined,
+            email: dependent.email || undefined,
+            address: dependent.address || undefined,
+            emergency_contact: dependent.emergency_contact,
+            notes: dependent.notes || undefined,
+          });
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to create dependent');
+          }
+        }
+      }
+
+      toast.success('Member updated successfully');
+      setIsEditingMember(false);
+      loadMembers();
+      // Reload member details
+      const updatedMember = await getKhairatMemberById(selectedMember.id);
+      setSelectedMember(updatedMember);
+    } catch (error: any) {
+      console.error('Error updating member:', error);
+      toast.error(error?.message || 'Failed to update member');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingMember(false);
+    setEditForm({
+      full_name: '',
+      ic_passport_number: '',
+      membership_number: '',
+      phone: '',
+      email: '',
+      address: '',
+      notes: '',
+      status: 'active',
+      original_registration_date: new Date().toISOString().split('T')[0],
+    });
+    setEditDependents([]);
+  };
+
   const handleCreateMember = async () => {
     // Validate required fields
     if (!createForm.full_name || !createForm.ic_passport_number) {
@@ -332,7 +541,40 @@ export function KhairatManagement({
         throw new Error(createError.message);
       }
 
-      toast.success('Member registered successfully');
+      // Create dependents if any
+      if (newMember && memberDependents.length > 0) {
+        const validDependents = memberDependents
+          .filter(dep => dep.full_name && dep.relationship)
+          .map(dep => ({
+            full_name: dep.full_name,
+            relationship: dep.relationship,
+            ic_passport_number: dep.ic_passport_number?.trim() || undefined,
+            date_of_birth: dep.date_of_birth || undefined,
+            gender: dep.gender || undefined,
+            phone: dep.phone?.trim() || undefined,
+            email: dep.email?.trim() || undefined,
+            address: dep.address?.trim() || undefined,
+            emergency_contact: dep.emergency_contact || false,
+            notes: dep.notes?.trim() || undefined,
+          }));
+
+        if (validDependents.length > 0) {
+          const { success, error: dependentsError } = await bulkCreateKhairatMemberDependents(
+            newMember.id,
+            validDependents
+          );
+
+          if (!success) {
+            console.error('Error creating dependents:', dependentsError);
+            toast.warning('Member created but failed to add some dependents');
+          } else {
+            toast.success(`Member registered successfully with ${validDependents.length} dependent(s)`);
+          }
+        }
+      } else {
+        toast.success('Member registered successfully');
+      }
+
       setCreateDialogOpen(false);
       setCreateForm({ 
         full_name: '',
@@ -342,7 +584,10 @@ export function KhairatManagement({
         email: '',
         address: '',
         notes: '',
+        original_registration_date: new Date().toISOString().split('T')[0],
       });
+      setMemberDependents([]);
+      setShowDependentsForm(false);
       loadMembers();
     } catch (error: any) {
       console.error('Error creating member:', error);
@@ -389,11 +634,17 @@ export function KhairatManagement({
         let current = '';
         let inQuotes = false;
 
-        // Parse CSV line handling quoted values
+        // Parse CSV line handling quoted values (including JSON arrays)
         for (let j = 0; j < lines[i].length; j++) {
           const char = lines[i][j];
           if (char === '"') {
-            inQuotes = !inQuotes;
+            // Handle escaped quotes within JSON
+            if (j + 1 < lines[i].length && lines[i][j + 1] === '"') {
+              current += '"';
+              j++; // Skip next quote
+            } else {
+              inQuotes = !inQuotes;
+            }
           } else if (char === ',' && !inQuotes) {
             values.push(current.trim().replace(/^"|"$/g, ''));
             current = '';
@@ -405,7 +656,9 @@ export function KhairatManagement({
 
         const record: any = {};
         headers.forEach((header, index) => {
-          record[header] = values[index] || '';
+          const value = values[index] || '';
+          // Preserve the value as-is, especially for JSON strings in dependents
+          record[header] = value;
         });
 
         data.push(record);
@@ -432,15 +685,32 @@ export function KhairatManagement({
         .filter((record) => {
           return record.ic_passport_number && record.full_name;
         })
-        .map((record) => ({
-          full_name: record.full_name?.trim() || '',
-          ic_passport_number: record.ic_passport_number?.trim() || '',
-          membership_number: record.membership_number?.trim() || undefined,
-          phone: record.phone?.trim() || undefined,
-          email: record.email?.trim() || undefined,
-          address: record.address?.trim() || undefined,
-          notes: record.notes?.trim() || undefined,
-        }));
+        .map((record) => {
+          // Parse dependents if provided (can be JSON string or array)
+          let dependents: any[] = [];
+          if (record.dependents) {
+            try {
+              if (typeof record.dependents === 'string' && record.dependents.trim()) {
+                dependents = JSON.parse(record.dependents);
+              } else if (Array.isArray(record.dependents)) {
+                dependents = record.dependents;
+              }
+            } catch (e) {
+              console.warn('Failed to parse dependents JSON:', e);
+            }
+          }
+
+          return {
+            full_name: record.full_name?.trim() || '',
+            ic_passport_number: record.ic_passport_number?.trim() || '',
+            membership_number: record.membership_number?.trim() || undefined,
+            phone: record.phone?.trim() || undefined,
+            email: record.email?.trim() || undefined,
+            address: record.address?.trim() || undefined,
+            notes: record.notes?.trim() || undefined,
+            dependents: dependents.length > 0 ? dependents : undefined,
+          };
+        });
 
       if (validMembers.length === 0) {
         toast.error(t('bulkUpload.noValidRecordsFound') || 'No valid records found');
@@ -452,33 +722,79 @@ export function KhairatManagement({
         members: validMembers,
       });
 
+      const dependentsCount = (result as any).dependents_created || 0;
+      const dependentsErrors = (result as any).dependents_errors || [];
+      const dependentsMsg = dependentsCount > 0 ? ` with ${dependentsCount} dependent(s)` : '';
+
+      // Store result for error dialog
+      const hasErrors = (result.errors && result.errors.length > 0) || 
+                        (result.skipped && result.skipped.length > 0) || 
+                        (dependentsErrors.length > 0);
+      
+      if (hasErrors) {
+        setUploadResult({
+          errors: result.errors || [],
+          skipped: result.skipped || [],
+          dependents_errors: dependentsErrors,
+          created_count: result.created_count,
+          dependents_created: dependentsCount,
+        });
+        setShowErrorsDialog(true);
+      }
+
       if (result.errors && result.errors.length > 0) {
         toast.warning(
           t('bulkUpload.uploadedWithErrors', { 
             count: result.created_count,
             errors: result.errors.length 
-          }) || `Uploaded ${result.created_count} member(s) with ${result.errors.length} error(s)`
+          }) || `Uploaded ${result.created_count} member(s)${dependentsMsg} with ${result.errors.length} error(s)`,
+          {
+            action: {
+              label: t('bulkUpload.viewDetails') || 'View Details',
+              onClick: () => setShowErrorsDialog(true),
+            },
+          }
         );
-        console.error('Upload errors:', result.errors);
       } else if (result.skipped && result.skipped.length > 0) {
         toast.warning(
           t('bulkUpload.uploadedWithSkipped', { 
             count: result.created_count,
             skipped: result.skipped.length 
-          }) || `Uploaded ${result.created_count} member(s), ${result.skipped.length} skipped`
+          }) || `Uploaded ${result.created_count} member(s)${dependentsMsg}, ${result.skipped.length} skipped`,
+          {
+            action: {
+              label: t('bulkUpload.viewDetails') || 'View Details',
+              onClick: () => setShowErrorsDialog(true),
+            },
+          }
         );
       } else {
-        toast.success(
-          t('bulkUpload.successfullyUploaded', { count: result.created_count }) || 
-          `Successfully uploaded ${result.created_count} member(s)`
-        );
+        if (dependentsErrors.length > 0) {
+          toast.warning(
+            `Successfully uploaded ${result.created_count} member(s)${dependentsMsg}, but ${dependentsErrors.length} dependent(s) failed to create`,
+            {
+              action: {
+                label: t('bulkUpload.viewDetails') || 'View Details',
+                onClick: () => setShowErrorsDialog(true),
+              },
+            }
+          );
+        } else {
+          toast.success(
+            t('bulkUpload.successfullyUploaded', { count: result.created_count }) || 
+            `Successfully uploaded ${result.created_count} member(s)${dependentsMsg}`
+          );
+        }
       }
 
-      setSelectedFile(null);
-      setPreviewData([]);
-      setShowPreview(false);
-      setPreviewPage(1);
-      setBulkUploadDialogOpen(false);
+      // Only close dialog and reset if no errors
+      if (!hasErrors) {
+        setSelectedFile(null);
+        setPreviewData([]);
+        setShowPreview(false);
+        setPreviewPage(1);
+        setBulkUploadDialogOpen(false);
+      }
       loadMembers();
     } catch (error: any) {
       console.error('Error uploading members:', error);
@@ -612,6 +928,28 @@ export function KhairatManagement({
       },
     },
     {
+      accessorKey: 'dependents',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('table.dependents') || 'Tanggungan'} />
+      ),
+      cell: ({ row }) => {
+        const member = row.original;
+        const dependentsCount = member.dependents?.length || 0;
+        return (
+          <div className="text-sm">
+            {dependentsCount > 0 ? (
+              <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                <Users className="h-3 w-3" />
+                {dependentsCount}
+              </Badge>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: 'status',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('table.status')} />
@@ -638,12 +976,13 @@ export function KhairatManagement({
               variant="outline"
               onClick={() => {
                 setSelectedMember(member);
+                setIsEditingMember(false);
                 setReviewDialogOpen(true);
               }}
               className="h-8 w-8 p-0"
-              title="Update"
+              title={t('memberDetails.view') || 'View Details'}
             >
-              <Edit className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
             </Button>
           </div>
         );
@@ -674,7 +1013,7 @@ export function KhairatManagement({
     <div className="space-y-6">
       {/* Bulk Upload Dialog */}
       <Dialog open={bulkUploadDialogOpen} onOpenChange={setBulkUploadDialogOpen}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[95vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{t('bulkUpload.title') || 'Bulk Upload Members'}</DialogTitle>
             <DialogDescription>
@@ -714,7 +1053,10 @@ export function KhairatManagement({
                 className="cursor-pointer"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                {t('bulkUpload.csvFormatHint') || 'CSV should include: full_name, ic_passport_number, membership_number (optional), phone (optional), email (optional), address (optional), notes (optional)'}
+                {t('bulkUpload.csvFormatHint') || 'CSV perlu mengandungi: full_name, ic_passport_number, membership_number (pilihan), phone (pilihan), email (pilihan), address (pilihan), notes (pilihan), dependents (pilihan)'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('bulkUpload.dependentsHint') || 'Tinggalkan kosong jika tiada tanggungan. Untuk tambah tanggungan, gunakan format JSON atau daftar secara manual selepas ini.'}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 {t('bulkUpload.duplicateNote') || 'Note: Members with duplicate IC numbers or membership IDs will be skipped.'}
@@ -739,6 +1081,7 @@ export function KhairatManagement({
                           <TableHead className="min-w-[120px]">{t('bulkUpload.membershipNumber') || 'Membership ID'}</TableHead>
                           <TableHead className="min-w-[120px]">{t('bulkUpload.phone') || 'Phone'}</TableHead>
                           <TableHead className="min-w-[150px]">{t('bulkUpload.email') || 'Email'}</TableHead>
+                          <TableHead className="min-w-[100px]">{t('bulkUpload.dependents') || 'Dependents'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -754,6 +1097,47 @@ export function KhairatManagement({
                               <TableCell>{record.membership_number || '-'}</TableCell>
                               <TableCell>{record.phone || '-'}</TableCell>
                               <TableCell className="text-sm">{record.email || '-'}</TableCell>
+                              <TableCell>
+                                {(() => {
+                                  try {
+                                    // Get dependents field (case-insensitive)
+                                    const dependentsValue = record.dependents || record.Dependents || record.DEPENDENTS || '';
+                                    
+                                    if (!dependentsValue || dependentsValue.trim() === '') {
+                                      return '-';
+                                    }
+
+                                    let deps: any[] = [];
+                                    
+                                    if (typeof dependentsValue === 'string') {
+                                      // Try to parse as JSON
+                                      const cleaned = dependentsValue.trim();
+                                      if (cleaned.startsWith('[') || cleaned.startsWith('{')) {
+                                        deps = JSON.parse(cleaned);
+                                      } else {
+                                        return '-';
+                                      }
+                                    } else if (Array.isArray(dependentsValue)) {
+                                      deps = dependentsValue;
+                                    }
+
+                                    // Ensure it's an array
+                                    if (!Array.isArray(deps)) {
+                                      return '-';
+                                    }
+
+                                    // Filter out invalid entries
+                                    const validDeps = deps.filter(dep => dep && (dep.full_name || dep.relationship));
+                                    
+                                    return validDeps.length > 0 ? (
+                                      <Badge variant="secondary">{validDeps.length}</Badge>
+                                    ) : '-';
+                                  } catch (error) {
+                                    console.error('Error parsing dependents in preview:', error, record.dependents);
+                                    return '-';
+                                  }
+                                })()}
+                              </TableCell>
                             </TableRow>
                           ))}
                       </TableBody>
@@ -841,6 +1225,166 @@ export function KhairatManagement({
         </DialogContent>
       </Dialog>
 
+      {/* Upload Errors Dialog */}
+      <Dialog open={showErrorsDialog} onOpenChange={setShowErrorsDialog}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              {t('bulkUpload.uploadResults') || 'Upload Results'}
+            </DialogTitle>
+            <DialogDescription>
+              {t('bulkUpload.uploadResultsDescription') || 'Review errors and skipped records from the bulk upload'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {uploadResult && (
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4">
+                  <div className="text-sm text-muted-foreground">{t('bulkUpload.created') || 'Created'}</div>
+                  <div className="text-2xl font-bold text-green-600">{uploadResult.created_count}</div>
+                </Card>
+                {uploadResult.dependents_created && uploadResult.dependents_created > 0 && (
+                  <Card className="p-4">
+                    <div className="text-sm text-muted-foreground">{t('bulkUpload.dependentsCreated') || 'Dependents Created'}</div>
+                    <div className="text-2xl font-bold text-green-600">{uploadResult.dependents_created}</div>
+                  </Card>
+                )}
+                {uploadResult.errors && uploadResult.errors.length > 0 && (
+                  <Card className="p-4">
+                    <div className="text-sm text-muted-foreground">{t('bulkUpload.errors') || 'Errors'}</div>
+                    <div className="text-2xl font-bold text-red-600">{uploadResult.errors.length}</div>
+                  </Card>
+                )}
+                {uploadResult.skipped && uploadResult.skipped.length > 0 && (
+                  <Card className="p-4">
+                    <div className="text-sm text-muted-foreground">{t('bulkUpload.skipped') || 'Skipped'}</div>
+                    <div className="text-2xl font-bold text-amber-600">{uploadResult.skipped.length}</div>
+                  </Card>
+                )}
+              </div>
+
+              {/* Errors Section */}
+              {uploadResult.errors && uploadResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                    <XCircle className="h-5 w-5" />
+                    {t('bulkUpload.errors') || 'Errors'} ({uploadResult.errors.length})
+                  </h3>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">{t('bulkUpload.row') || 'Row'}</TableHead>
+                          <TableHead>{t('bulkUpload.errorMessage') || 'Error Message'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {uploadResult.errors.map((error, index) => {
+                          const rowMatch = error.match(/Row (\d+):/);
+                          const rowNumber = rowMatch ? rowMatch[1] : '';
+                          const errorMessage = error.replace(/Row \d+: /, '');
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="font-mono text-sm">{rowNumber}</TableCell>
+                              <TableCell className="text-sm text-red-600">{errorMessage}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Skipped Section */}
+              {uploadResult.skipped && uploadResult.skipped.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-amber-600 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    {t('bulkUpload.skipped') || 'Skipped'} ({uploadResult.skipped.length})
+                  </h3>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">{t('bulkUpload.row') || 'Row'}</TableHead>
+                          <TableHead>{t('bulkUpload.skipReason') || 'Reason'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {uploadResult.skipped.map((skip, index) => {
+                          const rowMatch = skip.match(/Row (\d+):/);
+                          const rowNumber = rowMatch ? rowMatch[1] : '';
+                          const skipReason = skip.replace(/Row \d+: /, '');
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="font-mono text-sm">{rowNumber}</TableCell>
+                              <TableCell className="text-sm text-amber-600">{skipReason}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Dependents Errors Section */}
+              {uploadResult.dependents_errors && uploadResult.dependents_errors.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-orange-600 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    {t('bulkUpload.dependentsErrors') || 'Dependents Errors'} ({uploadResult.dependents_errors.length})
+                  </h3>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">{t('bulkUpload.row') || 'Row'}</TableHead>
+                          <TableHead>{t('bulkUpload.errorMessage') || 'Error Message'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {uploadResult.dependents_errors.map((error, index) => {
+                          const rowMatch = error.match(/Row (\d+):/);
+                          const rowNumber = rowMatch ? rowMatch[1] : '';
+                          const errorMessage = error.replace(/Row \d+: /, '');
+                          return (
+                            <TableRow key={index}>
+                              <TableCell className="font-mono text-sm">{rowNumber}</TableCell>
+                              <TableCell className="text-sm text-orange-600">{errorMessage}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setShowErrorsDialog(false);
+                    setUploadResult(null);
+                    setSelectedFile(null);
+                    setPreviewData([]);
+                    setShowPreview(false);
+                    setPreviewPage(1);
+                    setBulkUploadDialogOpen(false);
+                  }}
+                >
+                  {t('bulkUpload.close') || 'Close'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Data Table */}
       <DataTable
         columns={columns}
@@ -876,9 +1420,15 @@ export function KhairatManagement({
       />
 
       {/* Member Details Dialog */}
-      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => {
+        setReviewDialogOpen(open);
+        if (!open) {
+          setIsEditingMember(false);
+          setSelectedMember(null);
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               {t('memberDetails.title')}
@@ -889,73 +1439,398 @@ export function KhairatManagement({
           </DialogHeader>
 
           {selectedMember && (
-            <div className="space-y-6">
-              {/* Status Badge */}
-              <div className="flex items-center gap-3">
-                {getStatusBadge(selectedMember.status)}
+            <div className="space-y-6 overflow-y-auto flex-1 min-h-0 pr-1">
+              {/* Status Badge and Edit Button */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {getStatusBadge(selectedMember.status)}
+                </div>
+                {!isEditingMember && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditMember(selectedMember)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    {t('memberDetails.edit') || 'Edit'}
+                  </Button>
+                )}
               </div>
 
-              {/* Member Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {isEditingMember ? (
+                /* Edit Mode */
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberName')}</label>
-                    <p className="font-medium text-lg">
-                      {selectedMember.full_name || t('table.unknownUser')}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
+                      <Input
+                        value={editForm.full_name}
+                        onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
+                      <Input
+                        value={editForm.ic_passport_number}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
+                          })
+                        }
+                        className={`h-10 ${
+                          editForm.ic_passport_number && 
+                          !isValidMalaysiaIc(normalizeMalaysiaIc(editForm.ic_passport_number).slice(0, 12))
+                            ? 'border-red-500 focus-visible:ring-red-500' 
+                            : ''
+                        }`}
+                        maxLength={12}
+                      />
+                      {editForm.ic_passport_number && 
+                       !isValidMalaysiaIc(normalizeMalaysiaIc(editForm.ic_passport_number).slice(0, 12)) && (
+                        <p className="text-xs text-red-500">
+                          {t('registerDialog.invalidIcNumber') || 'Invalid IC number'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('registerDialog.membershipNumberOptional')}</label>
+                      <Input
+                        value={editForm.membership_number}
+                        onChange={(e) => setEditForm({ ...editForm, membership_number: e.target.value })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
+                      <Input
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
+                      <Input
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('memberDetails.status') || 'Status'}</label>
+                      <Select
+                        value={editForm.status}
+                        onValueChange={(value: any) => setEditForm({ ...editForm, status: value })}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">{t('active')}</SelectItem>
+                          <SelectItem value="inactive">{t('inactive')}</SelectItem>
+                          <SelectItem value="suspended">{t('suspended')}</SelectItem>
+                          <SelectItem value="pending">{t('pending')}</SelectItem>
+                          <SelectItem value="approved">{t('approved')}</SelectItem>
+                          <SelectItem value="rejected">{t('rejected')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
+                    <Textarea
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      className="min-h-[80px]"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
+                    <Textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      className="min-h-[80px]"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('registerDialog.registrationDate') || 'Registration Date'}</label>
+                    <Input
+                      type="date"
+                      value={editForm.original_registration_date || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setEditForm({ ...editForm, original_registration_date: e.target.value })}
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('registerDialog.registrationDateHint') || 'Set the date when this member originally registered. Leave as today for new members, or set a past date for legacy members.'}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.phoneNumber')}</label>
-                    <p className="text-sm">
-                      {selectedMember.phone || t('table.noContactInfo')}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.icNumber')}</label>
-                    <p className="font-mono text-sm">{selectedMember.ic_passport_number || t('table.notProvided')}</p>
-                  </div>
-                  {selectedMember.address && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.address')}</label>
-                      <p className="text-sm">{selectedMember.address}</p>
-                    </div>
-                  )}
-                  {selectedMember.email && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.email')}</label>
-                      <p className="text-sm">{selectedMember.email}</p>
-                    </div>
-                  )}
-                  {selectedMember.membership_number && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberId')}</label>
-                      <p className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">{selectedMember.membership_number}</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.appliedDate')}</label>
-                    <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.created_at), { addSuffix: true })}</p>
-                  </div>
-                  {selectedMember.joined_date && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.joinedDate')}</label>
-                      <p className="text-sm">{new Date(selectedMember.joined_date).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {selectedMember.reviewed_at && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.lastReviewed')}</label>
-                      <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.reviewed_at), { addSuffix: true })}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Application Reason */}
-              {selectedMember.application_reason && (
+                  {/* Dependents Section in Edit Mode */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">
+                        {t('registerDialog.dependentsTitle') || 'Dependents (Tanggungan)'}
+                      </label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditDependents([
+                            ...editDependents,
+                            {
+                              full_name: '',
+                              relationship: '',
+                              ic_passport_number: '',
+                              date_of_birth: '',
+                              gender: '',
+                              phone: '',
+                              email: '',
+                              address: '',
+                              emergency_contact: false,
+                              notes: '',
+                            },
+                          ]);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {t('registerDialog.addAnotherDependent') || 'Add Dependent'}
+                      </Button>
+                    </div>
+
+                    {editDependents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        {t('memberDetails.noDependents') || 'No dependents registered'}
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {editDependents.map((dependent, index) => (
+                          <Card key={index} className="p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-medium">
+                                {t('registerDialog.dependent') || 'Dependent'} {index + 1}
+                              </h4>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditDependents(editDependents.filter((_, i) => i !== index));
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
+                                <Input
+                                  value={dependent.full_name}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].full_name = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.enterRelationship')}</label>
+                                <Input
+                                  value={dependent.relationship}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].relationship = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                  placeholder={t('registerDialog.enterRelationship') || 'e.g., spouse, child'}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
+                                <Input
+                                  value={dependent.ic_passport_number}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].ic_passport_number = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                  maxLength={12}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.dateOfBirth')}</label>
+                                <Input
+                                  type="date"
+                                  value={dependent.date_of_birth}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].date_of_birth = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.gender')}</label>
+                                <Select
+                                  value={dependent.gender}
+                                  onValueChange={(value) => {
+                                    const updated = [...editDependents];
+                                    updated[index].gender = value;
+                                    setEditDependents(updated);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue placeholder={t('registerDialog.gender')} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="male">{t('registerDialog.male')}</SelectItem>
+                                    <SelectItem value="female">{t('registerDialog.female')}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
+                                <Input
+                                  value={dependent.phone}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].phone = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
+                                <Input
+                                  type="email"
+                                  value={dependent.email}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].email = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
+                                <Input
+                                  value={dependent.address}
+                                  onChange={(e) => {
+                                    const updated = [...editDependents];
+                                    updated[index].address = e.target.value;
+                                    setEditDependents(updated);
+                                  }}
+                                  className="h-10"
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                              <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
+                              <Textarea
+                                value={dependent.notes}
+                                onChange={(e) => {
+                                  const updated = [...editDependents];
+                                  updated[index].notes = e.target.value;
+                                  setEditDependents(updated);
+                                }}
+                                className="min-h-[60px]"
+                                rows={2}
+                              />
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* View Mode */
+                <>
+                  {/* Member Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberName')}</label>
+                        <p className="font-medium text-lg">
+                          {selectedMember.full_name || t('table.unknownUser')}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.phoneNumber')}</label>
+                        <p className="text-sm">
+                          {selectedMember.phone || t('table.noContactInfo')}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.icNumber')}</label>
+                        <p className="font-mono text-sm">{selectedMember.ic_passport_number || t('table.notProvided')}</p>
+                      </div>
+                      {selectedMember.address && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.address')}</label>
+                          <p className="text-sm">{selectedMember.address}</p>
+                        </div>
+                      )}
+                      {selectedMember.email && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.email')}</label>
+                          <p className="text-sm">{selectedMember.email}</p>
+                        </div>
+                      )}
+                      {selectedMember.membership_number && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.memberId')}</label>
+                          <p className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">{selectedMember.membership_number}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.appliedDate')}</label>
+                        <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.created_at), { addSuffix: true })}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.registrationDate') || 'Registration Date'}</label>
+                        <p className="text-sm">
+                          {selectedMember.original_registration_date 
+                            ? new Date(selectedMember.original_registration_date).toLocaleDateString()
+                            : new Date(selectedMember.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {selectedMember.joined_date && 
+                       selectedMember.joined_date !== selectedMember.original_registration_date &&
+                       selectedMember.joined_date !== new Date(selectedMember.created_at).toISOString().split('T')[0] && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.joinedDate')}</label>
+                          <p className="text-sm">{new Date(selectedMember.joined_date).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {selectedMember.reviewed_at && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.lastReviewed')}</label>
+                          <p className="text-sm">{formatDistanceToNow(new Date(selectedMember.reviewed_at), { addSuffix: true })}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Application Reason - Only show in view mode */}
+              {!isEditingMember && selectedMember.application_reason && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.applicationReason')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
@@ -964,8 +1839,8 @@ export function KhairatManagement({
                 </div>
               )}
 
-              {/* Admin Notes */}
-              {selectedMember.admin_notes && (
+              {/* Admin Notes - Only show in view mode */}
+              {!isEditingMember && selectedMember.admin_notes && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.adminNotes')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
@@ -974,8 +1849,8 @@ export function KhairatManagement({
                 </div>
               )}
 
-              {/* General Notes */}
-              {selectedMember.notes && (
+              {/* General Notes - Only show in view mode */}
+              {!isEditingMember && selectedMember.notes && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">{t('memberDetails.notes')}</label>
                   <p className="text-sm mt-1 p-3 bg-muted rounded-md">
@@ -984,8 +1859,9 @@ export function KhairatManagement({
                 </div>
               )}
 
-              {/* Dependents Section */}
-              <div>
+              {/* Dependents Section - Only show in view mode */}
+              {!isEditingMember && (
+                <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-medium text-muted-foreground">
                     {t('memberDetails.dependents') || 'Tanggungan (Dependents)'}
@@ -1029,75 +1905,112 @@ export function KhairatManagement({
                   </p>
                 )}
               </div>
+              )}
+            </div>
+          )}
 
-              {/* Action Buttons based on status */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
-                {/* Pending applications */}
-                {selectedMember.status === 'pending' && (
-                  <>
-                    <Button
-                      onClick={async () => {
-                        setProcessing(true);
-                        try {
-                          await reviewKhairatApplication({
-                            member_id: selectedMember.id,
-                            mosque_id: mosqueId,
-                            status: 'approved',
-                            admin_notes: undefined,
-                          });
-                          toast.success('Application approved successfully');
-                          setReviewDialogOpen(false);
-                          setSelectedMember(null);
-                          loadMembers();
-                        } catch (error: any) {
-                          console.error('Error approving application:', error);
-                          toast.error(error?.message || 'Failed to approve application');
-                        } finally {
-                          setProcessing(false);
-                        }
-                      }}
-                      disabled={processing}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      {t('memberDetails.approve')}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setAdminNotes('');
-                        setShowRejectDialog(true);
-                      }}
-                      disabled={processing}
-                      className="bg-amber-600 hover:bg-amber-700 text-white"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      {t('memberDetails.reject')}
-                    </Button>
-                  </>
-                )}
+          {/* Action Buttons based on status - Fixed at bottom */}
+          {selectedMember && (
+            <div className="flex flex-wrap gap-3 pt-4 border-t flex-shrink-0 bg-background">
+              {isEditingMember ? (
+                /* Edit Mode Buttons */
+                <>
+                  <Button
+                    onClick={handleSaveMember}
+                    disabled={processing || !editForm.full_name || !editForm.ic_passport_number}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {t('memberDetails.saving') || 'Saving...'}
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        {t('memberDetails.save') || 'Save'}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={processing}
+                  >
+                    {t('memberDetails.cancel') || 'Cancel'}
+                  </Button>
+                </>
+              ) : (
+                <>
+              {/* Pending applications */}
+              {selectedMember.status === 'pending' && (
+                <>
+                  <Button
+                    onClick={async () => {
+                      setProcessing(true);
+                      try {
+                        await reviewKhairatApplication({
+                          member_id: selectedMember.id,
+                          mosque_id: mosqueId,
+                          status: 'approved',
+                          admin_notes: undefined,
+                        });
+                        toast.success('Application approved successfully');
+                        setReviewDialogOpen(false);
+                        setSelectedMember(null);
+                        loadMembers();
+                      } catch (error: any) {
+                        console.error('Error approving application:', error);
+                        toast.error(error?.message || 'Failed to approve application');
+                      } finally {
+                        setProcessing(false);
+                      }
+                    }}
+                    disabled={processing}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {t('memberDetails.approve')}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setAdminNotes('');
+                      setShowRejectDialog(true);
+                    }}
+                    disabled={processing}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {t('memberDetails.reject')}
+                  </Button>
+                </>
+              )}
 
-
-                {/* Delete button - available for all statuses */}
-                <Button
-                  onClick={() => handleDeleteMember(selectedMember.id)}
-                  disabled={processing}
-                  variant="destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('memberDetails.delete')}
-                </Button>
+              {/* Delete button - available for all statuses */}
+              <Button
+                onClick={() => handleDeleteMember(selectedMember.id)}
+                disabled={processing}
+                variant="destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('memberDetails.delete')}
+              </Button>
 
                 {/* Close button */}
                 <Button
                   variant="outline"
-                  onClick={() => setReviewDialogOpen(false)}
+                  onClick={() => {
+                    setReviewDialogOpen(false);
+                    setIsEditingMember(false);
+                    setSelectedMember(null);
+                  }}
                   disabled={processing}
                 >
                   {t('memberDetails.close')}
                 </Button>
-              </div>
+                </>
+              )}
             </div>
-          )}
+            )}
         </DialogContent>
       </Dialog>
 
@@ -1163,113 +2076,320 @@ export function KhairatManagement({
 
       {/* Create Member Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('registerDialog.title')}</DialogTitle>
             <DialogDescription>
               {t('registerDialog.description')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
-              <Input
-                placeholder={t('registerDialog.enterFullName')}
-                value={createForm.full_name}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, full_name: e.target.value })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
-              <Input
-                placeholder={t('registerDialog.enterIcNumber')}
-                value={createForm.ic_passport_number}
-                onChange={(e) =>
-                  setCreateForm({
-                    ...createForm,
-                    ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
-                  })
-                }
-                className={`mt-1 ${
-                  createForm.ic_passport_number && 
-                  !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
-                    ? 'border-red-500 focus-visible:ring-red-500' 
-                    : ''
-                }`}
-                maxLength={12}
-              />
-              {createForm.ic_passport_number && 
-               !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12)) && (
-                <p className="text-xs text-red-500 mt-1">
-                  {t('registerDialog.invalidIcNumber') || 'Invalid IC number. Please enter a valid 12-digit Malaysian IC number.'}
+          <div className="space-y-6">
+            {/* Member Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold pb-2 border-b">{t('registerDialog.memberInformation') || 'Member Information'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('registerDialog.fullNameRequired')}</label>
+                  <Input
+                    placeholder={t('registerDialog.enterFullName')}
+                    value={createForm.full_name}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, full_name: e.target.value })
+                    }
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('registerDialog.icNumberRequired')}</label>
+                  <Input
+                    placeholder={t('registerDialog.enterIcNumber')}
+                    value={createForm.ic_passport_number}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        ic_passport_number: normalizeMalaysiaIc(e.target.value).slice(0, 12),
+                      })
+                    }
+                    className={`h-10 ${
+                      createForm.ic_passport_number && 
+                      !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12))
+                        ? 'border-red-500 focus-visible:ring-red-500' 
+                        : ''
+                    }`}
+                    maxLength={12}
+                  />
+                  {createForm.ic_passport_number && 
+                   !isValidMalaysiaIc(normalizeMalaysiaIc(createForm.ic_passport_number).slice(0, 12)) && (
+                    <p className="text-xs text-red-500">
+                      {t('registerDialog.invalidIcNumber') || 'Invalid IC number. Please enter a valid 12-digit Malaysian IC number.'}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('registerDialog.membershipNumberOptional')}</label>
+                  <Input
+                    placeholder={t('registerDialog.enterMembershipNumber')}
+                    value={createForm.membership_number}
+                    onChange={(e) =>
+                      setCreateForm({
+                        ...createForm,
+                        membership_number: e.target.value,
+                      })
+                    }
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
+                  <Input
+                    placeholder={t('registerDialog.enterPhoneNumber')}
+                    value={createForm.phone}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, phone: e.target.value })
+                    }
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
+                  <Input
+                    type="email"
+                    placeholder={t('registerDialog.enterEmailAddress')}
+                    value={createForm.email}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, email: e.target.value })
+                    }
+                    className="h-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
+                <Textarea
+                  placeholder={t('registerDialog.enterAddress')}
+                  value={createForm.address}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, address: e.target.value })
+                  }
+                  className="min-h-[80px]"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
+                <Textarea
+                  placeholder={t('registerDialog.addNotesAboutMembership')}
+                  value={createForm.notes}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, notes: e.target.value })
+                  }
+                  className="min-h-[80px]"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t('registerDialog.registrationDate') || 'Registration Date'}</label>
+                <Input
+                  type="date"
+                  value={createForm.original_registration_date || new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setCreateForm({ ...createForm, original_registration_date: e.target.value })}
+                  className="h-10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('registerDialog.registrationDateHint') || 'Set the date when this member originally registered. Defaults to today for new members, or set a past date for legacy members.'}
                 </p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.membershipNumberOptional')}</label>
-              <Input
-                placeholder={t('registerDialog.enterMembershipNumber')}
-                value={createForm.membership_number}
-                onChange={(e) =>
-                  setCreateForm({
-                    ...createForm,
-                    membership_number: e.target.value,
-                  })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.phoneOptional')}</label>
-              <Input
-                placeholder={t('registerDialog.enterPhoneNumber')}
-                value={createForm.phone}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, phone: e.target.value })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.emailOptional')}</label>
-              <Input
-                type="email"
-                placeholder={t('registerDialog.enterEmailAddress')}
-                value={createForm.email}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, email: e.target.value })
-                }
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.addressOptional')}</label>
-              <Textarea
-                placeholder={t('registerDialog.enterAddress')}
-                value={createForm.address}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, address: e.target.value })
-                }
-                className="mt-1"
-                rows={2}
-              />
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium">{t('registerDialog.notesOptional')}</label>
-              <Textarea
-                placeholder={t('registerDialog.addNotesAboutMembership')}
-                value={createForm.notes}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, notes: e.target.value })
-                }
-                className="mt-1"
-                rows={3}
-              />
+            {/* Dependents Section */}
+            <div className="space-y-4 pt-6 border-t">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-base font-semibold flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    {t('registerDialog.dependentsTitle')}
+                  </label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {t('registerDialog.dependentsDescription')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (!showDependentsForm && memberDependents.length === 0) {
+                      setMemberDependents([{
+                        id: `dep-${Date.now()}`,
+                        full_name: '',
+                        relationship: '',
+                        ic_passport_number: '',
+                        date_of_birth: '',
+                        gender: 'male',
+                        phone: '',
+                        email: '',
+                        address: '',
+                        emergency_contact: false,
+                        notes: '',
+                      }]);
+                    }
+                    setShowDependentsForm(!showDependentsForm);
+                  }}
+                >
+                  {showDependentsForm ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      {t('registerDialog.hideDependents')}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t('registerDialog.addDependents')}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {showDependentsForm && (
+                <div className="space-y-4">
+                  {memberDependents.map((dependent, index) => (
+                    <Card key={dependent.id} className="p-5 border-2 border-dashed">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-base font-semibold">
+                          {t('registerDialog.dependent')} {index + 1}
+                        </h4>
+                        {memberDependents.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setMemberDependents(memberDependents.filter((_, i) => i !== index));
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            {t('registerDialog.fullName')} <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            value={dependent.full_name}
+                            onChange={(e) => {
+                              const updated = [...memberDependents];
+                              updated[index].full_name = e.target.value;
+                              setMemberDependents(updated);
+                            }}
+                            placeholder={t('registerDialog.enterFullName')}
+                            className="h-10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            {t('registerDialog.relationship')} <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            value={dependent.relationship}
+                            onChange={(e) => {
+                              const updated = [...memberDependents];
+                              updated[index].relationship = e.target.value;
+                              setMemberDependents(updated);
+                            }}
+                            placeholder={t('registerDialog.enterRelationship')}
+                            className="h-10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t('registerDialog.icNumber')}</label>
+                          <Input
+                            value={dependent.ic_passport_number}
+                            onChange={(e) => {
+                              const updated = [...memberDependents];
+                              updated[index].ic_passport_number = normalizeMalaysiaIc(e.target.value).slice(0, 12);
+                              setMemberDependents(updated);
+                            }}
+                            placeholder={t('registerDialog.enterIcNumber')}
+                            className="h-10"
+                            maxLength={12}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t('registerDialog.dateOfBirth')}</label>
+                          <Input
+                            type="date"
+                            value={dependent.date_of_birth}
+                            onChange={(e) => {
+                              const updated = [...memberDependents];
+                              updated[index].date_of_birth = e.target.value;
+                              setMemberDependents(updated);
+                            }}
+                            className="h-10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t('registerDialog.gender')}</label>
+                          <Select
+                            value={dependent.gender}
+                            onValueChange={(value) => {
+                              const updated = [...memberDependents];
+                              updated[index].gender = value;
+                              setMemberDependents(updated);
+                            }}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">{t('registerDialog.male')}</SelectItem>
+                              <SelectItem value="female">{t('registerDialog.female')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t('registerDialog.phone')}</label>
+                          <Input
+                            value={dependent.phone}
+                            onChange={(e) => {
+                              const updated = [...memberDependents];
+                              updated[index].phone = e.target.value;
+                              setMemberDependents(updated);
+                            }}
+                            placeholder={t('registerDialog.enterPhoneNumber')}
+                            className="h-10"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setMemberDependents([...memberDependents, {
+                        id: `dep-${Date.now()}-${Math.random()}`,
+                        full_name: '',
+                        relationship: '',
+                        ic_passport_number: '',
+                        date_of_birth: '',
+                        gender: 'male',
+                        phone: '',
+                        email: '',
+                        address: '',
+                        emergency_contact: false,
+                        notes: '',
+                      }]);
+                    }}
+                    className="w-full h-10"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('registerDialog.addAnotherDependent')}
+                  </Button>
+                </div>
+              )}
             </div>
+
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
@@ -1283,7 +2403,10 @@ export function KhairatManagement({
                     email: '',
                     address: '',
                     notes: '',
+                    original_registration_date: new Date().toISOString().split('T')[0],
                   });
+                  setMemberDependents([]);
+                  setShowDependentsForm(false);
                 }}
                 disabled={processing}
               >

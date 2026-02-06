@@ -2785,7 +2785,8 @@
           "Pengurusan ahli kariah",
           "Acara & hebahan tanpa had",
           "Penjejakan sumbangan lanjutan",
-          "Sokongan e-mel keutamaan"
+          "Sokongan e-mel keutamaan",
+          "Tiada iklan pada profil masjid"
         ]
       },
       "pro": {
@@ -2798,7 +2799,8 @@
           "Pemprosesan pembayaran terbina",
           "Pengurus kejayaan khusus",
           "Integrasi tersuai & akses API",
-          "Sokongan telefon keutamaan"
+          "Sokongan telefon keutamaan",
+          "Tiada iklan pada profil masjid"
         ]
       }
     },
@@ -2844,6 +2846,7 @@
       "onlinePayment": "Pembayaran Online",
       "bankTransfer": "Pemindahan Bank",
       "cash": "Tunai",
+      "noAds": "Tiada iklan pada profil masjid",
       "faqs": {
         "canSwitchPlans": "Boleh tukar pelan kemudian?",
         "canSwitchPlansAnswer": "Boleh. Tukar atau hentikan langganan bila-bila masa dari tetapan akaun.",
@@ -2907,6 +2910,7 @@
       "icNo": "No. IC",
       "phone": "Telefon",
       "memberId": "ID Ahli",
+      "dependents": "Tanggungan",
       "status": "Status",
       "actions": "Tindakan",
       "unknownUser": "Pengguna Tidak Dikenali",
@@ -2921,6 +2925,7 @@
     "registerDialog": {
       "title": "Daftar Ahli Baharu",
       "description": "Daftar ahli khairat baharu secara terus. Ahli akan dicipta dengan status aktif.",
+      "memberInformation": "Maklumat Ahli",
       "registerSingleMember": "Daftar Ahli Tunggal",
       "registerWithoutAccount": "Daftar tanpa akaun pengguna (masukan data terus)",
       "fullName": "Nama Penuh",
@@ -2950,8 +2955,22 @@
       "enterAddress": "Masukkan alamat",
       "enterUserId": "Masukkan ID pengguna",
       "addNotesAboutMembership": "Tambah nota tentang keahlian ini",
+      "registrationDate": "Tarikh Pendaftaran",
+      "registrationDateHint": "Tarikh pendaftaran ahli. Biarkan hari ini untuk ahli baru, atau pilih tarikh lalu untuk ahli lama.",
       "cancel": "Batal",
-      "registerMember": "Daftar Ahli"
+      "registerMember": "Daftar Ahli",
+      "dependentsTitle": "Tanggungan",
+      "dependentsDescription": "Tambah tanggungan untuk ahli ini (pilihan)",
+      "addDependents": "Tambah Tanggungan",
+      "hideDependents": "Sembunyikan Tanggungan",
+      "dependent": "Tanggungan",
+      "relationship": "Hubungan",
+      "enterRelationship": "cth., pasangan, anak, ibu bapa",
+      "dateOfBirth": "Tarikh Lahir",
+      "gender": "Jantina",
+      "male": "Lelaki",
+      "female": "Perempuan",
+      "addAnotherDependent": "Tambah Tanggungan Lagi"
     },
     "memberDetails": {
       "title": "Butiran Ahli",
@@ -2962,7 +2981,10 @@
       "address": "Alamat",
       "email": "E-mel",
       "memberId": "ID Ahli",
+      "status": "Status",
       "appliedDate": "Tarikh Permohonan",
+      "registrationDate": "Tarikh Pendaftaran",
+      "legacyMemberNote": "Ahli warisan",
       "joinedDate": "Tarikh Menyertai",
       "lastReviewed": "Disemak Terakhir",
       "applicationReason": "Sebab Permohonan",
@@ -2970,6 +2992,10 @@
       "notes": "Nota",
       "dependents": "Tanggungan",
       "noDependents": "Tiada tanggungan berdaftar",
+      "edit": "Sunting",
+      "save": "Simpan",
+      "cancel": "Batal",
+      "saving": "Menyimpan...",
       "approve": "Luluskan",
       "reject": "Tolak",
       "delete": "Padam",
@@ -2990,7 +3016,7 @@
       "description": "Muat naik fail CSV untuk mendaftarkan beberapa ahli sekaligus",
       "downloadTemplate": "Muat Turun Templat CSV",
       "selectCsvFile": "Pilih Fail CSV",
-      "csvFormatHint": "CSV perlu mengandungi: full_name, ic_passport_number, membership_number (pilihan), phone (pilihan), email (pilihan), address (pilihan), notes (pilihan)",
+      "csvFormatHint": "CSV perlu mengandungi: full_name, ic_passport_number, membership_number (pilihan), phone (pilihan), email (pilihan), address (pilihan), notes (pilihan), dependents (tatasusunan JSON pilihan)",
       "preview": "Pratonton",
       "records": "rekod",
       "fullName": "Nama Penuh",
@@ -2998,6 +3024,8 @@
       "membershipNumber": "Nombor Keahlian",
       "phone": "Telefon",
       "email": "E-mel",
+      "dependents": "Tanggungan",
+      "dependentsHint": "Tinggalkan kosong jika tiada tanggungan. Untuk tambah tanggungan, gunakan format JSON atau daftar secara manual selepas ini.",
       "showingFirst50": "Menunjukkan 50 rekod pertama",
       "total": "jumlah",
       "showing": "Menunjukkan",
@@ -3019,7 +3047,19 @@
       "uploadedWithErrors": "Dimuat naik {count} ahli dengan {errors} ralat",
       "uploadedWithSkipped": "Dimuat naik {count} ahli, {skipped} dilangkau",
       "successfullyUploaded": "Berjaya memuat naik {count} ahli",
-      "failedToUpload": "Gagal memuat naik ahli"
+      "failedToUpload": "Gagal memuat naik ahli",
+      "viewDetails": "Lihat Butiran",
+      "uploadResults": "Keputusan Muat Naik",
+      "uploadResultsDescription": "Semak ralat dan rekod yang dilangkau daripada muat naik pukal",
+      "created": "Dicipta",
+      "dependentsCreated": "Tanggungan Dicipta",
+      "errors": "Ralat",
+      "skipped": "Dilangkau",
+      "row": "Baris",
+      "errorMessage": "Mesej Ralat",
+      "skipReason": "Sebab",
+      "dependentsErrors": "Ralat Tanggungan",
+      "close": "Tutup"
     }
   },
   "docs": {

@@ -2735,7 +2735,8 @@
           "Kariah member management",
           "Unlimited events & announcements",
           "Advanced contribution tracking",
-          "Priority email support"
+          "Priority email support",
+          "No ads on mosque profile"
         ]
       },
       "pro": {
@@ -2748,7 +2749,8 @@
           "Integrated payment processing",
           "Dedicated success manager",
           "Custom integrations & API access",
-          "Priority phone support"
+          "Priority phone support",
+          "No ads on mosque profile"
         ]
       }
     },
@@ -2794,6 +2796,7 @@
       "onlinePayment": "Online Payment",
       "bankTransfer": "Bank Transfer",
       "cash": "Cash",
+      "noAds": "No ads on mosque profile",
       "faqs": {
         "canSwitchPlans": "Can I switch plans later?",
         "canSwitchPlansAnswer": "Yes. You can upgrade or downgrade at any time from your settings.",
@@ -2889,6 +2892,7 @@
       "icNo": "IC No",
       "phone": "Phone",
       "memberId": "Member ID",
+      "dependents": "Dependents",
       "status": "Status",
       "actions": "Actions",
       "unknownUser": "Unknown User",
@@ -2900,9 +2904,10 @@
       "application": "Application",
       "member": "Member"
     },
-    "registerDialog": {
+      "registerDialog": {
       "title": "Register New Member",
       "description": "Register a new khairat member directly. The member will be created with active status.",
+      "memberInformation": "Member Information",
       "registerSingleMember": "Register Single Member",
       "registerWithoutAccount": "Register without user account (direct data entry)",
       "fullName": "Full Name",
@@ -2932,8 +2937,22 @@
       "enterAddress": "Enter address",
       "enterUserId": "Enter user ID",
       "addNotesAboutMembership": "Add notes about this membership",
+      "registrationDate": "Registration Date",
+      "registrationDateHint": "Registration date. Leave as today for new members, or select a past date for legacy members.",
       "cancel": "Cancel",
-      "registerMember": "Register Member"
+      "registerMember": "Register Member",
+      "dependentsTitle": "Dependents (Tanggungan)",
+      "dependentsDescription": "Add dependents for this member (optional)",
+      "addDependents": "Add Dependents",
+      "hideDependents": "Hide Dependents",
+      "dependent": "Dependent",
+      "relationship": "Relationship",
+      "enterRelationship": "e.g., spouse, child, parent",
+      "dateOfBirth": "Date of Birth",
+      "gender": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "addAnotherDependent": "Add Another Dependent"
     },
     "memberDetails": {
       "title": "Member Details",
@@ -2944,7 +2963,10 @@
       "address": "Address",
       "email": "Email",
       "memberId": "Member ID",
+      "status": "Status",
       "appliedDate": "Applied Date",
+      "registrationDate": "Registration Date",
+      "legacyMemberNote": "Legacy member",
       "joinedDate": "Joined Date",
       "lastReviewed": "Last Reviewed",
       "applicationReason": "Application Reason",
@@ -2952,6 +2974,10 @@
       "notes": "Notes",
       "dependents": "Dependents",
       "noDependents": "No dependents registered",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving...",
       "approve": "Approve",
       "reject": "Reject",
       "delete": "Delete",
@@ -2972,7 +2998,7 @@
       "description": "Upload a CSV file to register multiple members at once",
       "downloadTemplate": "Download CSV Template",
       "selectCsvFile": "Select CSV File",
-      "csvFormatHint": "CSV should include: full_name, ic_passport_number, membership_number (optional), phone (optional), email (optional), address (optional), notes (optional)",
+      "csvFormatHint": "CSV should include: full_name, ic_passport_number, membership_number (optional), phone (optional), email (optional), address (optional), notes (optional), dependents (optional JSON array)",
       "preview": "Preview",
       "records": "records",
       "fullName": "Full Name",
@@ -2980,6 +3006,8 @@
       "membershipNumber": "Membership ID",
       "phone": "Phone",
       "email": "Email",
+      "dependents": "Dependents",
+      "dependentsHint": "Leave empty if no dependents. To add dependents, use JSON format or register manually after upload.",
       "showingFirst50": "Showing first 50 records",
       "total": "total",
       "showing": "Showing",
@@ -3001,7 +3029,19 @@
       "uploadedWithErrors": "Uploaded {count} member(s) with {errors} error(s)",
       "uploadedWithSkipped": "Uploaded {count} member(s), {skipped} skipped",
       "successfullyUploaded": "Successfully uploaded {count} member(s)",
-      "failedToUpload": "Failed to upload members"
+      "failedToUpload": "Failed to upload members",
+      "viewDetails": "View Details",
+      "uploadResults": "Upload Results",
+      "uploadResultsDescription": "Review errors and skipped records from the bulk upload",
+      "created": "Created",
+      "dependentsCreated": "Dependents Created",
+      "errors": "Errors",
+      "skipped": "Skipped",
+      "row": "Row",
+      "errorMessage": "Error Message",
+      "skipReason": "Reason",
+      "dependentsErrors": "Dependents Errors",
+      "close": "Close"
     }
   },
   "docs": {

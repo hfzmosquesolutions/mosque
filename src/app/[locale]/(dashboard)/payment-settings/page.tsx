@@ -6,7 +6,7 @@ import { useAdminAccess, useUserMosque } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PaymentProviderSettings } from '@/components/settings/PaymentProviderSettings';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Lock, Info, ExternalLink } from 'lucide-react';
+import { AlertCircle, Info, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { 
@@ -48,7 +48,6 @@ function PaymentSettingsContent() {
   const { hasAdminAccess, loading: adminLoading } = useAdminAccess();
   const { mosqueId, loading: mosqueLoading } = useUserMosque();
   const { plan, loading: subscriptionLoading } = useSubscription(mosqueId || '');
-  const isFreePlan = plan === 'free';
   // By default, no payment methods are enabled. Admin must explicitly configure and enable them.
   const [paymentMethods, setPaymentMethods] = useState({
     online_payment: false,
@@ -113,15 +112,11 @@ function PaymentSettingsContent() {
         const settings = response.data.settings as Record<string, any> | undefined;
         const enabledPaymentMethods = settings?.enabled_payment_methods || {};
         const bankDetails = settings?.bank_transfer_details || {};
-        
-        // For free plan, force disable online payment
-        const currentPlan = plan || 'free';
-        const isFree = currentPlan === 'free';
 
         // Only treat methods as enabled when explicitly set to true.
         // This ensures new mosques start with all methods disabled until configured.
         setPaymentMethods({
-          online_payment: isFree ? false : enabledPaymentMethods.online_payment === true,
+          online_payment: enabledPaymentMethods.online_payment === true,
           bank_transfer: enabledPaymentMethods.bank_transfer === true,
           cash: enabledPaymentMethods.cash === true,
         });
@@ -150,14 +145,6 @@ function PaymentSettingsContent() {
   };
 
   const handlePaymentMethodToggle = async (method: 'online_payment' | 'bank_transfer' | 'cash', enabled: boolean) => {
-    if (method === 'online_payment' && enabled && isFreePlan) {
-      toast.error(
-        t('paymentProviderSettings.onlinePaymentRequiresUpgrade') ||
-          'Online payment requires Standard or Pro plan. Please upgrade to use this feature.'
-      );
-      return;
-    }
-
     // For bank transfer and cash, require basic configuration details before enabling.
     if (method === 'bank_transfer' && enabled) {
       if (!bankTransferDetails.bank_name || !bankTransferDetails.account_number) {
@@ -179,9 +166,6 @@ function PaymentSettingsContent() {
       }
     }
     const updatedMethods = { ...paymentMethods, [method]: enabled };
-    if (isFreePlan) {
-      updatedMethods.online_payment = false;
-    }
     setSavingPaymentMethods(true);
     try {
       if (mosqueId) {
@@ -278,12 +262,6 @@ function PaymentSettingsContent() {
   const handleKhairatPricesSave = async (paymentMethod?: 'online_payment' | 'bank_transfer' | 'cash') => {
     if (!mosqueId) return;
     
-    // Only prevent saving online_payment for free plan users
-    if (isFreePlan && paymentMethod === 'online_payment') {
-      toast.error(t('paymentProviderSettings.onlinePaymentRequiresUpgrade') || 'Online payment requires Standard or Pro plan. Please upgrade to use this feature.');
-      return;
-    }
-    
     try {
       setSavingKhairatPrices(true);
       
@@ -361,31 +339,6 @@ function PaymentSettingsContent() {
         )}
       </div>
 
-      {/* Plan-based restrictions alert */}
-      {isFreePlan && (
-        <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
-          <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertDescription className="text-amber-900 dark:text-amber-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium mb-1">
-                  {t('paymentProviderSettings.freePlanRestriction') || 'Free Plan Limitation'}
-                </p>
-                <p className="text-sm">
-                  {t('paymentProviderSettings.freePlanRestrictionDescription') || 
-                   'Free plan only supports bank transfer and cash payments. Upgrade to Standard or Pro plan to enable online payments.'}
-                </p>
-              </div>
-              <Link href="/billing?tab=plans">
-                <Button size="sm" variant="outline" className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/40">
-                  {t('paymentProviderSettings.upgradeNow') || 'Upgrade Now'}
-                </Button>
-              </Link>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Payment Methods Section */}
       <Card>
         <CardHeader>
@@ -435,19 +388,10 @@ function PaymentSettingsContent() {
                                 {t('paymentProviderSettings.disabled') || 'Disabled'}
                               </Badge>
                             )}
-                            {isFreePlan && (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
-                                <Lock className="h-3 w-3 mr-1" />
-                                {t('paymentProviderSettings.requiresUpgrade') || 'Requires Upgrade'}
-                              </Badge>
-                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {isFreePlan 
-                              ? (t('paymentProviderSettings.onlinePaymentFreePlanDescription') || 
-                                 'Upgrade to Standard or Pro plan to enable online payments')
-                              : (t('paymentProviderSettings.onlinePaymentDescription') || 
-                                 'Accept online payments via payment gateway (FPX, credit card, e-wallet)')}
+                            {t('paymentProviderSettings.onlinePaymentDescription') || 
+                             'Accept online payments via payment gateway (FPX, credit card, e-wallet)'}
                           </p>
                         </div>
                         <div className="flex items-center">
@@ -464,20 +408,6 @@ function PaymentSettingsContent() {
                   <CollapsibleContent>
                     <div className="border-t bg-blue-50/50 dark:bg-blue-950/30 p-6">
                       <div className="space-y-4">
-                        {/* Upgrade Notice for Free Plan */}
-                        {isFreePlan && (
-                          <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-                            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                            <AlertDescription className="text-amber-800 dark:text-amber-200">
-                              <strong>{t('paymentProviderSettings.onlinePaymentRequiresUpgrade') || 'Online payment requires Standard or Pro plan'}</strong>
-                              <p className="mt-1 text-sm">
-                                {t('paymentProviderSettings.onlinePaymentFreePlanDescription') || 
-                                 'Upgrade to Standard or Pro plan to enable and save online payment settings.'}
-                              </p>
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
                         {/* Enable/Disable Toggle */}
                         <div className="flex items-center justify-between pb-4 border-b">
                           <div className="space-y-1">
@@ -492,7 +422,7 @@ function PaymentSettingsContent() {
                           <Switch
                             checked={paymentMethods.online_payment}
                             onCheckedChange={(checked) => handlePaymentMethodToggle('online_payment', checked)}
-                            disabled={savingPaymentMethods || isFreePlan}
+                            disabled={savingPaymentMethods}
                           />
                         </div>
 
@@ -515,8 +445,6 @@ function PaymentSettingsContent() {
                               }))
                             }
                             onBlur={() => handleKhairatPricesSave('online_payment')}
-                            disabled={isFreePlan}
-                            className={isFreePlan ? "bg-slate-50 dark:bg-slate-800 cursor-not-allowed" : ""}
                           />
                           <p className="text-xs text-muted-foreground">
                             {t('paymentProviderSettings.fixedPriceHint') || 
@@ -550,7 +478,7 @@ function PaymentSettingsContent() {
                              'Configure your payment gateway to accept online payments'}
                           </p>
                         </div>
-                        <div className={isFreePlan ? "opacity-50 pointer-events-none" : ""}>
+                        <div>
                           <PaymentProviderSettings />
                         </div>
                       </div>

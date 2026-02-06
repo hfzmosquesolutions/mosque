@@ -266,6 +266,7 @@ export interface KhairatMember {
   joined_date?: string;
   membership_number?: string;
   notes?: string;
+  original_registration_date?: string; // Historical registration date for legacy members
   // Direct member data (used when user_id is NULL)
   full_name?: string;
   phone?: string;

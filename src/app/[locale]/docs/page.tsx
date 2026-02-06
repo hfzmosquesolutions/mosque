@@ -412,12 +412,6 @@ export default function DocumentationPage() {
                               </ul>
                             </div>
                           </div>
-                          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-500">
-                            <p className="text-sm font-medium mb-2">Plan Restrictions</p>
-                            <p className="text-sm">
-                              Free plan only supports bank transfer and cash payments. Online payments require Standard or Pro plan. You can upgrade from the Billing page.
-                            </p>
-                          </div>
                         </div>
                       </div>
                     </section>
@@ -473,7 +467,7 @@ export default function DocumentationPage() {
                               <h4 className="font-semibold mb-2">Free Plan</h4>
                               <ul className="list-disc list-inside space-y-1 ml-4 text-sm text-slate-600 dark:text-slate-400">
                                 <li>Basic features</li>
-                                <li>Bank transfer and cash payments only</li>
+                                <li>Online payment, bank transfer, and cash payments</li>
                                 <li>Limited features</li>
                               </ul>
                             </div>
@@ -481,7 +475,6 @@ export default function DocumentationPage() {
                               <h4 className="font-semibold mb-2">Standard Plan</h4>
                               <ul className="list-disc list-inside space-y-1 ml-4 text-sm text-slate-600 dark:text-slate-400">
                                 <li>All Free plan features</li>
-                                <li>Online payment support</li>
                                 <li>Additional features</li>
                               </ul>
                             </div>
