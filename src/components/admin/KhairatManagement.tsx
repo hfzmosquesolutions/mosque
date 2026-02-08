@@ -533,7 +533,7 @@ export function KhairatManagement({
         .insert(insertData)
         .select(`
           *,
-          mosque:mosques(id, name)
+          mosque:mosques(id, name, slug)
         `)
         .single();
 

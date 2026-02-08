@@ -429,11 +429,11 @@ function DashboardContent() {
                 </DropdownMenu>
 
                 {/* View Public Page Button */}
-                {mosqueId && (
+                {mosqueData && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`/mosques/${mosqueId}`, '_blank')}
+                    onClick={() => window.open(`/mosques/${mosqueData.slug || mosqueData.id}`, '_blank')}
                     className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
                   >
                     <ExternalLink className="h-4 w-4" />

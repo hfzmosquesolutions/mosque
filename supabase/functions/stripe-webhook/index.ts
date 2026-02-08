@@ -303,16 +303,43 @@ async function handleSubscriptionCreated(
   supabase: any
 ) {
   const userId = (subscription.metadata as any)?.user_id || undefined;
-  const plan = subscription.metadata?.plan;
-  const billing = subscription.metadata?.billing || 'monthly'; // Get billing period from metadata
 
   if (!userId) {
     console.error("Missing user_id in subscription metadata");
     return;
   }
 
+  // Get price information from subscription
+  const price = subscription.items?.data?.[0]?.price;
+  const priceId = price?.id;
+  const interval = price?.recurring?.interval;
+
+  // Look up plan from database using price ID (consistent with handleSubscriptionUpdated)
+  let plan: string | undefined = subscription.metadata?.plan;
+  let billingPeriod: string | undefined = subscription.metadata?.billing;
+
+  if (priceId) {
+    // Try to find plan from database using price ID
+    const { data: priceData } = await supabase
+      .from("stripe_prices")
+      .select("plan, billing_period")
+      .eq("stripe_price_id", priceId)
+      .eq("is_active", true)
+      .single();
+    
+    if (priceData) {
+      plan = priceData.plan;
+      billingPeriod = priceData.billing_period;
+    }
+  }
+
+  // Fallback to metadata if database lookup failed
   if (!plan) {
-    console.error("Missing plan in subscription metadata");
+    plan = subscription.metadata?.plan;
+  }
+
+  if (!plan) {
+    console.error("Missing plan - could not determine from database or metadata");
     return;
   }
 
@@ -323,18 +350,20 @@ async function handleSubscriptionCreated(
     return;
   }
 
-  // Normalize billing period (annual -> yearly)
-  const billingPeriod = billing === 'annual' ? 'yearly' : billing;
-
-  // Determine billing period from subscription interval if not in metadata
-  let finalBillingPeriod = billingPeriod;
-  if (subscription.items?.data?.[0]?.price?.recurring?.interval) {
-    const interval = subscription.items.data[0].price.recurring.interval;
+  // Get billing period from interval if not found
+  if (!billingPeriod) {
     if (interval === 'year') {
-      finalBillingPeriod = 'yearly';
+      billingPeriod = 'yearly';
     } else if (interval === 'month') {
-      finalBillingPeriod = 'monthly';
+      billingPeriod = 'monthly';
+    } else {
+      billingPeriod = subscription.metadata?.billing || 'monthly';
     }
+  }
+
+  // Normalize billing period (annual -> yearly)
+  if (billingPeriod === 'annual') {
+    billingPeriod = 'yearly';
   }
 
   const upsertPayload = {
@@ -343,7 +372,7 @@ async function handleSubscriptionCreated(
     stripe_subscription_id: subscription.id,
     plan: plan as any,
     status: subscription.status as any,
-    billing_period: finalBillingPeriod,
+    billing_period: billingPeriod,
     current_period_start: toISOString(subscription.current_period_start),
     current_period_end: toISOString(subscription.current_period_end),
     cancel_at_period_end: subscription.cancel_at_period_end,
@@ -371,33 +400,193 @@ async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,
   supabase: any
 ) {
-  const userId = (subscription.metadata as any)?.user_id || undefined;
+  // Log what Stripe returns after subscription update
+  console.log('Stripe subscription update response:', JSON.stringify(subscription, null, 2));
 
-  const updatePayload = {
-    status: subscription.status as any,
-    current_period_start: toISOString((subscription as any).current_period_start),
-    current_period_end: toISOString((subscription as any).current_period_end),
-    cancel_at_period_end: subscription.cancel_at_period_end,
-    canceled_at: toISOString(subscription.canceled_at),
-    // If subscription is canceled, downgrade to free plan
-    plan: (subscription.status === 'canceled' || subscription.status === 'unpaid') ? 'free' as any : undefined,
-  } as any;
-
-  // Remove undefined fields from payload
-  if (updatePayload.plan === undefined) {
-    delete updatePayload.plan;
+  // Always fetch the latest subscription from Stripe API to ensure we have up-to-date period dates
+  // Webhook payloads can sometimes have stale data, especially during renewals
+  let latestSubscription = subscription;
+  if (stripe && subscription.id) {
+    try {
+      // Retrieve subscription with all necessary fields
+      // Note: current_period_start and current_period_end are always included in the response
+      latestSubscription = await stripe.subscriptions.retrieve(subscription.id, {
+        expand: ['items.data.price.product']
+      });
+    } catch (error) {
+      console.error('Error fetching latest subscription from Stripe, using webhook payload:', error);
+      // Fallback to webhook payload if API call fails
+      latestSubscription = subscription;
+    }
   }
 
-  if (userId) {
+  const userId = (latestSubscription.metadata as any)?.user_id || undefined;
+  
+  // Get price information from subscription
+  // NOTE: Discounts/coupons don't affect the price ID - Stripe maintains the original price
+  // and applies discounts separately. So we can safely look up by price_id even if user has a discount.
+  const price = latestSubscription.items?.data?.[0]?.price;
+  const priceId = price?.id;
+  const amount = price?.unit_amount || price?.amount || 0; // Original price amount (before discounts)
+  const interval = price?.recurring?.interval;
+  
+  // Look up plan from database using price ID (no hardcoding)
+  // This works even with discounts because the price_id doesn't change
+  let plan: string | undefined = undefined;
+  let billingPeriod: string | undefined = undefined;
+  
+  if (priceId) {
+    // Try to find plan from database using price ID
+    // Price ID remains the same even when discounts are applied
+    const { data: priceData, error: priceError } = await supabase
+      .from("stripe_prices")
+      .select("plan, billing_period")
+      .eq("stripe_price_id", priceId)
+      .eq("is_active", true)
+      .single();
+    
+    if (!priceError && priceData) {
+      plan = priceData.plan;
+      billingPeriod = priceData.billing_period;
+    } else {
+      // Fallback: Try to find by amount + interval if price ID not found
+      // Note: This uses original price amount, not discounted amount
+      if (amount > 0 && interval) {
+        const { data: amountData } = await supabase
+          .from("stripe_prices")
+          .select("plan, billing_period")
+          .eq("amount", amount)
+          .eq("interval", interval)
+          .eq("is_active", true)
+          .single();
+        
+        if (amountData) {
+          plan = amountData.plan;
+          billingPeriod = amountData.billing_period;
+        }
+      }
+    }
+  }
+  
+  // Fallback to metadata if database lookup failed
+  if (!plan) {
+    plan = latestSubscription.metadata?.plan;
+  }
+  
+  // Get billing period from interval if not found in database
+  if (!billingPeriod) {
+    if (interval === 'year') {
+      billingPeriod = 'yearly';
+    } else if (interval === 'month') {
+      billingPeriod = 'monthly';
+    } else {
+      billingPeriod = latestSubscription.metadata?.billing;
+    }
+  }
+  
+  // Normalize billing period
+  if (billingPeriod === 'annual') {
+    billingPeriod = 'yearly';
+  }
+  
+  // Update subscription metadata in Stripe to keep it in sync
+  if (stripe && plan && (plan !== latestSubscription.metadata?.plan || billingPeriod !== latestSubscription.metadata?.billing)) {
+    try {
+      await stripe.subscriptions.update(latestSubscription.id, {
+        metadata: {
+          ...latestSubscription.metadata,
+          plan: plan,
+          billing: billingPeriod || 'monthly'
+        }
+      });
+    } catch (error) {
+      console.error('Error updating subscription metadata:', error);
+    }
+  }
+
+  // Get period dates from the latest subscription (fetched from API)
+  // This ensures we have the most up-to-date dates, especially after renewals
+  let currentPeriodStart = latestSubscription.current_period_start;
+  let currentPeriodEnd = latestSubscription.current_period_end;
+  
+  // Fallback to subscription items if not available on subscription object
+  if (!currentPeriodStart && latestSubscription.items?.data?.[0]?.current_period_start) {
+    currentPeriodStart = latestSubscription.items.data[0].current_period_start;
+  }
+  if (!currentPeriodEnd && latestSubscription.items?.data?.[0]?.current_period_end) {
+    currentPeriodEnd = latestSubscription.items.data[0].current_period_end;
+  }
+
+  // Handle cancellation and reactivation:
+  // - When user cancels: Stripe sets cancel_at (timestamp) and/or cancel_at_period_end = true
+  // - When user reactivates: Stripe sets cancel_at = null, cancel_at_period_end = false, canceled_at = null
+  const cancelAt = latestSubscription.cancel_at ? latestSubscription.cancel_at : null;
+  
+  // If subscription is already canceled, don't set cancel_at_period_end
+  // If cancel_at matches current_period_end, treat it as cancel_at_period_end
+  // Otherwise, if cancel_at is set, subscription will cancel at that specific time
+  // Also check if cancel_at_period_end is explicitly true
+  const willCancelAtPeriodEnd = latestSubscription.status === 'canceled' ? false :
+    (latestSubscription.cancel_at_period_end === true || 
+    (cancelAt !== null && currentPeriodEnd !== null && cancelAt === currentPeriodEnd));
+
+  // Detect reactivation: subscription was canceled but is now active again
+  const isReactivated = latestSubscription.status === 'active' && 
+    !willCancelAtPeriodEnd && 
+    cancelAt === null && 
+    latestSubscription.canceled_at === null;
+
+
+  const updatePayload: any = {
+    status: latestSubscription.status as any,
+    current_period_start: toISOString(currentPeriodStart),
+    current_period_end: toISOString(currentPeriodEnd),
+    cancel_at_period_end: willCancelAtPeriodEnd,
+    canceled_at: toISOString(latestSubscription.canceled_at),
+  };
+
+  // If userId not in metadata, try to find it by stripe_subscription_id
+  let finalUserId = userId;
+  if (!finalUserId && latestSubscription.id) {
+    const { data: existingSub } = await supabase
+      .from("user_subscriptions")
+      .select("user_id")
+      .eq("stripe_subscription_id", latestSubscription.id)
+      .single();
+    
+    if (existingSub?.user_id) {
+      finalUserId = existingSub.user_id;
+    }
+  }
+
+  // Update plan based on subscription status
+  if (latestSubscription.status === 'canceled' || latestSubscription.status === 'unpaid') {
+    // Subscription is fully canceled or unpaid - downgrade to free
+    updatePayload.plan = 'free' as any;
+  } else if (plan) {
+    // Subscription is active (including reactivated subscriptions)
+    // Restore plan from price lookup or metadata
+    // Validate plan is a valid enum value
+    const validPlans = ['free', 'standard', 'pro'];
+    if (validPlans.includes(plan)) {
+      updatePayload.plan = plan as any;
+      
+    }
+  }
+
+  // Update billing period if we extracted it
+  if (billingPeriod) {
+    updatePayload.billing_period = billingPeriod;
+  }
+
+  if (finalUserId) {
     const { error } = await supabase
       .from("user_subscriptions")
       .update(updatePayload)
-      .eq("user_id", userId);
+      .eq("user_id", finalUserId);
     
     if (error) {
-      console.error("Error updating subscription:", error);
-    } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
-      console.log(`Subscription canceled: user ${userId} downgraded to free plan`);
+      console.error('Error updating subscription:', error);
     }
   }
 }
@@ -443,11 +632,59 @@ async function handleInvoicePaymentSucceeded(
   // Resolve owner of subscription for invoices; try user_subscriptions first
   const { data: userSub } = await supabase
     .from("user_subscriptions")
-    .select("user_id")
+    .select("user_id, cancel_at_period_end, canceled_at, current_period_end")
     .eq("stripe_subscription_id", subscriptionId)
     .single();
 
   if (userSub?.user_id) {
+    // Fetch latest subscription data from Stripe to get updated period dates
+    // This is important for subscription renewals - the period dates change when subscription renews
+    let subscription: Stripe.Subscription | null = null;
+    let isCanceled = userSub.canceled_at !== null;
+    let willCancelAtPeriodEnd = userSub.cancel_at_period_end === true;
+    let periodEnd = userSub.current_period_end;
+    let currentPeriodStart: number | null = null;
+    let currentPeriodEnd: number | null = null;
+
+    if (stripe) {
+      try {
+        subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ['items.data.price.product']
+        });
+        isCanceled = subscription.canceled_at !== null;
+        
+        // Check both cancel_at_period_end and cancel_at (scheduled cancellation)
+        const cancelAt = subscription.cancel_at;
+        currentPeriodEnd = subscription.current_period_end;
+        currentPeriodStart = subscription.current_period_start;
+        
+        willCancelAtPeriodEnd = subscription.cancel_at_period_end === true ||
+          (cancelAt !== null && currentPeriodEnd !== null && cancelAt === currentPeriodEnd);
+        
+        if (currentPeriodEnd) {
+          periodEnd = new Date(currentPeriodEnd * 1000).toISOString();
+        }
+      } catch (error) {
+        console.error('Error fetching subscription from Stripe:', error);
+      }
+    }
+
+    const isFinalInvoice = isCanceled || willCancelAtPeriodEnd;
+    
+    // Generate cancellation notice if applicable
+    let description: string | undefined = undefined;
+    if (isFinalInvoice) {
+      if (isCanceled) {
+        description = "This is your final invoice. Your subscription has been canceled.";
+      } else if (willCancelAtPeriodEnd) {
+        const periodEndDate = periodEnd 
+          ? new Date(periodEnd).toLocaleDateString()
+          : 'the end of the current period';
+        description = `This is your final invoice. Your subscription will be canceled on ${periodEndDate}.`;
+      }
+    }
+
+    // Insert invoice record
     await supabase.from("user_subscription_invoices").insert({
       user_id: userSub.user_id,
       provider: "stripe",
@@ -458,10 +695,28 @@ async function handleInvoicePaymentSucceeded(
       status: invoice.status || "paid",
       invoice_url: invoice.invoice_pdf || undefined,
       hosted_invoice_url: invoice.hosted_invoice_url || undefined,
+      description: description,
+      is_final_invoice: isFinalInvoice,
     });
+
+    // Update subscription with latest period dates (important for renewals)
+    // When subscription renews, current_period_start and current_period_end are updated
+    const subscriptionUpdate: any = {
+      status: "active",
+    };
+
+    // Update period dates if we fetched them from Stripe
+    if (subscription && currentPeriodStart && currentPeriodEnd) {
+      subscriptionUpdate.current_period_start = toISOString(currentPeriodStart);
+      subscriptionUpdate.current_period_end = toISOString(currentPeriodEnd);
+      subscriptionUpdate.cancel_at_period_end = willCancelAtPeriodEnd;
+      subscriptionUpdate.canceled_at = toISOString(subscription.canceled_at);
+      
+    }
+
     await supabase
       .from("user_subscriptions")
-      .update({ status: "active" })
+      .update(subscriptionUpdate)
       .eq("user_id", userSub.user_id);
     return;
   }

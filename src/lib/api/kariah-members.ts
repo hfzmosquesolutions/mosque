@@ -60,7 +60,7 @@ export async function getKariahMembers(filters: KariahMemberFilters = {}) {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name, logo_url, banner_url, address)
+      mosque:mosques(id, name, slug, logo_url, banner_url, address)
     `)
     .order('created_at', { ascending: false });
 
@@ -165,7 +165,7 @@ export async function submitKariahApplication(applicationData: KariahMemberCreat
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -185,7 +185,7 @@ export async function submitKariahApplication(applicationData: KariahMemberCreat
       title: 'Kariah Application Submitted',
       message: `Your Kariah application for ${member.mosque?.name} has been submitted and is pending review.`,
       type: 'info',
-      action_url: `/mosques/${mosque_id}`,
+      action_url: `/mosques/${member.mosque?.slug || mosque_id}`,
       metadata: {
         kariah_member_id: member.id,
         action: 'application_submitted'
@@ -269,7 +269,7 @@ export async function reviewKariahApplication(reviewData: {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -293,7 +293,7 @@ export async function reviewKariahApplication(reviewData: {
       title: notificationTitle,
       message: notificationMessage,
       type: status === 'approved' ? 'success' : 'error',
-      action_url: `/mosques/${mosque_id}`,
+      action_url: `/mosques/${updatedMember.mosque?.slug || mosque_id}`,
       metadata: {
         kariah_member_id: member_id,
         action: 'application_reviewed',
@@ -378,7 +378,7 @@ export async function withdrawKariahMembership(memberId: string) {
       title: 'Kariah Membership Withdrawn',
       message: `Your Kariah membership for ${member.mosque?.name} has been withdrawn.`,
       type: 'warning',
-      action_url: `/mosques/${member.mosque_id}`,
+      action_url: `/mosques/${member.mosque?.slug || member.mosque_id}`,
       metadata: {
         kariah_member_id: memberId,
         action: 'membership_withdrawn'
@@ -444,7 +444,7 @@ export async function updateKariahMember(memberId: string, updateData: KariahMem
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -461,7 +461,7 @@ export async function updateKariahMember(memberId: string, updateData: KariahMem
         title: 'Kariah Membership Inactivated',
         message: `Your Kariah membership for ${updatedMember.mosque?.name} has been inactivated by the mosque admin.`,
         type: 'warning',
-        action_url: `/mosques/${updatedMember.mosque_id}`,
+        action_url: `/mosques/${updatedMember.mosque?.slug || updatedMember.mosque_id}`,
         metadata: {
           kariah_member_id: memberId,
           action: 'membership_inactivated'
@@ -474,7 +474,7 @@ export async function updateKariahMember(memberId: string, updateData: KariahMem
         title: 'Kariah Membership Reactivated',
         message: `Your Kariah membership for ${updatedMember.mosque?.name} has been reactivated by the mosque admin.`,
         type: 'success',
-        action_url: `/mosques/${updatedMember.mosque_id}`,
+        action_url: `/mosques/${updatedMember.mosque?.slug || updatedMember.mosque_id}`,
         metadata: {
           kariah_member_id: memberId,
           action: 'membership_reactivated'
@@ -541,18 +541,19 @@ export async function deleteKariahMember(memberId: string) {
   try {
     const { data: memberForNotification } = await supabase
       .from('kariah_members')
-      .select('user_id, mosque_id')
+      .select('user_id, mosque_id, mosque:mosques(slug)')
       .eq('id', memberId)
       .single();
 
     if (memberForNotification) {
+      const mosqueSlug = (memberForNotification.mosque as any)?.slug;
       await createNotification({
         user_id: memberForNotification.user_id,
         mosque_id: memberForNotification.mosque_id,
         title: 'Kariah Record Deleted',
         message: `Your Kariah record has been deleted by the mosque admin.`,
         type: 'error',
-        action_url: `/mosques/${memberForNotification.mosque_id}`,
+        action_url: `/mosques/${mosqueSlug || memberForNotification.mosque_id}`,
         metadata: {
           kariah_member_id: memberId,
           action: 'record_deleted'
@@ -583,7 +584,7 @@ export async function getKariahMemberById(memberId: string) {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .eq('id', memberId)
     .single();

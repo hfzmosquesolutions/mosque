@@ -64,8 +64,8 @@ export function ShareProfileButton({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Generate the mosque profile URL
-  const mosqueUrl = `${window.location.origin}/mosques/${mosque.id}`;
+  // Generate the mosque profile URL using slug (fallback to ID if slug not available)
+  const mosqueUrl = `${window.location.origin}/mosques/${mosque.slug || mosque.id}`;
 
   const handleCopyLink = async () => {
     try {

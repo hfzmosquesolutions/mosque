@@ -73,13 +73,30 @@ export default function MosquesPage() {
   const t = useTranslations('mosques');
   const searchParams = useSearchParams();
 
+  const fetchMosques = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getAllMosques();
+      
+      if (response.success && response.data) {
+        setMosques(response.data);
+        setFilteredMosques(response.data);
+      } else {
+        setError(response.error || 'Failed to fetch mosques');
+      }
+    } catch (err: any) {
+      console.error('[PAGE] MosquesPage - Error:', err);
+      setError(err?.message || 'An error occurred while fetching mosques');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchMosques();
-    // Track that user has visited mosques page
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hasVisitedMosques', 'true');
-    }
-  }, []);
+  }, [pathname]);
 
   // Initialize search query from URL (?q=...)
   useEffect(() => {
@@ -88,37 +105,6 @@ export default function MosquesPage() {
       setSearchQuery(q);
     }
   }, [searchParams]);
-
-
-  const fetchMosques = async () => {
-    try {
-      console.log('[PAGE] MosquesPage - Starting to fetch all mosques');
-      setLoading(true);
-      const response = await getAllMosques();
-
-      console.log('[PAGE] MosquesPage - getAllMosques response:', response);
-      if (response.success && response.data) {
-        console.log(
-          '[PAGE] MosquesPage - Successfully fetched',
-          response.data.length,
-          'mosques'
-        );
-        setMosques(response.data);
-        setFilteredMosques(response.data);
-      } else {
-        console.error(
-          '[PAGE] MosquesPage - Failed to fetch mosques:',
-          response.error
-        );
-        setError(response.error || 'Failed to fetch mosques');
-      }
-    } catch (err) {
-      console.error('[PAGE] MosquesPage - Catch error:', err);
-      setError('An error occurred while fetching mosques');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filterMosques = useCallback(() => {
     let results = [...mosques];
@@ -163,8 +149,10 @@ export default function MosquesPage() {
     filterMosques();
   }, [filterMosques]);
 
-  const handleMosqueClick = (mosqueId: string) => {
-    const path = `/mosques/${mosqueId}`;
+  const handleMosqueClick = (mosque: Mosque) => {
+    // Use slug if available, otherwise fallback to ID
+    const identifier = mosque.slug || mosque.id;
+    const path = `/mosques/${identifier}`;
     if (typeof window !== 'undefined') {
       window.open(path, '_blank', 'noopener,noreferrer');
     } else {
@@ -487,7 +475,7 @@ export default function MosquesPage() {
                   <Card
                     key={mosque.id}
                     className="cursor-pointer transition-all duration-300 hover:shadow-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden p-0"
-                    onClick={() => handleMosqueClick(mosque.id)}
+                    onClick={() => handleMosqueClick(mosque)}
                   >
                     <CardContent className="p-0">
                       <div className="sm:flex items-stretch justify-between gap-0 sm:gap-4">

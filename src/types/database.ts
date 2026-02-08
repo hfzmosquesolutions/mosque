@@ -36,6 +36,7 @@ export type InstitutionType = 'mosque' | 'surau';
 export interface Mosque {
   id: string;
   name: string;
+  slug?: string; // URL-friendly identifier (e.g., masjid-jamek-kuala-lumpur) - optional until migration completes
   address?: string; // Legacy field for backward compatibility
   address_line1?: string; // Primary address line
   address_line2?: string; // Secondary address line

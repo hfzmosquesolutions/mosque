@@ -55,7 +55,7 @@ export async function getKariahApplications(filters: KariahApplicationFilters = 
     .select(`
       *,
       user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .order('created_at', { ascending: false });
 
@@ -230,7 +230,7 @@ export async function submitKariahApplication(applicationData: {
     .select(`
       *,
       user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -296,7 +296,7 @@ export async function reviewKariahApplication(reviewData: {
     .select(`
       *,
       user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -360,7 +360,7 @@ export async function getKariahApplicationById(applicationId: string) {
     .select(`
       *,
       user:user_profiles!kariah_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name, user_id)
+      mosque:mosques(id, name, slug, user_id)
     `)
     .eq('id', applicationId)
     .single();

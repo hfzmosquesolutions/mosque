@@ -57,14 +57,32 @@ export function SubscriptionCard({
 
       <CardContent className="space-y-4">
         <ul className="space-y-3">
-          {planConfig.features.map((_, index) => (
-            <li key={index} className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {t(`plans.${plan}.features.${index}` as any)}
-              </span>
-            </li>
-          ))}
+          {(() => {
+            // Get features array from translations by trying indices until one doesn't exist
+            const features: string[] = [];
+            for (let i = 0; i < 20; i++) {
+              try {
+                const key = `plans.${plan}.features.${i}` as any;
+                const feature = t(key);
+                // Check if translation exists (not the key itself)
+                if (feature && typeof feature === 'string' && !feature.startsWith('billing.plans.')) {
+                  features.push(feature);
+                } else {
+                  break;
+                }
+              } catch {
+                break;
+              }
+            }
+            return features.map((feature, index) => (
+              <li key={index} className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {feature}
+                </span>
+              </li>
+            ));
+          })()}
         </ul>
 
         <div className="pt-4">

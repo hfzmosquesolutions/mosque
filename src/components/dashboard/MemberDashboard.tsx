@@ -70,6 +70,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
   const [hasRegisteredForKhairat, setHasRegisteredForKhairat] = useState<boolean>(false);
   const [hasFoundMosque, setHasFoundMosque] = useState<boolean>(false);
   const [activeClaimsAmount, setActiveClaimsAmount] = useState<number>(0);
+  const [khairatMemberCount, setKhairatMemberCount] = useState<number>(0);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
   
@@ -124,6 +125,7 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
               mosque:mosques(
                 id,
                 name,
+                slug,
                 address
               )
             )
@@ -174,8 +176,14 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
       }
 
       // Process khairat memberships
-      if (!khairatMembershipsResult.error && khairatMembershipsResult.data && khairatMembershipsResult.data.length > 0) {
-        setHasRegisteredForKhairat(true);
+      if (!khairatMembershipsResult.error && khairatMembershipsResult.data) {
+        const activeMemberships = khairatMembershipsResult.data.filter(
+          (m: any) => m.status === 'active' || m.status === 'approved'
+        );
+        setKhairatMemberCount(activeMemberships.length);
+        if (activeMemberships.length > 0) {
+          setHasRegisteredForKhairat(true);
+        }
       }
 
       // Process approved claims amount
@@ -268,9 +276,17 @@ export function MemberDashboard({ user, userProfile }: MemberDashboardProps) {
                 <User className="h-8 w-8 text-white" />
               </div>
               <div className="text-white min-w-0 flex-1">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-1 leading-tight">
-                  {t('welcome')}, {userProfile?.full_name || user?.email}
-                </h1>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
+                    {t('welcome')}, {userProfile?.full_name || user?.email}
+                  </h1>
+                  {khairatMemberCount > 0 && (
+                    <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30 backdrop-blur-sm">
+                      <Heart className="h-3 w-3 mr-1" />
+                      Khairat Member
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-white/90 text-sm sm:text-base">
                   {t('communityMember')}
                 </p>

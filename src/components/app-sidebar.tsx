@@ -121,29 +121,51 @@ export const AppSidebar = React.memo(function AppSidebar() {
     [hasAdminAccess, t, locale, mosqueId]
   );
 
-  // Fetch mosque data when mosqueId is available
+  // Use ref to track if fetch is in progress
+  const fetchingRef = React.useRef(false);
+
+  // Fetch mosque data when mosqueId is available (with cleanup and prevent duplicate fetches)
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchMosqueData() {
       if (!mosqueId) {
-        setMosque(null);
+        if (isMounted) {
+          setMosque(null);
+        }
         return;
       }
+
+      // Prevent duplicate fetches
+      if (fetchingRef.current || mosqueLoading) return;
+      
+      fetchingRef.current = true;
 
       try {
         setMosqueLoading(true);
         const response = await getMosque(mosqueId);
-        if (response.success && response.data) {
+        if (isMounted && response.success && response.data) {
           setMosque(response.data);
         }
       } catch (error) {
-        console.error('Error fetching mosque data:', error);
+        if (isMounted) {
+          console.error('Error fetching mosque data:', error);
+        }
       } finally {
-        setMosqueLoading(false);
+        if (isMounted) {
+          setMosqueLoading(false);
+          fetchingRef.current = false;
+        }
       }
     }
 
     fetchMosqueData();
-  }, [mosqueId]);
+
+    return () => {
+      isMounted = false;
+      fetchingRef.current = false;
+    };
+  }, [mosqueId]); // Only depend on mosqueId
 
   // Admin setup indicator so admins can see if there are pending setup steps from anywhere.
   useEffect(() => {
@@ -337,7 +359,7 @@ export const AppSidebar = React.memo(function AppSidebar() {
                 </div>
               ) : mosque ? (
                 <Link 
-                  href={`/${locale}/mosques/${mosqueId}`}
+                  href={`/${locale}/mosques/${mosque.slug || mosque.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block group/mosque-card"

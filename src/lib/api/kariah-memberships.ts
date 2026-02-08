@@ -57,7 +57,7 @@ export async function getKariahMemberships(filters: KariahMembershipFilters = {}
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone, ic_passport_number),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `, { count: 'exact' })
     .order('created_at', { ascending: false });
 
@@ -196,7 +196,7 @@ export async function createKariahMembership(membershipData: {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -229,7 +229,7 @@ export async function getKariahMembershipById(membershipId: string) {
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name, user_id)
+      mosque:mosques(id, name, slug, user_id)
     `)
     .eq('id', membershipId)
     .single();
@@ -286,7 +286,7 @@ export async function updateKariahMembership(
     .from('kariah_members')
     .select(`
       *,
-      mosque:mosques(id, name, user_id)
+      mosque:mosques(id, name, slug, user_id)
     `)
     .eq('id', membershipId)
     .single();
@@ -320,7 +320,7 @@ export async function updateKariahMembership(
     .select(`
       *,
       user:user_profiles!kariah_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -353,7 +353,7 @@ export async function deleteKariahMembership(membershipId: string) {
     .from('kariah_members')
     .select(`
       *,
-      mosque:mosques(id, name, user_id)
+      mosque:mosques(id, name, slug, user_id)
     `)
     .eq('id', membershipId)
     .single();
@@ -409,7 +409,7 @@ export async function withdrawKariahMembership(membershipId: string) {
     .from('kariah_members')
     .select(`
       *,
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .eq('id', membershipId)
     .single();

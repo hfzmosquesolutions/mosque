@@ -113,7 +113,7 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
         updated_at,
         admin_notes,
         membership_number,
-        mosque:mosques(id, name, logo_url, banner_url, address)
+        mosque:mosques(id, name, slug, logo_url, banner_url, address)
       `)
       .order('created_at', { ascending: false });
   } else {
@@ -122,7 +122,7 @@ export async function getKhairatMembers(filters: KhairatMemberFilters = {}) {
       .from('khairat_members')
       .select(`
         *,
-        mosque:mosques(id, name, logo_url, banner_url, address),
+        mosque:mosques(id, name, slug, logo_url, banner_url, address),
         dependents:khairat_member_dependents(*)
       `)
       .order('created_at', { ascending: false });
@@ -164,7 +164,7 @@ export async function getKhairatMemberById(memberId: string) {
     .from('khairat_members')
     .select(`
       *,
-      mosque:mosques(id, name),
+      mosque:mosques(id, name, slug),
       dependents:khairat_member_dependents(*)
     `)
     .eq('id', memberId)
@@ -329,7 +329,7 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
     .select(`
       *,
       user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -349,13 +349,15 @@ export async function submitKhairatApplication(applicationData: KhairatMemberCre
   // Create notification for the user (only if logged in)
   if (userId) {
     try {
+      // Get mosque slug for URL (use from member.mosque if available, otherwise fetch)
+      const mosqueSlug = member.mosque?.slug || mosque_id;
       await createNotification({
         user_id: userId,
         mosque_id: mosque_id,
         title: 'Khairat Application Submitted',
         message: `Your Khairat application for ${member.mosque?.name} has been submitted and is pending review.`,
         type: 'info',
-        action_url: `/mosques/${mosque_id}`,
+        action_url: `/mosques/${mosqueSlug}`,
         metadata: {
           khairat_member_id: member.id,
           action: 'application_submitted'
@@ -471,7 +473,7 @@ export async function reviewKhairatApplication(reviewData: {
     .select(`
       *,
       user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -495,7 +497,7 @@ export async function reviewKhairatApplication(reviewData: {
       title: notificationTitle,
       message: notificationMessage,
       type: status === 'approved' ? 'success' : 'error',
-      action_url: `/mosques/${mosque_id}`,
+      action_url: `/mosques/${updatedMember.mosque?.slug || mosque_id}`,
       metadata: {
         khairat_member_id: member_id,
         action: 'application_reviewed',
@@ -580,7 +582,7 @@ export async function withdrawKhairatMembership(memberId: string) {
       title: 'Khairat Membership Withdrawn',
       message: `Your Khairat membership for ${member.mosque?.name} has been withdrawn.`,
       type: 'warning',
-      action_url: `/mosques/${member.mosque_id}`,
+      action_url: `/mosques/${member.mosque?.slug || member.mosque_id}`,
       metadata: {
         khairat_member_id: memberId,
         action: 'membership_withdrawn'
@@ -664,7 +666,7 @@ export async function updateKhairatMember(memberId: string, updateData: KhairatM
     .select(`
       *,
       user:user_profiles!khairat_members_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -681,7 +683,7 @@ export async function updateKhairatMember(memberId: string, updateData: KhairatM
         title: 'Khairat Membership Inactivated',
         message: `Your Khairat membership for ${updatedMember.mosque?.name} has been inactivated by the mosque admin.`,
         type: 'warning',
-        action_url: `/mosques/${updatedMember.mosque_id}`,
+        action_url: `/mosques/${updatedMember.mosque?.slug || updatedMember.mosque_id}`,
         metadata: {
           khairat_member_id: memberId,
           action: 'membership_inactivated'
@@ -694,7 +696,7 @@ export async function updateKhairatMember(memberId: string, updateData: KhairatM
         title: 'Khairat Membership Reactivated',
         message: `Your Khairat membership for ${updatedMember.mosque?.name} has been reactivated by the mosque admin.`,
         type: 'success',
-        action_url: `/mosques/${updatedMember.mosque_id}`,
+        action_url: `/mosques/${updatedMember.mosque?.slug || updatedMember.mosque_id}`,
         metadata: {
           khairat_member_id: memberId,
           action: 'membership_reactivated'
@@ -732,10 +734,10 @@ export async function deleteKhairatMember(memberId: string) {
   // Check if user is the owner of this record
   const isOwner = member.user_id === user.user.id;
   
-  // Check if user is mosque admin
+  // Check if user is mosque admin and get mosque slug
   const { data: mosqueAdmin } = await supabase
     .from('mosques')
-    .select('user_id')
+    .select('user_id, slug')
     .eq('id', member.mosque_id)
     .single();
 
@@ -786,7 +788,7 @@ export async function deleteKhairatMember(memberId: string) {
         title: 'Khairat Record Deleted',
         message: `Your Khairat record has been deleted by the mosque admin.`,
         type: 'error',
-        action_url: `/mosques/${memberMosqueId}`,
+        action_url: `/mosques/${mosqueAdmin?.slug || memberMosqueId}`,
         metadata: {
           khairat_member_id: memberId,
           action: 'record_deleted'

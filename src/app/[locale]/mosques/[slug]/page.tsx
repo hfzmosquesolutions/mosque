@@ -60,7 +60,7 @@ export default function MosqueProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const mosqueId = params.id as string;
+  const mosqueSlug = params.slug as string;
   const locale = params.locale as string;
   const { user } = useAuth();
   const t = useTranslations('mosquePage');
@@ -101,56 +101,65 @@ export default function MosqueProfilePage() {
   const [isUserAnyMosqueAdmin, setIsUserAnyMosqueAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(false);
 
+  // Simplified fetch - only fetch mosque data, other data can load separately
   const fetchMosqueData = useCallback(async () => {
+    if (!mosqueSlug) return;
+    
     try {
       setLoading(true);
+      setError(null);
 
-      // Fetch mosque details
-      const mosqueResponse = await getMosque(mosqueId);
+      // Fetch mosque details by slug (or ID if slug not available)
+      const mosqueResponse = await getMosque(mosqueSlug);
 
       if (!mosqueResponse.success || !mosqueResponse.data) {
         setError(mosqueResponse.error || t('notFound'));
+        setLoading(false);
         return;
       }
 
       setMosque(mosqueResponse.data);
+      setLoading(false);
+      
+      // Use the actual mosque ID for API calls that require it
+      const mosqueId = mosqueResponse.data.id;
 
+      // Fetch additional data separately (non-blocking)
+      // Khairat settings
+      getMosqueKhairatSettings(mosqueId).then((settingsResponse) => {
+        if (settingsResponse.success && settingsResponse.data) {
+          const khairatEnabled = settingsResponse.data.enabled;
+          setContributionPrograms(khairatEnabled ? [settingsResponse.data] : []);
+        }
+      }).catch(() => {
+        // Silently fail - not critical
+      });
 
-      // Fetch khairat settings
-      const settingsResponse = await getMosqueKhairatSettings(mosqueId);
-      if (settingsResponse.success && settingsResponse.data) {
-        // Check if khairat is enabled
-        const khairatEnabled = settingsResponse.data.enabled;
-        setContributionPrograms(khairatEnabled ? [settingsResponse.data] : []);
-      }
-
-      // Fetch organization people only if service enabled (public only)
+      // Organization people (only if service enabled)
       const enabledServices = Array.isArray(mosqueResponse.data.settings?.enabled_services)
         ? (mosqueResponse.data.settings.enabled_services as string[])
         : [];
       if (enabledServices.includes('organization_people')) {
         setOrganizationPeopleLoading(true);
-        const organizationResponse = await getOrganizationPeople(mosqueId, true);
-        if (organizationResponse.success && organizationResponse.data) {
-          setOrganizationPeople(organizationResponse.data);
-        }
-        setOrganizationPeopleLoading(false);
+        getOrganizationPeople(mosqueId, true).then((organizationResponse) => {
+          if (organizationResponse.success && organizationResponse.data) {
+            setOrganizationPeople(organizationResponse.data);
+          }
+          setOrganizationPeopleLoading(false);
+        }).catch(() => {
+          setOrganizationPeopleLoading(false);
+        });
       }
-
-      // Check if user is following this mosque (only if user is logged in)
     } catch (err) {
       console.error('Error fetching mosque data:', err);
       setError(t('errorFetchingData'));
-    } finally {
       setLoading(false);
     }
-  }, [mosqueId, user]);
+  }, [mosqueSlug, t]);
 
   useEffect(() => {
-    if (mosqueId) {
-      fetchMosqueData();
-    }
-  }, [mosqueId, fetchMosqueData]);
+    fetchMosqueData();
+  }, [fetchMosqueData]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -366,10 +375,10 @@ export default function MosqueProfilePage() {
 
   // Khairat Application Functions
   const fetchCurrentKhairatApplicationStatus = async () => {
-    if (!user?.id || !mosqueId) return;
+    if (!user?.id || !mosque?.id) return;
     
     try {
-      const members = await getKhairatMembers({ user_id: user.id, mosque_id: mosqueId });
+      const members = await getKhairatMembers({ user_id: user.id, mosque_id: mosque.id });
       
       if (members.length > 0) {
         const latestMember = members[0];
@@ -869,9 +878,9 @@ export default function MosqueProfilePage() {
                           bgColor: 'bg-blue-50 dark:bg-blue-950/20',
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-blue-600 dark:text-blue-400',
                           onClick: () => {
-                            if (isDisabled) return;
+                            if (isDisabled || !mosque?.id) return;
                             // Navigate to registration page (no login required)
-                            router.push(`/${locale}/khairat/register/${mosqueId}`);
+                            router.push(`/${locale}/khairat/register/${mosque.id}`);
                           },
                           isLoading: false,
                         },
@@ -882,9 +891,9 @@ export default function MosqueProfilePage() {
                           bgColor: 'bg-orange-50 dark:bg-orange-950/20',
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-orange-600 dark:text-orange-400',
                           onClick: () => {
-                            if (isDisabled) return;
+                            if (isDisabled || !mosque?.id) return;
                             // Navigate to payment page - no login required
-                            router.push(`/${locale}/khairat/pay/${mosqueId}`);
+                            router.push(`/${locale}/khairat/pay/${mosque.id}`);
                           },
                         },
                         {
@@ -894,9 +903,9 @@ export default function MosqueProfilePage() {
                           bgColor: 'bg-green-50 dark:bg-green-950/20',
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-green-600 dark:text-green-400',
                           onClick: () => {
-                            if (isDisabled) return;
+                            if (isDisabled || !mosque?.id) return;
                             // Navigate to claim page - no login required
-                            router.push(`/${locale}/khairat/claim/${mosqueId}`);
+                            router.push(`/${locale}/khairat/claim/${mosque.id}`);
                           },
                         },
                         {
@@ -906,9 +915,9 @@ export default function MosqueProfilePage() {
                           bgColor: 'bg-purple-50 dark:bg-purple-950/20',
                           iconColor: isDisabled ? 'text-gray-400 dark:text-gray-500' : 'text-purple-600 dark:text-purple-400',
                           onClick: () => {
-                            if (isDisabled) return;
+                            if (isDisabled || !mosque?.id) return;
                             // Navigate to public status check page - no login required
-                            router.push(`/${locale}/khairat/status/${mosqueId}`);
+                            router.push(`/${locale}/khairat/status/${mosque.id}`);
                           },
                         },
                       ];
@@ -1173,7 +1182,7 @@ export default function MosqueProfilePage() {
         onOpenChange={setIsKhairatApplicationModalOpen}
         status={currentKhairatApplicationStatus as any}
         adminNotes={khairatAdminNotes}
-        mosqueId={mosqueId}
+        mosqueId={mosque?.id}
         mosqueName={mosque?.name}
         isApplying={isApplyingKhairat}
         isWithdrawingApplication={isWithdrawing}

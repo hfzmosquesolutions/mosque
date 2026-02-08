@@ -139,6 +139,7 @@ CREATE TABLE public.khairat_members (
   phone character varying,
   email character varying,
   address text,
+  original_registration_date date,
   CONSTRAINT khairat_members_pkey PRIMARY KEY (id),
   CONSTRAINT khairat_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_profiles(id),
   CONSTRAINT khairat_members_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
@@ -228,6 +229,7 @@ CREATE TABLE public.mosques (
   postcode text,
   country text DEFAULT 'Malaysia'::text,
   institution_type text DEFAULT 'mosque'::text CHECK (institution_type = ANY (ARRAY['mosque'::text, 'surau'::text])),
+  slug text NOT NULL,
   CONSTRAINT mosques_pkey PRIMARY KEY (id),
   CONSTRAINT mosques_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -304,6 +306,20 @@ CREATE TABLE public.resources (
   CONSTRAINT resources_mosque_id_fkey FOREIGN KEY (mosque_id) REFERENCES public.mosques(id),
   CONSTRAINT resources_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.resource_categories(id),
   CONSTRAINT resources_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.user_profiles(id)
+);
+CREATE TABLE public.stripe_prices (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  stripe_price_id text NOT NULL UNIQUE,
+  stripe_product_id text,
+  plan USER-DEFINED NOT NULL,
+  billing_period text NOT NULL CHECK (billing_period = ANY (ARRAY['monthly'::text, 'yearly'::text, 'annual'::text])),
+  amount integer NOT NULL,
+  currency text DEFAULT 'myr'::text,
+  interval text NOT NULL CHECK ("interval" = ANY (ARRAY['month'::text, 'year'::text])),
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT stripe_prices_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.subscription_usage (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -394,6 +410,8 @@ CREATE TABLE public.user_subscription_invoices (
   invoice_url text,
   hosted_invoice_url text,
   created_at timestamp with time zone DEFAULT now(),
+  description text,
+  is_final_invoice boolean DEFAULT false,
   CONSTRAINT user_subscription_invoices_pkey PRIMARY KEY (id),
   CONSTRAINT user_subscription_invoices_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -415,6 +433,7 @@ CREATE TABLE public.user_subscriptions (
   trial_end timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  billing_period text DEFAULT 'monthly'::text CHECK (billing_period = ANY (ARRAY['monthly'::text, 'yearly'::text, 'annual'::text])),
   CONSTRAINT user_subscriptions_pkey PRIMARY KEY (id),
   CONSTRAINT user_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

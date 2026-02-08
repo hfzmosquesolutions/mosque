@@ -36,7 +36,9 @@ function PaymentResultContent() {
   // Determine the correct redirect path based on user role
   const getKhairatPath = () => {
     if (resultData?.mosqueId) {
-      return `/mosques/${resultData.mosqueId}`;
+      // Use slug if available, otherwise fallback to ID
+      const identifier = mosque?.slug || resultData.mosqueId;
+      return `/mosques/${identifier}`;
     }
     return hasAdminAccess ? '/payments' : '/mosques';
   };
