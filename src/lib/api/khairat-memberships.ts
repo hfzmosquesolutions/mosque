@@ -22,7 +22,7 @@ export async function getKhairatMemberships(params: {
     .select(`
       *,
       user:user_profiles!khairat_memberships_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name),
+      mosque:mosques(id, name, slug),
       program:khairat_programs(id, name)
     `)
     .eq('user_id', user_id)

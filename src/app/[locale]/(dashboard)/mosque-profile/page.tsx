@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -189,10 +189,19 @@ function MosqueProfileContent() {
     if (user) {
       loadUserMosque();
     }
-  }, [user, loadUserMosque, isCompleted, onboardingLoading]);
+    // Only depend on user and onboarding status, not the callback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isCompleted, onboardingLoading]);
+
+  // Use ref to prevent duplicate fetches
+  const fetchingRef = useRef(false);
 
   const loadMosqueData = useCallback(async () => {
     if (!mosqueId) return;
+    
+    // Prevent duplicate fetches
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
 
     setIsLoading(true);
     try {
@@ -242,6 +251,7 @@ function MosqueProfileContent() {
       console.error('Error loading mosque data:', error);
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   }, [mosqueId]);
 
@@ -352,7 +362,9 @@ function MosqueProfileContent() {
       loadOrganizationServiceStatus();
       loadKhairatRegistrationSettings();
     }
-  }, [mosqueId, loadMosqueData, loadKhairatSettings, loadOrganizationServiceStatus, loadKhairatRegistrationSettings]);
+    // Only depend on mosqueId to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mosqueId]);
 
   const handleSave = async () => {
     if (!mosqueId) return;
@@ -822,10 +834,10 @@ function MosqueProfileContent() {
                       ? new Date(profile.updated_at).toLocaleDateString()
                       : t('never')}
                   </p>
-                  {mosqueId && (
+                  {profile?.slug && (
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <a
-                        href={`/mosques/${mosqueId}`}
+                        href={`/mosques/${profile.slug || profile.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2"

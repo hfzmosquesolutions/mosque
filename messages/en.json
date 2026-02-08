@@ -2660,7 +2660,13 @@
       "manageBilling": "Manage Billing",
       "manageInStripe": "View exact dates in Stripe",
       "cancelsAtPeriodEnd": "Cancels at period end",
-      "na": "N/A"
+      "na": "N/A",
+      "periodEndLabel": "Current Period Ends",
+      "cancellationNotice": {
+        "title": "Subscription Scheduled to Cancel",
+        "description": "Your subscription will be canceled on {date}. You will continue to have access until then.",
+        "descriptionNoDate": "Your subscription is scheduled to cancel at the end of the current billing period. You will continue to have access until then."
+      }
     },
     "planPrice": {
       "free": "Free",
@@ -2887,6 +2893,12 @@
     "registerNewMember": "Register New Member",
     "noMosqueAssociated": "No mosque associated",
     "loading": "Loading...",
+    "memberLimit": "Member Limit",
+    "members": "members",
+    "remaining": "remaining",
+    "limitReached": "You have reached your member limit. Upgrade to add more members.",
+    "approachingLimit": "You are approaching your member limit. Consider upgrading your plan.",
+    "upgrade": "Upgrade Plan",
     "table": {
       "name": "Name",
       "icNo": "IC No",

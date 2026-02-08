@@ -125,7 +125,7 @@ function UserDashboardContent() {
         .from('khairat_members')
         .select(`
           *,
-          mosque:mosques(id, name, logo_url, banner_url, address),
+          mosque:mosques(id, name, slug, logo_url, banner_url, address),
           dependents:khairat_member_dependents(*)
         `)
         .eq('user_id', user.id)
@@ -382,7 +382,7 @@ function UserDashboardContent() {
                                       <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Mosque:</span>
                                         <Link
-                                          href={`/mosques/${membership.mosque_id}`}
+                                          href={`/mosques/${(membership.mosque as any)?.slug || membership.mosque_id}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="font-medium text-blue-600 dark:text-blue-400 hover:underline"

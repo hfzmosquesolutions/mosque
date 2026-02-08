@@ -70,19 +70,23 @@ export default function Home() {
     const fetchMosques = async () => {
       try {
         setLoading(true);
+        
         const response = await getAllMosques();
+        
         if (response.success && response.data) {
           setMosques(response.data);
           setFilteredMosques(response.data);
         } else {
           setError(response.error || 'Error loading mosques');
         }
-      } catch (e) {
+      } catch (e: any) {
+        console.error('[PAGE] HomePage - Error:', e);
         setError('Error loading mosques');
       } finally {
         setLoading(false);
       }
     };
+
     fetchMosques();
   }, []);
 
@@ -209,7 +213,8 @@ export default function Home() {
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
                                 setIsSearchFocused(false);
-                                const path = `/${locale}/mosques/${m.id}`;
+                                const identifier = m.slug || m.id;
+                                const path = `/${locale}/mosques/${identifier}`;
                                 if (typeof window !== 'undefined') {
                                   window.open(path, '_blank', 'noopener,noreferrer');
                                 }
@@ -329,7 +334,9 @@ export default function Home() {
                 className="transition-all hover:shadow-md bg-white/90 dark:bg-slate-800 border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer p-0"
                 onClick={() => {
                   if (mosque) {
-                    router.push(`/${locale}/mosques/${mosque.id}`);
+                    // Use slug if available, otherwise fallback to ID
+                    const identifier = mosque.slug || mosque.id;
+                    router.push(`/${locale}/mosques/${identifier}`);
                   }
                 }}
               >

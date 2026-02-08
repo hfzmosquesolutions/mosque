@@ -70,6 +70,7 @@ interface MosqueMembership {
   mosque?: {
     id: string;
     name: string;
+    slug?: string;
     logo_url?: string;
     banner_url?: string;
     address?: string;
@@ -447,7 +448,7 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                         <h3 className="font-semibold text-lg text-slate-900 dark:text-white mb-1">
                           {application.mosque?.id ? (
                             <button
-                              onClick={() => application.mosque?.id && window.open(`/mosques/${application.mosque?.id}`, '_blank', 'noopener,noreferrer')}
+                              onClick={() => application.mosque && window.open(`/mosques/${application.mosque.slug || application.mosque.id}`, '_blank', 'noopener,noreferrer')}
                               className="text-slate-900 dark:text-slate-100 hover:text-emerald-600 hover:underline transition-colors cursor-pointer"
                               title="View mosque page"
                             >
@@ -555,8 +556,8 @@ export function UserApplicationsTable({ showHeader = true }: UserApplicationsTab
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          if (application.mosque?.id) {
-                            window.open(`/mosques/${application.mosque.id}`, '_blank', 'noopener,noreferrer');
+                          if (application.mosque) {
+                            window.open(`/mosques/${application.mosque.slug || application.mosque.id}`, '_blank', 'noopener,noreferrer');
                           }
                         }}
                         className="w-full border-slate-300"

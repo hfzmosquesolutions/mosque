@@ -94,6 +94,41 @@ function BillingContent() {
       abortController.abort();
     };
   }, [user?.id, mosqueId, isCompleted, onboardingLoading, safeSetState, isMounted]);
+
+  // Listen for real-time subscription updates (e.g., from webhooks)
+  useEffect(() => {
+    if (!user?.id || !isCompleted || onboardingLoading) return;
+
+    const channel = supabase
+      .channel(`user_subscription_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'user_subscriptions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          // Refetch subscription data when it changes
+          try {
+            const userSub = await getUserSubscription(user.id);
+            if (userSub) {
+              safeSetState(setSubscription, userSub as any);
+            } else {
+              safeSetState(setSubscription, null as MosqueSubscription | UserSubscription | null);
+            }
+          } catch (error) {
+            console.error('[BillingPage] Error refetching subscription after real-time update:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, isCompleted, onboardingLoading, safeSetState]);
   
   // ProtectedRoute already handles access control
   // If we reach here, user is authenticated and has admin access

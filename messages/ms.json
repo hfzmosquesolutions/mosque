@@ -2709,7 +2709,13 @@
       "manageBilling": "Urus Bil",
       "manageInStripe": "Lihat tarikh tepat di Stripe",
       "cancelsAtPeriodEnd": "Akan dibatalkan pada akhir tempoh",
-      "na": "Tiada"
+      "na": "Tiada",
+      "periodEndLabel": "Tempoh Semasa Tamat",
+      "cancellationNotice": {
+        "title": "Langganan Dijadualkan untuk Dibatalkan",
+        "description": "Langganan anda akan dibatalkan pada {date}. Anda akan terus mempunyai akses sehingga tarikh tersebut.",
+        "descriptionNoDate": "Langganan anda dijadualkan untuk dibatalkan pada akhir tempoh bil semasa. Anda akan terus mempunyai akses sehingga tempoh tersebut tamat."
+      }
     },
     "planPrice": {
       "free": "Percuma",
@@ -2905,6 +2911,12 @@
     "registerNewMember": "Daftar Ahli Baharu",
     "noMosqueAssociated": "Tiada masjid dikaitkan",
     "loading": "Memuatkan...",
+    "memberLimit": "Had Ahli",
+    "members": "ahli",
+    "remaining": "baki",
+    "limitReached": "Anda telah mencapai had ahli anda. Naik taraf untuk menambah lebih banyak ahli.",
+    "approachingLimit": "Anda hampir mencapai had ahli anda. Pertimbangkan untuk menaik taraf pelan anda.",
+    "upgrade": "Naik Taraf Pelan",
     "table": {
       "name": "Nama",
       "icNo": "No. IC",

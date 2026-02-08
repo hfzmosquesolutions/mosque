@@ -39,7 +39,8 @@ export async function GET(
       ),
       mosque:mosques(
         id,
-        name
+        name,
+        slug
       ),
       program:contribution_programs(
         id,

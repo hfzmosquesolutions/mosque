@@ -78,6 +78,8 @@ export interface UserSubscriptionInvoice {
   status: string;
   invoice_url?: string;
   hosted_invoice_url?: string;
+  description?: string;
+  is_final_invoice?: boolean;
   created_at: string;
 }
 

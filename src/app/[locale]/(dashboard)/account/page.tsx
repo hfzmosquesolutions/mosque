@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -20,12 +21,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { getUserProfile, updateUserProfile } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
 function AccountSettingsContent() {
   const t = useTranslations('docs.profile');
@@ -42,6 +44,7 @@ function AccountSettingsContent() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [isAdminAccount, setIsAdminAccount] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isKhairatMember, setIsKhairatMember] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -57,6 +60,16 @@ function AccountSettingsContent() {
           setPhone(res.data.phone || '');
           setAddress(res.data.address || '');
         }
+
+        // Check if user is a khairat member
+        const { data: khairatData } = await supabase
+          .from('khairat_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'approved'])
+          .limit(1);
+        
+        setIsKhairatMember((khairatData?.length || 0) > 0);
       } catch (error) {
         console.error('Error loading user profile:', error);
       } finally {
@@ -158,9 +171,17 @@ function AccountSettingsContent() {
         <TabsContent value="general" className="space-y-6 pt-4">
           <Card className="border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold">
-                {t('personalInfo')}
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl font-semibold">
+                  {t('personalInfo')}
+                </CardTitle>
+                {isKhairatMember && (
+                  <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+                    <Heart className="h-3 w-3 mr-1" />
+                    Khairat Member
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-sm text-slate-600 dark:text-slate-400">

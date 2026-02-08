@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Upload, UserPlus, ChevronDown } from 'lucide-react';
 import { MosqueSetupBanner } from '@/components/admin/MosqueSetupBanner';
+import { MemberLimitBar } from '@/components/admin/MemberLimitBar';
 
 function KhairatMembersContent() {
   const t = useTranslations('khairatManagement');
@@ -61,6 +62,11 @@ function KhairatMembersContent() {
           </DropdownMenu>
         )}
       </div>
+
+      {/* Member Limit Bar */}
+      {!mosqueLoading && mosqueId && (
+        <MemberLimitBar mosqueId={mosqueId} />
+      )}
 
       {mosqueLoading ? (
         <PageLoading />

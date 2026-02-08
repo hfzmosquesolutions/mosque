@@ -53,7 +53,7 @@ export async function getLegacyRecords(filters: LegacyRecordFilters = {}) {
     .select(`
       *,
       user:user_profiles(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .order('created_at', { ascending: false });
 
@@ -174,7 +174,7 @@ export async function createLegacyRecord(recordData: {
     .select(`
       *,
       user:user_profiles(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .single();
 
@@ -238,7 +238,7 @@ export async function searchLegacyRecords(searchParams: {
     .select(`
       *,
       user:user_profiles(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .eq('mosque_id', mosque_id)
     .textSearch('record_data', searchQuery)
@@ -323,7 +323,7 @@ export async function getCombinedHistory(params: {
     .select(`
       *,
       user:user_profiles(id, full_name, phone),
-      mosque:mosques(id, name)
+      mosque:mosques(id, name, slug)
     `)
     .eq('mosque_id', mosque_id)
     .order('created_at', { ascending: false });

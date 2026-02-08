@@ -42,7 +42,7 @@ export async function getKhairatApplications(filters: KhairatApplicationFilters 
     .select(`
       *,
       user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name),
+      mosque:mosques(id, name, slug),
       program:khairat_programs(id, name)
     `)
     .order('created_at', { ascending: false });
@@ -223,7 +223,7 @@ export async function submitKhairatApplication(applicationData: {
     .select(`
       *,
       user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name),
+      mosque:mosques(id, name, slug),
       program:khairat_programs(id, name)
     `)
     .single();
@@ -292,7 +292,7 @@ export async function reviewKhairatApplication(reviewData: {
     .select(`
       *,
       user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name),
+      mosque:mosques(id, name, slug),
       program:khairat_programs(id, name)
     `)
     .single();
@@ -357,7 +357,7 @@ export async function getKhairatApplicationById(applicationId: string) {
     .select(`
       *,
       user:user_profiles!khairat_applications_user_id_fkey(id, full_name, phone),
-      mosque:mosques(id, name, user_id),
+      mosque:mosques(id, name, slug, user_id),
       program:khairat_programs(id, name)
     `)
     .eq('id', applicationId)

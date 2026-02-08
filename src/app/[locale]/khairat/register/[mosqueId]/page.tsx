@@ -482,7 +482,7 @@ function KhairatRegisterPageContent() {
               </div>
 
               <div className="pt-4 flex gap-4">
-                <Link href={`/${locale}/mosques/${mosqueId}`} className="flex-1">
+                <Link href={`/${locale}/mosques/${mosque?.slug || mosqueId}`} className="flex-1">
                   <Button variant="outline" className="w-full">
                     {tRegister('success.backToMosque')}
                   </Button>

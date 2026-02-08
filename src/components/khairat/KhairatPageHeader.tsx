@@ -41,7 +41,7 @@ export function KhairatPageHeader({
         <div className="relative h-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-6">
           {/* Back Button */}
           <div className="absolute top-4 left-4 sm:left-6">
-            <Link href={`/${locale}/mosques/${mosqueId}`}>
+            <Link href={`/${locale}/mosques/${mosque?.slug || mosqueId}`}>
               <Button 
                 variant="ghost" 
                 size="sm"

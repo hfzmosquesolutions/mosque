@@ -74,7 +74,7 @@ export function KhairatStandardHeader({
       {/* Page Header Section */}
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-4">
         <div className="mb-6">
-          <Link href={`/${locale}/mosques/${mosqueId}`}>
+          <Link href={`/${locale}/mosques/${mosque?.slug || mosqueId}`}>
             <Button variant="ghost" size="sm" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               {backText}

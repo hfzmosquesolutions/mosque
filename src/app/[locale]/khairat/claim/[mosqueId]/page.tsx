@@ -734,7 +734,7 @@ function KhairatClaimPageContent() {
                   <Download className="h-4 w-4 mr-2" />
                   {tKhairat('claimSuccess.downloadReceipt')}
                 </Button>
-                <Link href={`/${locale}/mosques/${mosqueId}`} className="block">
+                <Link href={`/${locale}/mosques/${mosque?.slug || mosqueId}`} className="block">
                   <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
                     {tKhairat('claimSuccess.backToMosque')}
                   </Button>

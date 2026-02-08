@@ -344,23 +344,51 @@ export async function resetOnboardingStatus(userId: string): Promise<ApiResponse
 // =============================================
 
 /**
- * Get mosque by ID
+ * Get mosque by ID or slug
+ * Supports both UUID and slug for backward compatibility
  */
-export async function getMosque(mosqueId: string): Promise<ApiResponse<Mosque>> {
+export async function getMosque(mosqueIdOrSlug: string): Promise<ApiResponse<Mosque>> {
   try {
-    const { data, error } = await supabase
-      .from('mosques')
-      .select('*')
-      .eq('id', mosqueId)
-      .single();
+    if (!mosqueIdOrSlug) {
+      return { success: false, error: 'Mosque identifier is required' };
+    }
+
+    // Check if input is a UUID (36 characters with dashes) or a slug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mosqueIdOrSlug);
+    
+    let query = supabase.from('mosques').select('*');
+    
+    if (isUuid) {
+      query = query.eq('id', mosqueIdOrSlug);
+    } else {
+      // Try slug first, if not found, try as ID (for backward compatibility)
+      query = query.eq('slug', mosqueIdOrSlug);
+    }
+    
+    const { data, error } = await query.single();
+
+    // If slug lookup failed and it's not a UUID, try as ID (backward compatibility)
+    if (error && !isUuid && error.code === 'PGRST116') {
+      const { data: dataById, error: errorById } = await supabase
+        .from('mosques')
+        .select('*')
+        .eq('id', mosqueIdOrSlug)
+        .single();
+      
+      if (errorById) {
+        return { success: false, error: errorById.message || 'Mosque not found' };
+      }
+      
+      return { success: true, data: dataById };
+    }
 
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Mosque not found' };
     }
 
     return { success: true, data };
-  } catch (error) {
-    return { success: false, error: 'Failed to fetch mosque' };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Failed to fetch mosque' };
   }
 }
 
@@ -369,22 +397,63 @@ export async function getMosque(mosqueId: string): Promise<ApiResponse<Mosque>> 
  */
 export async function getAllMosques(): Promise<ApiResponse<Mosque[]>> {
   try {
-    console.log('[API] getAllMosques - Starting request');
+    // Explicitly select all columns including slug
+    // RLS policy filters for public mosques (is_private = false OR is_private IS NULL)
     const { data, error } = await supabase
       .from('mosques')
       .select('*')
       .order('name');
-
+    
     if (error) {
       console.error('[API] getAllMosques - Supabase error:', error);
+      
+      // If error is about missing column, try with explicit column list
+      if (error.message.includes('column') && (error.message.includes('slug') || error.code === '42703')) {
+        const { data: dataWithoutSlug, error: errorWithoutSlug } = await supabase
+          .from('mosques')
+          .select('id, name, address, address_line1, address_line2, city, state, postcode, country, phone, email, website, description, logo_url, banner_url, user_id, institution_type, settings, is_private, created_at, updated_at')
+          .order('name');
+        
+        if (errorWithoutSlug) {
+          console.error('[API] getAllMosques - Error without slug:', errorWithoutSlug);
+          return { success: false, error: errorWithoutSlug.message };
+        }
+        
+        // Add empty slug to each mosque for compatibility
+        const dataWithSlug = (dataWithoutSlug || []).map((mosque: any) => ({
+          ...mosque,
+          slug: mosque.slug || null
+        }));
+        
+        return { success: true, data: dataWithSlug };
+      }
+      
+      // If it's an RLS error or permission error
+      if (error.code === '42501' || error.message.includes('permission') || error.message.includes('policy')) {
+        console.error('[API] getAllMosques - RLS/Permission error. Check RLS policies.');
+        return { success: false, error: 'Permission denied. Please check RLS policies.' };
+      }
+      
       return { success: false, error: error.message };
     }
 
-    console.log('[API] getAllMosques - Success, count:', data?.length || 0);
-    return { success: true, data };
-  } catch (error) {
-    console.error('[API] getAllMosques - Catch error:', error);
-    return { success: false, error: 'Failed to fetch mosques' };
+    // If data is null or undefined, return empty array instead of error
+    if (!data) {
+      return { success: true, data: [] };
+    }
+
+    // RLS policy already filters for public mosques, but double-check and ensure all mosques have slug
+    const filteredData = (data || []).filter((mosque: any) => !mosque.is_private);
+    
+    const dataWithSlug = filteredData.map((mosque: any) => ({
+      ...mosque,
+      slug: mosque.slug || null
+    }));
+
+    return { success: true, data: dataWithSlug };
+  } catch (error: any) {
+    console.error('[API] getAllMosques - Error:', error);
+    return { success: false, error: error?.message || 'Failed to fetch mosques' };
   }
 }
 
@@ -565,6 +634,7 @@ export async function getUserPaymentHistory(
         mosque:mosques(
           id,
           name,
+          slug,
           address
         )
       `)
@@ -636,6 +706,7 @@ export async function getUserKhairatContributions(
         mosque:mosques(
           id,
           name,
+          slug,
           address
         )
       `, { count: 'exact' })
