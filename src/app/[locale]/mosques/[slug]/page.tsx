@@ -101,7 +101,6 @@ export default function MosqueProfilePage() {
   const [isUserAnyMosqueAdmin, setIsUserAnyMosqueAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(false);
 
-  // Simplified fetch - only fetch mosque data, other data can load separately
   const fetchMosqueData = useCallback(async () => {
     if (!mosqueSlug) return;
     
@@ -109,7 +108,6 @@ export default function MosqueProfilePage() {
       setLoading(true);
       setError(null);
 
-      // Fetch mosque details by slug (or ID if slug not available)
       const mosqueResponse = await getMosque(mosqueSlug);
 
       if (!mosqueResponse.success || !mosqueResponse.data) {
@@ -121,11 +119,9 @@ export default function MosqueProfilePage() {
       setMosque(mosqueResponse.data);
       setLoading(false);
       
-      // Use the actual mosque ID for API calls that require it
       const mosqueId = mosqueResponse.data.id;
 
       // Fetch additional data separately (non-blocking)
-      // Khairat settings
       getMosqueKhairatSettings(mosqueId).then((settingsResponse) => {
         if (settingsResponse.success && settingsResponse.data) {
           const khairatEnabled = settingsResponse.data.enabled;
@@ -135,7 +131,6 @@ export default function MosqueProfilePage() {
         // Silently fail - not critical
       });
 
-      // Organization people (only if service enabled)
       const enabledServices = Array.isArray(mosqueResponse.data.settings?.enabled_services)
         ? (mosqueResponse.data.settings.enabled_services as string[])
         : [];
