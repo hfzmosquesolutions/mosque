@@ -207,7 +207,7 @@ export default function MosquesPage() {
               {t('errorLoading')}
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
-            <Button onClick={fetchMosques} variant="outline">
+            <Button onClick={() => fetchMosques()} variant="outline">
               {t('tryAgain')}
             </Button>
           </div>
