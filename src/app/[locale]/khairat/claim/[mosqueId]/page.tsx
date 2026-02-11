@@ -16,7 +16,6 @@ import {
   AlertCircle,
   Upload,
   UserPlus,
-  CheckCircle,
   CheckCircle2,
   Download,
   Building,
@@ -33,6 +32,7 @@ import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader'
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
+import { KhairatMemberCard } from '@/components/khairat/KhairatMemberCard';
 
 // Helper function to mask email for privacy
 function maskEmail(email: string): string {
@@ -761,83 +761,18 @@ function KhairatClaimPageContent() {
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
 
-        {/* Membership Verification Status */}
+        {/* Membership Verification Status - reusable member card */}
         {(verifiedICNumber || verifiedKhairatMemberId) && isKhairatMember && (
-          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <strong className="text-slate-900 dark:text-slate-100">{tKhairat('payPage.membershipVerifiedTitle')}</strong>
-              </div>
-              {verifiedICNumber && (
-                <div className="flex items-center gap-2 ml-6">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                      {verifiedICNumber.slice(0, 6) + '******'}
-                    </span>
-                  </p>
-                  {(verifiedMemberInfo?.status || isKhairatMember) && (
-                    <Badge 
-                      variant={
-                        (verifiedMemberInfo?.status === 'active' || verifiedMemberInfo?.status === 'approved' || !verifiedMemberInfo?.status) ? 'default' :
-                        verifiedMemberInfo.status === 'inactive' ? 'secondary' :
-                        verifiedMemberInfo.status === 'pending' ? 'secondary' :
-                        'outline'
-                      }
-                      className="capitalize"
-                    >
-                      {verifiedMemberInfo?.status === 'active' || !verifiedMemberInfo?.status ? (locale === 'ms' ? 'Aktif' : 'Active') :
-                       verifiedMemberInfo.status === 'approved' ? (locale === 'ms' ? 'Diluluskan' : 'Approved') :
-                       verifiedMemberInfo.status === 'inactive' ? (locale === 'ms' ? 'Tidak Aktif' : 'Inactive') :
-                       verifiedMemberInfo.status === 'pending' ? (locale === 'ms' ? 'Menunggu' : 'Pending') :
-                       verifiedMemberInfo.status || (locale === 'ms' ? 'Aktif' : 'Active')}
-                    </Badge>
-                  )}
-                </div>
-              )}
-              {(verifiedKhairatMemberId || verifiedMembershipNumber) && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
-                  {tKhairat('payPage.memberIdLabel') || 'Member ID'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedMembershipNumber || verifiedKhairatMemberId?.slice(0, 8).toUpperCase()}</span>
-                </p>
-              )}
-              
-              {/* Display Name, Email, and Phone (Masked for Privacy) */}
-              {(verifiedMemberInfo?.full_name || verifiedMemberInfo?.email || verifiedMemberInfo?.phone) && (
-                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6 space-y-2">
-                  {verifiedMemberInfo.full_name && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.payerNameLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
-                        {maskName(verifiedMemberInfo.full_name)}
-                      </span>
-                    </div>
-                  )}
-                  {verifiedMemberInfo.email && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.emailLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 break-all text-sm">
-                        {maskEmail(verifiedMemberInfo.email)}
-                      </span>
-                    </div>
-                  )}
-                  {verifiedMemberInfo.phone && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.mobileNumberLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
-                        {maskPhone(verifiedMemberInfo.phone)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <KhairatMemberCard
+            locale={locale}
+            title={tKhairat('payPage.membershipVerifiedTitle')}
+            memberName={verifiedMemberInfo?.full_name}
+            icNumber={verifiedICNumber}
+            memberId={verifiedKhairatMemberId}
+            membershipNumber={verifiedMembershipNumber}
+            status={verifiedMemberInfo?.status || (isKhairatMember ? 'active' : undefined)}
+            maskName={maskName}
+          />
         )}
 
         {/* Main Form */}

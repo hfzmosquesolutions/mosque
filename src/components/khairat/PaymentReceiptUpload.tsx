@@ -296,38 +296,40 @@ export function PaymentReceiptUpload({
         disabled={disabled}
       />
 
-      {/* Upload Area */}
-      <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6">
-        <div className="text-center">
-          <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              {existingReceipts.length === 0 && uploadedFiles.length === 0 
-                ? tKhairat('payPage.noReceiptUploaded')
-                : tKhairat('payPage.uploadPaymentReceiptTitle')}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {tKhairat('payPage.uploadPaymentReceiptDescription')}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {tKhairat('payPage.uploadPaymentReceiptLimit', {
-                count: maxFiles,
-              })}
-            </p>
+      {/* Upload Area - hidden once max files reached (keeps UI clean after upload) */}
+      {canUpload && (
+        <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6">
+          <div className="text-center">
+            <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                {existingReceipts.length === 0 && uploadedFiles.length === 0 
+                  ? tKhairat('payPage.noReceiptUploaded')
+                  : tKhairat('payPage.uploadPaymentReceiptTitle')}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {tKhairat('payPage.uploadPaymentReceiptDescription')}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {tKhairat('payPage.uploadPaymentReceiptLimit', {
+                  count: maxFiles,
+                })}
+              </p>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canUpload}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {tKhairat('payPage.uploadReceiptButton')}
+            </Button>
           </div>
-          
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!canUpload}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {tKhairat('payPage.uploadReceiptButton')}
-          </Button>
         </div>
-      </div>
+      )}
 
       {/* File Count */}
       <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
