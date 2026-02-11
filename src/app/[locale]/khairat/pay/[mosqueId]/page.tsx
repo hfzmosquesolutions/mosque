@@ -10,15 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,9 +24,9 @@ import {
   Banknote,
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   HandCoins,
   UserPlus,
-  CheckCircle,
   CheckCircle2,
   Download,
   Building2,
@@ -53,6 +44,7 @@ import { supabase } from '@/lib/supabase';
 import { PaymentReceiptUpload } from '@/components/khairat/PaymentReceiptUpload';
 import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
 import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
+import { KhairatMemberCard } from '@/components/khairat/KhairatMemberCard';
 import jsPDF from 'jspdf';
 import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 
@@ -131,7 +123,6 @@ function KhairatPayPageContent() {
   const [payerName, setPayerName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentReceipts, setPaymentReceipts] = useState<File[]>([]);
-  const [hasReceiptInDialog, setHasReceiptInDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [payerEmail, setPayerEmail] = useState(user?.email || '');
   const [payerMobile, setPayerMobile] = useState('');
@@ -157,7 +148,6 @@ function KhairatPayPageContent() {
     phone?: string;
     status?: string;
   } | null>(null);
-  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false);
   const [submittedContribution, setSubmittedContribution] = useState<{
     id: string;
@@ -177,13 +167,6 @@ function KhairatPayPageContent() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Sync hasReceiptInDialog when dialog opens or paymentReceipts changes
-  useEffect(() => {
-    if (isReceiptModalOpen) {
-      setHasReceiptInDialog(paymentReceipts.length > 0);
-    }
-  }, [isReceiptModalOpen, paymentReceipts.length]);
 
   // Check for persisted success state on mount
   useEffect(() => {
@@ -575,6 +558,13 @@ function KhairatPayPageContent() {
       return;
     }
 
+    // Cash payments are not submitted by users; they pay directly at the mosque office
+    // and mosque admin will key in the record. Block submission here for cash.
+    if (paymentMethod === 'cash') {
+      toast.error('For cash payments, please pay directly at the mosque office. This page is for information only.');
+      return;
+    }
+
     // Validate online payment fields (ToyyibPay only)
     if (paymentMethod === 'toyyibpay') {
       const mobileForValidation = payerMobile.trim();
@@ -588,7 +578,10 @@ function KhairatPayPageContent() {
       }
     }
 
-    if ((paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && paymentReceipts.length === 0) {
+    // For bank transfer, receipt upload is required.
+    // For cash payments, users will typically pay directly at the mosque office,
+    // and mosque admin will record the payment in the system, so no receipt upload is needed here.
+    if (paymentMethod === 'bank_transfer' && paymentReceipts.length === 0) {
       toast.error('Please upload payment receipt');
       return;
     }
@@ -675,8 +668,9 @@ function KhairatPayPageContent() {
             toast.error('Payment created but failed to redirect to payment gateway. Please contact support.');
           }
         } else {
-          // For offline payments (bank_transfer, cash), upload receipts if provided
-          if ((paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && paymentReceipts.length > 0) {
+          // For offline bank transfer payments, upload receipts if provided.
+          // Cash payments do not require or support receipt uploads from the user side.
+          if (paymentMethod === 'bank_transfer' && paymentReceipts.length > 0) {
             try {
               // Upload receipts
               for (const receiptFile of paymentReceipts) {
@@ -1167,64 +1161,18 @@ function KhairatPayPageContent() {
         iconColor="text-orange-600 dark:text-orange-400"
       />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
-        {/* Membership Verification Status */}
+        {/* Membership Verification Status - reusable member card */}
         {(verifiedICNumber || verifiedMemberId) && isKhairatMember && (
-          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <strong className="text-slate-900 dark:text-slate-100">{tKhairat('payPage.membershipVerifiedTitle')}</strong>
-              </div>
-              {verifiedICNumber && (
-                <div className="flex items-center gap-2 ml-6">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                      {verifiedICNumber.slice(0, 6) + '******'}
-                    </span>
-                  </p>
-                  {(verifiedMemberInfo?.status || isKhairatMember) && (
-                    <Badge 
-                      variant={
-                        (verifiedMemberInfo?.status === 'active' || verifiedMemberInfo?.status === 'approved' || !verifiedMemberInfo?.status) ? 'default' :
-                        verifiedMemberInfo.status === 'inactive' ? 'secondary' :
-                        verifiedMemberInfo.status === 'pending' ? 'secondary' :
-                        'outline'
-                      }
-                      className="capitalize"
-                    >
-                      {verifiedMemberInfo?.status === 'active' || !verifiedMemberInfo?.status ? (locale === 'ms' ? 'Aktif' : 'Active') :
-                       verifiedMemberInfo.status === 'approved' ? (locale === 'ms' ? 'Diluluskan' : 'Approved') :
-                       verifiedMemberInfo.status === 'inactive' ? (locale === 'ms' ? 'Tidak Aktif' : 'Inactive') :
-                       verifiedMemberInfo.status === 'pending' ? (locale === 'ms' ? 'Menunggu' : 'Pending') :
-                       verifiedMemberInfo.status || (locale === 'ms' ? 'Aktif' : 'Active')}
-                    </Badge>
-                  )}
-                </div>
-              )}
-              {(verifiedMemberId || verifiedMembershipNumber) && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
-                  {tKhairat('payPage.memberIdLabel') || 'Member ID'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{verifiedMembershipNumber || verifiedMemberId?.slice(0, 8).toUpperCase()}</span>
-                </p>
-              )}
-              
-              {/* Display Name (Masked) for Confirmation */}
-              {verifiedMemberInfo?.full_name && (
-                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6">
-                  <div className="flex items-start gap-3">
-                    <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                      {tKhairat('payPage.memberNameLabel') || 'Member Name'}:
-                    </span>
-                    <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
-                      {maskName(verifiedMemberInfo.full_name)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    {tKhairat('payPage.confirmMemberInfo')}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <KhairatMemberCard
+            locale={locale}
+            title={tKhairat('payPage.membershipVerifiedTitle')}
+            memberName={verifiedMemberInfo?.full_name}
+            icNumber={verifiedICNumber}
+            memberId={verifiedMemberId}
+            membershipNumber={verifiedMembershipNumber}
+            status={verifiedMemberInfo?.status || (isKhairatMember ? 'active' : undefined)}
+            maskName={maskName}
+          />
         )}
 
         {/* Main Form */}
@@ -1428,40 +1376,52 @@ function KhairatPayPageContent() {
                 const bankDetails = mosque?.settings?.bank_transfer_details;
                 const hasBankDetails = bankDetails && typeof bankDetails === 'object' && bankDetails !== null;
                 return (
-                  <div className="space-y-3 pt-2">
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {tKhairat('payPage.bankTransferDetailsTitle')}
-                    </h4>
-                    {hasBankDetails ? (
-                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                        {(bankDetails as any).bank_name && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">Bank:</span>{' '}
-                            {(bankDetails as any).bank_name}
-                          </p>
-                        )}
-                        {(bankDetails as any).account_number && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">Account Number:</span>{' '}
-                            <span className="font-mono">{(bankDetails as any).account_number}</span>
-                          </p>
-                        )}
-                        {(bankDetails as any).account_holder_name && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">Account Holder:</span>{' '}
-                            {(bankDetails as any).account_holder_name}
-                          </p>
-                        )}
-                        {(bankDetails as any).reference_instructions && (
-                          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                            <p className="font-medium text-xs mb-1 text-slate-900 dark:text-slate-100">
-                              {tKhairat('payPage.referenceInstructionsLabel')}:
+                  <div className="space-y-3 pt-4">
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+                      <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100 mb-1">
+                        {tKhairat('payPage.bankTransferDetailsTitle')}
+                      </h4>
+                      <p className="text-xs text-emerald-800/90 dark:text-emerald-100/80 mb-3">
+                        {/* Keep copy simple so both BM/EN translations still make sense */}
+                        {locale === 'ms'
+                          ? 'Sila buat pindahan bank menggunakan maklumat di bawah sebelum muat naik resit pembayaran.'
+                          : 'Please make your bank transfer using the details below before uploading your payment receipt.'}
+                      </p>
+                      {hasBankDetails ? (
+                        <div className="space-y-1.5 text-sm text-emerald-900 dark:text-emerald-50">
+                          {(bankDetails as any).bank_name && (
+                            <p>
+                              <span className="font-semibold">Bank:</span>{' '}
+                              {(bankDetails as any).bank_name}
                             </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">{(bankDetails as any).reference_instructions}</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
+                          )}
+                          {(bankDetails as any).account_number && (
+                            <p>
+                              <span className="font-semibold">Account Number:</span>{' '}
+                              <span className="font-mono tracking-wide">
+                                {(bankDetails as any).account_number}
+                              </span>
+                            </p>
+                          )}
+                          {(bankDetails as any).account_holder_name && (
+                            <p>
+                              <span className="font-semibold">Account Holder:</span>{' '}
+                              {(bankDetails as any).account_holder_name}
+                            </p>
+                          )}
+                          {(bankDetails as any).reference_instructions && (
+                            <div className="mt-2 pt-2 border-t border-emerald-200/70 dark:border-emerald-800/70">
+                              <p className="font-semibold text-xs mb-1">
+                                {tKhairat('payPage.referenceInstructionsLabel')}:
+                              </p>
+                              <p className="text-xs text-emerald-900/90 dark:text-emerald-100/90">
+                                {(bankDetails as any).reference_instructions}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })()}
@@ -1470,144 +1430,95 @@ function KhairatPayPageContent() {
                 const cashDetails = mosque?.settings?.cash_payment_details;
                 const hasCashDetails = cashDetails && typeof cashDetails === 'object' && cashDetails !== null;
                 return (
-                  <div className="space-y-3 pt-2">
-                    <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {tKhairat('payPage.cashPaymentDetailsTitle')}
-                    </h4>
-                    {hasCashDetails ? (
-                      <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                        {(cashDetails as any).payment_location && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {tKhairat('payPage.paymentLocationLabel')}:
-                            </span>{' '}
-                            {(cashDetails as any).payment_location}
-                          </p>
-                        )}
-                        {(cashDetails as any).office_hours && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {tKhairat('payPage.officeHoursLabel')}:
-                            </span>{' '}
-                            {(cashDetails as any).office_hours}
-                          </p>
-                        )}
-                        {((cashDetails as any).contact_person || (cashDetails as any).contact_phone) && (
-                          <p>
-                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                              {tKhairat('payPage.contactLabel')}:
-                            </span>{' '}
-                            {(cashDetails as any).contact_person || (cashDetails as any).contact_phone}
-                          </p>
-                        )}
-                        {(cashDetails as any).instructions && (
-                          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                            <p className="font-medium text-xs mb-1 text-slate-900 dark:text-slate-100">
-                              {tKhairat('payPage.paymentInstructionsLabel')}:
-                            </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">{(cashDetails as any).instructions}</p>
+                  <div className="space-y-3 pt-4">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                          {tKhairat('payPage.cashPaymentDetailsTitle')}
+                        </h4>
+                        <p className="text-xs text-amber-800/90 dark:text-amber-100/80 mb-3">
+                          {tKhairat('payPage.cashPaymentReminder') ||
+                            'For cash payments, please follow the cash payment instructions provided by the mosque.'}
+                        </p>
+                        {hasCashDetails ? (
+                          <div className="space-y-1.5 text-sm text-amber-900/90 dark:text-amber-100/90">
+                            {(cashDetails as any).payment_location && (
+                              <p>
+                                <span className="font-semibold">
+                                  {tKhairat('payPage.paymentLocationLabel')}:
+                                </span>{' '}
+                                {(cashDetails as any).payment_location}
+                              </p>
+                            )}
+                            {(cashDetails as any).office_hours && (
+                              <p>
+                                <span className="font-semibold">
+                                  {tKhairat('payPage.officeHoursLabel')}:
+                                </span>{' '}
+                                {(cashDetails as any).office_hours}
+                              </p>
+                            )}
+                            {((cashDetails as any).contact_person || (cashDetails as any).contact_phone) && (
+                              <p>
+                                <span className="font-semibold">
+                                  {tKhairat('payPage.contactLabel')}:
+                                </span>{' '}
+                                {(cashDetails as any).contact_person || (cashDetails as any).contact_phone}
+                              </p>
+                            )}
+                            {(cashDetails as any).instructions && (
+                              <div className="mt-2 pt-2 border-t border-amber-200/70 dark:border-amber-900/70">
+                                <p className="text-xs font-semibold mb-1 text-amber-900 dark:text-amber-100">
+                                  {tKhairat('payPage.paymentInstructionsLabel')}:
+                                </p>
+                                <p className="text-xs text-amber-900/90 dark:text-amber-100/90">
+                                  {(cashDetails as any).instructions}
+                                </p>
+                              </div>
+                            )}
                           </div>
+                        ) : (
+                          <p className="text-sm text-amber-900/90 dark:text-amber-100/90">
+                            {tKhairat('payPage.cashPaymentNoDetails') || 'Please contact the mosque office for cash payment details.'}
+                          </p>
                         )}
                       </div>
-                    ) : null}
+                    </div>
                   </div>
                 );
               })()}
-              {(paymentMethod === 'bank_transfer' || paymentMethod === 'cash') && (
+              {/* Payment receipt upload is only for bank transfer.
+                  Cash payments are handled directly at the mosque office,
+                  so users do not upload receipts here. */}
+              {paymentMethod === 'bank_transfer' && (
                 <div className="space-y-2">
-                  <Label>Payment Receipt</Label>
-                  <Dialog 
-                    open={isReceiptModalOpen} 
-                    onOpenChange={(open) => {
-                      setIsReceiptModalOpen(open);
-                      if (!open) {
-                        // Reset dialog state when closed
-                        setHasReceiptInDialog(false);
+                  <Label>{tKhairat('payPage.uploadPaymentReceiptTitle') || 'Upload Payment Receipt'}</Label>
+                  <PaymentReceiptUpload
+                    onReceiptsChange={(receipts) => {
+                      // Handle both File[] and PaymentReceipt[] types
+                      if (receipts && Array.isArray(receipts) && receipts.length > 0) {
+                        if (receipts[0] instanceof File) {
+                          // New files to upload - update state immediately
+                          setPaymentReceipts(receipts as File[]);
+                        } else {
+                          // Already uploaded receipts (PaymentReceipt[]), convert to empty array
+                          // since we only need files for new uploads
+                          setPaymentReceipts([]);
+                        }
+                      } else {
+                        // No receipts - clear the array
+                        setPaymentReceipts([]);
                       }
                     }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                      >
-                        {paymentReceipts.length > 0 ? (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
-                            {tKhairat('payPage.receiptUploaded', {
-                              count: paymentReceipts.length,
-                            }) || `${paymentReceipts.length} ${paymentReceipts.length === 1 ? 'receipt' : 'receipts'} uploaded`}
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            {tKhairat('payPage.uploadReceiptButton') || 'Upload Payment Receipt'}
-                          </>
-                        )}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{tKhairat('payPage.uploadPaymentReceiptTitle') || 'Upload Payment Receipt'}</DialogTitle>
-                        <DialogDescription>
-                          {tKhairat('payPage.uploadPaymentReceiptDescription') || 'Upload a payment receipt (JPEG, PNG, GIF, or PDF)'}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <PaymentReceiptUpload
-                          onReceiptsChange={(receipts) => {
-                            // Handle both File[] and PaymentReceipt[] types
-                            if (receipts && Array.isArray(receipts) && receipts.length > 0) {
-                              if (receipts[0] instanceof File) {
-                                // New files to upload - update state immediately
-                                setPaymentReceipts(receipts as File[]);
-                                setHasReceiptInDialog(true);
-                              } else {
-                                // Already uploaded receipts (PaymentReceipt[]), convert to empty array
-                                // since we only need files for new uploads
-                                setPaymentReceipts([]);
-                                setHasReceiptInDialog(false);
-                              }
-                            } else {
-                              // No receipts - clear the array
-                              setPaymentReceipts([]);
-                              setHasReceiptInDialog(false);
-                            }
-                          }}
-                          maxFiles={1}
-                        />
-                        <p className="text-xs text-muted-foreground mt-3">
-                          {tKhairat('payPage.uploadReceiptHelp')}
-                        </p>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          onClick={() => setIsReceiptModalOpen(false)}
-                          disabled={!hasReceiptInDialog && paymentReceipts.length === 0}
-                          className="w-full sm:w-auto"
-                        >
-                          {tKhairat('payPage.confirm') || 'Confirm'}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                    maxFiles={1}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {tKhairat('payPage.uploadPaymentReceiptDescription') ||
+                      tKhairat('payPage.uploadReceiptHelp')}
+                  </p>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">
-                  {tKhairat('payPage.notesLabel')}
-                </Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={tKhairat('payPage.notesPlaceholder')}
-                  rows={3}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -1619,11 +1530,11 @@ function KhairatPayPageContent() {
                 submitting ||
                 !amount ||
                 !paymentMethod ||
-                ((paymentMethod === 'bank_transfer' ||
-                  paymentMethod === 'cash') &&
+                paymentMethod === 'cash' || // Cash is informational only; no submission
+                (paymentMethod === 'bank_transfer' &&
                   paymentReceipts.length === 0)
               }
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-11"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 flex items-center justify-center"
               size="lg"
             >
               {submitting ? (
@@ -1632,10 +1543,10 @@ function KhairatPayPageContent() {
                   {tKhairat('payPage.processing')}
                 </>
               ) : (
-                <>
-                  <HandCoins className="h-4 w-4 mr-2" />
+                <span className="inline-flex items-center">
                   {tKhairat('payPage.submitPayment')}
-                </>
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </span>
               )}
             </Button>
           </div>

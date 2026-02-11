@@ -24,6 +24,7 @@ import { isValidMalaysiaIc, normalizeMalaysiaIc } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { KhairatStandardHeader } from '@/components/khairat/KhairatStandardHeader';
 import { KhairatLoadingHeader } from '@/components/khairat/KhairatLoadingHeader';
+import { KhairatMemberCard } from '@/components/khairat/KhairatMemberCard';
 
 // Helper function to mask email for privacy
 function maskEmail(email: string): string {
@@ -455,79 +456,18 @@ function KhairatStatusPageContent() {
           </div>
         )}
 
-        {/* Membership Verification Status */}
+        {/* Membership Verification Status - reusable member card */}
         {statusResult && statusResult.registration.found && verifiedICNumber && (
-          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <strong className="text-slate-900 dark:text-slate-100">{tKhairat('payPage.membershipVerifiedTitle')}</strong>
-              </div>
-              {verifiedICNumber && (
-                <div className="flex items-center gap-2 ml-6">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {tKhairat('payPage.icNumberLabel') || 'IC Number'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                      {verifiedICNumber.slice(0, 6) + '******'}
-                    </span>
-                  </p>
-                  {statusResult.registration.status && (
-                    <Badge 
-                      variant={
-                        statusResult.registration.status === 'active' || statusResult.registration.status === 'approved' ? 'default' :
-                        statusResult.registration.status === 'inactive' ? 'secondary' :
-                        statusResult.registration.status === 'pending' ? 'secondary' :
-                        'outline'
-                      }
-                      className="capitalize"
-                    >
-                      {translateStatus(statusResult.registration.status) || (locale === 'ms' ? 'Aktif' : 'Active')}
-                    </Badge>
-                  )}
-                </div>
-              )}
-              {(statusResult.registration.memberId || statusResult.registration.membershipNumber) && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 ml-6">
-                  {tKhairat('payPage.memberIdLabel') || 'Member ID'}: <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">{statusResult.registration.membershipNumber || statusResult.registration.memberId?.slice(0, 8).toUpperCase()}</span>
-                </p>
-              )}
-              
-              {/* Display Name, Email, and Phone (Masked for Privacy) */}
-              {(statusResult.registration.full_name || statusResult.registration.email || statusResult.registration.phone) && (
-                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 ml-6 space-y-2">
-                  {statusResult.registration.full_name && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.payerNameLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
-                        {maskName(statusResult.registration.full_name)}
-                      </span>
-                    </div>
-                  )}
-                  {statusResult.registration.email && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.emailLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 break-all text-sm">
-                        {maskEmail(statusResult.registration.email)}
-                      </span>
-                    </div>
-                  )}
-                  {statusResult.registration.phone && (
-                    <div className="flex items-start gap-3">
-                      <span className="font-medium text-slate-600 dark:text-slate-400 min-w-[100px] text-sm">
-                        {tKhairat('payPage.mobileNumberLabel')}:
-                      </span>
-                      <span className="text-slate-900 dark:text-slate-100 flex-1 text-sm">
-                        {maskPhone(statusResult.registration.phone)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <KhairatMemberCard
+            locale={locale}
+            title={tKhairat('payPage.membershipVerifiedTitle')}
+            memberName={statusResult.registration.full_name}
+            icNumber={verifiedICNumber}
+            memberId={statusResult.registration.memberId}
+            membershipNumber={statusResult.registration.membershipNumber}
+            status={statusResult.registration.status}
+            maskName={maskName}
+          />
         )}
 
         {/* IC Form Card - Only show when no status result yet */}

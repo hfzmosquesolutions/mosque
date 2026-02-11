@@ -1741,6 +1741,8 @@
       "contactLabel": "Contact",
       "phoneLabel": "Phone",
       "paymentInstructionsLabel": "Payment Instructions",
+      "cashPaymentNoDetails": "Please contact the mosque office for cash payment details.",
+      "cashPaymentReminder": "For cash payments, please follow the cash payment instructions provided by the mosque.",
       "uploadReceiptHelp": "Upload payment receipt (JPEG, PNG, GIF, or PDF). Maximum size 10MB.",
       "notesLabel": "Notes (Optional)",
       "notesPlaceholder": "Any additional notes",
